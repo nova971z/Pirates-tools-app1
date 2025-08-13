@@ -1,19 +1,13 @@
-/* ---------- PWA : bouton "installer" (caché sur iOS) ---------- */
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
-/* ---------- Service Worker ---------- */
+/* ---------- PWA : SW ---------- */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
 }
 
-/* ---------- Menu : scroll fluide & lien actif ---------- */
-const menuLinks = [...document.querySelectorAll('[data-scroll]')];
-const mapLinks  = menuLinks.map(a => [a, document.querySelector(a.getAttribute('data-scroll'))]);
+/* ---------- Menu : scroll fluide + lien actif ---------- */
+const links = [...document.querySelectorAll('[data-scroll]')];
+const map   = links.map(a => [a, document.querySelector(a.getAttribute('data-scroll'))]);
 
-menuLinks.forEach(a => {
+links.forEach(a => {
   a.addEventListener('click', (e) => {
     e.preventDefault();
     const sel = a.getAttribute('data-scroll');
@@ -22,48 +16,59 @@ menuLinks.forEach(a => {
   });
 });
 
-window.addEventListener('scroll', () => {
-  const top = window.scrollY, h = innerHeight;
-  let current = menuLinks[0];
-  for (const [a, sec] of mapLinks) {
+addEventListener('scroll', () => {
+  const top = scrollY, h = innerHeight;
+  let current = links[0];
+  for (const [a, sec] of map) {
     if (!sec) continue;
     const start = sec.offsetTop - h * 0.35;
     if (top >= start) current = a;
   }
-  menuLinks.forEach(a => a.classList.toggle('active', a === current));
+  links.forEach(a => a.classList.toggle('active', a === current));
 });
 
-/* ---------- HERO : inclinaison + réduction + fondu au scroll ---------- */
-(function(){
+/* ---------- HERO : zoom + fade + légère inclinaison (mobile plus marqué) ---------- */
+(function () {
   const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
   if (!hero || !logo) return;
 
-  let ticking = false;
-  const clamp = (v,min,max)=>Math.max(min, Math.min(max, v));
+  const isMobile = matchMedia('(max-width: 768px)').matches;
+  const tiltMax   = isMobile ? 16 : 10;     // degrés
+  const zoomGain  = isMobile ? 0.32 : 0.20; // grossit plus sur mobile
+  const fadeGain  = isMobile ? 1.6  : 1.2;  // disparaît plus vite sur mobile
+  const liftGain  = isMobile ? 0.32 : 0.24; // remonte un peu plus sur mobile
 
-  function onScroll(){
+  const clamp = (v,min,max)=>Math.max(min, Math.min(max, v));
+  let ticking = false;
+
+  function onScroll() {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(() => {
-      const vh = window.innerHeight || 1;
-      const progress = clamp(window.scrollY / (vh * .9), 0, 1);
+      const vh = innerHeight || 1;
+      const p = clamp(scrollY / (vh * 0.9), 0, 1);
 
-      const tilt = 12 * progress;
-      const scale = 1 - 0.15 * progress;
-      const translate = -vh * 0.25 * progress;
-      const opacity = clamp(1 - 1.1 * progress, 0, 1);
+      const tilt      = tiltMax * p;
+      const scale     = 1 + (zoomGain * p);          // <<< zoom en descendant
+      const translate = -(vh * liftGain * p);        // <<< remonte
+      const opacity   = clamp(1 - (fadeGain * p), 0, 1);
 
       logo.style.transform = `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
-      logo.style.opacity = opacity;
+      logo.style.opacity   = opacity;
+
+      // Quand le logo est quasi invisible, on masque l'overlay
+      hero.style.visibility = (opacity <= 0.01) ? 'hidden' : 'visible';
+
       ticking = false;
     });
   }
-  addEventListener('scroll', onScroll, {passive:true});
+
+  addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 })();
 
-/* ---------- Rendu produits depuis products.json ---------- */
+/* ---------- Rendu produits (exemple) ---------- */
 fetch('products.json')
   .then(r => r.json())
   .then(MODELS => {
@@ -85,6 +90,6 @@ fetch('products.json')
     `).join('');
   })
   .catch(() => {
-    const list = document.getElementById('list');
-    list.innerHTML = `<p style="opacity:.7">Aucun produit (vérifie <code>products.json</code>).</p>`;
+    document.getElementById('list').innerHTML =
+      `<p style="opacity:.7">Aucun produit (vérifie <code>products.json</code>).</p>`;
   });
