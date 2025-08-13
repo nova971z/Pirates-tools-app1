@@ -3,7 +3,7 @@
   --brand:#19d3ff; --accent:#7c4dff; --border:#203040; --r:.8rem;
 }
 
-/* 0. Base (mêmes couleurs/ambiances) */
+/* Base */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
@@ -14,9 +14,9 @@ body{
 }
 .container{max-width:1100px; width:92vw; margin:0 auto;}
 
-/* 1. Topbar (devant tout) */
+/* Topbar — toujours devant */
 .topbar{
-  position: sticky; top: 0; z-index: 3000; /* premier plan */
+  position: sticky; top: 0; z-index: 3000;
   display:flex; align-items:center; justify-content:space-between;
   padding:.6rem .9rem;
   background: rgba(10,15,20,.72);
@@ -33,29 +33,32 @@ body{
 .btn.cta.phone{ background: linear-gradient(90deg,#19d3ff,#00ffa7); }
 .btn.cta.wa{    background: linear-gradient(90deg,#25D366,#128C7E); color:#001014; }
 
-/* 2. HERO overlay (logo au-dessus des articles) */
-.scene{ pointer-events:none; } /* laisse cliquer ce qu’il y a dessous */
+/* HERO overlay (logo au-dessus, légère séparation) */
+.scene{ pointer-events:none; } /* laisse cliquer le contenu et la topbar */
 .hero-full{
-  position: fixed; inset: 0; height:100vh; z-index: 2000; /* devant le contenu */
+  position: fixed; inset: 0; height: 100vh;
+  z-index: 2000; /* devant le contenu, derrière la topbar */
   background:
     radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.06), transparent),
     linear-gradient(180deg, transparent 0%, transparent 60%, transparent 100%);
 }
 .hero-logo{
-  display:block; margin:0 auto; max-width: 86vw;  /* taille par défaut */
-  will-change: transform, opacity; transform-origin:center center;
+  display:block; margin:0 auto;
+  max-width: 82vw; /* un peu plus petit pour laisser deviner les cartes en bas */
+  will-change: transform, opacity;
+  transform-origin:center center;
   filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
   transition: transform .12s ease-out, opacity .12s ease-out;
 }
 @media (max-width: 768px){
-  .hero-logo{ max-width:94vw; } /* un peu plus grand sur téléphone */
+  .hero-logo{ max-width: 90vw; } /* mobile : légèrement plus grand */
 }
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:30vh;
-  background:linear-gradient(180deg, transparent, rgba(10,15,20,.75), var(--bg));
+  position:absolute; inset:auto 0 0 0; height:24vh; /* dégradé plus court = légère séparation visible */
+  background:linear-gradient(180deg, transparent, rgba(10,15,20,.65), var(--bg));
 }
 
-/* 3. Liste produits (même look) */
+/* Grille produits (style d’origine) */
 .list{display:grid; gap:1.1rem; padding: 2rem 0;}
 @media(min-width:800px){ .list{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
 .card{
@@ -66,12 +69,15 @@ body{
 }
 .card.is-in{ opacity:1; transform:none; }
 
-.card .head{ display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+.card .head{
+  display:flex; align-items:center; justify-content:space-between; gap:.8rem;
   padding:.9rem 1rem; border-bottom:1px solid var(--border);
 }
 .title{margin:0; font-size:1.1rem;}
-.pill{ font-size:.8rem; opacity:.8; background:rgba(255,255,255,.06); border:1px solid var(--border);
-  padding:.25rem .45rem; border-radius:.45rem; }
+.pill{
+  font-size:.8rem; opacity:.8; background:rgba(255,255,255,.06); border:1px solid var(--border);
+  padding:.25rem .45rem; border-radius:.45rem;
+}
 .body{ padding:1rem; display:grid; gap:.8rem; }
 .figure{ display:grid; place-items:center; background: radial-gradient(400px 200px at 50% 30%, rgba(25,211,255,.08), transparent);}
 .figure img{ max-width: 100%; height:auto; border-radius:.4rem; }
@@ -80,11 +86,11 @@ body{
 .actions-line{ display:flex; gap:.6rem; flex-wrap:wrap; }
 .btn.primary{ background: linear-gradient(90deg, var(--brand), var(--accent)); color:#001018; border:0; font-weight:800; }
 
-/* 4. Contact/Footer */
+/* Contact/Footer */
 .contact{ padding:3rem 1rem; text-align:center; }
 .foot{ color:var(--muted); border-top:1px solid var(--border); padding:1rem 0; text-align:center; }
 
-/* 5. Préférence “moins d’animations” (accessibilité) */
+/* Accessibilité — animations réduites */
 @media (prefers-reduced-motion: reduce){
   .hero-logo{ transition:none !important; }
   .card{ transition:none !important; opacity:1 !important; transform:none !important; }
