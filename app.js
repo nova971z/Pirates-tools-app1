@@ -1,86 +1,90 @@
-
-// beforeinstallprompt is not supported on iOS; this is fine (button stays hidden)
+/* ---------- PWA : bouton "installer" (caché sur iOS) ---------- */
 let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  installBtn.hidden = false;
 });
-installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true;
-  if(deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
-});
-
-// Register service worker
+/* ---------- Service Worker ---------- */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
 }
 
-// Load offline products
-fetch('products.json').then(r=>r.json()).then(MODELS => {
-  const list = document.getElementById('list');
-  list.innerHTML = MODELS.map(m=>`
-    <article class="card" tabindex="0" aria-label="${m.sku}">
-      <div class="head">
-        <h2 class="title">${m.sku}</h2>
-        <button class="toggle" aria-expanded="false">Voir détails</button>
-      </div>
-      <div class="body">
-        <figure class="figure"><img src="${m.img}" alt="${m.sku}"></figure>
-        <p>${m.desc}</p>
-        <div class="specs">${m.specs.map(s=>`<span class="spec">${s}</span>`).join('')}</div>
-        <div class="actions">
-          <a class="btn primary" href="#" onclick="event.preventDefault()">Fiche</a>
-        </div>
-      </div>
-    </article>
-  `).join('');
-  Array.from(document.querySelectorAll('.card')).forEach(card=>{
-    const btn = card.querySelector('.toggle');
-    const toggle = ()=>{
-      const on = !card.classList.contains('expanded');
-      document.querySelectorAll('.card').forEach(c=>{ if(c!==card){ c.classList.remove('expanded'); c.querySelector('.toggle').setAttribute('aria-expanded','false'); } });
-      card.classList.toggle('expanded', on);
-      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
-      btn.textContent = on ? 'Réduire' : 'Voir détails';
-      if(on) card.scrollIntoView({behavior:'smooth', block:'center'});
-    };
-    btn.addEventListener('click', toggle);
-    card.addEventListener('click', (e)=>{ if(e.target !== btn) toggle(); });
+/* ---------- Menu : scroll fluide & lien actif ---------- */
+const menuLinks = [...document.querySelectorAll('[data-scroll]')];
+const mapLinks  = menuLinks.map(a => [a, document.querySelector(a.getAttribute('data-scroll'))]);
+
+menuLinks.forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    const sel = a.getAttribute('data-scroll');
+    const el  = document.querySelector(sel);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
   });
 });
 
-// --- Effet HERO : inclinaison + réduction + fondu au scroll ---
+window.addEventListener('scroll', () => {
+  const top = window.scrollY, h = innerHeight;
+  let current = menuLinks[0];
+  for (const [a, sec] of mapLinks) {
+    if (!sec) continue;
+    const start = sec.offsetTop - h * 0.35;
+    if (top >= start) current = a;
+  }
+  menuLinks.forEach(a => a.classList.toggle('active', a === current));
+});
+
+/* ---------- HERO : inclinaison + réduction + fondu au scroll ---------- */
 (function(){
   const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
-  if(!hero || !logo) return;
+  if (!hero || !logo) return;
 
   let ticking = false;
-  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+  const clamp = (v,min,max)=>Math.max(min, Math.min(max, v));
 
   function onScroll(){
-    if(ticking) return;
+    if (ticking) return;
     ticking = true;
-    requestAnimationFrame(()=>{
+    requestAnimationFrame(() => {
       const vh = window.innerHeight || 1;
-      const progress = clamp(window.scrollY / (vh * 0.9), 0, 1);
+      const progress = clamp(window.scrollY / (vh * .9), 0, 1);
 
       const tilt = 12 * progress;
       const scale = 1 - 0.15 * progress;
       const translate = -vh * 0.25 * progress;
       const opacity = clamp(1 - 1.1 * progress, 0, 1);
 
-      logo.style.transform =
-        `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
-      logo.style.opacity = opacity.toFixed(3);
-
+      logo.style.transform = `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
+      logo.style.opacity = opacity;
       ticking = false;
     });
   }
-
-  window.addEventListener('scroll', onScroll, {passive:true});
-  window.addEventListener('resize', onScroll, {passive:true});
+  addEventListener('scroll', onScroll, {passive:true});
   onScroll();
 })();
+
+/* ---------- Rendu produits depuis products.json ---------- */
+fetch('products.json')
+  .then(r => r.json())
+  .then(MODELS => {
+    const list = document.getElementById('list');
+    list.innerHTML = MODELS.map(m => `
+      <article class="card" tabindex="0" aria-label="${m.sku}">
+        <div class="head">
+          <h2 class="title">${m.sku}</h2>
+          <a class="btn" href="${m.link || '#'}" target="${m.link ? '_blank' : '_self'}" rel="noopener">Fiche</a>
+        </div>
+
+        <div class="body">
+          <figure class="figure"><img src="${m.img}" alt="${m.sku}"></figure>
+          <div class="specs">${m.specs.map(s => `<span class="spec">${s}</span>`).join('')}</div>
+          ${m.desc ? `<p class="desc">${m.desc}</p>` : ''}
+          ${m.price ? `<div class="actions"><span class="btn">~ ${m.price}</span><a class="btn primary" href="${m.cta || '#'}">Commander</a></div>` : ''}
+        </div>
+      </article>
+    `).join('');
+  })
+  .catch(() => {
+    const list = document.getElementById('list');
+    list.innerHTML = `<p style="opacity:.7">Aucun produit (vérifie <code>products.json</code>).</p>`;
+  });
