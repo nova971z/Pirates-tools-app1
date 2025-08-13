@@ -29,3 +29,27 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
+/* ===== TOPBAR : scroll fluide + shrink ===== */
+(function(){
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('a[data-scroll]');
+    if(!a) return;
+    const href = a.getAttribute('href') || a.dataset.scroll;
+    if(!href || !href.startsWith('#')) return;
+    const el = document.querySelector(href);
+    if(!el) return;
+    e.preventDefault();
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  const topbar = document.querySelector('.topbar');
+  if(!topbar) return;
+
+  function onScroll(){
+    topbar.classList.toggle('shrink', window.scrollY > 40);
+  }
+
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
