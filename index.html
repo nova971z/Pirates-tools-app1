@@ -3,76 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pirates Tools - Vente d’outillage</title>
-  <meta name="description" content="Pirates Tools - Outillage pro et accessoires. Visitez notre catalogue.">
+  <title>Pirates Tools</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="favicon.ico">
 </head>
 <body>
 
-  <!-- ===== BARRE SUPÉRIEURE ===== -->
-  <header class="topbar">
-    <div class="topbar-container">
-      <a href="tel:0774231095" class="contact-link" aria-label="Appeler Pirates Tools">
-        📞 07 74 23 10 95
-      </a>
-      <a href="https://wa.me/33774231095" target="_blank" class="whatsapp-link" aria-label="WhatsApp Pirates Tools">
-        💬 WhatsApp
-      </a>
-      <nav class="main-nav">
-        <a href="#list" data-scroll>Produits</a>
-        <a href="#contact" data-scroll>Contact</a>
-      </nav>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-container">
+    <a href="tel:0774231095" class="contact-link">📞 07 74 23 10 95</a>
+    <a href="https://wa.me/33774231095" target="_blank" class="whatsapp-link">💬 WhatsApp</a>
+    <nav class="main-nav">
+      <a href="#list">Produits</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO LOGO -->
+<section id="hero" class="hero-full">
+  <img id="heroLogo" src="images/pirates-tools-logo.png" alt="Pirates Tools Logo">
+</section>
+
+<!-- ESPACEMENT -->
+<div id="hero-spacer"></div>
+
+<!-- LISTE PRODUITS -->
+<main id="list" class="list">
+  <article class="card">
+    <div class="head">
+      <h2 class="title">Visseuse à chocs DeWalt DCF887</h2>
+      <span class="pill">Nouveau</span>
     </div>
-  </header>
+    <figure class="figure">
+      <img src="images/dewalt-dcf887.png" alt="Visseuse à chocs DeWalt DCF887">
+    </figure>
+    <div class="specs">
+      <span class="spec">18V</span>
+      <span class="spec">205 Nm</span>
+      <span class="spec">Brushless</span>
+    </div>
+    <div class="actions-line">
+      <a href="#" class="btn">Voir fiche</a>
+      <a href="#contact" class="btn primary">Commander</a>
+    </div>
+  </article>
+</main>
 
-  <!-- ===== SECTION HERO (LOGO) ===== -->
-  <section id="hero">
-    <img id="heroLogo" src="images/pirates-tools-logo.png" alt="Pirates Tools Logo">
-    <div class="hero-fade"></div>
-  </section>
+<!-- CONTACT -->
+<section id="contact" class="contact">
+  <h2>Contactez-nous</h2>
+  <p>📞 Téléphone : <a href="tel:0774231095">07 74 23 10 95</a></p>
+  <p>💬 WhatsApp : <a href="https://wa.me/33774231095" target="_blank">Discuter</a></p>
+</section>
 
-  <!-- ===== ESPACE ENTRE HERO ET LISTE ===== -->
-  <div id="hero-spacer"></div>
+<!-- FOOTER -->
+<footer class="footer">
+  <p>&copy; 2025 Pirates Tools. Tous droits réservés.</p>
+</footer>
 
-  <!-- ===== LISTE PRODUITS ===== -->
-  <main id="list" class="list">
-    <article class="card">
-      <div class="head">
-        <h2 class="title">Visseuse à chocs DeWalt DCF887</h2>
-        <span class="pill">Nouveau</span>
-      </div>
-      <figure class="figure">
-        <img src="images/dewalt-dcf887.png" alt="Visseuse à chocs DeWalt DCF887" loading="lazy">
-      </figure>
-      <div class="specs">
-        <span class="spec">18V</span>
-        <span class="spec">205 Nm</span>
-        <span class="spec">Brushless</span>
-      </div>
-      <div class="actions-line">
-        <a href="#" class="btn">Voir fiche</a>
-        <a href="#contact" class="btn primary">Commander</a>
-      </div>
-    </article>
-
-    <!-- Ajouter d'autres <article> ici -->
-  </main>
-
-  <!-- ===== SECTION CONTACT ===== -->
-  <section id="contact" class="contact">
-    <h2>Contactez-nous</h2>
-    <p>📞 Téléphone : <a href="tel:0774231095">07 74 23 10 95</a></p>
-    <p>💬 WhatsApp : <a href="https://wa.me/33774231095" target="_blank">Discuter</a></p>
-    <p>📧 Email : contact@pirates-tools.fr</p>
-  </section>
-
-  <!-- ===== PIED DE PAGE ===== -->
-  <footer class="footer">
-    <p>&copy; 2025 Pirates Tools. Tous droits réservés.</p>
-  </footer>
-
-  <!-- Scripts -->
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
