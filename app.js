@@ -21,7 +21,7 @@
 
       // Grossissement ajusté selon appareil
       const isMobile = window.innerWidth <= 768;
-      const maxScale = isMobile ? 1.25 : 1.15; // mobile + gros
+      const maxScale = isMobile ? 1.25 : 1.15; // mobile + gros zoom
       const scale = maxScale - (0.15 * progress);
 
       // Translation et fondu
