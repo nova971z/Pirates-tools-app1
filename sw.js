@@ -1,4 +1,4 @@
-const CACHE = 'pirates-tools-v1';
+const CACHE = 'pirates-tools-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   './app.js',
   './products.json',
   './images/pirates-tools-logo.png',
+  './manifest.webmanifest',
   './icons/icon-180.png'
 ];
 
@@ -24,14 +25,13 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  // Stratégie SWR (stale-while-revalidate)
   e.respondWith(
     caches.match(req).then(cached => {
       const fetchPromise = fetch(req).then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));
         return res;
-      }).catch(() => cached); // offline -> cache
+      }).catch(() => cached);
       return cached || fetchPromise;
     })
   );
