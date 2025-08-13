@@ -1,6 +1,6 @@
 /* =========================================================================
    Pirates Tools — STYLES.CSS (complet)
-   Palette & style cohérents avec ta version d'origine
+   Style original + LOGO très grand + fondu + séparation nette
    ========================================================================= */
 
 :root{
@@ -28,9 +28,9 @@ body{
 
 .container{width:min(1100px,92vw); margin:0 auto}
 
-/* ───────────────── Top bar / CTA (même style) */
+/* ───────────────── Top bar / CTA (identique style) */
 .topbar{
-  position:sticky; top:0; z-index:50;
+  position:sticky; top:0; z-index:1000;
   display:flex; align-items:center; justify-content:space-between; gap:.8rem;
   padding:.8rem 1rem;
   border-bottom:1px solid rgba(16,25,32,.18);
@@ -39,55 +39,46 @@ body{
 }
 .brand{font-weight:800}
 
-.cta-bar{display:flex; gap:.6rem; align-items:center}
+.actions{display:flex; gap:.6rem; align-items:center}
 .btn{
   display:inline-block; text-decoration:none;
   padding:.72rem .9rem; border:1px solid var(--border);
-  border-radius:10px; background:linear-gradient(90deg,#0fe0ff,#15f7b8);
-  color:#001018; font-weight:800;
+  border-radius:10px; color:var(--fg);
 }
-.btn.whatsapp{
-  background:#25D366; color:#001018; border-color:#1aa14c;
-}
-.btn.icon{
-  display:flex; align-items:center; gap:.5rem;
-}
-
-/* ───────────────── Menu défilant (horizontal) */
-.menu-scroll{
-  position:sticky;
-  top:56px; /* juste sous la topbar */
-  z-index:40;
-  display:flex; gap:.6rem; padding:.5rem 1rem;
-  background:linear-gradient(180deg,rgba(10,15,20,.95),rgba(10,15,20,.78));
-  border-bottom:1px solid rgba(16,25,32,.18);
-  overflow:auto;
-}
-.menu-link{
-  white-space:nowrap; color:var(--fg); text-decoration:none;
-  padding:.45rem .7rem; border:1px solid var(--border);
-  border-radius:999px; background:rgba(18,27,36,.6);
-}
+.btn.cta{ background:linear-gradient(90deg,#0fe0ff,#15f7b8); color:#001018; font-weight:800; border:0 }
+.btn.wa{ background:#25D366; color:#001018; border:0 }
 
 /* ───────────────── LISTE d'articles */
 .list{display:grid; gap:1rem; padding:1.2rem 0 2.5rem}
+@media (min-width: 800px){ .list{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
 .card{
   background:var(--card); border:1px solid var(--border);
   border-radius:12px;
   box-shadow: 0 10px 24px rgba(10,15,20,.35);
+  overflow:hidden;
+  opacity:0; transform: translateY(14px);
+  transition: opacity .28s ease, transform .28s ease;
 }
+.card.is-in{ opacity:1; transform:none; }
+
 .head{
   display:flex; align-items:center; justify-content:space-between; gap:1rem;
   padding:1rem 1.2rem; border-bottom:1px solid var(--border);
 }
 .title{margin:0; font-size:1.2rem}
-.badge{
+.pill,.badge{
   padding:.35rem .6rem; border-radius:10px; font-size:.8rem;
   color:#001018;
   background:linear-gradient(90deg,#0fe0ff,#15f7b8);
   border:1px solid rgba(0,16,24,.12);
 }
-.figure{display:grid; place-items:center; background:radial-gradient(400px 200px at 50% 30%,rgba(25,211,255,.08),transparent), linear-gradient(180deg,#0a0f14 0%, #060a10 60%, #0a0f14 100%)}
+.figure{
+  display:grid; place-items:center;
+  background:
+    radial-gradient(400px 200px at 50% 30%,rgba(25,211,255,.08),transparent),
+    linear-gradient(180deg,#0a0f14 0%, #060a10 60%, #0a0f14 100%);
+}
 .figure img{max-width:100%; height:auto; display:block}
 .specs{display:flex; flex-wrap:wrap; gap:.6rem; padding:1rem 1.2rem}
 .spec{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:.6rem .8rem}
@@ -95,74 +86,75 @@ body{
 .v{font-weight:600}
 .actions{display:flex; gap:.6rem; padding:1rem 1.2rem; align-items:center; flex-wrap:wrap}
 .price{font-weight:800}
-.card.expanded .figure img{transform:scale(1.08); transition:transform .4s}
+.btn.primary{ background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; border:0; font-weight:800 }
 
 /* ───────────────── FOOTER simple */
 .foot{color:var(--muted); border-top:1px solid var(--border); padding:1rem 0}
 
 /* ========================================================================
-   HERO (Logo plein écran au-dessus des articles) + séparation nette
+   HERO (Logo au-dessus) + possibilité de zoom ÉNORME + fondu + séparation
    ======================================================================== */
 
-/* profondeur 3D pour l’inclinaison */
-.scene{ perspective:1000px; }
+.scene{ perspective:1000px; } /* profondeur 3D pour l’inclinaison (tilt) */
 
-/* Le bloc HERO est au-dessus des cartes au départ */
+/* Le HERO reste devant visuellement pendant l’animation */
 .hero-full{
-  position:relative;
-  overflow:visible; /* le logo peut dépasser pour le zoom */
-  z-index:30;       /* plus haut que la liste (z-index:10 plus bas) */
+  position:relative;            /* pas fixed → plus de compat avec spacer */
+  overflow:visible;             /* IMPORTANT : autorise le logo à dépasser quand il grossit */
+  z-index:30;                   /* au-dessus de la liste (z:10) */
   background:
     radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
     linear-gradient(180deg, #0a0f14 0%, #060a10 60%, #0a0f14 100%);
   padding-top:.5rem;
 }
 
-/* le LOGO lui-même */
+/* LOGO — base plus grande + transform fluide ; prêt pour un zoom énorme */
 .hero-logo{
-  display:block;
-  margin:0 auto;
-  max-width:min(92vw, 880px);  /* grande taille sur desktop */
+  display:block; margin:0 auto;
+  /* base très large : desktop jusqu’à 1400px, mobile quasi plein écran */
+  max-width: clamp(420px, 96vw, 1400px);
   height:auto;
-  will-change: transform, opacity; /* GPU hint */
+
+  will-change: transform, opacity;  /* (hint perf) */
   transform-origin:center center;
   filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
+  transition: transform .12s ease-out, opacity .12s ease-out;
+  position: relative;
+  z-index: 2; /* devant la bande de fondu */
 }
 
-/* dégradé qui fait une transition douce vers les articles */
+/* Bande de fondu (transition douce vers les articles) */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:24vh;
-  background: linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.88), var(--bg));
+  position:absolute; inset:auto 0 0 0;
+  height: 18vh; /* court et net ; tu peux pousser à 22vh si tu veux plus de fondu */
+  background: linear-gradient(
+    180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,0.55) 40%,
+    rgba(10,15,20,0.80) 75%,
+    var(--bg) 100%
+  );
   pointer-events:none;
+  z-index: 1;
 }
 
-/* ───── Séparation nette : espace structurel sous le logo
-   (les articles débutent APRÈS cette zone ; le logo reste par-dessus
-    visuellement au démarrage grâce à z-index, mais ne masque pas la liste) */
+/* Séparation structurelle : évite le chevauchement au repos */
 #hero-spacer{
-  height: 18vh;          /* Desktop */
+  height: 12vh;      /* Espace réel (desktop) — réduit mais sûr */
   z-index: 5;
   position: relative;
 }
+@media (max-width: 768px){
+  #hero-spacer{ height: 16vh; } /* Mobile : un peu plus d’air car zoom plus fort en JS */
+}
 
-/* La liste est en-dessous du HERO */
+/* La liste est sous le HERO (mais démarre après le spacer, donc pas masquée) */
 .list{ position: relative; z-index: 10; }
 
 /* ========================================================================
-   Responsive
+   Accessibilité / préférences
    ======================================================================== */
-@media (max-width: 1024px){
-  .menu-scroll{ top:54px }
-  #hero-spacer{ height: 20vh; }
-}
-
-@media (max-width: 768px){
-  .container{width:min(100%,94vw)}
-  .menu-scroll{ top:52px }
-  .hero-logo{
-    max-width:min(96vw, 720px);
-  }
-  /* Sur mobile on laisse un peu plus d’air entre logo et cartes
-     car le zoom initial est plus fort dans app.js */
-  #hero-spacer{ height: 24vh; }
+@media (prefers-reduced-motion: reduce){
+  .hero-logo{ transition:none !important; }
+  .card{ transition:none !important; opacity:1 !important; transform:none !important; }
 }
