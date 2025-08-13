@@ -1,174 +1,70 @@
-/* =========================================================================
-   Pirates Tools — APP.JS (complet)
-   - Bouton d'installation (PWA)
-   - Enregistrement Service Worker
-   - Chargement des produits (products.json)
-   - Cartes cliquables (expand)
-   - Menu de défilement (data-scroll)
-   - Effet HERO : inclinaison + grossissement + fondu (mobile boost)
-   ========================================================================= */
+// ================================================================
+// Pirates Tools — HERO Zoom Fix (app.js)
+// - Zoom très fort du logo pendant le scroll (mobile ++)
+// - Inclinaison + remontée + fondu (mêmes sensations visuelles)
+// - Boucle requestAnimationFrame (fluide, précis sur iPad/iPhone)
+// - Ne dépend QUE de #hero et #heroLogo (aucune autre feature touchée)
+//   (scroll = défilement ; rAF = requestAnimationFrame = horloge graphique)
+// ================================================================
 
-/* -----------------------------
-   1) Bouton d’installation PWA
---------------------------------*/
-let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
+(() => {
+  'use strict';
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (installBtn) installBtn.hidden = false;
-});
+  // 1) Récupère les éléments
+  const hero = document.getElementById('hero');
+  const logo = document.getElementById('heroLogo');
 
-installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true;
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt = null;
-  }
-});
-
-/* -----------------------------
-   2) Service Worker
---------------------------------*/
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(console.error);
-  });
-}
-
-/* -----------------------------
-   3) Chargement des produits
---------------------------------*/
-const list = document.getElementById('list');
-
-function renderProducts(models) {
-  if (!list) return;
-
-  list.innerHTML = models.map((m) => `
-    <article class="card" tabindex="0" aria-label="${m.sku || ''}">
-      <div class="head">
-        <h2 class="title">${m.title || ''}</h2>
-        ${m.badge ? `<span class="badge">${m.badge}</span>` : ''}
-      </div>
-
-      ${m.image ? `
-      <figure class="figure">
-        <img src="${m.image}" alt="${m.title || 'Produit'}">
-      </figure>` : ''}
-
-      <div class="specs">
-        ${m.specs ? m.specs.map(s => `
-          <div class="spec">
-            <div class="k">${s.k}</div>
-            <div class="v">${s.v}</div>
-          </div>`).join('') : ''}
-      </div>
-
-      <div class="actions">
-        ${m.price ? `<div class="price">${m.price}</div>` : ''}
-        ${m.cta ? `<a class="btn btn-primary" href="${m.cta.href}" target="_blank" rel="noopener">${m.cta.label}</a>` : ''}
-      </div>
-    </article>
-  `).join('');
-
-  // ouverture/fermeture des cartes
-  list.querySelectorAll('.card').forEach(card => {
-    const toggle = () => card.classList.toggle('expanded');
-    card.addEventListener('click', (e) => {
-      // éviter que le clic sur un bouton déclenche l’expansion
-      if (e.target.closest('a,button')) return;
-      toggle();
-    });
-    card.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') toggle();
-    });
-  });
-}
-
-async function loadProducts() {
-  try {
-    const r = await fetch('products.json', { cache: 'no-store' });
-    const models = await r.json();
-    renderProducts(models);
-  } catch (err) {
-    console.error('Erreur chargement produits:', err);
-    if (list) list.innerHTML = `<p style="opacity:.7">Impossible de charger les produits pour le moment.</p>`;
-  }
-}
-
-/* -----------------------------
-   4) Menu défilant (data-scroll)
---------------------------------*/
-function initScrollMenu() {
-  // afficher le menu “rapide” s’il existe
-  const quickMenu = document.getElementById('quickMenu');
-  if (quickMenu) quickMenu.hidden = false;
-
-  // liens avec data-scroll="#id"
-  document.querySelectorAll('[data-scroll]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const target = document.querySelector(a.getAttribute('data-scroll'));
-      if (!target) return;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
-}
-
-/* -----------------------------
-   5) Effet HERO (inclinaison + zoom + fondu)
-   - Le logo passe AU-DESSUS des cartes au début
-   - Séparation nette gérée par #hero-spacer (HTML) et z-index (CSS)
---------------------------------*/
-function initHeroEffect() {
-  const hero  = document.getElementById('hero');
-  const logo  = document.getElementById('heroLogo');
-
+  // Sécurité : si l'id n'existe pas, on ne fait rien
   if (!hero || !logo) return;
 
-  let ticking = false;
+  // 2) Petits utilitaires
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const isMobile = () => window.innerWidth <= 820; // (mobile/tablette)
 
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
+  // 3) Réglages de l'effet (tu peux ajuster les chiffres si besoin)
+  //    (zoomGain = quantité de grossissement ; fadeGain = vitesse de disparition ;
+  //     liftGain = remontée verticale en % d'écran ; tiltMax = inclinaison max en degrés)
+  const cfgDesktop = { zoomGain: 0.65, fadeGain: 1.30, liftGain: 0.26, tiltMax: 12 };
+  const cfgMobile  = { zoomGain: 1.25, fadeGain: 1.60, liftGain: 0.34, tiltMax: 18 }; // <<< ÉNORME
 
-    requestAnimationFrame(() => {
-      const vh = window.innerHeight || 1;
-      // progression jusqu’à ~90% de l’écran
-      const progress = clamp(window.scrollY / (vh * 0.9), 0, 1);
+  // 4) rAF loop : on lit la position de scroll et on applique la transformation
+  let lastY = -1;
 
-      // Inclinaison légère
-      const tilt = 12 * progress;
+  function frame() {
+    const vh = window.innerHeight || 1;
+    // Position de scroll robuste (iOS/Safari inclus)
+    const y  = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
 
-      // Zoom : un peu plus fort sur mobile
-      const isMobile = window.innerWidth <= 768;
-      const maxScale = isMobile ? 1.28 : 1.16;    // boost léger
-      const scale = maxScale - (0.16 * progress);
+    // Même si le scroll ne change pas, on continue la boucle (coût très faible)
+    lastY = y;
 
-      // Translation vers le haut + fondu
-      const translate = -vh * 0.25 * progress;
-      const opacity   = clamp(1 - 1.1 * progress, 0, 1);
+    // Progression 0→1 sur ~70% d'un écran (plus réactif = zoom visible plus tôt)
+    const p = clamp(y / (vh * 0.7), 0, 1);
 
-      logo.style.transform =
-        `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
-      logo.style.opacity = opacity;
+    // Choix des gains selon l'appareil
+    const C = isMobile() ? cfgMobile : cfgDesktop;
 
-      ticking = false;
-    });
+    // Calculs de l'effet
+    const scale     = 1 + C.zoomGain * p;         // <<< GROSSIT fort en descendant
+    const translate = -(vh * C.liftGain * p);     // logo remonte
+    const tilt      = C.tiltMax * p;              // légère inclinaison
+    const opacity   = clamp(1 - C.fadeGain * p, 0, 1); // fondu identique
+
+    // Application des styles (transform = transformation ; opacity = transparence)
+    logo.style.transform = `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
+    logo.style.opacity   = opacity;
+
+    // Masque l'overlay quand il est invisible (meilleure lisibilité/clics)
+    // (visibility = visibilité ; 0.01 ≈ quasi invisible)
+    hero.style.visibility = (opacity <= 0.01) ? 'hidden' : 'visible';
+
+    // Boucle continue (horloge graphique)
+    requestAnimationFrame(frame);
   }
 
-  window.addEventListener('scroll', onScroll, { passive: true });
-  // appli initiale (au cas où on arrive déjà scrollé)
-  onScroll();
-}
+  // 5) Démarrage : une frame pour initialiser, puis la boucle
+  requestAnimationFrame(frame);
 
-/* -----------------------------
-   6) Lancement
---------------------------------*/
-document.addEventListener('DOMContentLoaded', () => {
-  initScrollMenu();
-  initHeroEffect();
-  loadProducts();
-});
+  // 6) Recalcule automatiquement si on change d'orientation/taille
+  addEventListener('resize', () => { lastY = -1; }, { passive: true });
+})();
