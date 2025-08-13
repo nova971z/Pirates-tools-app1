@@ -50,3 +50,37 @@ fetch('products.json').then(r=>r.json()).then(MODELS => {
     card.addEventListener('click', (e)=>{ if(e.target !== btn) toggle(); });
   });
 });
+
+// --- Effet HERO : inclinaison + réduction + fondu au scroll ---
+(function(){
+  const hero = document.getElementById('hero');
+  const logo = document.getElementById('heroLogo');
+  if(!hero || !logo) return;
+
+  let ticking = false;
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const vh = window.innerHeight || 1;
+      const progress = clamp(window.scrollY / (vh * 0.9), 0, 1);
+
+      const tilt = 12 * progress;
+      const scale = 1 - 0.15 * progress;
+      const translate = -vh * 0.25 * progress;
+      const opacity = clamp(1 - 1.1 * progress, 0, 1);
+
+      logo.style.transform =
+        `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
+      logo.style.opacity = opacity.toFixed(3);
+
+      ticking = false;
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll, {passive:true});
+  onScroll();
+})();
