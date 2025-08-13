@@ -11,8 +11,25 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="styles.css">
+<link rel="preload" as="image" href="./images/pirates-tools-logo.png">
 </head>
 <body>
+ <!-- HERO plein écran avec logo -->
+<div class="scene">
+  <section class="hero-full" id="hero">
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      src="./images/pirates-tools-logo.png"
+      alt="Pirates Tools Guadeloupe — logo"
+      decoding="async"
+      fetchpriority="high"
+    />
+    <div class="hero-fade"></div>
+  </section>
+</div>
+
+  <section id="list" class="list"></section>
 <header class="topbar">
   <div class="brand">☠ Pirates <b>Tools</b></div>
   <button id="installBtn" hidden>Installer l’app</button>
