@@ -5,45 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools</title>
 
-  <!-- SEO / Partage (métadonnées basiques) -->
-  <meta name="description" content="Pirates Tools — Outillage pro. Visseuses à choc DeWALT, conseils et contact rapide." />
-  <meta property="og:title" content="Pirates Tools — Outillage pro" />
-  <meta property="og:description" content="Visseuses à choc DeWALT + conseils. Contact téléphone & WhatsApp." />
-  <meta property="og:type" content="website" />
+  <!-- Meta simples (SEO / partage de base) -->
+  <meta name="description" content="Pirates Tools — Outillage pro. Visseuses à choc DeWALT, contact rapide téléphone & WhatsApp." />
+  <meta property="og:title" content="Pirates Tools">
+  <meta property="og:description" content="Visseuses à choc DeWALT, conseils et contact rapide.">
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
-  <!-- Précharge ton logo (meilleure perf) -->
+  <!-- Précharge le logo pour un affichage net -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 </head>
 <body>
 
-  <!-- 1) TOPBAR (toujours devant, z-index élevé) -->
+  <!-- TOPBAR (toujours devant) -->
   <header class="topbar" role="navigation" aria-label="Barre supérieure">
     <div class="brand">Pirates <b>Tools</b></div>
+
     <nav class="actions" aria-label="Liens rapides">
       <a class="btn cta phone" href="tel:+33774231095" aria-label="Appeler Pirates Tools">📞 07 74 23 10 95</a>
       <a class="btn cta wa" href="https://wa.me/33774231095?text=Bonjour%20Pirates%20Tools%20!" target="_blank" rel="noopener" aria-label="WhatsApp Pirates Tools">💬 WhatsApp</a>
     </nav>
   </header>
 
-  <!-- 2) HERO OVERLAY (logo au-dessus des articles) -->
+  <!-- HERO OVERLAY (logo au-dessus des articles) -->
   <div class="scene">
     <section id="hero" class="hero-full" aria-label="Logo Pirates Tools">
-      <img id="heroLogo" class="hero-logo" src="./images/pirates-tools-logo.png" alt="Logo Pirates Tools" decoding="async" fetchpriority="high" />
+      <img id="heroLogo" class="hero-logo"
+           src="./images/pirates-tools-logo.png"
+           alt="Logo Pirates Tools"
+           decoding="async" fetchpriority="high" />
       <div class="hero-fade"></div>
     </section>
   </div>
 
-  <!-- 3) CONTENU (les articles passent sous le logo) -->
-  <main class="container">
+  <!-- CONTENU (les cartes défilent sous le logo) -->
+  <main class="container" role="main">
     <section id="list" class="list" aria-label="Produits">
-      <!-- Exemples de cartes (remplace par ton rendu JSON si tu veux) -->
+      <!-- Exemples de cartes (remplace par tes données si besoin) -->
       <article class="card">
-        <div class="head"><h2 class="title">DCF887 (18V XR)</h2><span class="pill">Nouveau</span></div>
+        <div class="head">
+          <h2 class="title">DCF887 (18V XR)</h2>
+          <span class="pill">Nouveau</span>
+        </div>
         <div class="body">
-          <figure class="figure"><img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=900&auto=format" alt="DCF887 DeWALT" loading="lazy" decoding="async"></figure>
-          <div class="specs"><span class="spec">205 Nm</span><span class="spec">0–3250 rpm</span><span class="spec">1/4"</span></div>
+          <figure class="figure">
+            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=900&auto=format" alt="DCF887 DeWALT" loading="lazy" decoding="async">
+          </figure>
+          <div class="specs">
+            <span class="spec">205 Nm</span>
+            <span class="spec">0–3250 rpm</span>
+            <span class="spec">1/4"</span>
+          </div>
           <div class="actions-line">
             <a class="btn" href="#contact">Fiche</a>
             <a class="btn primary" href="#contact">Commander</a>
@@ -52,10 +64,19 @@
       </article>
 
       <article class="card">
-        <div class="head"><h2 class="title">DCF815 (12V)</h2><span class="pill">Compact</span></div>
+        <div class="head">
+          <h2 class="title">DCF815 (12V)</h2>
+          <span class="pill">Compact</span>
+        </div>
         <div class="body">
-          <figure class="figure"><img src="https://images.unsplash.com/photo-1581092338107-1e7e46a1e97a?q=80&w=900&auto=format" alt="DCF815 DeWALT" loading="lazy" decoding="async"></figure>
-          <div class="specs"><span class="spec">107 Nm</span><span class="spec">0–2450 rpm</span><span class="spec">1/4"</span></div>
+          <figure class="figure">
+            <img src="https://images.unsplash.com/photo-1581092338107-1e7e46a1e97a?q=80&w=900&auto=format" alt="DCF815 DeWALT" loading="lazy" decoding="async">
+          </figure>
+          <div class="specs">
+            <span class="spec">107 Nm</span>
+            <span class="spec">0–2450 rpm</span>
+            <span class="spec">1/4"</span>
+          </div>
           <div class="actions-line">
             <a class="btn" href="#contact">Fiche</a>
             <a class="btn primary" href="#contact">Commander</a>
@@ -64,10 +85,19 @@
       </article>
 
       <article class="card">
-        <div class="head"><h2 class="title">DCF901 (12V Xtreme)</h2><span class="pill">3/8"</span></div>
+        <div class="head">
+          <h2 class="title">DCF901 (12V Xtreme)</h2>
+          <span class="pill">3/8"</span>
+        </div>
         <div class="body">
-          <figure class="figure"><img src="https://images.unsplash.com/photo-1581094478535-6c52b7c20c09?q=80&w=900&auto=format" alt="DCF901 DeWALT" loading="lazy" decoding="async"></figure>
-          <div class="specs"><span class="spec">164 Nm</span><span class="spec">0–2850 rpm</span><span class="spec">3/8"</span></div>
+          <figure class="figure">
+            <img src="https://images.unsplash.com/photo-1581094478535-6c52b7c20c09?q=80&w=900&auto=format" alt="DCF901 DeWALT" loading="lazy" decoding="async">
+          </figure>
+          <div class="specs">
+            <span class="spec">164 Nm</span>
+            <span class="spec">0–2850 rpm</span>
+            <span class="spec">3/8"</span>
+          </div>
           <div class="actions-line">
             <a class="btn" href="#contact">Fiche</a>
             <a class="btn primary" href="#contact">Commander</a>
@@ -78,7 +108,10 @@
 
     <section id="contact" class="contact" aria-label="Contact">
       <h2>Contact</h2>
-      <p>Tél : <a href="tel:+33774231095">07 74 23 10 95</a> — WhatsApp : <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a></p>
+      <p>
+        Tél : <a href="tel:+33774231095">07 74 23 10 95</a> —
+        WhatsApp : <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a>
+      </p>
     </section>
   </main>
 
