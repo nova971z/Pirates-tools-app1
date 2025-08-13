@@ -23,4 +23,15 @@ body{margin:0; background:linear-gradient(180deg,var(--bg),#060a10 40%,var(--bg)
 .btn{display:inline-block; text-decoration:none; padding:.7rem .9rem; border:1px solid var(--border); border-radius:.6rem; color:#fff;}
 .btn.primary{background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; border:0; font-weight:800;}
 .card.expanded .figure img{ transform: scale(1.08); }
-.foot{color:var(--muted); border-top:1px solid var(--border); padding:1rem 0;}
+.foot{color:var(--muted); border-top:1px solid var(--border); padding:1rem 0;/* Logo plein écran */
+.hero-full {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.hero-logo {
+  max-width: 80%;
+  height: auto;
+}}
