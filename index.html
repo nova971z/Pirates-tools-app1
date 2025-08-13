@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pirates Tools • Boutique (App PWA)</title>
+<meta name="theme-color" content="#0a0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pirates Tools">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">☠ Pirates <b>Tools</b></div>
+  <button id="installBtn" hidden>Installer l’app</button>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Visseuses à choc DeWALT</h1>
+    <p>Installe cette app : ouvre dans Safari → <b>Partager</b> → <b>Ajouter à l’écran d’accueil</b>.</p>
+  </section>
+
+  <section id="list" class="list"></section>
+
+  <footer class="foot">© Pirates Tools — PWA hors-ligne</footer>
+</main>
+
+<script src="app.js" defer></script>
+</body>
+</html>

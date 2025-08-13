@@ -1,0 +1,26 @@
+
+:root{
+  --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#f4f7fb; --muted:#b9c3cf;
+  --brand:#19d3ff; --accent:#7c4dff; --border:#203040; --r:1rem;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0; background:linear-gradient(180deg,var(--bg),#060a10 40%,var(--bg)); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,'Inter',Segoe UI,Roboto,Arial,sans-serif; line-height:1.8; letter-spacing:.2px;}
+.container{width:min(1100px,92vw); margin:0 auto;}
+.topbar{position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:.8rem 1rem; border-bottom:1px solid var(--border); background:rgba(10,15,20,.8); backdrop-filter: blur(10px);}
+.brand{font-weight:800;}
+#installBtn{background:linear-gradient(90deg,var(--brand),var(--accent)); border:0; color:#001018; border-radius:.6rem; padding:.6rem .9rem; font-weight:800;}
+.hero{padding:1.2rem 0 .4rem;} .hero h1{font-size:clamp(1.6rem,4.6vw,2.4rem); text-shadow:0 0 10px rgba(25,211,255,.5);}
+.list{display:grid; gap:1rem; padding:1rem 0 2rem;}
+.card{background:var(--card); border:1px solid var(--border); border-radius:var(--r); box-shadow:0 10px 24px rgba(0,0,0,.35); padding:1rem; display:grid; gap:1rem;}
+.head{display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
+.title{margin:0; font-size:1.2rem;} .toggle{background:transparent; border:1px solid var(--border); color:var(--fg); padding:.55rem .8rem; border-radius:.6rem;}
+.figure{display:grid; place-items:center; background: radial-gradient(400px 200px at 50% 30%, rgba(25,211,255,.08), transparent); border-radius:.8rem; padding:1rem;}
+.figure img{max-width:100%; height:auto; filter: drop-shadow(0 12px 24px rgba(0,0,0,.45)); transform: scale(1); transition: transform .25s ease;}
+.specs{display:flex; flex-wrap:wrap; gap:.5rem;} .spec{background:var(--panel); border:1px solid var(--border); padding:.35rem .6rem; border-radius:.5rem; font-size:.95rem;}
+.actions{display:flex; gap:.6rem; flex-wrap:wrap;}
+.btn{display:inline-block; text-decoration:none; padding:.7rem .9rem; border:1px solid var(--border); border-radius:.6rem; color:#fff;}
+.btn.primary{background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; border:0; font-weight:800;}
+.card.expanded .figure img{ transform: scale(1.08); }
+.foot{color:var(--muted); border-top:1px solid var(--border); padding:1rem 0;}

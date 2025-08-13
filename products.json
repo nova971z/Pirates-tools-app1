@@ -1,0 +1,57 @@
+[
+  {
+    "sku": "DCF850 (ATOMIC 20V MAX)",
+    "desc": "Ultra-compact (<4”), 3 vitesses, couple élevé pour sa taille.",
+    "specs": [
+      "Couple ~206 Nm",
+      "0–3 250 rpm",
+      "0–3 800 ipm",
+      "3.97\""
+    ],
+    "img": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc5MDAnIGhlaWdodD0nNTYwJz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz4KICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyMxOWQzZmYnLz4KICAgIDxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nIzdjNGRmZicvPgogIDwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgogIDxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMwZTE1MWMnLz4KICA8Y2lyY2xlIGN4PSc0NTAnIGN5PScyMjAnIHI9JzE3MCcgZmlsbD0ndXJsKCNnKScgb3BhY2l0eT0nMC4yMicvPgogIDx0ZXh0IHg9JzUwJScgeT0nNTIlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzY4JyBmaWxsPScjYjljM2NmJyBmb250LWZhbWlseT0nRGVqYVZ1IFNhbnMsIEFyaWFsLCBzYW5zLXNlcmlmJz5EQ0Y4NTA8L3RleHQ+Cjwvc3ZnPg=="
+  },
+  {
+    "sku": "DCF845 (XR 20V MAX)",
+    "desc": "XR nouvelle génération, 3 vitesses, IPM plus élevé.",
+    "specs": [
+      "Couple ~206 Nm",
+      "0–3 400 rpm",
+      "0–4 200 ipm",
+      "5.1\""
+    ],
+    "img": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc5MDAnIGhlaWdodD0nNTYwJz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz4KICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyMxOWQzZmYnLz4KICAgIDxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nIzdjNGRmZicvPgogIDwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgogIDxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMwZTE1MWMnLz4KICA8Y2lyY2xlIGN4PSc0NTAnIGN5PScyMjAnIHI9JzE3MCcgZmlsbD0ndXJsKCNnKScgb3BhY2l0eT0nMC4yMicvPgogIDx0ZXh0IHg9JzUwJScgeT0nNTIlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzY4JyBmaWxsPScjYjljM2NmJyBmb250LWZhbWlseT0nRGVqYVZ1IFNhbnMsIEFyaWFsLCBzYW5zLXNlcmlmJz5EQ0Y4NDU8L3RleHQ+Cjwvc3ZnPg=="
+  },
+  {
+    "sku": "DCF887 (XR 20V MAX)",
+    "desc": "Classique XR, 3 vitesses + Precision Drive™.",
+    "specs": [
+      "Couple ~206 Nm",
+      "0–1 000 / 2 800 / 3 250 rpm",
+      "0–3 800 ipm",
+      "5.3\""
+    ],
+    "img": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc5MDAnIGhlaWdodD0nNTYwJz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz4KICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyMxOWQzZmYnLz4KICAgIDxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nIzdjNGRmZicvPgogIDwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgogIDxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMwZTE1MWMnLz4KICA8Y2lyY2xlIGN4PSc0NTAnIGN5PScyMjAnIHI9JzE3MCcgZmlsbD0ndXJsKCNnKScgb3BhY2l0eT0nMC4yMicvPgogIDx0ZXh0IHg9JzUwJScgeT0nNTIlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzY4JyBmaWxsPScjYjljM2NmJyBmb250LWZhbWlseT0nRGVqYVZ1IFNhbnMsIEFyaWFsLCBzYW5zLXNlcmlmJz5EQ0Y4ODc8L3RleHQ+Cjwvc3ZnPg=="
+  },
+  {
+    "sku": "DCF888 (XR Tool Connect)",
+    "desc": "Bluetooth Tool Connect™ : modes programmables et suivi.",
+    "specs": [
+      "Couple ~206 Nm",
+      "~3 250 rpm",
+      "~3 800 ipm",
+      "5.3\""
+    ],
+    "img": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc5MDAnIGhlaWdodD0nNTYwJz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz4KICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyMxOWQzZmYnLz4KICAgIDxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nIzdjNGRmZicvPgogIDwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgogIDxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMwZTE1MWMnLz4KICA8Y2lyY2xlIGN4PSc0NTAnIGN5PScyMjAnIHI9JzE3MCcgZmlsbD0ndXJsKCNnKScgb3BhY2l0eT0nMC4yMicvPgogIDx0ZXh0IHg9JzUwJScgeT0nNTIlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzY4JyBmaWxsPScjYjljM2NmJyBmb250LWZhbWlseT0nRGVqYVZ1IFNhbnMsIEFyaWFsLCBzYW5zLXNlcmlmJz5EQ0Y4ODg8L3RleHQ+Cjwvc3ZnPg=="
+  },
+  {
+    "sku": "DCF801 (XTREME 12V MAX)",
+    "desc": "Format 12V ultra-court pour zones exiguës.",
+    "specs": [
+      "Couple ~164 Nm",
+      "0–2 850 rpm",
+      "3 600 ipm",
+      "5.05\""
+    ],
+    "img": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc5MDAnIGhlaWdodD0nNTYwJz4KICA8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJyB5MT0nMCcgeDI9JzEnIHkyPScxJz4KICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyMxOWQzZmYnLz4KICAgIDxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nIzdjNGRmZicvPgogIDwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgogIDxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbGw9JyMwZTE1MWMnLz4KICA8Y2lyY2xlIGN4PSc0NTAnIGN5PScyMjAnIHI9JzE3MCcgZmlsbD0ndXJsKCNnKScgb3BhY2l0eT0nMC4yMicvPgogIDx0ZXh0IHg9JzUwJScgeT0nNTIlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzY4JyBmaWxsPScjYjljM2NmJyBmb250LWZhbWlseT0nRGVqYVZ1IFNhbnMsIEFyaWFsLCBzYW5zLXNlcmlmJz5EQ0Y4MDE8L3RleHQ+Cjwvc3ZnPg=="
+  }
+]
