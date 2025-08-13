@@ -3,7 +3,7 @@
   --brand:#19d3ff; --accent:#7c4dff; --border:#203040; --r:.8rem;
 }
 
-/* Base */
+/* ===== Base ===== */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
@@ -14,7 +14,7 @@ body{
 }
 .container{max-width:1100px; width:92vw; margin:0 auto;}
 
-/* Topbar — toujours devant */
+/* ===== Topbar — toujours devant ===== */
 .topbar{
   position: sticky; top: 0; z-index: 3000;
   display:flex; align-items:center; justify-content:space-between;
@@ -33,8 +33,8 @@ body{
 .btn.cta.phone{ background: linear-gradient(90deg,#19d3ff,#00ffa7); }
 .btn.cta.wa{    background: linear-gradient(90deg,#25D366,#128C7E); color:#001014; }
 
-/* HERO overlay (logo au-dessus, légère séparation) */
-.scene{ pointer-events:none; } /* laisse cliquer le contenu et la topbar */
+/* ===== HERO overlay (logo au-dessus des articles, avec séparation visible) ===== */
+.scene{ pointer-events:none; } /* (pointer-events) laisse cliquer le contenu/topbar */
 .hero-full{
   position: fixed; inset: 0; height: 100vh;
   z-index: 2000; /* devant le contenu, derrière la topbar */
@@ -43,22 +43,25 @@ body{
     linear-gradient(180deg, transparent 0%, transparent 60%, transparent 100%);
 }
 .hero-logo{
-  display:block; margin:0 auto;
-  max-width: 82vw; /* un peu plus petit pour laisser deviner les cartes en bas */
-  will-change: transform, opacity;
+  display:block; margin: 0 auto;
+  max-width: 82vw;                 /* taille de départ (identité visuelle conservée) */
+  will-change: transform, opacity; /* (will-change) hint perf */
   transform-origin:center center;
   filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
   transition: transform .12s ease-out, opacity .12s ease-out;
 }
 @media (max-width: 768px){
-  .hero-logo{ max-width: 90vw; } /* mobile : légèrement plus grand */
+  .hero-logo{ max-width: 90vw; }   /* mobile : un peu plus large */
 }
+/* Bande de séparation visible en bas du HERO (les articles “apparaissent” déjà) */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:24vh; /* dégradé plus court = légère séparation visible */
-  background:linear-gradient(180deg, transparent, rgba(10,15,20,.65), var(--bg));
+  position:absolute; inset:auto 0 0 0;
+  height: 16vh;                    /* <<< séparation légère */
+  background: linear-gradient(180deg, transparent, rgba(10,15,20,.55), var(--bg));
+  pointer-events: none;
 }
 
-/* Grille produits (style d’origine) */
+/* ===== Grille produits (style d’origine) ===== */
 .list{display:grid; gap:1.1rem; padding: 2rem 0;}
 @media(min-width:800px){ .list{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
 .card{
@@ -86,11 +89,11 @@ body{
 .actions-line{ display:flex; gap:.6rem; flex-wrap:wrap; }
 .btn.primary{ background: linear-gradient(90deg, var(--brand), var(--accent)); color:#001018; border:0; font-weight:800; }
 
-/* Contact/Footer */
+/* ===== Contact/Footer ===== */
 .contact{ padding:3rem 1rem; text-align:center; }
 .foot{ color:var(--muted); border-top:1px solid var(--border); padding:1rem 0; text-align:center; }
 
-/* Accessibilité — animations réduites */
+/* ===== Accessibilité : moins d’animations ===== */
 @media (prefers-reduced-motion: reduce){
   .hero-logo{ transition:none !important; }
   .card{ transition:none !important; opacity:1 !important; transform:none !important; }
