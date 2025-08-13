@@ -60,3 +60,87 @@ body{margin:0; background:linear-gradient(180deg,var(--bg),#060a10 40%,var(--bg)
   background: linear-gradient(180deg, transparent, rgba(10,15,20,0.75), var(--bg,#0a0f14));
   pointer-events: none;
 }
+/* ===== TOPBAR Pirates Tools ===== */
+:root {
+  --topbar-h: 56px;
+  --topbar-bg: linear-gradient(90deg, rgba(10,15,20,.95), rgba(10,15,20,.85));
+  --glow: 0 0 18px rgba(124, 255, 255, .14);
+}
+
+body { padding-top: var(--topbar-h); }
+
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--topbar-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 rgba(255,255,255,.06), var(--glow);
+  z-index: 1000;
+}
+
+.tb-left {
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tb-link {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: .95rem;
+  padding: .35rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+  background: var(--panel);
+}
+
+.tb-link:hover { box-shadow: var(--glow); }
+.tb-link.whats { color: #25D366; border-color: #1c7a47; }
+
+.ico {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  opacity: .95;
+}
+
+.tb-text { letter-spacing: .2px; }
+
+.tb-menu { display: flex; gap: .6rem; align-items: center; }
+.tb-nav {
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: .95rem;
+  padding: .35rem .7rem;
+  border-radius: .6rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.tb-nav:hover { box-shadow: var(--glow); }
+
+.topbar.shrink {
+  height: 46px;
+  padding: 4px 12px;
+}
+
+.topbar.shrink .tb-link, .topbar.shrink .tb-nav {
+  padding: .25rem .55rem;
+  font-size: .9rem;
+}
+
+@media (max-width: 680px) {
+  .tb-menu { display: none; }
+  body { padding-top: 52px; }
+}
