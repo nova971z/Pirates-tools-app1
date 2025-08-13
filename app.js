@@ -1,16 +1,21 @@
-/* 1) Effet HERO (logo au-dessus, zoom + disparition ; mobile un peu plus fort) */
+/* Effet HERO : overlay au-dessus, légère séparation au départ,
+   zoom + disparition (mobile un peu plus fort), topbar reste devant */
 (function () {
   const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
   if (!hero || !logo) return;
 
-  const isMobile = matchMedia('(max-width: 768px)').matches;
+  const isMobile  = matchMedia('(max-width: 768px)').matches;
 
-  // réglages doux (zoomGain = grossissement ; fadeGain = vitesse de disparition)
-  const tiltMax   = isMobile ? 16 : 12;   // degrés
-  const zoomGain  = isMobile ? 0.40 : 0.28; // mobile grossit un peu plus
-  const fadeGain  = isMobile ? 1.60 : 1.30; // disparition fluide
-  const liftGain  = isMobile ? 0.30 : 0.22; // remonte légèrement
+  // Réglages (zoomGain = grossissement ; fadeGain = vitesse de disparition ; tiltMax = inclinaison ; liftGain = remontée)
+  const tiltMax   = isMobile ? 16 : 12;
+  const zoomGain  = isMobile ? 0.42 : 0.28;
+  const fadeGain  = isMobile ? 1.65 : 1.30;
+  const liftGain  = isMobile ? 0.28 : 0.22;
+
+  // Décalage initial vers le haut pour laisser un "liseré" de cartes visible
+  // (vh = % de la hauteur d’écran)
+  const startOffsetVH = isMobile ? -10 : -8;
 
   const clamp = (v,min,max)=>Math.max(min, Math.min(max, v));
   let ticking = false;
@@ -20,28 +25,28 @@
     ticking = true;
     requestAnimationFrame(() => {
       const vh = innerHeight || 1;
-      const p = clamp(scrollY / (vh * 0.9), 0, 1);  // progression 0→1
+      const p  = clamp(scrollY / (vh * 0.9), 0, 1);
 
       const tilt      = tiltMax * p;
-      const scale     = 1 + (zoomGain * p);           // zoom progressif
-      const translate = -(vh * liftGain * p);         // remonte un peu
-      const opacity   = clamp(1 - (fadeGain * p), 0, 1); // fade out
+      const scale     = 1 + zoomGain * p;                          // grossit progressivement
+      const translate = (startOffsetVH * vh / 100) - (vh * liftGain * p); // démarre un peu plus haut, puis remonte encore
+      const opacity   = clamp(1 - fadeGain * p, 0, 1);             // disparaît
 
       logo.style.transform = `translate3d(0, ${translate}px, 0) rotateX(${tilt}deg) scale(${scale})`;
       logo.style.opacity   = opacity;
 
-      // Quand il est quasi invisible, on masque l’overlay (meilleure lisibilité)
+      // Quand le logo est quasi invisible, on masque l’overlay (libère la vue et les clics)
       hero.style.visibility = (opacity <= 0.01) ? 'hidden' : 'visible';
 
       ticking = false;
     });
   }
 
-  addEventListener('scroll', onScroll, { passive:true });
+  addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 })();
 
-/* 2) Apparition douce des cartes (IntersectionObserver) */
+/* Apparition douce des cartes (IntersectionObserver) */
 (function(){
   const cards = document.querySelectorAll('.card');
   if(!cards.length) return;
