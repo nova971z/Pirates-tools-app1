@@ -3,87 +3,84 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pirates Tools • Boutique (App PWA)</title>
+  <title>Pirates Tools • Boutique (PWA)</title>
 
-  <!-- Couleur UI du navigateur / iOS -->
+  <!-- UI mobile / iOS -->
   <meta name="theme-color" content="#0a0f14">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Pirates Tools">
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="styles.css">
-  <!-- Précharge ton logo pour le HERO -->
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.png">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 </head>
 <body>
 
-  <!-- ===== BARRE DU HAUT ===== -->
-  <nav class="topbar">
+  <!-- ===== TOPBAR ===== -->
+  <nav class="topbar" role="navigation" aria-label="Barre supérieure">
     <div class="brand">Pirates <b>Tools</b></div>
 
     <div class="actions">
-      <!-- Appel direct -->
       <a class="btn cta phone" href="tel:+33774231095" aria-label="Appeler Pirates Tools">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <path fill="currentColor"
-            d="M6.6 10.2c1.2 2.4 3.1 4.3 5.5 5.5l2-2c.3-.3.8-.4 1.2-.3l3 1c.4.1.7.5.7.9v3.2c0 .6-.4 1-1 1C9.9 20.5 3.5 14.1 3.5 6.9c0-.6.4-1 1-1H7.7c.4 0 .8.3.9.7l1 3c.1.4 0 .9-.3 1.2l-2 2z"/>
+            d="M6.6 10.2c1.2 2.4 3.1 4.3 5.5 5.5l2-2c.3-.3.8-.4 1.2-.3l3 1c.4.1.7.5.7.9v3.2c0 .6-.4 1-1 1C9.9 20.5 3.5 14.1 3.5 6.9c0-.6.4-1 1-1H7.7c.4 0 .8.3 .9.7l1 3c.1.4 0 .9-.3 1.2l-2 2z"/>
         </svg>
         <span>07 74 23 10 95</span>
       </a>
 
-      <!-- WhatsApp direct -->
       <a class="btn cta wa" href="https://wa.me/33774231095?text=Bonjour%20Pirates%20Tools%20!"
          target="_blank" rel="noopener" aria-label="WhatsApp Pirates Tools">
         <svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
           <path fill="currentColor"
-            d="M16 3C8.8 3 3 8.8 3 16c0 2.3.7 4.5 1.8 6.3L3 29l6-1.6C10.8 28.7 13.3 29 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3zm0 24c-2.4 0-4.6-.7-6.5-2l-.5-.3-3.9 1 1-3.8-.3-.5c-1.4-2-2.1-4.3-2.1-6.6C3.7 10 9.1 4.6 16 4.6S28.3 10 28.3 16.9 22.9 27 16 27z"/>
+            d="M16 3C8.8 3 3 8.8 3 16c0 2.3.7 4.5 1.8 6.3L3 29l6-1.6C10.8 28.7 13.3 29 16 29c7.2 0 13-5.8 13-13S23.2 3 16 3z"/>
           <path fill="currentColor"
-            d="M20.4 17.6c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-1 .9-.2 0-.6-.2-1.2-.8-.5-.5-.8-1.1-.9-1.3-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2.1-.4 0-.6-.1-.2-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.2 2.8c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.1-1.3-.1-.1-.3-.2-.6-.3z"/>
+            d="M19.1 17.7c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-1 .9-.2 0-.6-.2-1.2-.8-.5-.5-.8-1.1-.9-1.3-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2.1-.4 0-.6-.1-.2-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.2 2.8c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.2.1-1.3-.1-.1-.3-.2-.6-.3z"/>
         </svg>
         <span>WhatsApp</span>
       </a>
     </div>
   </nav>
 
-  <!-- ===== MENU SCROLL (ancre) ===== -->
+  <!-- ===== MENU (scroll) ===== -->
   <div id="quickMenu" class="menu-scroll">
     <a class="menu-link active" data-scroll="#hero">Accueil</a>
     <a class="menu-link" data-scroll="#list">Produits</a>
     <a class="menu-link" data-scroll="#contact">Contact</a>
   </div>
 
-  <!-- ===== HERO avec logo ===== -->
+  <!-- ===== HERO (overlay fixe) ===== -->
   <div class="scene">
-    <section class="hero-full" id="hero">
+    <section class="hero-full" id="hero" aria-label="Logo Pirates Tools">
       <img id="heroLogo" class="hero-logo"
            src="./images/pirates-tools-logo.png"
-           alt="Pirates Tools Guadeloupe — logo" decoding="async" fetchpriority="high" />
+           alt="Pirates Tools — logo" decoding="async" fetchpriority="high" />
       <div class="hero-fade"></div>
     </section>
   </div>
 
-  <!-- ===== PRODUITS (remplis par JS) ===== -->
+  <!-- ===== CONTENU ===== -->
   <main class="container">
-    <section id="list" class="list" aria-label="Liste des produits"></section>
+    <section id="list" class="list" aria-label="Liste des produits">
+      <!-- Rendu JS depuis products.json -->
+    </section>
   </main>
 
-  <!-- ===== CONTACT ===== -->
-  <section id="contact" class="contact">
+  <section id="contact" class="contact" aria-label="Contact">
     <h2>Contact</h2>
     <p>
-      Tél : <a href="tel:+33774231095">07 74 23 10 95</a> —
+      Tél : <a href="tel:+33774231095">07 74 23 10 95</a> — 
       WhatsApp : <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a>
     </p>
   </section>
 
   <footer class="foot">© Pirates Tools — PWA hors-ligne</footer>
 
-  <!-- Script -->
   <script src="app.js"></script>
 </body>
 </html>
