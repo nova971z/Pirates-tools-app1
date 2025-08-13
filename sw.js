@@ -1,136 +1,81 @@
-:root {
-  --bg: #0a0f14;
-  --fg: #fff;
-  --border: rgba(255,255,255,0.08);
-}
+/* =========================================================================
+   sw.js — Service Worker (GitHub Pages compatible)
+   Pirates Tools PWA
+   ========================================================================= */
 
-/* ===== Base ===== */
-body {
-  margin: 0;
-  color: var(--fg);
-  background: linear-gradient(180deg, #0a0f14 0%, #061a20 40%, #0a0f14 100%);
-  font-family: system-ui, -apple-system, "Inter", Segoe UI, Roboto, Arial, sans-serif;
-  line-height: 1.7;
-  letter-spacing: .2px;
-}
+const CACHE_NAME = "pirates-tools-v3"; // ↑ incrémente quand tu changes des assets
 
-/* ===== Topbar ===== */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .6rem .9rem;
-  background: rgba(10, 15, 20, .72);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
-}
+// IMPORTANT : sur GitHub Pages, le site n'est pas à / mais à /<repo>/
+// On récupère automatiquement le "scope" du SW pour construire des URLs absolues.
+const SCOPE = self.registration.scope;         // ex: https://nova971z.github.io/Pirates-tools-app1/
+const U = (path) => new URL(path, SCOPE).toString();
 
-.logo-text {
-  font-weight: bold;
-  font-size: 1.2rem;
-}
+const ASSETS_TO_CACHE = [
+  U("."),                    // la page racine (index) dans le scope
+  U("index.html"),
+  U("styles.css"),
+  U("app.js"),
+  U("manifest.webmanifest"),
+  U("products.json"),
 
-.contact-links a {
-  color: var(--fg);
-  text-decoration: none;
-  margin-left: 1rem;
-}
+  // Images & icônes utilisées au chargement
+  U("images/pirates-tools-logo.png"),
+  U("icons/icon-180.png"),
+  // 👉 ajoute ici d'autres images si tu veux les précharger :
+  // U("images/ton-image-1.jpg"),
+  // U("images/ton-image-2.png"),
+];
 
-/* ===== Hero ===== */
-.scene {
-  pointer-events: none;
-}
+/* --------------------------------------------------------------------- */
+/* Installation — pré-cache des ressources clés                          */
+/* --------------------------------------------------------------------- */
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+  );
+  self.skipWaiting(); // active la nouvelle version sans attendre
+});
 
-.hero-full {
-  position: fixed;
-  inset: 0;
-  height: 100vh;
-  z-index: 2000;
-  background:
-    radial-gradient(60% 40% at 50% 30%, rgba(25, 211, 255, .06), transparent),
-    linear-gradient(180deg, transparent 0%, transparent 60%, transparent 100%);
-}
+/* --------------------------------------------------------------------- */
+/* Activation — suppression des anciens caches                           */
+/* --------------------------------------------------------------------- */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
 
-.hero-logo {
-  display: block;
-  margin: 0 auto;
-  max-width: 85vw;
-  will-change: transform, opacity;
-  transform-origin: center center;
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, .45));
-  transition: transform .12s ease-out, opacity .12s ease-out;
-}
+/* --------------------------------------------------------------------- */
+/* Fetch — stratégie cache d'abord, puis réseau, avec mise en cache      */
+/* --------------------------------------------------------------------- */
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
 
-@media (max-width: 768px) {
-  .hero-logo {
-    max-width: 92vw;
-  }
-}
+  // Laisse passer les requêtes de navigation mais on gère un fallback offline
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
 
-.hero-fade {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 30vh;
-  background: linear-gradient(180deg, transparent, rgba(10, 15, 20, .75), var(--bg));
-}
-
-/* ===== Articles ===== */
-.articles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  padding: 2rem;
-}
-
-.card {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity .28s ease, transform .28s ease;
-}
-.card.is-in {
-  opacity: 1;
-  transform: none;
-}
-
-/* ===== Skeleton ===== */
-.sk { border-radius: 8px; background: linear-gradient(90deg, #0e151c 0%, #17202a 20%, #0e151c 40%); background-size: 200% 100%; animation: sk 1.2s linear infinite; }
-.sk-title { width: 40%; height: 18px; }
-.sk-btn { width: 70px; height: 28px; }
-.sk-media { width: 100%; height: 160px; border-radius: 10px; }
-.sk-chip { width: 80px; height: 24px; display: inline-block; }
-.sk-text { width: 100%; height: 14px; margin-top: 8px; }
-@keyframes sk { to { background-position: -200% 0; } }
-
-/* ===== Boutons rapides mobile ===== */
-.quick-actions {
-  position: fixed;
-  right: 14px;
-  bottom: 16px;
-  z-index: 3500;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.qa-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  text-decoration: none;
-  font-weight: 900;
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 24px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.06) inset;
-}
-.qa-wa { background: linear-gradient(180deg,#25D366,#128C7E); color: #001014; }
-.qa-tel { background: linear-gradient(180deg,#19d3ff,#00ffa7); color: #001018; }
-
-@media (min-width: 821px) {
-  .quick-actions { display: none; }
-}
+      return fetch(req)
+        .then((res) => {
+          // On met en cache la réponse si elle est OK (statut 200, même domaine)
+          const copy = res.clone();
+          // N’essaye pas de mettre en cache les requêtes opaques cross-origin problématiques
+          if (req.method === "GET" && copy && copy.status === 200 && copy.type !== "opaque") {
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => {
+          // Fallback offline pour la navigation
+          if (req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html")) {
+            return caches.match(U("index.html"));
+          }
+          // Optionnel : retourne une image/statique par défaut si besoin
+        });
+    })
+  );
+});
