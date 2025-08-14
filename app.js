@@ -32,7 +32,6 @@ const waBtn       = $('#waBtn');
 (function syncCTA(){
   if (callBtn){
     callBtn.setAttribute('href', `tel:${PHONE_E164}`);
-    // conserve l'icône si présente
     callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
   }
   if (waBtn){
@@ -41,9 +40,9 @@ const waBtn       = $('#waBtn');
 })();
 
 /* ========================================================
-   HERO : zoom + fondu + anti-chevauchement
-   - Pilote les variables CSS : --heroScale, --heroY, --heroAlpha, --listGap
-   - Passe le hero SOUS la liste en fin d’animation (classe .hero-out)
+   HERO : zoom + fondu + anti-chevauchement (version fluide)
+   - Pilote : --heroScale, --heroY, --heroAlpha, --listGap
+   - Disparition + tôt, bascule .hero-out (z-index:-1) + body.after-hero
 ======================================================== */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -52,55 +51,71 @@ const waBtn       = $('#waBtn');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 
   let vh = Math.max(window.innerHeight, 1);
-  let ticking = false;
 
-  function compute(){
+  // Cœur du lissage : targetRaw suit le scroll, smoothRaw suit targetRaw avec inertie
+  let targetRaw = 0;  // progression théorique (0..1)
+  let smoothRaw = 0;  // progression lissée (0..1)
+  let raf = 0;
+
+  function measure(){
     const y = window.scrollY || 0;
-    const finish = vh * (mq.matches ? 0.78 : 0.90);  // distance d’anim (en px)
-    const raw = clamp(y / finish, 0, 1);             // progression 0..1
-    const p = easeOutCubic(raw);
+    // ↓ Disparition plus rapide : distance d’anim réduite (mobile < desktop)
+    const finish = vh * (mq.matches ? 0.64 : 0.82);
+    targetRaw = clamp(y / finish, 0, 1);
+  }
 
-    // Zoom fort (plus marqué sur mobile)
+  function render(){
+    // Inertie : réagit vite mais reste doux
+    const k = 0.22; // (0.18..0.28 : plus grand = plus réactif)
+    smoothRaw += (targetRaw - smoothRaw) * k;
+
+    const p = easeOutCubic(smoothRaw);
+
+    // Zoom plus fort sur mobile
     const base = 1.0;
-    const maxScale = mq.matches ? 2.8 : 1.9;
+    const maxScale = mq.matches ? 3.15 : 2.05;
     const scale = base + (maxScale - base) * p;
 
-    // Translation douce + fondu
-    const tyVh = (mq.matches ? 9 : 5) * p;           // en vh
-    const opacity = clamp(1 - (mq.matches ? 1.35 : 1.1) * raw, 0, 1);
+    // Translation + fondu (fade plus rapide sur mobile)
+    const tyVh    = (mq.matches ? 12 : 6) * p;
+    const opacity = clamp(1 - (mq.matches ? 1.55 : 1.25) * smoothRaw, 0, 1);
 
-    // Applique sur l'élément (variables CSS lues dans styles.css)
     heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
     heroLogo.style.setProperty('--heroY', `${tyVh.toFixed(2)}vh`);
     heroLogo.style.setProperty('--heroAlpha', opacity.toFixed(3));
 
-    // Réserve élastique au-dessus de la liste pour éviter le chevauchement
-    const gap = (1 - raw) * (mq.matches ? 18 : 22);  // en vh
+    // Réserve élastique au-dessus de la liste pour empêcher le chevauchement
+    const gap = (1 - smoothRaw) * (mq.matches ? 18 : 22); // en vh
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    // Bascule z-index quand l’anim est terminée
-    if (raw > 0.98){
+    // Quand terminé → passe sous les cartes
+    if (smoothRaw > 0.985){
       document.body.classList.add('after-hero');
-      hero.classList.add('hero-out');  // styles.css => z-index:-1
+      hero.classList.add('hero-out'); // styles.css => z-index:-1
     } else {
       document.body.classList.remove('after-hero');
       hero.classList.remove('hero-out');
     }
-  }
 
-  function onScroll(){
-    if (!ticking){
-      ticking = true;
-      requestAnimationFrame(() => { compute(); ticking = false; });
+    // Continue la boucle tant que l'écart est perceptible
+    if (Math.abs(targetRaw - smoothRaw) > 0.001){
+      raf = requestAnimationFrame(render);
+    } else {
+      raf = 0;
     }
   }
 
-  window.addEventListener('scroll', onScroll, { passive:true });
-  window.addEventListener('resize', () => { vh = Math.max(window.innerHeight, 1); compute(); }, { passive:true });
-  window.addEventListener('orientationchange', () => { vh = Math.max(window.innerHeight, 1); compute(); }, { passive:true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
+  function kick(){
+    measure();
+    if (!raf) raf = requestAnimationFrame(render);
+  }
 
-  compute(); // état initial
+  window.addEventListener('scroll', kick, { passive:true });
+  window.addEventListener('resize', () => { vh = Math.max(window.innerHeight, 1); kick(); }, { passive:true });
+  window.addEventListener('orientationchange', () => { vh = Math.max(window.innerHeight, 1); kick(); }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+
+  kick(); // état initial
 })();
 
 /* ========================================================
