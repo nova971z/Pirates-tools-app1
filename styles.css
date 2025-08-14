@@ -1,13 +1,16 @@
-Ou 7/* =========================================================
-   Pirates Tools — styles.css (FULL, fusion)
+/* =========================================================
+   Pirates Tools — styles.css (FULL, fusion propre)
    ========================================================= */
 
-/* Thème */
+/* -------------------- Thème -------------------- */
 :root{
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
-  --hero-gap-desktop:-18vh; --hero-gap-mobile:-24vh;
+
+  /* Réglage de l’écart initial sous le hero (négatif = la liste remonte) */
+  --hero-gap-desktop:-18vh; 
+  --hero-gap-mobile:-24vh;
 }
 
 *{box-sizing:border-box}
@@ -25,9 +28,9 @@ a{color:inherit;text-decoration:none}
 a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
 .container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
 
-/* ================= TOPBAR ================= */
+/* -------------------- TOPBAR -------------------- */
 .topbar{
-  position:sticky; top:0; inset-inline:0; z-index:12;
+  position:sticky; top:0; inset-inline:0; z-index:100;
   display:grid; grid-template-columns:auto auto 1fr auto;
   align-items:center; gap:.8rem;
   padding:.7rem .9rem;
@@ -35,7 +38,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
 }
-/* Logo à gauche (nouveau) */
 .topbar-logo-link{display:flex; align-items:center}
 .topbar-logo{height:28px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
 @media (max-width:768px){ .topbar-logo{height:24px} }
@@ -60,30 +62,54 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .btn:active{transform:translateY(1px)}
 @media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
-/* ================= HERO (zoom + fondu) ================= */
+/* -------------------- HERO (zoom + fondu) -------------------- */
+/* Le hero est sticky (plein écran) et passe SOUS la liste quand il a fini */
 .hero-full{
   position:sticky; top:0; height:100vh; inset-inline:0;
   display:grid; place-items:center;
-  pointer-events:none; z-index:3;
+  isolation:isolate;               /* plan isolé */
+  z-index:80;                      /* au-dessus au départ */
+  pointer-events:none;             /* ne bloque pas les clics */
 }
+.hero-out{ z-index:-1; }           /* sous les articles après l’anim */
+
 .hero-logo{
   width:min(78vmin,680px); height:auto;
-  transform:translateZ(0) scale(1);
+  transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
+  opacity: var(--heroAlpha, 1);
   transform-origin:center;
   will-change:transform, opacity;
   filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
+  transition: opacity .22s linear;
 }
-.hero-fade{
-  position:absolute; inset:auto 0 0 0; height:24vh; pointer-events:none;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.85) 60%, var(--bg) 100%);
-}
-.hero-full.is-hidden{ z-index:0; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s }
 
-/* Espace contrôlé (réduit) sous le hero */
+/* Dégradé de séparation — TOUJOURS derrière (z-index négatif) */
+.hero-fade{
+  position:absolute; inset:auto 0 0 0; height:24vh;
+  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.85) 60%, var(--bg) 100%);
+  pointer-events:none;
+  z-index:-1;                      /* jamais au-dessus du contenu */
+  opacity:.65; transition:opacity .25s linear;
+}
+body.after-hero .hero-fade{ opacity:0; }
+
+/* Espace contrôlé (réduit) sous le hero pour rapprocher la liste */
 main.container{ margin-top:var(--hero-gap-desktop) }
 @media (max-width:768px){ main.container{ margin-top:var(--hero-gap-mobile) } }
 
-/* ================= Toolbar ================= */
+/* Anti-chevauchement : réserve élastique au-dessus de la liste,
+   réduite par le JS (var --listGap), puis supprimée quand le hero sort. */
+.list{
+  position:relative; z-index:10;
+  display:grid; gap:1rem;
+}
+.list::before{
+  content:""; display:block; height:var(--listGap, 14vh);
+  transition:height .25s ease-out;
+}
+body.after-hero .list::before{ height:0; }
+
+/* -------------------- Toolbar -------------------- */
 .toolbar{
   position:relative; z-index:2;
   width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
@@ -96,8 +122,7 @@ main.container{ margin-top:var(--hero-gap-desktop) }
 }
 .search::placeholder{color:#7f94a5}
 
-/* ================= Liste / Cartes ================= */
-.list{display:grid; gap:1rem}
+/* -------------------- Cartes produits -------------------- */
 .card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); overflow:hidden; position:relative;
@@ -117,7 +142,7 @@ main.container{ margin-top:var(--hero-gap-desktop) }
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
-/* ================= Avis / Footer ================= */
+/* -------------------- Avis & Footer -------------------- */
 .ratings{
   margin:2rem auto 1rem; width:min(1100px,92vw);
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -132,11 +157,11 @@ main.container{ margin-top:var(--hero-gap-desktop) }
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* ================= Dock mobile ================= */
+/* -------------------- Dock mobile -------------------- */
 .dock{
   position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
   display:flex; gap:.6rem; align-items:center;
-  padding:.4rem .5rem; border-radius:999px; z-index:11;
+  padding:.4rem .5rem; border-radius:999px; z-index:110;
   background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   border:1px solid var(--border); box-shadow:var(--shadow);
 }
@@ -153,110 +178,11 @@ main.container{ margin-top:var(--hero-gap-desktop) }
   border:2px solid rgba(10,15,20,.85)
 }
 
-/* Utils */
+/* -------------------- Utils & Responsive -------------------- */
 .hidden{display:none !important}
+
 @media (max-width:768px){
   .btn{padding:.54rem .8rem}
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
-}
-
-/* === HERO mobile : zoom + fondu ultra fluide, sans bloquer les cartes === */
-.hero-full{
-  position: relative;
-  display: grid;
-  place-items: center;
-  isolation: isolate;          /* isole le plan du hero */
-  z-index: 20;                 /* au-dessus au départ */
-  pointer-events: none;        /* laisse cliquer les cartes dessous */
-}
-
-.hero-logo{
-  /* piloté par le JS via variables CSS */
-  transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
-  opacity: var(--heroAlpha, 1);
-  transform-origin: center center;
-  will-change: transform, opacity;
-  filter: drop-shadow(0 18px 36px rgba(0,0,0,.40));
-  transition: opacity .22s linear; /* lissage quand on relâche le scroll */
-}
-
-/* séparation nette et courte sous le logo (dégradé) */
-.hero-fade{
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 28vh;
-  background: linear-gradient(to bottom, rgba(10,15,20,0),
-                                           rgba(10,15,20,.85) 65%,
-                                           var(--bg, #0a0f14));
-  pointer-events: none;
-}
-
-/* Quand le logo a totalement disparu, on remet le hero sous les cartes */
-.hero-out{ z-index: 0; }
-
-/* Ajustements spécifiques mobile : réduit l’écart initial */
-@media (max-width: 768px){
-  .hero-full{ min-height: 64vh; }  /* moins haut => moins d’espace vide */
-  .list{ scroll-margin-top: 84px; }/* confort d’ancrage sous la topbar */
-}
-
-/* ==== Anti-chevauchement hero / articles ==== */
-
-/* Ordre des plans (topbar/dock > hero > liste) */
-.topbar{ z-index: 100; }
-.dock{ z-index: 110; }
-
-.hero-full{
-  position: relative;
-  display: grid;
-  place-items: center;
-  isolation: isolate;
-  z-index: 80;               /* au-dessus des cartes au début */
-  pointer-events: none;      /* ne bloque jamais les clics */
-}
-
-.hero-logo{
-  transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
-  opacity: var(--heroAlpha, 1);
-  transform-origin: center;
-  will-change: transform, opacity;
-  filter: drop-shadow(0 18px 36px rgba(0,0,0,.40));
-  transition: opacity .22s linear;
-}
-
-/* Dégradé de séparation sous le logo */
-.hero-fade{
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 28vh;
-  background: linear-gradient(to bottom, rgba(10,15,20,0),
-                                           rgba(10,15,20,.85) 65%,
-                                           var(--bg, #0a0f14));
-  pointer-events: none;
-}
-
-/* Quand l'anim du hero est finie, on le met sous les cartes */
-.hero-out{ z-index: 0; }
-
-/* Réserve d’espace « élastique » au-dessus de la liste pour éviter tout chevauchement.
-   Elle se réduit pendant le scroll puis disparaît quand le logo est parti. */
-.list{
-  position: relative;
-  z-index: 10;               /* au-dessus du hero quand celui-ci sort */
-}
-
-.list::before{
-  content: "";
-  display: block;
-  height: var(--listGap, 14vh);  /* alimenté par le JS */
-  transition: height .25s ease-out;
-}
-
-body.after-hero .list::before{ height: 0; }
-
-/* Mobile : léger réglage de hauteur du hero */
-@media (max-width: 768px){
-  .hero-full{ min-height: 64vh; }
-  .list{ scroll-margin-top: 84px; }
 }
