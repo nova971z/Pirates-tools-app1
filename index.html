@@ -69,7 +69,7 @@
 
   <!-- ============== HERO (logo) ============== -->
   <section class="hero-full" id="hero" aria-label="Identité Pirates Tools">
-    <!-- IMPORTANT : on enlève <source webp> pour éviter un 404 qui casse l’affichage -->
+    <!-- IMPORTANT : image PNG existante (évite 404) -->
     <img
       id="heroLogo"
       class="hero-logo"
@@ -94,7 +94,9 @@
 
   <!-- ============== LISTE PRODUITS (injectée en JS) ============== -->
   <main class="container" role="main">
-    <section id="list" class="list" aria-label="Produits"></section>
+    <!-- NOTE : les cartes sont injectées par app.js avec l’attribut data-tool,
+         nécessaire pour l’animation de sortie gauche/droite + fondu. -->
+    <section id="list" class="list" role="list" aria-label="Produits"></section>
   </main>
 
   <!-- ============== AVIS ============== -->
