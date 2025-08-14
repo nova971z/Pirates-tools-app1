@@ -11,12 +11,11 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- préchargement du logo -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 </head>
 <body>
 
-  <!-- ====== BARRE DE TÂCHES FIXE (menu + actions) ====== -->
+  <!-- Barre fixe -->
   <header class="topbar" role="banner">
     <div class="brand">Pirates Tools</div>
     <nav class="mainnav" aria-label="Navigation principale">
@@ -34,33 +33,27 @@
     </div>
   </header>
 
-  <!-- ====== HERO (logo plein écran) ====== -->
-  <section class="hero" aria-label="Identité Pirates Tools">
+  <!-- Hero (logo) -->
+  <section class="hero" id="hero" aria-label="Identité Pirates Tools">
     <div class="hero-stage">
-      <!-- Le wrapper garde le centre stable pendant le zoom -->
       <div class="hero-wrap">
-        <img id="heroLogo"
-             class="hero-logo"
+        <img id="heroLogo" class="hero-logo"
              src="./images/pirates-tools-logo.png"
              alt="Pirates Tools Guadeloupe — logo"
              decoding="async" fetchpriority="high" />
       </div>
-
-      <!-- Voile de fondu global (reste dans le hero) -->
       <div class="hero-fade" aria-hidden="true"></div>
     </div>
-
-    <!-- Séparateur: fine bande qui évite tout chevauchement perçu
-         (les articles “passent dessous” mais on garde une ligne d’air) -->
+    <!-- fine séparation pour éviter le “collage” visuel -->
     <div class="hero-gap" aria-hidden="true"></div>
   </section>
 
-  <!-- ====== LISTE DES PRODUITS ====== -->
+  <!-- Liste produits -->
   <main class="container">
     <section id="list" class="list" aria-label="Produits"></section>
   </main>
 
-  <!-- ====== CONTACT (ancre) ====== -->
+  <!-- Contact -->
   <footer id="contact" class="foot" role="contentinfo">
     © Pirates Tools — PWA hors-ligne
   </footer>
