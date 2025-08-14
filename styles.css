@@ -29,139 +29,72 @@ body{
   backdrop-filter: blur(10px);
 }
 
-/* HERO réduit (écart ↓) + z-index verrouillé au-dessus */
-.hero{ position:relative; height:38svh; min-height:38svh; display:block; overflow:clip; }
-
-.hero-stage{
-  position:sticky; top:0; height:100svh; width:100%;
-  display:grid; place-items:center; perspective:1000px;
-  z-index:6000;            /* <<< AU-DESSUS des articles */
-  pointer-events:auto;     /* on coupera en fin d’anim côté JS */
+/* ====== TOPBAR (inchangé, juste assuré au-dessus) ====== */
+.topbar{
+  position: sticky; top: 0; z-index: 7000;
+  display: grid; grid-template-columns: 1fr auto auto; gap: .8rem;
+  align-items: center;
+  padding: .7rem .9rem;
+  background: rgba(10,15,20,.78);
+  border-bottom: 1px solid rgba(10,15,20,.7);
+  backdrop-filter: blur(10px);
 }
 
-.hero-logo{
-  width:min(88vmin, 900px);
-  height:auto;
-  transform-origin:center center; /* pivot du zoom */
-  will-change: transform, opacity; /* optimisation GPU */
-  backface-visibility:hidden;
-  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
+/* ====== HERO (zoom par-dessus + séparation courte) ====== */
+/* Section que tu as déjà : <section class="hero-full" id="hero"> */
+.hero-full{
+  position: sticky;
+  top: 0;
+  height: 100svh;                 /* plein écran pour l’anim */
+  display: grid;
+  place-items: center;
+  overflow: clip;
+  z-index: 6000;                  /* AU-DESSUS de la liste */
+  /* variable CSS pilotée par JS pour le voile */
+  --veil: 0;
 }
 
-/* Voile qui “avale” le logo (disparition dans le fond) */
-.hero-veil{
-  position:absolute; inset:0; z-index:6100; pointer-events:none;
+/* Voile qui avale le logo (pas besoin d’ajouter du HTML) */
+.hero-full::before{
+  content: "";
+  position: absolute; inset: 0;
+  z-index: 6100;                  /* au-dessus du logo */
+  pointer-events: none;
   background:
     radial-gradient(circle at 50% 45%,
       rgba(2,8,13,0) 0%,
       rgba(2,8,13,0.20) 45%,
       rgba(2,8,13,0.60) 70%,
       rgba(2,8,13,0.95) 100%);
-  opacity:0; transition:opacity .2s linear;
+  opacity: var(--veil, 0);
+  transition: opacity .2s linear;
 }
 
-/* Dégradé bas (transition vers la liste) */
-.hero-fade{
-  position:absolute; inset:auto 0 0 0; height:22svh; z-index:6050;
-  background:linear-gradient(180deg, rgba(2,8,13,0) 0%, rgba(2,8,13,.85) 70%, rgba(2,8,13,1) 100%);
-  pointer-events:none;
-}
-
-/* Liste SOUS le hero pendant l’anim */
-.list{ position:relative; z-index:1; }
-.brand{font-weight:800}
-.mainnav{display:flex; gap:.6rem; justify-content:center}
-.chip{
-  display:inline-block; padding:.45rem .8rem; border-radius:999px;
-  border:1px solid var(--border); color:var(--fg); text-decoration:none;
-  background:linear-gradient(180deg, #0f1720, #0e1520);
-  box-shadow:0 10px 25px rgba(0,0,0,.25) inset, 0 1px 0 rgba(255,255,255,.04);
-  cursor:pointer; user-select:none;
-}
-.actions{display:flex; gap:.6rem; justify-self:end}
-.pill{
-  display:inline-flex; align-items:center; gap:.5rem;
-  padding:.6rem .9rem; border-radius:.9rem; text-decoration:none; color:#001018;
-  font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25);
-}
-.pill .emoji{filter:saturate(1.2)}
-.pill.phone{background:linear-gradient(180deg,#1fe2ff,#0be0c7)}
-.pill.wa{background:linear-gradient(180deg,#25D366,#18b555)}
-
-/* ===== Hero ===== */
-/* >>> réduction de l’écart > 60% : le héros ne prend plus tout l’écran */
-.hero{
-  position:relative;
-  height:38svh;          /* <= ~62% de moins que 100svh */
-  min-height:38svh;
-  display:block;
-  overflow:clip;
-}
-.hero-stage{
-  position:sticky; top:0; height:100svh; width:100%;
-  display:grid; place-items:center;
-  perspective:1000px;
-  z-index:30;            /* tjrs au-dessus => zoom par-dessus */
-}
-.hero-wrap{ width:100%; height:100%; display:grid; place-items:center; }
+/* Image du logo */
 .hero-logo{
-  width:min(88vmin, 900px);
-  height:auto;
-  transform-origin:center center;
+  position: relative;
+  z-index: 6050;                  /* sous le voile, au-dessus du fond */
+  width: min(90vmin, 960px);
+  height: auto;
+  transform-origin: center center;
   will-change: transform, opacity;
-  backface-visibility:hidden;
+  backface-visibility: hidden;
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
-  transition: transform .12s ease-out;
 }
-/* voile radial qui “avale” le logo */
-.hero-veil{
-  position:absolute; inset:0; z-index:31; pointer-events:none;
-  background:
-    radial-gradient(circle at 50% 45%,
-      rgba(2,8,13,0) 0%,
-      rgba(2,8,13,0.20) 45%,
-      rgba(2,8,13,0.60) 70%,
-      rgba(2,8,13,0.95) 100%);
-  opacity:0; transition:opacity .2s linear;
-}
-/* dégradé bas (transition vers la liste) */
+
+/* Dégradé bas (transition douce vers la liste) */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:26svh; z-index:32;
-  background:linear-gradient(180deg, rgba(2,8,13,0) 0%, rgba(2,8,13,.85) 70%, rgba(2,8,13,1) 100%);
-  pointer-events:none;
-}
-/* fine marge visuelle (très faible désormais) */
-.hero-gap{
-  height:clamp(3px, 0.9svh, 10px);
-  background:linear-gradient(180deg, rgba(2,8,13,1), rgba(2,8,13,0));
-}
-
-/* ===== Liste / cartes ===== */
-.list{display:grid; gap:1.2rem; padding:1.2rem}
-.card{
-  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-  box-shadow: 0 10px 24px rgba(0,0,0,.35); padding:1rem;
-}
-.card .head{
-  display:flex; align-items:center; justify-content:space-between; gap:.8rem;
-  border-bottom:1px solid var(--border); padding:.7rem 0; margin-bottom:1rem;
-}
-.card .title{margin:0; font-size:1.15rem}
-.card img{width:100%; height:auto; display:block; border-radius:.6rem}
-
-/* ===== Footer ===== */
-.foot{ color:var(--muted); border-top:1px solid var(--border); padding:2rem 1rem; text-align:center; }
-
-/* Installer */
-#installBtn{
-  position:fixed; right:1rem; bottom:1rem; z-index:60;
-  padding:.7rem 1rem; border-radius:.8rem; border:1px solid var(--border);
-  background:linear-gradient(90deg,var(--brand),var(--accent));
-  color:#001018; font-weight:800;
+  position: absolute; inset: auto 0 0 0;
+  height: 18svh;                  /* petite séparation nette */
+  z-index: 6005;
+  pointer-events: none;
+  background: linear-gradient(
+      180deg,
+      rgba(2,8,13,0) 0%,
+      rgba(2,8,13,.75) 65%,
+      rgba(2,8,13,1) 100%
+  );
 }
 
-/* responsive */
-@media (max-width:740px){
-  .topbar{grid-template-columns:1fr auto}
-  .actions{display:none}
-}
+/* La liste est sous le hero pendant l’anim */
+.list{ position: relative; z-index: 1; }
