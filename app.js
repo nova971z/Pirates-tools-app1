@@ -1,257 +1,203 @@
-/************************************************************
- * PIRATES TOOLS — app.js (COMPLET, PRO & PERFORMANT)
- * ----------------------------------------------------------
- * 1) Détection des capacités (feature-flags)
- * 2) PWA : install + Service Worker
- * 3) Ancrages doux avec offset topbar (défilement fluide)
- * 4) Chargement produits (products.json) + fallback sûr
- * 5) Dock d’actions (mobile) + “devis WhatsApp” local
- * 6) HERO fallback JS (si CSS scroll-timeline indisponible)
- * 7) Micro-perf & accessibilité (réduction d’animations)
- *
- * Termes :
- * - rAF = requestAnimationFrame (horloge à 60 fps synchronisée)
- * - debounce = anti-rebond (retarde une action pendant la saisie)
- * - IntersectionObserver = détecte l’entrée/sortie d’un élément à l’écran
- * - z-index = ordre d’empilement (qui passe devant/derrière)
- ************************************************************/
+/* =========================================================
+   Pirates Tools — styles.css (FULL, fusion de toutes demandes)
+   Thème sombre, topbar, hero zoom+fade, liste produits, footer
+   ========================================================= */
 
-(function () {
-  "use strict";
+/* ---------- Thème / variables ---------- */
+:root{
+  --bg:#0a0f14;
+  --panel:#0e151c;
+  --card:#121b24;
+  --fg:#e6edf5;
+  --muted:#9fb4c5;
+  --border:#22303b;
 
-  /* =========================================================
-   * 1) Détection des capacités (feature-flags)
-   * ========================================================= */
-  const $  = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const supportsScrollTimeline = CSS?.supports?.("animation-timeline: view()") || false;
-  const prefersReducedMotion    = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  --brand:#19d3ff;   /* bleu/teal */
+  --brand-2:#00e1b4; /* teal/vert */
+  --wa-1:#25d366;    /* WhatsApp */
+  --wa-2:#128c7e;
 
-  // Coordonnées (numéro format international pour WhatsApp)
-  const PHONE_LOCAL = "0774231095";
-  const PHONE_INTL  = "33774231095";
+  --radius:14px;
+  --shadow:0 10px 24px rgba(0,0,0,.35);
 
-  // Sélecteurs clés (assure-toi que ces IDs/classes existent dans ton HTML)
-  const topbar   = $(".topbar");
-  const hero     = $("#hero");          // <section class="hero-full" id="hero">
-  const heroLogo = $("#heroLogo");      // <img id="heroLogo" class="hero-logo">
-  const listRoot = $("#list");          // conteneur des cartes produits
-  const installBtn = $("#installBtn");  // bouton d'installation PWA (optionnel)
-  const dock       = $("#dock");        // nav flottante (optionnel)
-  const dockQuote  = $("#dockQuoteBtn");// bouton devis WA (optionnel)
-  const dockCount  = $("#dockCount");   // badge compteur (optionnel)
+  /* Séparation voulue entre le hero et le 1er article (sans chevauchement) */
+  --hero-gap-desktop:-18vh;  /* + vers 0  => plus d’espace ; – => rapproche */
+  --hero-gap-mobile:-24vh;
+}
 
-  /* =========================================================
-   * 2) PWA : Install + Service Worker (offline)
-   * ========================================================= */
-  let deferredPrompt;
-  if (installBtn) {
-    installBtn.hidden = true;
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.hidden = false;
-    }, { passive: true });
+/* ---------- Reset léger ---------- */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:
+    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent 70%),
+    linear-gradient(180deg, #0a0f14 0%, #06141b 100%);
+  color:var(--fg);
+  font: 400 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Inter","Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
 
-    installBtn.addEventListener("click", async () => {
-      installBtn.hidden = true;
-      try {
-        await deferredPrompt?.prompt();
-        deferredPrompt = null;
-      } catch {}
-    }, { passive: true });
-  }
+/* Conteneur */
+.container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
 
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
-    }, { once: true });
-  }
+/* =========================================================
+   TOPBAR fixe + CTAs
+   ========================================================= */
+.topbar{
+  position:sticky; top:0; inset-inline:0; z-index:12;
+  display:grid; grid-template-columns:auto 1fr auto auto;
+  align-items:center; gap:.8rem;
+  padding:.7rem .9rem;
+  background:rgba(10,15,20,.72);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.menu-btn{all:unset; cursor:pointer; display:inline-grid; gap:3px; padding:.4rem}
+.menu-btn span{width:18px; height:2px; background:var(--muted); border-radius:2px}
+.brand{font-weight:800; letter-spacing:.2px; color:#fff}
+.nav{display:flex; gap:.5rem; justify-content:center}
+.chip{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.42rem .9rem; border-radius:999px;
+  background:rgba(255,255,255,.04); border:1px solid var(--border); color:#d9e3ec;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
+}
+.chip:hover{background:rgba(255,255,255,.07)}
+.cta{display:flex; gap:.6rem; align-items:center}
+.btn{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.58rem .9rem; border-radius:12px; font-weight:700;
+  color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
+}
+.btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
+.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.btn:active{transform:translateY(1px)}
 
-  /* =========================================================
-   * 3) Ancrages doux + offset topbar (défilement fluide)
-   *    (offset = prend en compte la hauteur de la barre)
-   * ========================================================= */
-  function getTopbarOffset() {
-    const h = topbar?.getBoundingClientRect().height || 0;
-    // marge légère pour que l’ancre ne colle pas
-    return h ? (h + 8) : 0;
-  }
+@media (max-width:960px){
+  .topbar{grid-template-columns:auto 1fr auto; gap:.6rem}
+  .nav{display:none}
+}
 
-  document.addEventListener("click", (e) => {
-    const a = e.target.closest("[data-scroll]");
-    if (!a) return;
-    const targetSel = a.getAttribute("data-scroll") || a.getAttribute("href");
-    if (!targetSel || !targetSel.startsWith("#")) return;
-    const el = document.querySelector(targetSel);
-    if (!el) return;
-    e.preventDefault();
+/* =========================================================
+   HERO (logo plein écran) : zoom massif + fondu + passage derrière
+   ========================================================= */
+.hero-full{
+  position:sticky; top:0; height:100vh; inset-inline:0;
+  display:grid; place-items:center;
+  pointer-events:none; z-index:3; /* au-dessus au départ */
+}
+.hero-logo{
+  width:min(78vmin,680px); height:auto;
+  transform:translateZ(0) scale(1);    /* le JS ajuste la scale/opacity */
+  transform-origin:center;
+  will-change:transform, opacity;
+  filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
+}
+.hero-fade{
+  position:absolute; inset:auto 0 0 0; height:24vh; pointer-events:none;
+  background:linear-gradient(180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,.85) 60%,
+    var(--bg) 100%);
+}
+/* Quand le logo est totalement fondu (classe posée par JS), il passe derrière */
+.hero-full.is-hidden{ z-index:0; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s }
 
-    const y = el.getBoundingClientRect().top + window.scrollY - getTopbarOffset();
-    window.scrollTo({ top: y, behavior: "smooth" });
-  });
+/* Écart contrôlé (réduit, sans chevauchement) avec le 1er article */
+main.container{ margin-top:var(--hero-gap-desktop) }
+@media (max-width:768px){
+  main.container{ margin-top:var(--hero-gap-mobile) }
+}
 
-  /* =========================================================
-   * 4) Chargement produits (products.json) + fallback
-   *    (robuste, pas de page vide, garantit du scroll)
-   * ========================================================= */
-  async function loadProducts() {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 6000); // timeout réseau
-      const res = await fetch("products.json", { cache: "no-store", signal: ctrl.signal });
-      clearTimeout(t);
-      if (!res.ok) throw new Error("Bad status");
-      return await res.json();
-    } catch {
-      // Fallback minimal : garantit des cartes pour le scroll/UX
-      return [
-        { sku: "DeWALT DCF887 (18V XR)", badge: "Nouveau", img: "./images/pirates-tools-logo.png", desc: "Visseuse à choc — 205 Nm, brushless." },
-        { sku: "DeWALT DCD796 (18V XR)", badge: "Top",     img: "./images/pirates-tools-logo.png", desc: "Perceuse-visseuse 2 vitesses, LED." },
-        { sku: "DeWALT DCS391 (18V XR)", badge: "Stock",   img: "./images/pirates-tools-logo.png", desc: "Scie circulaire 165mm, coupe nette." }
-      ];
-    }
-  }
+/* =========================================================
+   TOOLBAR recherche / filtre
+   ========================================================= */
+.toolbar{
+  position:relative; z-index:2;
+  width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
+  display:grid; grid-template-columns:1fr 140px; gap:.6rem;
+}
+.search,.select{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  border:1px solid var(--border); border-radius:12px; color:var(--fg);
+  padding:.85rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.search::placeholder{color:#7f94a5}
 
-  function renderProducts(models) {
-    if (!listRoot) return;
-    const html = (models || []).map(m => {
-      const title = m.title || m.sku || "Produit";
-      const img   = m.img   || m.image || "";
-      const badge = m.badge || (m.new ? "Nouveau" : "");
-      const desc  = m.desc  || "";
+/* =========================================================
+   LISTE PRODUITS / CARTES
+   ========================================================= */
+.list{display:grid; gap:1rem}
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden; position:relative;
+}
+.card .head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04);
+}
+.title{margin:0; font-size:1.05rem}
+.badge{
+  display:inline-flex; align-items:center; padding:.35rem .7rem;
+  border-radius:999px; font-weight:700; color:#cfeaf8;
+  background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
+  border:1px solid rgba(25,211,255,.35);
+}
+.specs{display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem}
+.actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
+.btn.primary{
+  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
+  color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px;
+}
 
-      return `
-<article class="card">
-  <div class="head">
-    <h2 class="title">${title}</h2>
-    ${badge ? `<span class="chip">${badge}</span>` : ""}
-  </div>
-  ${img ? `<figure class="figure"><img src="${img}" alt="${title}" loading="lazy" decoding="async"></figure>` : ""}
-  ${desc ? `<p>${desc}</p>` : ""}
-  <div class="actions">
-    <button class="btn add-quote" data-sku="${(m.sku || title).replace(/"/g, "&quot;")}">Ajouter au devis</button>
-  </div>
-</article>`;
-    }).join("");
-    listRoot.innerHTML = html || `<p style="opacity:.7">Aucun produit disponible.</p>`;
-  }
+/* =========================================================
+   AVIS + FOOTER (propre)
+   ========================================================= */
+.ratings{
+  margin:2rem auto 1rem; width:min(1100px,92vw);
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem 1.1rem; box-shadow:var(--shadow)
+}
+.ratings h2{margin:0 0 .5rem; font-size:1.05rem}
+.ratings__list{margin:0; padding-left:1.1rem}
 
-  /* =========================================================
-   * 5) Dock mobile + “Devis WhatsApp” (panier léger)
-   *    (stock localStorage + badge + ouverture WA)
-   * ========================================================= */
-  (function initDockAndQuote() {
-    const KEY = "ptools-quote";
-    const state = new Set(JSON.parse(localStorage.getItem(KEY) || "[]"));
+.foot{
+  width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
+  border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
+}
 
-    function syncBadge() {
-      if (dockCount) dockCount.textContent = String(state.size);
-      localStorage.setItem(KEY, JSON.stringify([...state]));
-    }
-    syncBadge();
+/* =========================================================
+   DOCK mobile (actions rapides)
+   ========================================================= */
+.dock{
+  position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+  display:flex; gap:.6rem; align-items:center;
+  padding:.4rem .5rem; border-radius:999px; z-index:11;
+  background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1px solid var(--border); box-shadow:var(--shadow);
+}
+.dock__btn{
+  width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
+  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08)
+}
+.dock__btn:active{transform:translateY(1px)}
+.dock__btn:nth-child(1){background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018}
+.dock__btn:nth-child(2){background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
+.dock__badge{
+  position:absolute; right:-6px; top:-6px; background:#ff6b6b; color:#001018;
+  font-weight:800; font-size:.75rem; line-height:1; border-radius:999px; padding:.35rem .45rem;
+  border:2px solid rgba(10,15,20,.85)
+}
 
-    // Afficher le dock uniquement après le hero (si présent)
-    if (dock && hero && "IntersectionObserver" in window) {
-      const io = new IntersectionObserver(([entry]) => {
-        dock.style.display = entry.isIntersecting ? "none" : "grid";
-      }, { threshold: 0.2 });
-      io.observe(hero);
-    }
+/* UTILITAIRES */
+.hidden{display:none !important}
 
-    // Délégation de clic pour ajouter/retirer un article
-    document.addEventListener("click", (e) => {
-      const btn = e.target.closest(".add-quote");
-      if (!btn) return;
-      const sku = btn.dataset.sku || btn.closest(".card")?.querySelector(".title")?.textContent?.trim();
-      if (!sku) return;
-
-      if (state.has(sku)) {
-        state.delete(sku);
-        btn.textContent = "Ajouter au devis";
-      } else {
-        state.add(sku);
-        btn.textContent = "Ajouté ✓";
-      }
-      syncBadge();
-    });
-
-    // Ouvre WhatsApp avec la liste
-    dockQuote?.addEventListener("click", () => {
-      if (state.size === 0) {
-        alert("Ajoute au moins un article dans le devis.");
-        return;
-      }
-      const items = [...state].map((s, i) => `${i + 1}. ${s}`).join("%0A");
-      const msg = `Bonjour Pirates Tools,%0AJe souhaite un devis pour:%0A%0A${items}%0A%0AMerci.`;
-      location.href = `https://wa.me/${PHONE_INTL}?text=${msg}`;
-    });
-  })();
-
- // === HERO (v2) : zoom conséquent + fondu très fluide avec lissage ===
-(function () {
-  const hero = document.getElementById('hero');
-  const logo = document.getElementById('heroLogo');
-  if (!hero || !logo) return;
-
-  // Helpers
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-  const lerp  = (a, b, t) => a + (b - a) * t;
-
-  // Easing (douceur)
-  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-  const easeInCubic  = t => t * t * t;
-
-  // Zoom cible (plus fort sur mobile)
-  const getMaxScale = () =>
-    (window.innerWidth <= 767) ? 3.1 : 2.4;  // tu peux ajuster ici
-
-  const state = {
-    target: 0,    // progression visée (0 → 1)
-    current: 0,   // progression lissée
-    raf: null
-  };
-
-  function computeTarget() {
-    const vh = Math.max(window.innerHeight, 1);
-    // 0 → 1 sur ~90% de la hauteur de l'écran
-    state.target = clamp(window.scrollY / (vh * 0.9), 0, 1);
-  }
-
-  function render() {
-    // Lissage façon inertie (plus la valeur est grande, plus c’est réactif)
-    state.current = lerp(state.current, state.target, 0.16);
-
-    const maxScale = getMaxScale();
-    const easedOut = easeOutCubic(state.current);
-    const easedIn  = easeInCubic(state.current);
-
-    // Zoom conséquent et très progressif
-    const scale   = 1 + (maxScale - 1) * easedOut;
-
-    // Fondu plus doux (mais net à la fin)
-    const opacity = clamp(1 - easedIn * 1.25, 0, 1);
-
-    logo.style.transform = `translate3d(0,0,0) scale(${scale})`;
-    logo.style.opacity   = opacity;
-
-    // Quand on a quasi terminé, on passe le hero sous le contenu
-    if (state.current >= 0.97) {
-      hero.classList.add('is-hidden');
-    } else {
-      hero.classList.remove('is-hidden');
-    }
-
-    state.raf = requestAnimationFrame(render);
-  }
-
-  function onScroll() { computeTarget(); }
-  function onResize() { computeTarget(); }
-
-  // Init
-  computeTarget();
-  state.raf = requestAnimationFrame(render);
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onResize);
-})();
+/* Responsive fins */
+@media (max-width:768px){
+  .btn{padding:.54rem .8rem}
+  .ratings{margin:1.4rem auto .6rem}
+  .foot{margin:1rem auto 4.8rem}
+}
