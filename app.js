@@ -295,3 +295,25 @@
   });
 
 })();
+
+/* ====== Footer helpers (année + back-to-top) ====== */
+(() => {
+  // année auto
+  const y = document.getElementById('year');
+  if (y) y.textContent = new Date().getFullYear();
+
+  // bouton haut de page
+  const topBtn = document.getElementById('toTop');
+  if (!topBtn) return;
+
+  const toggleBtn = () => {
+    const show = window.scrollY > 300;
+    topBtn.style.display = show ? 'grid' : 'none';
+  };
+  window.addEventListener('scroll', toggleBtn, { passive: true });
+  toggleBtn();
+
+  topBtn.addEventListener('click', () =>
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  );
+})();
