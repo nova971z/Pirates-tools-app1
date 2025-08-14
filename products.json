@@ -1,29 +1,42 @@
 [
   {
-    "sku": "DCF887 (18V XR)",
-    "desc": "Visseuse à chocs compacte 18V XR, 3 vitesses.",
-    "specs": ["205 Nm", "0–3250 rpm", "0–3800 ipm", "1/4\""],
-    "img": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format",
-    "price": "€€",
-    "link": "https://www.dewalt.fr",
-    "cta": "#contact"
+    "slug": "starter-pack",
+    "title": "Starter Pack Pirates",
+    "excerpt": "L’essentiel pour démarrer — outils et guides.",
+    "date": "2025-07-30",
+    "tags": ["outil", "guide"],
+    "price": 49,
+    "image": "/images/starter.jpg",
+    "url": ""
   },
   {
-    "sku": "DCF815 (12V)",
-    "desc": "Ultra-compacte 12V, idéale espaces réduits.",
-    "specs": ["107 Nm", "0–2450 rpm", "0–3400 ipm", "1/4\""],
-    "img": "https://images.unsplash.com/photo-1581092338107-1e7e46a1e97a?q=80&w=800&auto=format",
-    "price": "€",
-    "link": "https://www.dewalt.fr",
-    "cta": "#contact"
+    "slug": "pro-analyzer",
+    "title": "Pro Analyzer",
+    "excerpt": "Analyse rapide et tableaux de bord en temps réel.",
+    "date": "2025-07-28",
+    "tags": ["tech", "outil"],
+    "price": 129,
+    "image": "/images/analyzer.jpg",
+    "url": ""
   },
   {
-    "sku": "DCF901 (12V Xtreme)",
-    "desc": "Boulonneuse compacte — zones exiguës.",
-    "specs": ["164 Nm", "0–2850 rpm", "0–3600 ipm", "3/8\""],
-    "img": "https://images.unsplash.com/photo-1581094478535-6c52b7c20c09?q=80&w=800&auto=format",
-    "price": "€€",
-    "link": "https://www.dewalt.fr",
-    "cta": "#contact"
+    "slug": "guide-performance",
+    "title": "Guide Performance Web 2025",
+    "excerpt": "Les optimisations clés pour charger à la vitesse lumière.",
+    "date": "2025-07-15",
+    "tags": ["guide", "tech"],
+    "price": 19,
+    "image": "/images/guide.jpg",
+    "url": ""
+  },
+  {
+    "slug": "audit-express",
+    "title": "Audit Express",
+    "excerpt": "Diagnostic complet de votre site en 48h.",
+    "date": "2025-07-01",
+    "tags": ["outil"],
+    "price": 299,
+    "image": "/images/audit.jpg",
+    "url": ""
   }
 ]
