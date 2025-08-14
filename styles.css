@@ -1,119 +1,132 @@
-/* Reset basique */
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:sans-serif;line-height:1.4;background:#f8f9fa;color:#222;}
+/* =======================================================================
+   Pirates Tools — styles.css (pro, millimétré)
+   - Topbar fixe avec fondu
+   - Hero logo énorme (overflow autorisé)
+   - Séparation nette (#hero-spacer)
+   - Grille produits
+   - Bulle WhatsApp
+   ======================================================================= */
 
-/* TOPBAR */
+:root{
+  --bg:#0a0f14; --fg:#f4f7fb; --muted:#9fb4c3;
+  --panel:#0e151c; --card:#121b24; --border:#203040;
+  --brand:#19d3ff; --accent:#7c4dff;
+  --r:.9rem;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; color:var(--fg);
+  background:linear-gradient(180deg,#0a0f14 0%, #06121a 40%, #0a0f14 100%);
+  font-family: system-ui, -apple-system, "Inter", Segoe UI, Roboto, Arial, sans-serif;
+  line-height:1.7; letter-spacing:.2px;
+  padding-top:64px; /* réserve la place de la topbar fixe */
+}
+
+/* ─────────────── Topbar (fixe + fondu) ─────────────── */
 .topbar{
-  position:fixed;
-  top:0;left:0;right:0;
-  z-index:5000;
-  background:rgba(10,15,20,.86);
+  position:fixed; inset:0 0 auto 0; height:64px; z-index:6000;
+  background:rgba(10,15,20,.40);               /* transparent au départ */
   backdrop-filter:blur(10px);
-  border-bottom:1px solid rgba(255,255,255,0.1);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  transition: background .25s ease, border-color .25s ease;
 }
-.topbar-container{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0.8rem 1rem;
+.topbar.solid{                                   /* devient plus opaque en scroll */
+  background:rgba(10,15,20,.86);
+  border-bottom-color: rgba(255,255,255,.12);
 }
-.topbar a{
-  color:#fff;
-  text-decoration:none;
-  font-weight:500;
+.topbar__wrap{
+  height:100%; display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:0 .95rem;
 }
+.brand{font-weight:900; letter-spacing:.3px}
+.nav{display:flex; gap:.8rem}
+.nav a{
+  color:var(--fg); text-decoration:none; opacity:.92;
+  padding:.35rem .6rem; border:1px solid var(--border); border-radius:999px;
+  background:rgba(18,27,36,.6);
+}
+.cta{display:flex; gap:.6rem; align-items:center}
+.btn{
+  color:#001018; text-decoration:none; font-weight:800;
+  padding:.55rem .8rem; border-radius:.6rem; border:0;
+  display:inline-block;
+}
+.btn.tel{ background:linear-gradient(90deg,#19d3ff,#00ffa7); }
+.btn.wa { background:#25D366; }
 
-/* HERO */
-.hero-full{
-  position:relative;
-  z-index:3000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-  background:#000;
+/* ─────────────── HERO (logo énorme + fondu) ─────────────── */
+.hero{
+  position:relative; z-index:3000; overflow:visible;
+  min-height:72vh; display:grid; place-items:center;
+  background:
+    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
+    linear-gradient(180deg, #0a0f14 0%, #06121a 60%, #0a0f14 100%);
 }
-#heroLogo{
-  max-width:90%;
+.hero__logo{
+  display:block; margin:0 auto;
+  max-width: clamp(420px, 96vw, 1400px); /* très grand possible */
   height:auto;
   transform-origin:center center;
-  will-change:transform,opacity;
+  will-change: transform, opacity;       /* (perf) */
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
+}
+.hero__fade{
+  position:absolute; inset:auto 0 0 0; height:18vh; z-index:1;
+  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.66) 60%, var(--bg) 100%);
+  pointer-events:none;
 }
 
-/* ESPACE sous topbar */
-body{
-  padding-top:64px; /* hauteur topbar */
-}
+/* Séparation nette (pas de chevauchement au repos) */
+#hero-spacer{ height:12vh; }
+@media (max-width: 768px){ #hero-spacer{ height:16vh; } }
 
-/* ESPACE entre logo et articles */
-#hero-spacer{
-  height:10vh; /* tu peux ajuster */
-}
-
-/* LISTE PRODUITS */
+/* ─────────────── Liste produits ─────────────── */
 .list{
-  position:relative;
-  z-index:10;
-  padding:2rem;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap:1.5rem;
+  position:relative; z-index:100; /* sous le HERO visuellement */
+  width:min(1100px, 92vw); margin:0 auto; padding: 1.5rem 0 3rem;
+  display:grid; gap:1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 .card{
-  background:#fff;
-  border-radius:8px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  background:var(--card); border:1px solid var(--border); border-radius:1rem;
+  box-shadow: 0 14px 30px rgba(0,0,0,.32);
   overflow:hidden;
-  padding:1rem;
 }
-.card .title{
-  font-size:1.2rem;
-  margin-bottom:0.5rem;
+.card__head{
+  display:flex; align-items:center; justify-content:space-between; gap:.8rem;
+  padding:1rem 1.1rem; border-bottom:1px solid var(--border);
 }
-.figure img{
-  width:100%;
-  height:auto;
-  display:block;
+.card__title{ margin:0; font-size:1.1rem; }
+.pill{
+  font-size:.78rem; padding:.25rem .5rem; border-radius:.6rem;
+  background:rgba(255,255,255,.08); border:1px solid var(--border);
 }
-.specs{
-  display:flex;
-  gap:0.5rem;
-  margin-top:0.5rem;
+.figure{
+  display:grid; place-items:center;
+  background: radial-gradient(420px 220px at 50% 30%, rgba(25,211,255,.08), transparent);
 }
-.spec{
-  background:#eee;
-  padding:0.3rem 0.6rem;
-  border-radius:4px;
-}
-.actions-line{
-  margin-top:1rem;
-  display:flex;
-  gap:0.5rem;
-}
-.btn{
-  padding:0.5rem 1rem;
-  border:none;
-  background:#ccc;
-  border-radius:4px;
-  text-decoration:none;
-  color:#000;
-}
-.btn.primary{
-  background:#ffcc00;
+.figure img{ width:100%; height:auto; display:block; }
+.specs{ display:flex; flex-wrap:wrap; gap:.5rem; padding:.9rem 1.1rem; }
+.spec{ background:var(--panel); border:1px solid var(--border); border-radius:.6rem; padding:.35rem .55rem; color:var(--muted); }
+.actions{ display:flex; gap:.6rem; padding:.9rem 1.1rem; }
+.btn.primary{ background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; }
+
+/* ─────────────── Contact / Footer ─────────────── */
+.contact{ width:min(1100px, 92vw); margin:0 auto; padding:2rem 0; }
+.foot{ color:#bcd; border-top:1px solid var(--border); text-align:center; padding:1rem 0; }
+
+/* ─────────────── Bulle WhatsApp ─────────────── */
+.fab-wa{
+  position:fixed; right:16px; bottom:18px; z-index:6500;
+  width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
+  text-decoration:none; font-weight:900; color:#001018;
+  background:#25D366; border:1px solid rgba(255,255,255,.18);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.06) inset;
 }
 
-/* CONTACT */
-.contact{
-  padding:2rem;
-  background:#111;
-  color:#fff;
-}
-.contact a{color:#ffcc00;}
-
-/* FOOTER */
-.footer{
-  padding:1rem;
-  text-align:center;
-  background:#000;
-  color:#fff;
+/* Accessibilité : animations réduites */
+@media (prefers-reduced-motion: reduce){
+  .hero__logo{ transition:none !important; }
 }
