@@ -1,132 +1,131 @@
-/* =======================================================================
-   Pirates Tools — styles.css (pro, millimétré)
-   - Topbar fixe avec fondu
-   - Hero logo énorme (overflow autorisé)
-   - Séparation nette (#hero-spacer)
-   - Grille produits
-   - Bulle WhatsApp
-   ======================================================================= */
-
 :root{
-  --bg:#0a0f14; --fg:#f4f7fb; --muted:#9fb4c3;
-  --panel:#0e151c; --card:#121b24; --border:#203040;
-  --brand:#19d3ff; --accent:#7c4dff;
-  --r:.9rem;
+  --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#f4f7fb; --muted:#9bc3cf;
+  --brand:#19d3ff; --accent:#7c4dff; --border:#203040; --r:1rem;
 }
 
+/* base */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  margin:0; color:var(--fg);
-  background:linear-gradient(180deg,#0a0f14 0%, #06121a 40%, #0a0f14 100%);
-  font-family: system-ui, -apple-system, "Inter", Segoe UI, Roboto, Arial, sans-serif;
-  line-height:1.7; letter-spacing:.2px;
-  padding-top:64px; /* réserve la place de la topbar fixe */
-}
-
-/* ─────────────── Topbar (fixe + fondu) ─────────────── */
-.topbar{
-  position:fixed; inset:0 0 auto 0; height:64px; z-index:6000;
-  background:rgba(10,15,20,.40);               /* transparent au départ */
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid rgba(255,255,255,.08);
-  transition: background .25s ease, border-color .25s ease;
-}
-.topbar.solid{                                   /* devient plus opaque en scroll */
-  background:rgba(10,15,20,.86);
-  border-bottom-color: rgba(255,255,255,.12);
-}
-.topbar__wrap{
-  height:100%; display:flex; align-items:center; justify-content:space-between; gap:1rem;
-  padding:0 .95rem;
-}
-.brand{font-weight:900; letter-spacing:.3px}
-.nav{display:flex; gap:.8rem}
-.nav a{
-  color:var(--fg); text-decoration:none; opacity:.92;
-  padding:.35rem .6rem; border:1px solid var(--border); border-radius:999px;
-  background:rgba(18,27,36,.6);
-}
-.cta{display:flex; gap:.6rem; align-items:center}
-.btn{
-  color:#001018; text-decoration:none; font-weight:800;
-  padding:.55rem .8rem; border-radius:.6rem; border:0;
-  display:inline-block;
-}
-.btn.tel{ background:linear-gradient(90deg,#19d3ff,#00ffa7); }
-.btn.wa { background:#25D366; }
-
-/* ─────────────── HERO (logo énorme + fondu) ─────────────── */
-.hero{
-  position:relative; z-index:3000; overflow:visible;
-  min-height:72vh; display:grid; place-items:center;
+  margin:0;
+  color:var(--fg);
   background:
     radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
-    linear-gradient(180deg, #0a0f14 0%, #06121a 60%, #0a0f14 100%);
+    linear-gradient(180deg, #0a0f14 0%, #061019 60%, #0a0f14 100%);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  line-height:1.8;
+  letter-spacing:.2px;
 }
-.hero__logo{
-  display:block; margin:0 auto;
-  max-width: clamp(420px, 96vw, 1400px); /* très grand possible */
+
+/* conteneur principal */
+.container{max-width:min(1100px,92vw); margin:0 auto; padding:0 0 6rem}
+
+/* ========= BARRE TOP ========= */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:grid; grid-template-columns:1fr auto auto; gap:.8rem;
+  align-items:center;
+  padding:.7rem .9rem;
+  background:rgba(10,15,20,.78);
+  border-bottom:1px solid rgba(10,15,20,.7);
+  backdrop-filter: blur(10px);
+}
+.brand{font-weight:800}
+.mainnav{display:flex; gap:.6rem; justify-content:center}
+.chip{
+  display:inline-block; padding:.45rem .8rem; border-radius:999px;
+  border:1px solid var(--border); color:var(--fg); text-decoration:none;
+  background:linear-gradient(180deg, #0f1720, #0e1520);
+  box-shadow:0 10px 25px rgba(0,0,0,.25) inset, 0 1px 0 rgba(255,255,255,.04);
+  cursor:pointer; user-select:none;
+}
+.actions{display:flex; gap:.6rem; justify-self:end}
+.pill{
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.6rem .9rem; border-radius:.9rem; text-decoration:none; color:#021015;
+  font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.pill .emoji{filter:saturate(1.2)}
+.pill.phone{background:linear-gradient(180deg,#1fe2ff,#0be0c7)}
+.pill.wa{background:linear-gradient(180deg,#25D366,#18b555)}
+
+/* ========= HERO ========= */
+.hero{
+  position:relative;
+  /* hauteur plein écran réel, compatible iOS */
+  min-height:100svh;
+  display:block;
+  overflow:clip; /* évite tout décalage pendant les transforms */
+}
+.hero-stage{
+  position:sticky; top:0; height:100svh; width:100%;
+  display:grid; place-items:center;
+  perspective:1000px; /* profondeur douce */
+  z-index:10; /* au-dessus des articles au début */
+}
+.hero-wrap{
+  /* conteneur gardant le centre stable */
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+}
+.hero-logo{
+  width:min(88vmin, 900px);  /* taille de base */
   height:auto;
   transform-origin:center center;
-  will-change: transform, opacity;       /* (perf) */
-  filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
+  will-change: transform, opacity;
+  backface-visibility:hidden;
+  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
+  transition: transform .12s ease-out;
 }
-.hero__fade{
-  position:absolute; inset:auto 0 0 0; height:18vh; z-index:1;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.66) 60%, var(--bg) 100%);
+
+/* voile de fondu au bas du hero (vers les cards) */
+.hero-fade{
+  position:absolute; inset:auto 0 0 0; height:28svh;
+  background:linear-gradient(180deg, rgba(2,8,13,0) 0%, rgba(2,8,13,.85) 70%, rgba(2,8,13,1) 100%);
   pointer-events:none;
+  z-index:12;
 }
 
-/* Séparation nette (pas de chevauchement au repos) */
-#hero-spacer{ height:12vh; }
-@media (max-width: 768px){ #hero-spacer{ height:16vh; } }
-
-/* ─────────────── Liste produits ─────────────── */
-.list{
-  position:relative; z-index:100; /* sous le HERO visuellement */
-  width:min(1100px, 92vw); margin:0 auto; padding: 1.5rem 0 3rem;
-  display:grid; gap:1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+/* espace visuel très fin pour que rien ne “colle” */
+.hero-gap{
+  height: clamp(14px, 3.5svh, 28px);
+  background:linear-gradient(180deg, rgba(2,8,13,1), rgba(2,8,13,0));
 }
+
+/* ========= LISTE/ CARTES ========= */
+.list{display:grid; gap:1.2rem; padding:1.2rem}
 .card{
-  background:var(--card); border:1px solid var(--border); border-radius:1rem;
-  box-shadow: 0 14px 30px rgba(0,0,0,.32);
-  overflow:hidden;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  padding:1rem;
 }
-.card__head{
+.card .head{
   display:flex; align-items:center; justify-content:space-between; gap:.8rem;
-  padding:1rem 1.1rem; border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--border); padding:.7rem 0; margin-bottom:1rem;
 }
-.card__title{ margin:0; font-size:1.1rem; }
-.pill{
-  font-size:.78rem; padding:.25rem .5rem; border-radius:.6rem;
-  background:rgba(255,255,255,.08); border:1px solid var(--border);
-}
-.figure{
-  display:grid; place-items:center;
-  background: radial-gradient(420px 220px at 50% 30%, rgba(25,211,255,.08), transparent);
-}
-.figure img{ width:100%; height:auto; display:block; }
-.specs{ display:flex; flex-wrap:wrap; gap:.5rem; padding:.9rem 1.1rem; }
-.spec{ background:var(--panel); border:1px solid var(--border); border-radius:.6rem; padding:.35rem .55rem; color:var(--muted); }
-.actions{ display:flex; gap:.6rem; padding:.9rem 1.1rem; }
-.btn.primary{ background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; }
+.card .title{margin:0; font-size:1.15rem}
+.card img{width:100%; height:auto; display:block; border-radius:.6rem}
 
-/* ─────────────── Contact / Footer ─────────────── */
-.contact{ width:min(1100px, 92vw); margin:0 auto; padding:2rem 0; }
-.foot{ color:#bcd; border-top:1px solid var(--border); text-align:center; padding:1rem 0; }
-
-/* ─────────────── Bulle WhatsApp ─────────────── */
-.fab-wa{
-  position:fixed; right:16px; bottom:18px; z-index:6500;
-  width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
-  text-decoration:none; font-weight:900; color:#001018;
-  background:#25D366; border:1px solid rgba(255,255,255,.18);
-  box-shadow: 0 12px 30px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.06) inset;
+/* ========= FOOT ========= */
+.foot{
+  color:var(--muted); border-top:1px solid var(--border);
+  padding:2rem 1rem; text-align:center;
 }
 
-/* Accessibilité : animations réduites */
-@media (prefers-reduced-motion: reduce){
-  .hero__logo{ transition:none !important; }
+/* bouton “installer” si affiché */
+#installBtn{
+  position:fixed; right:1rem; bottom:1rem; z-index:60;
+  padding:.7rem 1rem; border-radius:.8rem; border:1px solid var(--border);
+  background:linear-gradient(90deg,var(--brand),var(--accent));
+  color:#001018; font-weight:800;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 740px){
+  .topbar{grid-template-columns:1fr auto}
+  .actions{display:none} /* menus téléphone en priorité, bulles ré-apparaissent plus bas si besoin */
 }
