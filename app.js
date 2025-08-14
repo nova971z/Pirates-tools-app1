@@ -1,199 +1,297 @@
-/* ========= Utilities ========= */
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const fmtPrice = (n) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
-const fmtDate = (iso) => new Date(iso).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: '2-digit' });
+/************************************************************
+ * PIRATES TOOLS — app.js (COMPLET, PRO & PERFORMANT)
+ * ----------------------------------------------------------
+ * 1) Détection des capacités (feature-flags)
+ * 2) PWA : install + Service Worker
+ * 3) Ancrages doux avec offset topbar (défilement fluide)
+ * 4) Chargement produits (products.json) + fallback sûr
+ * 5) Dock d’actions (mobile) + “devis WhatsApp” local
+ * 6) HERO fallback JS (si CSS scroll-timeline indisponible)
+ * 7) Micro-perf & accessibilité (réduction d’animations)
+ *
+ * Termes :
+ * - rAF = requestAnimationFrame (horloge à 60 fps synchronisée)
+ * - debounce = anti-rebond (retarde une action pendant la saisie)
+ * - IntersectionObserver = détecte l’entrée/sortie d’un élément à l’écran
+ * - z-index = ordre d’empilement (qui passe devant/derrière)
+ ************************************************************/
 
-/* ========= Header: menu + logo + translucide ========= */
-(() => {
-  const topbar = $('.topbar');
-  const btn = $('.menu-btn');
-  const nav = $('#mainnav');
-  const brand = $('.brand') || $('.brand__link');
+(function () {
+  "use strict";
 
-  function setOpen(open) {
-    if (!btn || !nav) return;
-    btn.setAttribute('aria-expanded', String(open));
-    btn.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
-    nav.classList.toggle('is-open', open);
-  }
+  /* =========================================================
+   * 1) Détection des capacités (feature-flags)
+   * ========================================================= */
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const supportsScrollTimeline = CSS?.supports?.("animation-timeline: view()") || false;
+  const prefersReducedMotion    = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  btn?.addEventListener('click', () => setOpen(!(btn.getAttribute('aria-expanded') === 'true')));
-  document.addEventListener('keydown', (e) => e.key === 'Escape' && setOpen(false));
-  nav?.addEventListener('click', (e) => e.target.closest('a') && setOpen(false));
-  window.matchMedia('(min-width: 901px)').addEventListener?.('change', () => setOpen(false));
+  // Coordonnées (numéro format international pour WhatsApp)
+  const PHONE_LOCAL = "0774231095";
+  const PHONE_INTL  = "33774231095";
 
-  // Effet logo + état topbar selon scroll
-  if (brand) {
-    brand.classList.add('grow');
-    let last = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      topbar?.classList.toggle('scrolled', y > 10);
-      if (y < 10 && last >= 10) {
-        brand.classList.remove('shrink'); brand.classList.add('grow');
-      } else if (y >= 10 && last < 10) {
-        brand.classList.remove('grow'); brand.classList.add('shrink');
-      }
-      last = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-  }
-})();
+  // Sélecteurs clés (assure-toi que ces IDs/classes existent dans ton HTML)
+  const topbar   = $(".topbar");
+  const hero     = $("#hero");          // <section class="hero-full" id="hero">
+  const heroLogo = $("#heroLogo");      // <img id="heroLogo" class="hero-logo">
+  const listRoot = $("#list");          // conteneur des cartes produits
+  const installBtn = $("#installBtn");  // bouton d'installation PWA (optionnel)
+  const dock       = $("#dock");        // nav flottante (optionnel)
+  const dockQuote  = $("#dockQuoteBtn");// bouton devis WA (optionnel)
+  const dockCount  = $("#dockCount");   // badge compteur (optionnel)
 
-/* ========= Smooth scroll vers data-scroll ========= */
-document.addEventListener('click', (e) => {
-  const a = e.target.closest('a[data-scroll]');
-  if (!a) return;
-  const sel = a.getAttribute('data-scroll');
-  const el = document.querySelector(sel);
-  if (!el) return;
-  e.preventDefault();
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-
-/* ========= IntersectionObserver: apparitions & lazy images ========= */
-const io = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target;
-      el.classList.add('visible');
-      const img = el.querySelector('img[data-src]');
-      if (img) {
-        img.src = img.dataset.src;
-        img.removeAttribute('data-src');
-      }
-      io.unobserve(el);
-    });
-  },
-  { threshold: 0.2 }
-);
-
-/* ========= Rendu catalogue + filtres + pagination ========= */
-(async function renderCatalogue() {
-  const mount = $('#product-list');
-  if (!mount) return;
-
-  const res = await fetch('/produits.json', { cache: 'no-store' });
-  const all = await res.json();
-
-  const params = new URLSearchParams(location.search);
-  const q = params.get('q') || '';
-  const tag = params.get('tag') || '';
-  const sort = params.get('sort') || 'date_desc';
-  let page = parseInt(params.get('page') || '1', 10);
-  const per = parseInt(params.get('per') || '9', 10);
-
-  // Filtres UI
-  const form = $('#filters');
-  if (form) {
-    if (form.q) form.q.value = q;
-    if (form.tag) form.tag.value = tag;
-    if (form.sort) form.sort.value = sort;
-    form.addEventListener('submit', (e) => {
+  /* =========================================================
+   * 2) PWA : Install + Service Worker (offline)
+   * ========================================================= */
+  let deferredPrompt;
+  if (installBtn) {
+    installBtn.hidden = true;
+    window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
-      const p = new URLSearchParams(location.search);
-      p.set('q', (form.q?.value || '').trim());
-      form.tag?.value ? p.set('tag', form.tag.value) : p.delete('tag');
-      p.set('sort', form.sort?.value || 'date_desc');
-      p.set('page', '1');
-      history.replaceState(null, '', location.pathname + '?' + p.toString());
-      location.reload();
-    });
+      deferredPrompt = e;
+      installBtn.hidden = false;
+    }, { passive: true });
+
+    installBtn.addEventListener("click", async () => {
+      installBtn.hidden = true;
+      try {
+        await deferredPrompt?.prompt();
+        deferredPrompt = null;
+      } catch {}
+    }, { passive: true });
   }
 
-  // Filtrage
-  let items = all.filter((x) => {
-    const hitQ = !q || (x.title + ' ' + x.excerpt).toLowerCase().includes(q.toLowerCase());
-    const hitTag = !tag || x.tags.includes(tag);
-    return hitQ && hitTag;
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }, { once: true });
+  }
+
+  /* =========================================================
+   * 3) Ancrages doux + offset topbar (défilement fluide)
+   *    (offset = prend en compte la hauteur de la barre)
+   * ========================================================= */
+  function getTopbarOffset() {
+    const h = topbar?.getBoundingClientRect().height || 0;
+    // marge légère pour que l’ancre ne colle pas
+    return h ? (h + 8) : 0;
+  }
+
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-scroll]");
+    if (!a) return;
+    const targetSel = a.getAttribute("data-scroll") || a.getAttribute("href");
+    if (!targetSel || !targetSel.startsWith("#")) return;
+    const el = document.querySelector(targetSel);
+    if (!el) return;
+    e.preventDefault();
+
+    const y = el.getBoundingClientRect().top + window.scrollY - getTopbarOffset();
+    window.scrollTo({ top: y, behavior: "smooth" });
   });
 
-  // Tri
-  const sorts = {
-    date_desc: (a, b) => (b.date || '').localeCompare(a.date || ''),
-    date_asc: (a, b) => (a.date || '').localeCompare(b.date || ''),
-    title_asc: (a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }),
-    price_asc: (a, b) => (a.price || 0) - (b.price || 0),
-    price_desc: (a, b) => (b.price || 0) - (a.price || 0),
-  };
-  items.sort(sorts[sort] || sorts.date_desc);
+  /* =========================================================
+   * 4) Chargement produits (products.json) + fallback
+   *    (robuste, pas de page vide, garantit du scroll)
+   * ========================================================= */
+  async function loadProducts() {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 6000); // timeout réseau
+      const res = await fetch("products.json", { cache: "no-store", signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) throw new Error("Bad status");
+      return await res.json();
+    } catch {
+      // Fallback minimal : garantit des cartes pour le scroll/UX
+      return [
+        { sku: "DeWALT DCF887 (18V XR)", badge: "Nouveau", img: "./images/pirates-tools-logo.png", desc: "Visseuse à choc — 205 Nm, brushless." },
+        { sku: "DeWALT DCD796 (18V XR)", badge: "Top",     img: "./images/pirates-tools-logo.png", desc: "Perceuse-visseuse 2 vitesses, LED." },
+        { sku: "DeWALT DCS391 (18V XR)", badge: "Stock",   img: "./images/pirates-tools-logo.png", desc: "Scie circulaire 165mm, coupe nette." }
+      ];
+    }
+  }
 
-  // Pagination
-  const total = items.length;
-  const pages = Math.max(1, Math.ceil(total / per));
-  page = Math.min(Math.max(1, page), pages);
-  const slice = items.slice((page - 1) * per, (page - 1) * per + per);
+  function renderProducts(models) {
+    if (!listRoot) return;
+    const html = (models || []).map(m => {
+      const title = m.title || m.sku || "Produit";
+      const img   = m.img   || m.image || "";
+      const badge = m.badge || (m.new ? "Nouveau" : "");
+      const desc  = m.desc  || "";
 
-  // Rendu cartes
-  mount.innerHTML = slice
-    .map(
-      (p) => `
-    <li class="card will-animate">
-      <a href="${p.url || '#'}" ${p.url ? 'target="_blank" rel="noopener"' : ''} aria-label="${p.title}">
-        <div class="card__media">
-          <img data-src="${p.image}" alt="" width="640" height="400" loading="lazy" />
-        </div>
-        <div class="card__body">
-          <div class="card__title">${p.title}</div>
-          <div class="card__meta">
-            ${p.date ? `<span>${fmtDate(p.date)}</span>` : ''}
-            ${p.tags.map((t) => `<span class="chip">${t}</span>`).join('')}
-            ${p.price ? `<span class="price">${fmtPrice(p.price)}</span>` : ''}
-          </div>
-          <p>${p.excerpt}</p>
-        </div>
-      </a>
-    </li>`
-    )
-    .join('');
+      return `
+<article class="card">
+  <div class="head">
+    <h2 class="title">${title}</h2>
+    ${badge ? `<span class="chip">${badge}</span>` : ""}
+  </div>
+  ${img ? `<figure class="figure"><img src="${img}" alt="${title}" loading="lazy" decoding="async"></figure>` : ""}
+  ${desc ? `<p>${desc}</p>` : ""}
+  <div class="actions">
+    <button class="btn add-quote" data-sku="${(m.sku || title).replace(/"/g, "&quot;")}">Ajouter au devis</button>
+  </div>
+</article>`;
+    }).join("");
+    listRoot.innerHTML = html || `<p style="opacity:.7">Aucun produit disponible.</p>`;
+  }
 
-  // IO observe
-  $$('.card.will-animate', mount).forEach((el) => io.observe(el));
+  /* =========================================================
+   * 5) Dock mobile + “Devis WhatsApp” (panier léger)
+   *    (stock localStorage + badge + ouverture WA)
+   * ========================================================= */
+  (function initDockAndQuote() {
+    const KEY = "ptools-quote";
+    const state = new Set(JSON.parse(localStorage.getItem(KEY) || "[]"));
 
-  // Pager
-  $('#pageinfo').textContent = `${page} / ${pages}`;
-  const setParam = (k, v) => {
-    const sp = new URLSearchParams(location.search);
-    sp.set(k, String(v));
-    history.replaceState(null, '', location.pathname + '?' + sp.toString());
-  };
-  const prev = $('#prev'),
-    next = $('#next');
-  prev.disabled = page <= 1;
-  next.disabled = page >= pages;
-  prev.onclick = () => {
-    setParam('page', page - 1);
-    location.reload();
-  };
-  next.onclick = () => {
-    setParam('page', page + 1);
-    location.reload();
-  };
+    function syncBadge() {
+      if (dockCount) dockCount.textContent = String(state.size);
+      localStorage.setItem(KEY, JSON.stringify([...state]));
+    }
+    syncBadge();
 
-  // Préchargement léger des href externes (hover)
-  $$('#product-list a[href]').forEach((a) =>
-    a.addEventListener(
-      'mouseenter',
-      () => {
-        const href = a.getAttribute('href');
-        if (!href || href.startsWith('#')) return;
-        fetch(href, { mode: 'no-cors' }).catch(() => {});
-      },
-      { passive: true }
-    )
-  );
-})();
+    // Afficher le dock uniquement après le hero (si présent)
+    if (dock && hero && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(([entry]) => {
+        dock.style.display = entry.isIntersecting ? "none" : "grid";
+      }, { threshold: 0.2 });
+      io.observe(hero);
+    }
 
-/* ========= Enregistrement SW (si balise data-register présente) ========= */
-(() => {
-  if (!('serviceWorker' in navigator)) return;
-  const has = document.querySelector('#sw-inline[data-register]');
-  if (!has) return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    // Délégation de clic pour ajouter/retirer un article
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".add-quote");
+      if (!btn) return;
+      const sku = btn.dataset.sku || btn.closest(".card")?.querySelector(".title")?.textContent?.trim();
+      if (!sku) return;
+
+      if (state.has(sku)) {
+        state.delete(sku);
+        btn.textContent = "Ajouter au devis";
+      } else {
+        state.add(sku);
+        btn.textContent = "Ajouté ✓";
+      }
+      syncBadge();
+    });
+
+    // Ouvre WhatsApp avec la liste
+    dockQuote?.addEventListener("click", () => {
+      if (state.size === 0) {
+        alert("Ajoute au moins un article dans le devis.");
+        return;
+      }
+      const items = [...state].map((s, i) => `${i + 1}. ${s}`).join("%0A");
+      const msg = `Bonjour Pirates Tools,%0AJe souhaite un devis pour:%0A%0A${items}%0A%0AMerci.`;
+      location.href = `https://wa.me/${PHONE_INTL}?text=${msg}`;
+    });
+  })();
+
+  /* =========================================================
+   * 6) HERO fallback JS (si CSS scroll-timeline indisponible
+   *    OU si l’utilisateur préfère moins d’animations)
+   *    Effet : zoom massif + légère remontée + fondu,
+   *    AU-DESSUS des cartes, puis libère les clics en fin.
+   * ========================================================= */
+  (function initHeroFallback() {
+    if (!hero || !heroLogo) return;
+
+    // Si CSS moderne dispo ET pas de réduction d’animation → inutile
+    if (supportsScrollTimeline && !prefersReducedMotion) return;
+
+    const isMobile = () => window.innerWidth <= 740;
+
+    const CONFIG = {
+      // états initial / final (mobile / desktop)
+      startScale: () => isMobile() ? 1.25 : 1.20,
+      endScale:   () => isMobile() ? 3.90 : 3.20,    // “voile” ÉNORME
+      startY:     0,
+      endY:       () => isMobile() ? -28   : -22,    // légère remontée
+      endAt:      0.90                                // portion de viewport utilisée
+    };
+
+    // rAF throttle
+    let ticking = false;
+
+    function measureProgress() {
+      const vh = window.innerHeight || 1;
+      const heroTop = hero.getBoundingClientRect().top + window.scrollY;
+      const y = window.scrollY - heroTop;
+      return clamp(y / (vh * CONFIG.endAt), 0, 1); // 0→1
+    }
+
+    function render(p) {
+      const s0 = CONFIG.startScale();
+      const s1 = CONFIG.endScale();
+      const y0 = CONFIG.startY;
+      const y1 = CONFIG.endY();
+
+      const scale = s0 + (s1 - s0) * p;
+      const y     = y0 + (y1 - y0) * p;
+      const opacity = (1 - p);
+
+      heroLogo.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
+      heroLogo.style.opacity   = opacity.toFixed(4);
+
+      // Toujours AU-DESSUS pendant l’anim, libère en fin
+      hero.style.zIndex = (p < 0.999) ? "6000" : "auto";
+      hero.style.pointerEvents = (p < 0.999) ? "auto" : "none";
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        render(measureProgress());
+        ticking = false;
+      });
+    }
+
+    // Init + écouteurs
+    render(measureProgress());
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+  })();
+
+  /* =========================================================
+   * 7) Micro-perf & accessibilité
+   *    - Pré-remplit tel/WA si des boutons existent
+   *    - Lazy “décodage” images au repos (polish)
+   * ========================================================= */
+  (function initContacts() {
+    // S’il existe des boutons sans href, on les renseigne
+    const telBtn = $("#callBtn");
+    if (telBtn && !telBtn.getAttribute("href")) {
+      telBtn.setAttribute("href", `tel:${PHONE_LOCAL}`);
+    }
+    const waBtn = $("#waBtn");
+    if (waBtn && !waBtn.getAttribute("href")) {
+      waBtn.setAttribute("href", `https://wa.me/${PHONE_INTL}`);
+      waBtn.setAttribute("target", "_blank");
+      waBtn.setAttribute("rel", "noopener");
+    }
+  })();
+
+  (function idleDecodeImages() {
+    // Pendant les moments “calmes”, on décode les images visibles (confort)
+    const safeIdle = window.requestIdleCallback || ((fn) => setTimeout(fn, 250));
+    safeIdle(() => {
+      $$("img[loading='lazy']").forEach(img => {
+        if ("decode" in img) {
+          img.decode().catch(() => {});
+        }
+      });
+    });
+  })();
+
+  /* =========================================================
+   * 8) BOOT — on charge les produits après que le DOM existe
+   * ========================================================= */
+  document.addEventListener("DOMContentLoaded", async () => {
+    const models = await loadProducts();
+    renderProducts(models);
   });
+
 })();
