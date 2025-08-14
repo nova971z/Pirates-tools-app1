@@ -1,203 +1,325 @@
 /* =========================================================
-   Pirates Tools — styles.css (FULL, fusion de toutes demandes)
-   Thème sombre, topbar, hero zoom+fade, liste produits, footer
-   ========================================================= */
+   Pirates Tools — app.js (FULL + Debug Overlay)
+   - HERO : zoom massif + fondu + bascule z-index
+   - Smooth scroll
+   - Chargement/filtre produits
+   - Dock + compteur devis (WhatsApp)
+   - PWA : beforeinstallprompt + Service Worker
+   - DEBUG overlay : auto-vérifications + purge cache
+========================================================= */
 
-/* ---------- Thème / variables ---------- */
-:root{
-  --bg:#0a0f14;
-  --panel:#0e151c;
-  --card:#121b24;
-  --fg:#e6edf5;
-  --muted:#9fb4c5;
-  --border:#22303b;
+/* ------------ Utilitaires ------------- */
+const $  = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-  --brand:#19d3ff;   /* bleu/teal */
-  --brand-2:#00e1b4; /* teal/vert */
-  --wa-1:#25d366;    /* WhatsApp */
-  --wa-2:#128c7e;
-
-  --radius:14px;
-  --shadow:0 10px 24px rgba(0,0,0,.35);
-
-  /* Séparation voulue entre le hero et le 1er article (sans chevauchement) */
-  --hero-gap-desktop:-18vh;  /* + vers 0  => plus d’espace ; – => rapproche */
-  --hero-gap-mobile:-24vh;
-}
-
-/* ---------- Reset léger ---------- */
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0;
-  background:
-    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent 70%),
-    linear-gradient(180deg, #0a0f14 0%, #06141b 100%);
-  color:var(--fg);
-  font: 400 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Inter","Segoe UI", Roboto, Arial, sans-serif;
-  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-}
-a{color:inherit;text-decoration:none}
-a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
-
-/* Conteneur */
-.container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
+/* ------------ Sélecteurs ------------- */
+const hero     = $('#hero');
+const heroLogo = $('#heroLogo');
+const listEl   = $('#list');
+const searchEl = $('#q');
+const tagEl    = $('#tag');
+const dock     = $('#dock');
+const dockCount= $('#dockCount');
+const dockQuoteBtn = $('#dockQuoteBtn');
 
 /* =========================================================
-   TOPBAR fixe + CTAs
-   ========================================================= */
-.topbar{
-  position:sticky; top:0; inset-inline:0; z-index:12;
-  display:grid; grid-template-columns:auto 1fr auto auto;
-  align-items:center; gap:.8rem;
-  padding:.7rem .9rem;
-  background:rgba(10,15,20,.72);
-  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
-}
-.menu-btn{all:unset; cursor:pointer; display:inline-grid; gap:3px; padding:.4rem}
-.menu-btn span{width:18px; height:2px; background:var(--muted); border-radius:2px}
-.brand{font-weight:800; letter-spacing:.2px; color:#fff}
-.nav{display:flex; gap:.5rem; justify-content:center}
-.chip{
-  display:inline-flex; align-items:center; gap:.4rem;
-  padding:.42rem .9rem; border-radius:999px;
-  background:rgba(255,255,255,.04); border:1px solid var(--border); color:#d9e3ec;
-  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
-}
-.chip:hover{background:rgba(255,255,255,.07)}
-.cta{display:flex; gap:.6rem; align-items:center}
-.btn{
-  display:inline-flex; align-items:center; gap:.5rem;
-  padding:.58rem .9rem; border-radius:12px; font-weight:700;
-  color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
-}
-.btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
-.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-.btn:active{transform:translateY(1px)}
+   1) HERO : zoom + fondu + passage derrière
+========================================================= */
+(() => {
+  if (!hero || !heroLogo) return;
 
-@media (max-width:960px){
-  .topbar{grid-template-columns:auto 1fr auto; gap:.6rem}
-  .nav{display:none}
+  let vh = window.innerHeight || 1;
+  let ticking = false;
+
+  const update = () => {
+    const isMobile  = matchMedia('(max-width: 768px)').matches;
+    const y         = window.scrollY || 0;
+    const progress  = clamp(y / (vh * 0.90), 0, 1);       // 0→1 sur ~90% d’écran
+    const maxScale  = isMobile ? 2.35 : 1.75;             // zoom massif (ajuste si besoin)
+    const scale     = 1 + (maxScale - 1) * progress;
+    const translateY= -vh * 0.22 * progress;              // lift léger vers le haut
+    const opacity   = clamp(1 - progress * 1.25, 0, 1);   // fondu rapide pour libérer la liste
+
+    heroLogo.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
+    heroLogo.style.opacity   = opacity.toFixed(3);
+
+    // Quand il est vraiment invisible → passe derrière (CSS .is-hidden)
+    if (opacity <= 0.02) hero.classList.add('is-hidden');
+    else                 hero.classList.remove('is-hidden');
+  };
+
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { update(); ticking = false; });
+  };
+
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', () => { vh = window.innerHeight || 1; update(); }, { passive:true });
+  update(); // init
+})();
+
+/* =========================================================
+   2) Smooth scroll (liens data-scroll)
+========================================================= */
+$$('[data-scroll]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = a.getAttribute('data-scroll') || a.getAttribute('href');
+    const el = document.querySelector(target);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 72; // marge sous topbar
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  });
+});
+
+/* =========================================================
+   3) PRODUITS : chargement + rendu + filtres
+========================================================= */
+let MODELS = [];
+let CART   = [];
+
+const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
+
+function productToHTML(m){
+  const title = fallback(m.title, `${fallback(m.brand,'')}${m.brand?' ':''}${fallback(m.sku,'')}`).trim();
+  const tag   = fallback(m.tag,'').trim();
+  const desc  = fallback(m.desc, fallback(m.description,''));
+  const id    = fallback(m.id, fallback(m.sku, title)).toString();
+
+  return `
+  <article class="card" data-id="${id}" data-tag="${tag}">
+    <div class="head">
+      <h3 class="title">${title}</h3>
+      ${tag ? `<span class="badge">${tag}</span>` : ``}
+    </div>
+    <div class="specs">
+      <p style="margin:0">${desc || '—'}</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" data-add="${id}">Ajouter au devis</button>
+    </div>
+  </article>`;
+}
+
+function renderList(data){
+  if (!Array.isArray(data)) return;
+  listEl.innerHTML = data.map(productToHTML).join('\n');
+
+  // actions "Ajouter au devis"
+  $$('[data-add]', listEl).forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-add');
+      const p  = data.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
+      if (!p) return;
+      CART.push(p);
+      if (dock && dockCount) {
+        dockCount.textContent = CART.length;
+        dock.classList.remove('hidden');
+      }
+    });
+  });
+}
+
+async function loadProducts(){
+  try{
+    const r = await fetch('products.json', { cache:'no-store' });
+    const json = await r.json();
+    MODELS = Array.isArray(json) ? json : (json.products || []);
+    renderList(MODELS);
+    window.__PT_DEBUG?.set('Produits', MODELS.length > 0 ? '✅' : '❌');
+  }catch(e){
+    console.error('Erreur chargement produits:', e);
+    listEl.innerHTML = `
+      <div class="card"><div class="head"><h3 class="title">Produits indisponibles</h3></div>
+      <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div></div>`;
+    window.__PT_DEBUG?.set('Produits', '❌');
+  }
+}
+
+function applyFilters(){
+  const q = (searchEl?.value || '').trim().toLowerCase();
+  const t = (tagEl?.value || '').trim().toLowerCase();
+
+  const filtered = MODELS.filter(m => {
+    const hay = `${fallback(m.title,'')} ${fallback(m.sku,'')} ${fallback(m.desc,fallback(m.description,''))}`.toLowerCase();
+    const tag  = fallback(m.tag,'').toLowerCase();
+    const okQ  = !q || hay.includes(q);
+    const okT  = !t || tag === t || hay.includes(t);
+    return okQ && okT;
+  });
+  renderList(filtered);
+}
+
+searchEl?.addEventListener('input', applyFilters);
+tagEl?.addEventListener('change', applyFilters);
+
+/* boot produits */
+loadProducts();
+
+/* =========================================================
+   4) Dock WhatsApp (devis)
+========================================================= */
+dockQuoteBtn?.addEventListener('click', ()=>{
+  if (!CART.length) return;
+  const lines = CART.slice(0,40).map((p,i)=>{
+    const sku = fallback(p.sku, fallback(p.id, i+1));
+    const title = fallback(p.title, '').replace(/\s+/g,' ').trim();
+    return `• ${sku} – ${title}`.trim();
+  });
+  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
+  window.open(`https://wa.me/33774231095?text=${msg}`, '_blank', 'noopener');
+});
+
+/* =========================================================
+   5) PWA : installation + Service Worker
+========================================================= */
+let deferredPrompt;
+const installBtn = $('#installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installBtn) installBtn.hidden = false;
+});
+
+installBtn?.addEventListener('click', async () => {
+  installBtn.hidden = true;
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        window.__PT_DEBUG?.set('Service Worker', reg && navigator.serviceWorker.controller ? '✅' : '⏳');
+      })
+      .catch(() => window.__PT_DEBUG?.set('Service Worker', '❌'));
+  });
 }
 
 /* =========================================================
-   HERO (logo plein écran) : zoom massif + fondu + passage derrière
-   ========================================================= */
-.hero-full{
-  position:sticky; top:0; height:100vh; inset-inline:0;
-  display:grid; place-items:center;
-  pointer-events:none; z-index:3; /* au-dessus au départ */
-}
-.hero-logo{
-  width:min(78vmin,680px); height:auto;
-  transform:translateZ(0) scale(1);    /* le JS ajuste la scale/opacity */
-  transform-origin:center;
-  will-change:transform, opacity;
-  filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
-}
-.hero-fade{
-  position:absolute; inset:auto 0 0 0; height:24vh; pointer-events:none;
-  background:linear-gradient(180deg,
-    rgba(10,15,20,0) 0%,
-    rgba(10,15,20,.85) 60%,
-    var(--bg) 100%);
-}
-/* Quand le logo est totalement fondu (classe posée par JS), il passe derrière */
-.hero-full.is-hidden{ z-index:0; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s }
+   6) DEBUG OVERLAY (auto-vérifications)
+   - Statuts : Logo, Effet scroll, Z-index, Produits, SW
+   - Bouton Purge cache (désinstalle SW + vide caches)
+========================================================= */
+(function PTDebugOverlay(){
+  const ENABLED = true; // ← mettre false pour masquer définitivement
 
-/* Écart contrôlé (réduit, sans chevauchement) avec le 1er article */
-main.container{ margin-top:var(--hero-gap-desktop) }
-@media (max-width:768px){
-  main.container{ margin-top:var(--hero-gap-mobile) }
-}
+  if (!ENABLED) return;
 
-/* =========================================================
-   TOOLBAR recherche / filtre
-   ========================================================= */
-.toolbar{
-  position:relative; z-index:2;
-  width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
-  display:grid; grid-template-columns:1fr 140px; gap:.6rem;
-}
-.search,.select{
-  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-  border:1px solid var(--border); border-radius:12px; color:var(--fg);
-  padding:.85rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-}
-.search::placeholder{color:#7f94a5}
+  // Injecte style overlay (pas besoin de modifier styles.css)
+  const css = `
+  #pt-debug{position:fixed;z-index:9999;left:12px;bottom:12px;max-width:92vw;
+    background:rgba(5,10,14,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    color:#e6f3f8;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:.6rem .7rem;
+    font:600 13px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  #pt-debug h4{margin:.1rem 0 .4rem 0;font-size:12px;opacity:.85}
+  #pt-debug .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  #pt-debug .tag{border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:.25rem .55rem}
+  #pt-debug .btn{margin-top:.5rem;border:0;border-radius:9px;padding:.35rem .6rem;font-weight:800;color:#001018;
+    background:linear-gradient(90deg,#19d3ff,#7cf4ff)}
+  #pt-debug .btn:active{transform:translateY(1px)}
+  #pt-debug .muted{opacity:.75}
+  #pt-debug .right{float:right;margin-left:.6rem}
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
 
-/* =========================================================
-   LISTE PRODUITS / CARTES
-   ========================================================= */
-.list{display:grid; gap:1rem}
-.card{
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); overflow:hidden; position:relative;
-}
-.card .head{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04);
-}
-.title{margin:0; font-size:1.05rem}
-.badge{
-  display:inline-flex; align-items:center; padding:.35rem .7rem;
-  border-radius:999px; font-weight:700; color:#cfeaf8;
-  background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
-  border:1px solid rgba(25,211,255,.35);
-}
-.specs{display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem}
-.actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
-.btn.primary{
-  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
-  color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px;
-}
+  const box = document.createElement('div');
+  box.id = 'pt-debug';
+  box.innerHTML = `
+    <h4>Diagnostic Pirates Tools</h4>
+    <div class="row">
+      <span class="tag" id="ptd-logo">Logo: ⏳</span>
+      <span class="tag" id="ptd-effect">Effet scroll: ⏳</span>
+      <span class="tag" id="ptd-z">Z-index: ⏳</span>
+      <span class="tag" id="ptd-products">Produits: ⏳</span>
+      <span class="tag" id="ptd-sw">Service Worker: ⏳</span>
+      <button class="btn right" id="ptd-purge">Purger cache SW</button>
+    </div>
+    <div class="muted" style="margin-top:.4rem">Astuce: scrolle un peu pour finaliser les tests.</div>
+  `;
+  document.body.appendChild(box);
 
-/* =========================================================
-   AVIS + FOOTER (propre)
-   ========================================================= */
-.ratings{
-  margin:2rem auto 1rem; width:min(1100px,92vw);
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-  padding:1rem 1.1rem; box-shadow:var(--shadow)
-}
-.ratings h2{margin:0 0 .5rem; font-size:1.05rem}
-.ratings__list{margin:0; padding-left:1.1rem}
+  const set = (name, val) => {
+    const id = {
+      'Logo':'ptd-logo',
+      'Effet':'ptd-effect',
+      'Z':'ptd-z',
+      'Produits':'ptd-products',
+      'Service Worker':'ptd-sw'
+    }[name];
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) el.textContent = el.textContent.split(':')[0] + ': ' + val;
+  };
+  window.__PT_DEBUG = { set };
 
-.foot{
-  width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
-  border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
-}
+  /* Test 1 : Logo présent et charge correctement */
+  (function checkLogo(){
+    if (!heroLogo) { set('Logo','❌'); return; }
+    const img = new Image();
+    img.onload = () => set('Logo','✅');
+    img.onerror = () => set('Logo','❌');
+    // on force une URL absolue pour éviter les confusions de base
+    try {
+      const u = new URL(heroLogo.getAttribute('src'), location.href);
+      img.src = u.href + (u.search ? '' : '?v=' + Date.now().toString().slice(0,7));
+    } catch { img.src = heroLogo.src; }
+  })();
 
-/* =========================================================
-   DOCK mobile (actions rapides)
-   ========================================================= */
-.dock{
-  position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
-  display:flex; gap:.6rem; align-items:center;
-  padding:.4rem .5rem; border-radius:999px; z-index:11;
-  background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  border:1px solid var(--border); box-shadow:var(--shadow);
-}
-.dock__btn{
-  width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
-  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08)
-}
-.dock__btn:active{transform:translateY(1px)}
-.dock__btn:nth-child(1){background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018}
-.dock__btn:nth-child(2){background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
-.dock__badge{
-  position:absolute; right:-6px; top:-6px; background:#ff6b6b; color:#001018;
-  font-weight:800; font-size:.75rem; line-height:1; border-radius:999px; padding:.35rem .45rem;
-  border:2px solid rgba(10,15,20,.85)
-}
+  /* Test 2 : Effet scroll modifie transform/opacity */
+  (function checkEffect(){
+    if (!heroLogo) { set('Effet','❌'); return; }
+    let changed = false;
+    const t0 = heroLogo.style.transform;
+    const o0 = heroLogo.style.opacity;
+    let tries = 0;
+    const tick = () => {
+      tries++;
+      const t1 = heroLogo.style.transform;
+      const o1 = heroLogo.style.opacity;
+      if (t0 !== t1 || o0 !== o1) changed = true;
+      if (changed) set('Effet','✅');
+      else if (tries > 30) set('Effet','❌');  // ~3s
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  })();
 
-/* UTILITAIRES */
-.hidden{display:none !important}
+  /* Test 3 : Z-index (par-dessus puis derrière quand fondu) */
+  (function checkZ(){
+    if (!hero) { set('Z','❌'); return; }
+    // on observe le passage de la classe .is-hidden
+    const obs = new MutationObserver(() => {
+      const hidden = hero.classList.contains('is-hidden');
+      set('Z', hidden ? '✅' : '⏳');
+    });
+    obs.observe(hero, { attributes:true, attributeFilter:['class'] });
+    // état initial
+    set('Z', hero.classList.contains('is-hidden') ? '✅' : '⏳');
+  })();
 
-/* Responsive fins */
-@media (max-width:768px){
-  .btn{padding:.54rem .8rem}
-  .ratings{margin:1.4rem auto .6rem}
-  .foot{margin:1rem auto 4.8rem}
-}
+  /* Bouton : Purger caches + SW */
+  $('#ptd-purge').addEventListener('click', async ()=>{
+    try{
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      alert('Caches & Service Worker supprimés.\nRecharge la page.');
+    }catch(e){
+      alert('Impossible de purger : ' + e.message);
+    }
+  });
+})();
