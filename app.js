@@ -1,115 +1,247 @@
-/* ---- Install prompt ---- */
-let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; installBtn.hidden = false;
-});
-installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true; if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt = null; }
-});
+/************************************************************
+ * Pirates Tools — app.js (COMPLET)
+ * - PWA install (bouton #installBtn)
+ * - Enregistrement du Service Worker
+ * - Rendu des produits depuis products.json dans #list
+ * - Menu défilant (liens [data-scroll]) avec offset topbar
+ * - Affichage du “quick menu” après le hero
+ * - Effet HERO de secours (si CSS scroll-timeline non supporté) :
+ *     zoom + fade du #heroLogo pendant le scroll, au-dessus des cartes,
+ *     puis libération des clics quand disparu.
+ ************************************************************/
 
-/* ---- Service worker ---- */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
-}
+(function () {
+  "use strict";
 
-/* ---- Smooth anchors via data-scroll ---- */
-document.addEventListener('click', (e)=>{
-  const a = e.target.closest('[data-scroll]');
-  if(!a) return;
-  const sel = a.getAttribute('data-scroll');
-  const el = document.querySelector(sel);
-  if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
-});
+  /**********************
+   * 0) Helpers généraux
+   **********************/
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-/* ---- Charge produits (fallback local) ---- */
-async function loadProducts(){
-  try{
-    const r = await fetch('products.json', {cache:'no-store'});
-    if(!r.ok) throw new Error('no json');
-    return await r.json();
-  }catch{
-    return [
-      { sku:'DCF887 (18V XR)', badge:'Nouveau', img:'./images/pirates-tools-logo.png', desc:'Viseuse à choc.' },
-      { sku:'DCD796 (18V XR)', badge:'Promo',  img:'./images/pirates-tools-logo.png', desc:'Perceuse-visseuse.' },
-      { sku:'DCS391 (18V XR)', badge:'Stock',  img:'./images/pirates-tools-logo.png', desc:'Scie circulaire.' }
-    ];
-  }
-}
-loadProducts().then(MODELS=>{
-  const list = document.getElementById('list');
-  list.innerHTML = MODELS.map(m=>`
-    <article class="card">
-      <div class="head">
-        <h2 class="title">${m.sku}</h2>
-        ${m.badge ? `<span class="chip">${m.badge}</span>` : ``}
-      </div>
-      ${m.img ? `<img src="${m.img}" alt="${m.sku}">` : ``}
-      ${m.desc ? `<p>${m.desc}</p>` : ``}
-    </article>
-  `).join('');
-});
+  // Détecte support des Scroll-Driven Animations (CSS view-timeline)
+  const hasScrollTimeline = CSS && CSS.supports && CSS.supports('animation-timeline: view()');
 
-/* ===========================================================
-   HERO — Zoom PAR-DESSUS + voile + séparation courte
-   (compatible avec <section class="hero-full" id="hero">)
-=========================================================== */
-(function(){
-  const stage = document.getElementById('hero');            // .hero-full
-  const logo  = document.getElementById('heroLogo');        // img
-  const fade  = document.querySelector('.hero-fade');       // dégradé bas
-  if(!stage || !logo || !fade) return;
+  // Numéros / liens
+  const PHONE_NUMBER   = "0774231095"; // ⚠️ ton numéro
+  const WHATSAPP_PHONE = "33774231095"; // intl pour wa.me (07 -> 337… par ex.)
 
-  const isMobile = matchMedia('(max-width: 740px)').matches;
+  /***************************************
+   * 1) PWA : bouton “Installer l’app”
+   ***************************************/
+  let deferredPrompt;
+  const installBtn = $('#installBtn');
+  if (installBtn) {
+    installBtn.hidden = true;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.hidden = false;
+    });
 
-  // Réglages fins du zoom
-  const BASE_SCALE = isMobile ? 1.25 : 1.10;    // taille au repos (haut de page)
-  const MAX_SCALE  = isMobile ? 3.9  : 2.9;     // zoom massif pendant le scroll
-  const LIFT_END   = isMobile ? -28  : -14;     // légère remontée (px)
-
-  const clamp = (v,min,max)=>Math.max(min, Math.min(max,v));
-  const lerp  = (a,b,t)=>a + (b-a)*t;
-  const ease  = t => 1 - Math.pow(1 - t, 1.12); // easing doux
-
-  // Progression de 0 (haut) à 1 (logo complètement disparu)
-  function getProgress(){
-    const vh  = window.innerHeight || 1;
-    const box = stage.getBoundingClientRect();
-    const topAbs = box.top + window.scrollY;
-    const y   = window.scrollY - topAbs;
-    // 0.9 * vh -> l’anim se termine un peu avant la fin du viewport
-    return clamp(y / (vh * 0.9), 0, 1);
+    installBtn.addEventListener('click', async () => {
+      installBtn.hidden = true;
+      try {
+        if (deferredPrompt) {
+          await deferredPrompt.prompt();
+          deferredPrompt = null;
+        }
+      } catch (err) {
+        // silencieux
+      }
+    });
   }
 
-  function render(p){
-    const t = ease(p);
-    const scale = lerp(BASE_SCALE, MAX_SCALE, t);
-    const lift  = lerp(0, LIFT_END, t);
-
-    // Zoom + légère remontée + fondu
-    logo.style.transform = `translate3d(0, ${lift}px, 0) scale(${scale})`;
-    logo.style.opacity   = (1 - t).toFixed(4);
-
-    // Voile (utilise la variable CSS --veil via pseudo-élément ::before)
-    const veilStart = 0.30; // commence quand ~30% du scroll est fait
-    const veilT = clamp((p - veilStart) / (1 - veilStart), 0, 1);
-    stage.style.setProperty('--veil', Math.pow(veilT, 1.08).toFixed(4));
-
-    // Toujours AU-DESSUS jusqu’à la fin de l’anim
-    stage.style.zIndex = 6000;
-
-    // On libère les clics une fois le logo totalement parti
-    stage.style.pointerEvents = (p >= 0.999) ? 'none' : 'auto';
+  /********************************************
+   * 2) Service Worker (offline / PWA)
+   ********************************************/
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
   }
 
-  let ticking=false;
-  function onScroll(){
-    if(ticking) return; ticking = true;
-    requestAnimationFrame(()=>{ render(getProgress()); ticking = false; });
+  /****************************************************
+   * 3) Rendu des produits depuis products.json -> #list
+   ****************************************************/
+  async function renderProducts() {
+    const list = $('#list');
+    if (!list) return;
+
+    try {
+      const res = await fetch('products.json', { cache: 'no-store' });
+      const MODELS = await res.json();
+
+      const html = (MODELS || []).map(m => {
+        const title = m.title || m.sku || 'Produit';
+        const img   = m.img   || m.image || '';
+        const isNew = !!m.new;
+        const price = (m.price != null) ? `<div class="price">${m.price}€</div>` : '';
+
+        return `
+<article class="card" tabindex="0" aria-label="${title}">
+  <div class="head">
+    <h2 class="title">${title}</h2>
+    ${isNew ? '<span class="badge">Nouveau</span>' : ''}
+  </div>
+  ${img ? `
+  <figure class="figure">
+    <img src="${img}" alt="${title}" loading="lazy" decoding="async">
+  </figure>` : ''}
+  <div class="specs">
+    ${price}
+  </div>
+</article>`;
+      }).join('');
+
+      list.innerHTML = html || `<p style="opacity:.7">Aucun produit pour le moment.</p>`;
+    } catch (err) {
+      list.innerHTML = `<p style="opacity:.7">Impossible de charger les produits.</p>`;
+    }
   }
 
-  // Init (pose une base centré/zoomé dès le chargement)
-  render(getProgress());
-  addEventListener('scroll', onScroll, {passive:true});
-  addEventListener('resize', onScroll);
+  /******************************************************
+   * 4) Liens de menu avec défilement doux + offset topbar
+   ******************************************************/
+  function initSmoothMenu() {
+    const topbar = $('.topbar');
+    const offset = () => (topbar ? topbar.getBoundingClientRect().height : 0);
+
+    $$('[data-scroll]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = a.getAttribute('data-scroll') || a.getAttribute('href');
+        if (!id) return;
+        const target = document.querySelector(id);
+        if (!target) return;
+
+        const y = target.getBoundingClientRect().top + window.scrollY - offset() - 8;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      });
+    });
+  }
+
+  /***************************************************
+   * 5) Quick menu : apparaît après le bloc “hero”
+   ***************************************************/
+  function initQuickMenuToggle() {
+    const quick = $('#quickMenu');
+    const hero  = $('#hero');
+    if (!quick || !hero) return;
+
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(([entry]) => {
+        // cache le quick menu tant que le hero occupe encore l’écran
+        quick.hidden = entry.isIntersecting;
+      }, { threshold: 0.2 });
+      io.observe(hero);
+    } else {
+      // fallback simple
+      const onScroll = () => {
+        const rect = hero.getBoundingClientRect();
+        quick.hidden = rect.bottom > (window.innerHeight * 0.2);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+  }
+
+  /*******************************************************************
+   * 6) Effet HERO de secours (si pas de CSS view-timeline supportée)
+   *    - Zoom + Fade du #heroLogo pendant le scroll
+   *    - Le hero reste au-dessus jusqu’à disparition
+   *    - Puis libère les clics (pointer-events: none)
+   *******************************************************************/
+  function initHeroFallback() {
+    if (hasScrollTimeline) return; // l’effet est géré entièrement en CSS
+
+    const hero = $('#hero');
+    const logo = $('#heroLogo');
+    if (!hero || !logo) return;
+
+    const isMobile = () => window.matchMedia('(max-width: 740px)').matches;
+    let ticking = false;
+    const heroTop = hero.getBoundingClientRect().top + window.scrollY;
+
+    function step() {
+      ticking = false;
+
+      const vh = window.innerHeight || 1;
+      // Progression : 0 (en haut) -> 1 (logo disparu)
+      const p = clamp((window.scrollY - heroTop) / (vh * 0.9), 0, 1);
+
+      // Paramètres de zoom (desktop / mobile)
+      const startScale = isMobile() ? 1.25 : 1.20;
+      const endScale   = isMobile() ? 3.9  : 3.2;
+      const startY     = 0;
+      const endY       = isMobile() ? -28 : -22;
+
+      const scale = startScale + (endScale - startScale) * p;
+      const y     = startY + (endY - startY) * p;
+      const opacity = 1 - p;
+
+      logo.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
+      logo.style.opacity   = opacity.toFixed(3);
+
+      // Tant que le logo est visible, le hero reste au-dessus et bloque les clics
+      if (p < 0.995) {
+        hero.style.zIndex = '6000';
+        hero.style.pointerEvents = 'auto';
+      } else {
+        // Logo disparu -> on redonne la main aux cartes
+        hero.style.zIndex = 'auto';
+        hero.style.pointerEvents = 'none';
+      }
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(step);
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    step(); // état initial
+  }
+
+  /***************************************************
+   * 7) Liens téléphone & WhatsApp (si présents)
+   ***************************************************/
+  function initContactShortcuts() {
+    const telBtn = $('#callBtn');
+    if (telBtn && !telBtn.hasAttribute('href')) {
+      telBtn.setAttribute('href', `tel:${PHONE_NUMBER}`);
+    }
+
+    const waBtn = $('#waBtn');
+    if (waBtn && !waBtn.hasAttribute('href')) {
+      // wa.me nécessite un numéro au format international, sans + ni espaces
+      waBtn.setAttribute('href', `https://wa.me/${WHATSAPP_PHONE}`);
+      waBtn.setAttribute('target', '_blank');
+      waBtn.setAttribute('rel', 'noopener');
+    }
+
+    // Bulle flottante “WA” éventuelle (#waFloat)
+    const waFloat = $('#waFloat');
+    if (waFloat && !waFloat.hasAttribute('href')) {
+      waFloat.setAttribute('href', `https://wa.me/${WHATSAPP_PHONE}`);
+      waFloat.setAttribute('target', '_blank');
+      waFloat.setAttribute('rel', 'noopener');
+    }
+  }
+
+  /***********************
+   * Boot de l’application
+   ***********************/
+  document.addEventListener('DOMContentLoaded', () => {
+    initContactShortcuts();
+    initSmoothMenu();
+    initQuickMenuToggle();
+    initHeroFallback();   // n’agit que si CSS view-timeline est absente
+    renderProducts();
+  });
+
 })();
