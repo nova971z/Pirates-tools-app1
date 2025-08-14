@@ -1,4 +1,4 @@
-/* ---- Install prompt (Android/desktop) ---- */
+/* ---- Install prompt ---- */
 let deferredPrompt;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -13,7 +13,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
 }
 
-/* ---- Small helper: smooth jump to anchors via data-scroll ---- */
+/* ---- Smooth anchors via data-scroll ---- */
 document.addEventListener('click', (e)=>{
   const a = e.target.closest('[data-scroll]');
   if(!a) return;
@@ -22,8 +22,22 @@ document.addEventListener('click', (e)=>{
   if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
 });
 
-/* ---- Load demo products (unchanged; adapt to your JSON) ---- */
-fetch('products.json').then(r=>r.json()).then(MODELS=>{
+/* ---- Charge produits (+ fallback pour éviter page vide) ---- */
+async function loadProducts(){
+  try{
+    const r = await fetch('products.json', {cache:'no-store'});
+    if(!r.ok) throw new Error('no json');
+    return await r.json();
+  }catch{
+    // Fallback minimal pour garantir du scroll et donc l’animation
+    return [
+      { sku:'DCF887 (18V XR)', badge:'Nouveau', img:'./images/pirates-tools-logo.png', desc:'Viseuse à choc.' },
+      { sku:'DCD796 (18V XR)', badge:'Promo',  img:'./images/pirates-tools-logo.png', desc:'Perceuse-visseuse.' },
+      { sku:'DCS391 (18V XR)', badge:'Stock',  img:'./images/pirates-tools-logo.png', desc:'Scie circulaire.' }
+    ];
+  }
+}
+loadProducts().then(MODELS=>{
   const list = document.getElementById('list');
   list.innerHTML = MODELS.map(m=>`
     <article class="card">
@@ -37,57 +51,54 @@ fetch('products.json').then(r=>r.json()).then(MODELS=>{
   `).join('');
 });
 
-/* =================================================================
-   HERO EFFECT — zoom + fondu + passage au-dessus des articles
-   - centre totalement stable (pas de décalage)
-   - zoom fort sur mobile, moyen sur desktop
-   - disparaît avec un fondu en bas du hero
-================================================================= */
+/* ===========================================================
+   HERO — Zoom + fondu. Centre parfaitement stable.
+   Le zoom ne dépend PAS du scroll total mais de la section hero.
+=========================================================== */
 (function(){
-  const logo = document.getElementById('heroLogo');
+  const hero  = document.getElementById('hero');
+  const logo  = document.getElementById('heroLogo');
   const stage = document.querySelector('.hero-stage');
-  if(!logo || !stage) return;
+  if(!hero || !logo || !stage) return;
 
   const isMobile = matchMedia('(max-width: 740px)').matches;
-
-  // bornes d’animation
   const ZOOM_START = 1.0;
-  const ZOOM_END   = isMobile ? 2.4 : 1.7; // zoom plus fort sur mobile
-  const TRANSLATE_UP_END = isMobile ? -18 : -10; // en px par 1 de progrès (léger lift)
-  const OPACITY_END = 0.0;
-
-  // utilitaires
+  const ZOOM_END   = isMobile ? 2.4 : 1.7;     // zoom plus fort sur mobile
+  const LIFT_END   = isMobile ? -18  : -10;    // léger déplacement vers le haut
   const clamp = (v,min,max)=>Math.max(min, Math.min(max,v));
   const lerp  = (a,b,t)=>a+(b-a)*t;
 
   let ticking = false;
 
+  function measureProgress(){
+    // Progression DANS la section hero (0 → 1)
+    const vh = window.innerHeight || 1;
+    const heroTop = hero.offsetTop;
+    const heroHeight = Math.max(hero.offsetHeight, vh); // sécurité
+    const y = window.scrollY - heroTop;
+    return clamp(y / (heroHeight * 0.85), 0, 1);
+  }
+
+  function apply(progress){
+    const scale   = lerp(ZOOM_START, ZOOM_END, progress);
+    const lift    = lerp(0, LIFT_END,   progress);
+    const opacity = 1 - progress; // fondu doux
+
+    logo.style.transform = `translate3d(0, ${lift}px, 0) scale(${scale})`;
+    logo.style.opacity   = opacity;
+
+    // Le stage passe sous les cartes vers la fin pour laisser la liste prendre le dessus
+    stage.style.zIndex = progress < 0.98 ? 10 : 1;
+  }
+
   function onScroll(){
     if(ticking) return;
     ticking = true;
-    requestAnimationFrame(()=>{
-      const vh = window.innerHeight || 1;
-      // on fait disparaître le logo d’ici ~85% d’un écran
-      const progress = clamp(window.scrollY / (vh*0.85), 0, 1);
-
-      const scale     = lerp(ZOOM_START, ZOOM_END, progress);
-      const translate = lerp(0, TRANSLATE_UP_END, progress);  // vers le haut
-      const opacity   = lerp(1, OPACITY_END, progress);
-
-      // centre stable + lissage GPU
-      logo.style.transform = `translate3d(0, ${translate}px, 0) scale(${scale})`;
-      logo.style.opacity   = opacity;
-
-      // le "stage" reste au-dessus au début, puis
-      // laisse place aux cartes (z-index baisse très légèrement)
-      stage.style.zIndex = progress < 0.98 ? 10 : 1;
-
-      ticking = false;
-    });
+    requestAnimationFrame(()=>{ apply(measureProgress()); ticking = false; });
   }
 
-  // démarrage
-  onScroll();
+  // init + écouteurs
+  apply(measureProgress());
   addEventListener('scroll', onScroll, {passive:true});
   addEventListener('resize', onScroll);
 })();
