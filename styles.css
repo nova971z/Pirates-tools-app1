@@ -11,6 +11,11 @@
   /* Réglage de l’écart initial sous le hero (négatif = la liste remonte) */
   --hero-gap-desktop:-18vh;
   --hero-gap-mobile:-24vh;
+
+  /* Nouvel ancrage bas : hauteurs “dock + toolbar” pour éviter tout chevauchement */
+  --toolbar-h: 62px;                 /* hauteur visuelle de la barre flottante */
+  --dock-offset: 78px;               /* espace laissé au dock (≈ 40px + marges) */
+  --stack-gap: calc(var(--toolbar-h) + var(--dock-offset) + 28px); /* marge de sécurité bas */
 }
 
 *{box-sizing:border-box}
@@ -23,6 +28,9 @@ body{
   color:var(--fg);
   font:400 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+
+  /* On réserve de la place en bas pour la toolbar “fixe” + le dock */
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--stack-gap));
 }
 a{color:inherit;text-decoration:none}
 a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
@@ -67,9 +75,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .hero-full{
   position:sticky; top:0; height:100vh; inset-inline:0;
   display:grid; place-items:center;
-  isolation:isolate;               /* plan isolé (isolation = séparer le calque) */
+  isolation:isolate;               /* plan isolé */
   z-index:80;                      /* au-dessus au départ */
-  pointer-events:none;             /* ne bloque pas les clics (pointer-events = ignorer les clics) */
+  pointer-events:none;             /* ne bloque pas les clics */
 }
 .hero-out{ z-index:-1; }           /* sous les articles après l’anim */
 
@@ -78,7 +86,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
   opacity: var(--heroAlpha, 1);
   transform-origin:center;
-  will-change:transform, opacity;   /* hint perf (will-change = optimisation) */
+  will-change:transform, opacity;
   filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
   transition: opacity .22s linear;
 }
@@ -88,7 +96,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   position:absolute; inset:auto 0 0 0; height:24vh;
   background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.85) 60%, var(--bg) 100%);
   pointer-events:none;
-  z-index:-1;                      /* jamais au-dessus du contenu */
+  z-index:-1;
   opacity:.65; transition:opacity .25s linear;
 }
 body.after-hero .hero-fade{ opacity:0; }
@@ -109,12 +117,39 @@ main.container{ margin-top:var(--hero-gap-desktop) }
 }
 body.after-hero .list::before{ height:0; }
 
-/* -------------------- Toolbar (recherche/filtre) -------------------- */
-/* FIX : la toolbar reste AU-DESSUS des cartes (z-index 90 > list 10) */
+/* -------------------- Toolbar (flottante, en bas de l’écran) -------------------- */
+/* Elle reste visible pendant tout le scroll (position:fixed), au-dessus du dock */
+@keyframes floaty {
+  0%   { transform: translate(-50%, 0) }
+  50%  { transform: translate(-50%, -4px) }
+  100% { transform: translate(-50%, 0) }
+}
+@media (prefers-reduced-motion: reduce){
+  @keyframes floaty { 0%,50%,100% { transform: translate(-50%,0) } }
+}
+
 .toolbar{
-  position:relative; z-index:90;
-  width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
+  position:fixed;
+  left:50%;
+  bottom: calc(env(safe-area-inset-bottom) + var(--dock-offset));
+  transform: translateX(-50%);
+  z-index:120; /* > list (10) et > hero (80), ≈ dock(110) */
+
+  width:min(1100px,92vw);
+  min-height: var(--toolbar-h);
   display:grid; grid-template-columns:1fr 140px; gap:.6rem;
+  align-items:center;
+
+  padding:.48rem .6rem;
+  background: rgba(10,15,20,.70);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border:1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 42px rgba(0,0,0,.38);
+
+  animation: floaty 6.5s ease-in-out infinite;
+  will-change: transform;
 }
 .search,.select{
   background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
@@ -144,14 +179,14 @@ body.after-hero .list::before{ height:0; }
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
-/* Accent visuel léger au survol/focus (focus-within = focus clavier à l’intérieur) */
+/* Accent visuel léger au survol/focus */
 .card:focus-within,
 .card:hover{
   outline:0;
   box-shadow:0 0 0 2px rgba(25,211,255,.25) inset;
 }
 
-/* Sur mobile : on replie la description et on l’ouvre quand la carte a .is-open */
+/* Mobile : description repliée, s’ouvre au clic (classe .is-open ajoutée par JS) */
 @media (max-width:768px){
   .card .specs{
     max-height:0;
@@ -159,7 +194,7 @@ body.after-hero .list::before{ height:0; }
     transition:max-height .28s ease;
   }
   .card.is-open .specs{
-    max-height:480px; /* assez pour une fiche courte */
+    max-height:480px;
   }
 }
 
