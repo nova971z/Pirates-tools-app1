@@ -1,379 +1,203 @@
-/*************************************************************
-  PIRATES TOOLS — styles.css (PÉPITE PRO)
-  - Thème sombre, propre et futuriste
-  - Hero logo : centré, sans fond, zoom ENORME + fondu au scroll
-  - Le logo reste AU-DESSUS (z-index) puis libère les clics à la fin
-  - Écart logo → produits court (transition nette)
-  - Topbar (menu + Tel + WhatsApp) collante et lisible
-  - Dock mobile (actions rapides)
-  - Accessibilité & perf (safe-area, prefers-reduced-motion)
-**************************************************************/
+/* =========================================================
+   Pirates Tools — styles.css (FULL, fusion de toutes demandes)
+   Thème sombre, topbar, hero zoom+fade, liste produits, footer
+   ========================================================= */
 
-/* ===========================================================
-   0) Thème & base
-   (variables CSS = réglages globaux ; typographie lisible)
-=========================================================== */
+/* ---------- Thème / variables ---------- */
 :root{
-  --bg:#0a0f14;         /* fond global */
-  --panel:#0e151c;      /* panneaux / cartes */
-  --card:#121b24;       /* cartes accent */
-  --fg:#f4f7fb;         /* texte principal */
-  --muted:#9bc3cf;      /* texte secondaire */
-  --brand:#19d3ff;      /* bleu néon */
-  --accent:#7c4dff;     /* violet accent */
-  --border:#203040;     /* contour subtil */
-  --r:1rem;             /* rayon de bord */
-  --gap:1.2rem;         /* espacement grille */
+  --bg:#0a0f14;
+  --panel:#0e151c;
+  --card:#121b24;
+  --fg:#e6edf5;
+  --muted:#9fb4c5;
+  --border:#22303b;
 
-  /* HERO (réglages fins du zoom 100% CSS) */
-  --hero-start-scale: 1.20;   /* taille initiale (scale = grossissement) */
-  --hero-end-scale-desk: 3.20;/* fin desktop : zoom massif */
-  --hero-end-scale-mob: 3.90; /* fin mobile : encore plus massif */
-  --hero-lift-desk: -22px;    /* petite remontée pour garder le centre visuel */
-  --hero-lift-mob: -28px;
+  --brand:#19d3ff;   /* bleu/teal */
+  --brand-2:#00e1b4; /* teal/vert */
+  --wa-1:#25d366;    /* WhatsApp */
+  --wa-2:#128c7e;
 
-  /* Écart visuel court vers la liste (réduction >60% par rapport à un héros plein) */
-  --hero-fade-h: 12svh;       /* plus petit = séparation plus courte */
+  --radius:14px;
+  --shadow:0 10px 24px rgba(0,0,0,.35);
+
+  /* Séparation voulue entre le hero et le 1er article (sans chevauchement) */
+  --hero-gap-desktop:-18vh;  /* + vers 0  => plus d’espace ; – => rapproche */
+  --hero-gap-mobile:-24vh;
 }
 
-/* Reset simple + lisibilité */
-*{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-html{ scroll-behavior:smooth; }
+/* ---------- Reset léger ---------- */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
-  margin:0; color:var(--fg); background:
-    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
-    linear-gradient(180deg, #0a0f14 0%, #061019 60%, #0a0f14 100%);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  line-height:1.8; letter-spacing:.2px;
+  margin:0;
+  background:
+    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent 70%),
+    linear-gradient(180deg, #0a0f14 0%, #06141b 100%);
+  color:var(--fg);
+  font: 400 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Inter","Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
 }
-img{ max-width:100%; height:auto; display:block; }
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
 
-/* Conteneur principal */
-.container{ max-width:min(1100px,92vw); margin:0 auto; padding:0 0 6rem; }
+/* Conteneur */
+.container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
 
-/* ===========================================================
-   1) Topbar (sticky = collée ; z-index = passe au-dessus)
-=========================================================== */
+/* =========================================================
+   TOPBAR fixe + CTAs
+   ========================================================= */
 .topbar{
-  position:sticky; top:0; z-index:7000;
-  display:grid; grid-template-columns:auto 1fr auto; gap:.8rem;
-  align-items:center;
-  padding: max(.6rem, env(safe-area-inset-top)) .9rem .6rem .9rem; /* safe-area iOS */
-  background:
-    linear-gradient(180deg, rgba(4,8,12,.75), rgba(4,8,12,.35) 60%, transparent 100%),
-    rgba(10,15,20,.45);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(32,48,64,.25);
+  position:sticky; top:0; inset-inline:0; z-index:12;
+  display:grid; grid-template-columns:auto 1fr auto auto;
+  align-items:center; gap:.8rem;
+  padding:.7rem .9rem;
+  background:rgba(10,15,20,.72);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
 }
-.brand{ font-weight:800; letter-spacing:.2px; }
-.menu-btn{
-  display:inline-flex; flex-direction:column; gap:4px;
-  width:34px; height:34px; padding:6px 7px; border-radius:8px;
-  border:1px solid rgba(32,48,64,.35);
-  background: linear-gradient(180deg, #111923, #0c121a);
-}
-.menu-btn span{ display:block; height:2px; background:#b9d6e0; border-radius:2px; }
-
-.nav{ display:flex; align-items:center; gap:.5rem; justify-content:center; }
-.nav a{ color:inherit; text-decoration:none; }
+.menu-btn{all:unset; cursor:pointer; display:inline-grid; gap:3px; padding:.4rem}
+.menu-btn span{width:18px; height:2px; background:var(--muted); border-radius:2px}
+.brand{font-weight:800; letter-spacing:.2px; color:#fff}
+.nav{display:flex; gap:.5rem; justify-content:center}
 .chip{
-  display:inline-flex; align-items:center; gap:.45rem;
-  padding:.45rem .85rem; border-radius:999px;
-  border:1px solid var(--border);
-  background:
-    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
-    linear-gradient(180deg, #0a0f14 0%, #0b1219 100%);
-  color:#dfeaf0;
-  box-shadow: 0 10px 24px rgba(12,18,26,.35) inset;
-  transition: transform .15s ease, box-shadow .2s ease;
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.42rem .9rem; border-radius:999px;
+  background:rgba(255,255,255,.04); border:1px solid var(--border); color:#d9e3ec;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
-.chip:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.25) }
-
-.cta{ display:flex; align-items:center; gap:.6rem; }
+.chip:hover{background:rgba(255,255,255,.07)}
+.cta{display:flex; gap:.6rem; align-items:center}
 .btn{
   display:inline-flex; align-items:center; gap:.5rem;
-  padding:.55rem .9rem; border-radius:12px; text-decoration:none;
-  border:1px solid rgba(32,48,64,.35); font-weight:700; color:#03131a;
-  box-shadow: 0 10px 24px rgba(3,19,26,.20) inset, 0 2px 10px rgba(0,0,0,.25);
-  transition: transform .12s ease, filter .15s ease;
+  padding:.58rem .9rem; border-radius:12px; font-weight:700;
+  color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
 }
-.btn:active{ transform: translateY(1px); }
-.btn-call{ background: linear-gradient(180deg, #60e6ff, #00c7ff 70%, #00b6ef); }
-.btn-wa  { background: linear-gradient(180deg, #45f0a2, #17e07e 70%, #10d071); }
+.btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
+.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.btn:active{transform:translateY(1px)}
 
-@media (max-width:820px){
-  .topbar{ grid-template-columns:auto 1fr; grid-template-areas:
-    "menu brand"
-    "nav  cta";
-  }
-  .menu-btn{ grid-area:menu; }
-  .brand{ grid-area:brand; }
-  .nav{ grid-area:nav; justify-content:flex-start; flex-wrap:wrap; }
-  .cta{ grid-area:cta; }
+@media (max-width:960px){
+  .topbar{grid-template-columns:auto 1fr auto; gap:.6rem}
+  .nav{display:none}
 }
 
-/* ===========================================================
-   2) HERO (logo centré, sans fond, zoom ENORME PAR-DESSUS)
-   - sticky plein écran pour une sensation premium
-   - z-index élevé : passe devant les cartes pendant l’anim
-=========================================================== */
+/* =========================================================
+   HERO (logo plein écran) : zoom massif + fondu + passage derrière
+   ========================================================= */
 .hero-full{
-  position:sticky; top:0; height:100svh; display:grid; place-items:center;
-  overflow:clip; z-index:6000; background:transparent;
-  /* Timeline de scroll (animation pilotée par le viewport) */
-  view-timeline-name: --hero;
-  view-timeline-axis: block;
+  position:sticky; top:0; height:100vh; inset-inline:0;
+  display:grid; place-items:center;
+  pointer-events:none; z-index:3; /* au-dessus au départ */
 }
-
-/* Logo (pas d’arrière-plan ajouté ; ombre légère pour le relief) */
 .hero-logo{
-  width:min(92vmin, 980px); height:auto;
-  transform-origin:center center;
-  will-change: transform, opacity; backface-visibility:hidden;
-  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
-
-  /* Animation 100% CSS : du haut de page (entry) à sortie de la section (exit) */
-  animation-name: hero-zoom-fade;
-  animation-timeline: --hero;                 /* (scroll-timeline = animation liée au défilement) */
-  animation-range: entry 0% exit 100%;
-  animation-duration: 1s;                     /* ignorée par la timeline, sert de fallback */
-  animation-timing-function: linear;
-  animation-fill-mode: both;                  /* garde les états aux extrêmes */
+  width:min(78vmin,680px); height:auto;
+  transform:translateZ(0) scale(1);    /* le JS ajuste la scale/opacity */
+  transform-origin:center;
+  will-change:transform, opacity;
+  filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
 }
-
-/* Keyframes desktop */
-@keyframes hero-zoom-fade{
-  0%   { transform: translate3d(0, 0, 0) scale(var(--hero-start-scale)); opacity:1; }
-  100% { transform: translate3d(0, var(--hero-lift-desk), 0) scale(var(--hero-end-scale-desk)); opacity:0; }
-}
-
-/* Keyframes mobile (zoom encore plus grand) */
-@media (max-width:740px){
-  @keyframes hero-zoom-fade{
-    0%   { transform: translate3d(0, 0, 0) scale(var(--hero-start-scale)); opacity:1; }
-    100% { transform: translate3d(0, var(--hero-lift-mob), 0) scale(var(--hero-end-scale-mob)); opacity:0; }
-  }
-}
-
-/* Dégradé bas = séparation nette mais courte vers la liste */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:var(--hero-fade-h);
-  pointer-events:none;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(2,8,13,.65) 70%, rgba(2,8,13,1) 100%);
+  position:absolute; inset:auto 0 0 0; height:24vh; pointer-events:none;
+  background:linear-gradient(180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,.85) 60%,
+    var(--bg) 100%);
+}
+/* Quand le logo est totalement fondu (classe posée par JS), il passe derrière */
+.hero-full.is-hidden{ z-index:0; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s }
+
+/* Écart contrôlé (réduit, sans chevauchement) avec le 1er article */
+main.container{ margin-top:var(--hero-gap-desktop) }
+@media (max-width:768px){
+  main.container{ margin-top:var(--hero-gap-mobile) }
 }
 
-/* La liste passe SOUS le hero pendant l’anim */
-.list{ position:relative; z-index:1; }
-
-/* Fallback si navigateur SANS scroll-timeline (ex: très vieux) */
-@supports not (animation-timeline: view()){
-  .hero-logo{ transform: scale(var(--hero-start-scale)); opacity:1; }
-  /* (Ton app.js gère alors le fallback JS de l’anim) */
-}
-
-/* Réduction d’animations (confort visuel) */
-@media (prefers-reduced-motion: reduce){
-  .hero-logo{ animation: none !important; transform: scale(1.1); opacity:1; }
-}
-
-/* ===========================================================
-   3) Toolbar (recherche / filtres)
-=========================================================== */
+/* =========================================================
+   TOOLBAR recherche / filtre
+   ========================================================= */
 .toolbar{
-  position:sticky; top: calc(64px + env(safe-area-inset-top));
-  z-index:3500; display:flex; gap:.6rem; padding:.7rem 1rem;
-  background: rgba(10,15,20,.75); backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  position:relative; z-index:2;
+  width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
+  display:grid; grid-template-columns:1fr 140px; gap:.6rem;
 }
-.search, .select{
-  flex:1 1 auto; min-width:0; padding:.6rem .8rem;
-  border-radius:.6rem; border:1px solid rgba(255,255,255,.12);
-  background:#0e151c; color:#e8f2f7;
+.search,.select{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  border:1px solid var(--border); border-radius:12px; color:var(--fg);
+  padding:.85rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
-.select{ flex:0 0 160px; }
+.search::placeholder{color:#7f94a5}
 
-/* ===========================================================
-   4) Grille / cartes produits
-=========================================================== */
-.list{ display:grid; gap:var(--gap); padding:1.2rem; }
+/* =========================================================
+   LISTE PRODUITS / CARTES
+   ========================================================= */
+.list{display:grid; gap:1rem}
 .card{
-  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-  box-shadow: 0 10px 24px rgba(0,0,0,.35); padding:1rem;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden; position:relative;
 }
 .card .head{
-  display:flex; align-items:center; justify-content:space-between; gap:.8rem;
-  border-bottom:1px solid var(--border); padding:.7rem 0; margin-bottom:1rem;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04);
 }
-.card .title{ margin:0; font-size:1.15rem; }
-.figure img{ border-radius:.6rem; }
-.badge, .chip{ font-size:.85rem; }
-
-/* Bouton “devis rapide” */
-.btn, .add-quote{
-  background: linear-gradient(180deg,#60e6ff,#00c7ff 70%,#00b6ef);
-  color:#001018; font-weight:800; border:0; border-radius:.6rem; padding:.5rem .8rem;
+.title{margin:0; font-size:1.05rem}
+.badge{
+  display:inline-flex; align-items:center; padding:.35rem .7rem;
+  border-radius:999px; font-weight:700; color:#cfeaf8;
+  background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
+  border:1px solid rgba(25,211,255,.35);
+}
+.specs{display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem}
+.actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
+.btn.primary{
+  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
+  color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px;
 }
 
-/* ===========================================================
-   5) Dock mobile (actions rapides)
-=========================================================== */
+/* =========================================================
+   AVIS + FOOTER (propre)
+   ========================================================= */
+.ratings{
+  margin:2rem auto 1rem; width:min(1100px,92vw);
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem 1.1rem; box-shadow:var(--shadow)
+}
+.ratings h2{margin:0 0 .5rem; font-size:1.05rem}
+.ratings__list{margin:0; padding-left:1.1rem}
+
+.foot{
+  width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
+  border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
+}
+
+/* =========================================================
+   DOCK mobile (actions rapides)
+   ========================================================= */
 .dock{
-  position: fixed; left:50%; bottom: max(12px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index:6500; display:grid; grid-auto-flow:column; gap:.6rem;
-  background: rgba(10,15,20,.78); backdrop-filter: blur(8px);
-  border:1px solid rgba(255,255,255,.12); border-radius:999px;
-  padding:.4rem .5rem; box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+  display:flex; gap:.6rem; align-items:center;
+  padding:.4rem .5rem; border-radius:999px; z-index:11;
+  background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1px solid var(--border); box-shadow:var(--shadow);
 }
 .dock__btn{
-  width:44px; height:44px; border-radius:999px; border:0; cursor:pointer;
-  display:grid; place-items:center; font-size:20px; text-decoration:none; color:#fff;
-  background: linear-gradient(180deg,#18232e,#0e151c);
+  width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
+  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08)
 }
-.dock__btn:active{ transform: translateY(1px); }
+.dock__btn:active{transform:translateY(1px)}
+.dock__btn:nth-child(1){background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018}
+.dock__btn:nth-child(2){background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
 .dock__badge{
-  position:absolute; right:-6px; top:-6px; min-width:20px; height:20px; padding:0 6px;
-  display:grid; place-items:center; background:#25D366; color:#001018; font-weight:800;
-  border-radius:999px; border:1px solid rgba(0,0,0,.25);
-}
-@media (min-width:860px){ .dock{ display:none } } /* mobile only */
-
-/* ===========================================================
-   6) Footer & Avis
-=========================================================== */
-.ratings{ width:min(1100px,92vw); margin: 1rem auto 2rem; padding:1rem 1.2rem;
-  background:#0e151c; border:1px solid rgba(255,255,255,.06); border-radius:.9rem; }
-.ratings h2{ margin:0 0 .6rem 0; font-size:1.1rem }
-.ratings__list{ list-style:none; display:grid; gap:.35rem; padding:0; margin:0; color:#bfe1ed }
-
-.foot{ color:var(--muted); border-top:1px solid var(--border); padding:2rem 1rem; text-align:center; }
-
-/* ===========================================================
-   7) Petits plus pro (lisibilité & cohérence)
-=========================================================== */
-a{ color:inherit; text-decoration:none; }
-::selection{ background:#1a3b4a; color:#e9fbff; } /* (feedback visuel propre) */
-
-/* ========= Footer pro ========= */
-.site-footer{
-  border-top: 1px solid var(--border);
-  background:
-    radial-gradient(1200px 400px at 50% -200px, rgba(255,255,255,0.04), transparent 60%),
-    linear-gradient(180deg, var(--panel) 0%, rgba(10,15,20,0.92) 100%);
-  margin-top: 4rem;
+  position:absolute; right:-6px; top:-6px; background:#ff6b6b; color:#001018;
+  font-weight:800; font-size:.75rem; line-height:1; border-radius:999px; padding:.35rem .45rem;
+  border:2px solid rgba(10,15,20,.85)
 }
 
-.footer-grid{
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 2rem;
-  padding: 2.2rem 1rem;
-}
-.footer-col{ display:flex; flex-direction:column; gap:.75rem; }
-.footer-brand{ font-weight:800; font-size:1.15rem; color:var(--fg); }
-.footer-blurb{ color:var(--muted); margin:0; }
-.footer-cta{ display:flex; gap:.6rem; flex-wrap:wrap; }
+/* UTILITAIRES */
+.hidden{display:none !important}
 
-.footer-links a{
-  color: var(--fg);
-  opacity: .85;
-  text-decoration: none;
-  padding: .25rem 0;
-}
-.footer-links a[aria-disabled="true"]{ opacity:.45; cursor:not-allowed; }
-.footer-title{
-  display:block; font-weight:700; color:var(--fg); opacity:.9; margin-bottom:.25rem;
-}
-
-.trust-badges{
-  list-style:none; margin:0; padding:0;
-  display:flex; flex-direction:column; gap:.4rem;
-  color: var(--fg); opacity:.9;
-}
-
-/* sous-footer */
-.subfooter{ border-top:1px solid var(--border); background: rgba(0,0,0,.25); }
-.subfooter__row{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:1rem; padding: .9rem 1rem;
-}
-.legal{ margin:0; color:var(--muted); font-size:.95rem; }
-
-/* Boutons compacts réutilisant ta charte */
-.btn--sm{ padding:.45rem .7rem; font-size:.95rem; }
-
-/* Bouton haut de page (discret, réactif) */
-.to-top{
-  inline-size: 2.25rem; block-size: 2.25rem;
-  border-radius: 999px;
-  background: var(--brand);
-  color: #001018;
-  border: 0;
-  box-shadow: 0 6px 22px rgba(0,0,0,.35);
-  display: grid; place-items:center;
-  font-weight: 800;
-  opacity: .92;
-  transition: transform .15s ease, opacity .15s ease;
-}
-.to-top:hover{ transform: translateY(-2px); opacity:1; }
-.to-top:active{ transform: translateY(0); }
-
-/* Responsive */
-@media (max-width: 960px){
-  .footer-grid{ grid-template-columns: 1fr; }
-}
-
-
-
-/* === FIX hero (v2) : superposition + zoom fluide === */
-.topbar{ position: sticky; top: 0; z-index: 10; }
-
-.hero-full{
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 3;                 /* au-dessus au début */
-  pointer-events: none;       /* ne bloque jamais les clics */
-}
-
-.hero-logo{
-  display: block;
-  width: 78vmin;                  /* base — le zoom fera le reste */
-  max-width: min(78vmin, 680px);
-  height: auto;
-  margin: 0 auto;
-  transform: translateZ(0) scale(1);
-  transform-origin: center center;
-  will-change: transform, opacity; /* GPU + perf */
-  /* pas de transition CSS : lissage géré en JS */
-}
-
-.hero-fade{
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 24vh;   /* un peu plus long => transition + douce */
-  background: linear-gradient(180deg,
-              rgba(10,15,20,0) 0%,
-              rgba(10,15,20,.85) 60%,
-              var(--bg, #0a0f14) 100%);
-  pointer-events: none;
-}
-
-/* Le reste du site passe au-dessus (sauf au tout début) */
-.container, .toolbar, .ratings, .foot{
-  position: relative;
-  z-index: 2;
-}
-
-/* Quand le logo a vraiment fini de se fondre, on le passe dessous */
-.hero-full.is-hidden{
-  z-index: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .25s ease, visibility 0s linear .25s;
-}
-
-/* Un chouia plus grand sur mobile avant zoom */
-@media (max-width: 767px){
-  .hero-logo{ max-width: min(86vmin, 700px); }
+/* Responsive fins */
+@media (max-width:768px){
+  .btn{padding:.54rem .8rem}
+  .ratings{margin:1.4rem auto .6rem}
+  .foot{margin:1rem auto 4.8rem}
 }
