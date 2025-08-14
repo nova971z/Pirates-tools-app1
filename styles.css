@@ -10,6 +10,11 @@
 
   /* marges dynamiques pilotées par JS */
   --listGap: 14vh;
+
+  /* >>> ajout pour l’effet de sortie (tools) <<< */
+  --tool-exit-dx: 60px;                       /* distance du glissement (px) */
+  --tool-exit-dur: 420ms;                     /* durée de l’animation (ms) */
+  --tool-exit-ease: cubic-bezier(.22,.61,.36,1); /* courbe d’accélération */
 }
 
 *{box-sizing:border-box}
@@ -59,7 +64,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   flex-shrink:0;
 }
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
-.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
 .btn:active{transform:translateY(1px)}
 @media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
@@ -177,4 +182,48 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .btn{padding:.54rem .8rem}
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
+}
+
+/* =========================================================
+   === EXIT ANIMATIONS (tools) — AJOUT =====================
+   Chaque outil qui sort vers le HAUT glisse alternativement
+   à gauche puis à droite et disparaît en fondu.
+   ========================================================= */
+
+/* 1) Keyframes */
+@keyframes tool-exit-left {
+  to {
+    transform: translateX(calc(-1 * var(--tool-exit-dx))) translateZ(0);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+@keyframes tool-exit-right {
+  to {
+    transform: translateX(var(--tool-exit-dx)) translateZ(0);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+/* 2) États d’animation (forwards = garde le dernier état) */
+.tool--exit-left{
+  animation: tool-exit-left var(--tool-exit-dur) var(--tool-exit-ease) forwards;
+  will-change: transform, opacity;
+}
+.tool--exit-right{
+  animation: tool-exit-right var(--tool-exit-dur) var(--tool-exit-ease) forwards;
+  will-change: transform, opacity;
+}
+
+/* 3) Option : retirer du flux après l’anim (nécessite JS: animationend) */
+.tool--gone{ display:none !important }
+
+/* 4) Accessibilité : réduire le mouvement si demandé */
+@media (prefers-reduced-motion: reduce){
+  .tool--exit-left,
+  .tool--exit-right{
+    animation: none !important;
+    opacity: 0;
+  }
 }
