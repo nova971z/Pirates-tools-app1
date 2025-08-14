@@ -40,7 +40,7 @@ body{
 .actions{display:flex; gap:.6rem; justify-self:end}
 .pill{
   display:inline-flex; align-items:center; gap:.5rem;
-  padding:.6rem .9rem; border-radius:.9rem; text-decoration:none; color:#021015;
+  padding:.6rem .9rem; border-radius:.9rem; text-decoration:none; color:#001018;
   font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.25);
 }
 .pill .emoji{filter:saturate(1.2)}
@@ -48,12 +48,19 @@ body{
 .pill.wa{background:linear-gradient(180deg,#25D366,#18b555)}
 
 /* ===== Hero ===== */
-.hero{ position:relative; min-height:100svh; display:block; overflow:clip; }
+/* >>> réduction de l’écart > 60% : le héros ne prend plus tout l’écran */
+.hero{
+  position:relative;
+  height:38svh;          /* <= ~62% de moins que 100svh */
+  min-height:38svh;
+  display:block;
+  overflow:clip;
+}
 .hero-stage{
   position:sticky; top:0; height:100svh; width:100%;
   display:grid; place-items:center;
   perspective:1000px;
-  z-index:10;
+  z-index:30;            /* tjrs au-dessus => zoom par-dessus */
 }
 .hero-wrap{ width:100%; height:100%; display:grid; place-items:center; }
 .hero-logo{
@@ -65,9 +72,9 @@ body{
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
   transition: transform .12s ease-out;
 }
+/* voile radial qui “avale” le logo */
 .hero-veil{
-  position:absolute; inset:0; z-index:11; pointer-events:none;
-  /* centre transparent → bords très sombres pour “avaler” le logo */
+  position:absolute; inset:0; z-index:31; pointer-events:none;
   background:
     radial-gradient(circle at 50% 45%,
       rgba(2,8,13,0) 0%,
@@ -76,13 +83,17 @@ body{
       rgba(2,8,13,0.95) 100%);
   opacity:0; transition:opacity .2s linear;
 }
+/* dégradé bas (transition vers la liste) */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:28svh; z-index:12;
+  position:absolute; inset:auto 0 0 0; height:26svh; z-index:32;
   background:linear-gradient(180deg, rgba(2,8,13,0) 0%, rgba(2,8,13,.85) 70%, rgba(2,8,13,1) 100%);
   pointer-events:none;
 }
-.hero-gap{ height:clamp(10px, 2.8svh, 20px);
-  background:linear-gradient(180deg, rgba(2,8,13,1), rgba(2,8,13,0)); }
+/* fine marge visuelle (très faible désormais) */
+.hero-gap{
+  height:clamp(3px, 0.9svh, 10px);
+  background:linear-gradient(180deg, rgba(2,8,13,1), rgba(2,8,13,0));
+}
 
 /* ===== Liste / cartes ===== */
 .list{display:grid; gap:1.2rem; padding:1.2rem}
@@ -111,5 +122,5 @@ body{
 /* responsive */
 @media (max-width:740px){
   .topbar{grid-template-columns:1fr auto}
-  .actions{display:none} /* on garde la place pour le hero sur mobile */
+  .actions{display:none}
 }
