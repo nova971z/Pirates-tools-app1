@@ -9,7 +9,7 @@
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
 
   /* Réglage de l’écart initial sous le hero (négatif = la liste remonte) */
-  --hero-gap-desktop:-18vh; 
+  --hero-gap-desktop:-18vh;
   --hero-gap-mobile:-24vh;
 }
 
@@ -67,9 +67,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .hero-full{
   position:sticky; top:0; height:100vh; inset-inline:0;
   display:grid; place-items:center;
-  isolation:isolate;               /* plan isolé */
+  isolation:isolate;               /* plan isolé (isolation = séparer le calque) */
   z-index:80;                      /* au-dessus au départ */
-  pointer-events:none;             /* ne bloque pas les clics */
+  pointer-events:none;             /* ne bloque pas les clics (pointer-events = ignorer les clics) */
 }
 .hero-out{ z-index:-1; }           /* sous les articles après l’anim */
 
@@ -78,7 +78,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
   opacity: var(--heroAlpha, 1);
   transform-origin:center;
-  will-change:transform, opacity;
+  will-change:transform, opacity;   /* hint perf (will-change = optimisation) */
   filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
   transition: opacity .22s linear;
 }
@@ -97,8 +97,8 @@ body.after-hero .hero-fade{ opacity:0; }
 main.container{ margin-top:var(--hero-gap-desktop) }
 @media (max-width:768px){ main.container{ margin-top:var(--hero-gap-mobile) } }
 
-/* Anti-chevauchement : réserve élastique au-dessus de la liste,
-   réduite par le JS (var --listGap), puis supprimée quand le hero sort. */
+/* -------------------- Liste + anti-chevauchement -------------------- */
+/* Réserve élastique au-dessus de la liste (pilotée par le JS avec --listGap) */
 .list{
   position:relative; z-index:10;
   display:grid; gap:1rem;
@@ -109,9 +109,10 @@ main.container{ margin-top:var(--hero-gap-desktop) }
 }
 body.after-hero .list::before{ height:0; }
 
-/* -------------------- Toolbar -------------------- */
+/* -------------------- Toolbar (recherche/filtre) -------------------- */
+/* FIX : la toolbar reste AU-DESSUS des cartes (z-index 90 > list 10) */
 .toolbar{
-  position:relative; z-index:2;
+  position:relative; z-index:90;
   width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
   display:grid; grid-template-columns:1fr 140px; gap:.6rem;
 }
@@ -126,6 +127,7 @@ body.after-hero .list::before{ height:0; }
 .card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); overflow:hidden; position:relative;
+  cursor:pointer; /* clic possible pour ouvrir sur mobile */
 }
 .card .head{
   display:flex; align-items:center; justify-content:space-between;
@@ -141,6 +143,25 @@ body.after-hero .list::before{ height:0; }
 .specs{display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem}
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
+
+/* Accent visuel léger au survol/focus (focus-within = focus clavier à l’intérieur) */
+.card:focus-within,
+.card:hover{
+  outline:0;
+  box-shadow:0 0 0 2px rgba(25,211,255,.25) inset;
+}
+
+/* Sur mobile : on replie la description et on l’ouvre quand la carte a .is-open */
+@media (max-width:768px){
+  .card .specs{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .28s ease;
+  }
+  .card.is-open .specs{
+    max-height:480px; /* assez pour une fiche courte */
+  }
+}
 
 /* -------------------- Avis & Footer -------------------- */
 .ratings{
