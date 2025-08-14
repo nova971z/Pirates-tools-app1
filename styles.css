@@ -1,21 +1,15 @@
 /* =========================================================
-   Pirates Tools — styles.css (FULL, fusion propre)
+   Pirates Tools — styles.css (FULL, fusion + Android fixes)
    ========================================================= */
 
-/* -------------------- Thème -------------------- */
+/* Thème */
 :root{
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
 
-  /* Réglage de l’écart initial sous le hero (négatif = la liste remonte) */
-  --hero-gap-desktop:-18vh;
-  --hero-gap-mobile:-24vh;
-
-  /* Nouvel ancrage bas : hauteurs “dock + toolbar” pour éviter tout chevauchement */
-  --toolbar-h: 62px;                 /* hauteur visuelle de la barre flottante */
-  --dock-offset: 78px;               /* espace laissé au dock (≈ 40px + marges) */
-  --stack-gap: calc(var(--toolbar-h) + var(--dock-offset) + 28px); /* marge de sécurité bas */
+  /* marges dynamiques pilotées par JS */
+  --listGap: 14vh;
 }
 
 *{box-sizing:border-box}
@@ -28,15 +22,12 @@ body{
   color:var(--fg);
   font:400 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-
-  /* On réserve de la place en bas pour la toolbar “fixe” + le dock */
-  padding-bottom: calc(env(safe-area-inset-bottom) + var(--stack-gap));
 }
 a{color:inherit;text-decoration:none}
 a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
 .container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
 
-/* -------------------- TOPBAR -------------------- */
+/* ================= TOPBAR ================= */
 .topbar{
   position:sticky; top:0; inset-inline:0; z-index:100;
   display:grid; grid-template-columns:auto auto 1fr auto;
@@ -64,92 +55,49 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.58rem .9rem; border-radius:12px; font-weight:700;
   color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
+  white-space:nowrap;           /* évite que le numéro se mette en colonne */
+  flex-shrink:0;
 }
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
 .btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
 .btn:active{transform:translateY(1px)}
 @media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
-/* -------------------- HERO (zoom + fondu) -------------------- */
-/* Le hero est sticky (plein écran) et passe SOUS la liste quand il a fini */
+/* ================= HERO (zoom + fondu) ================= */
 .hero-full{
-  position:sticky; top:0; height:100vh; inset-inline:0;
+  position:relative;
+  height:100vh;               /* fallback */
+  height:100svh;              /* Android/IOS barre dynamique */
   display:grid; place-items:center;
-  isolation:isolate;               /* plan isolé */
-  z-index:80;                      /* au-dessus au départ */
-  pointer-events:none;             /* ne bloque pas les clics */
+  pointer-events:none;        /* ne bloque pas les clics des cartes */
+  isolation:isolate;
+  z-index:30;                 /* au-dessus au début */
 }
-.hero-out{ z-index:-1; }           /* sous les articles après l’anim */
-
 .hero-logo{
   width:min(78vmin,680px); height:auto;
-  transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
-  opacity: var(--heroAlpha, 1);
+  transform:translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
+  opacity:var(--heroAlpha, 1);
   transform-origin:center;
   will-change:transform, opacity;
   filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
-  transition: opacity .22s linear;
+  transition:opacity .18s linear;
 }
-
-/* Dégradé de séparation — TOUJOURS derrière (z-index négatif) */
 .hero-fade{
-  position:absolute; inset:auto 0 0 0; height:24vh;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.85) 60%, var(--bg) 100%);
+  position:absolute; inset:auto 0 0 0; height:26vh;
+  background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
   pointer-events:none;
-  z-index:-1;
-  opacity:.65; transition:opacity .25s linear;
+  z-index:-1;                 /* derrière le logo ET la liste */
 }
-body.after-hero .hero-fade{ opacity:0; }
+.hero-full.hero-out{ z-index:-1 } /* passe sous la liste quand l'anim est finie */
 
-/* Espace contrôlé (réduit) sous le hero pour rapprocher la liste */
-main.container{ margin-top:var(--hero-gap-desktop) }
-@media (max-width:768px){ main.container{ margin-top:var(--hero-gap-mobile) } }
-
-/* -------------------- Liste + anti-chevauchement -------------------- */
-/* Réserve élastique au-dessus de la liste (pilotée par le JS avec --listGap) */
-.list{
-  position:relative; z-index:10;
-  display:grid; gap:1rem;
-}
-.list::before{
-  content:""; display:block; height:var(--listGap, 14vh);
-  transition:height .25s ease-out;
-}
-body.after-hero .list::before{ height:0; }
-
-/* -------------------- Toolbar (flottante, en bas de l’écran) -------------------- */
-/* Elle reste visible pendant tout le scroll (position:fixed), au-dessus du dock */
-@keyframes floaty {
-  0%   { transform: translate(-50%, 0) }
-  50%  { transform: translate(-50%, -4px) }
-  100% { transform: translate(-50%, 0) }
-}
-@media (prefers-reduced-motion: reduce){
-  @keyframes floaty { 0%,50%,100% { transform: translate(-50%,0) } }
-}
-
+/* ====== Toolbar ====== */
 .toolbar{
-  position:fixed;
-  left:50%;
-  bottom: calc(env(safe-area-inset-bottom) + var(--dock-offset));
-  transform: translateX(-50%);
-  z-index:120; /* > list (10) et > hero (80), ≈ dock(110) */
-
-  width:min(1100px,92vw);
-  min-height: var(--toolbar-h);
+  position:relative; z-index:20;
+  width:min(1100px,92vw); margin:0 auto 1rem;
+  padding:.4rem 0;
   display:grid; grid-template-columns:1fr 140px; gap:.6rem;
-  align-items:center;
-
-  padding:.48rem .6rem;
-  background: rgba(10,15,20,.70);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border:1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 18px 42px rgba(0,0,0,.38);
-
-  animation: floaty 6.5s ease-in-out infinite;
-  will-change: transform;
+  /* garde toujours un espace sous le hero, rétrécit avec le scroll */
+  margin-top: calc(var(--listGap) * .55);
 }
 .search,.select{
   background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
@@ -158,11 +106,18 @@ body.after-hero .list::before{ height:0; }
 }
 .search::placeholder{color:#7f94a5}
 
-/* -------------------- Cartes produits -------------------- */
+/* ====== Liste / Cartes ====== */
+.list{
+  display:grid; gap:1rem;
+  position:relative; z-index:10;
+}
+.list::before{
+  content:""; display:block; height:var(--listGap); transition:height .22s ease-out;
+}
+
 .card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); overflow:hidden; position:relative;
-  cursor:pointer; /* clic possible pour ouvrir sur mobile */
 }
 .card .head{
   display:flex; align-items:center; justify-content:space-between;
@@ -179,26 +134,7 @@ body.after-hero .list::before{ height:0; }
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
-/* Accent visuel léger au survol/focus */
-.card:focus-within,
-.card:hover{
-  outline:0;
-  box-shadow:0 0 0 2px rgba(25,211,255,.25) inset;
-}
-
-/* Mobile : description repliée, s’ouvre au clic (classe .is-open ajoutée par JS) */
-@media (max-width:768px){
-  .card .specs{
-    max-height:0;
-    overflow:hidden;
-    transition:max-height .28s ease;
-  }
-  .card.is-open .specs{
-    max-height:480px;
-  }
-}
-
-/* -------------------- Avis & Footer -------------------- */
+/* ====== Avis / Footer ====== */
 .ratings{
   margin:2rem auto 1rem; width:min(1100px,92vw);
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -213,7 +149,7 @@ body.after-hero .list::before{ height:0; }
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* -------------------- Dock mobile -------------------- */
+/* ====== Dock mobile ====== */
 .dock{
   position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
   display:flex; gap:.6rem; align-items:center;
@@ -234,18 +170,11 @@ body.after-hero .list::before{ height:0; }
   border:2px solid rgba(10,15,20,.85)
 }
 
-/* -------------------- Utils & Responsive -------------------- */
+/* Utils */
 .hidden{display:none !important}
 
 @media (max-width:768px){
   .btn{padding:.54rem .8rem}
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
-}
-
-/* HERO : hauteur robuste sur tous navigateurs */
-.hero-full{
-  height: 100vh;   /* fallback */
-  height: 100svh;  /* stable viewport (iOS/Android récents) */
-  height: 100dvh;  /* dynamic viewport (navigateurs modernes) */
 }
