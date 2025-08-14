@@ -51,10 +51,7 @@ loadProducts().then(MODELS=>{
 });
 
 /* ===========================================================
-   HERO — Zoom “par-dessus” + disparition dans un voile.
-   - Héros réduit (38svh) => écart fortement diminué
-   - Le stage reste AU-DESSUS (z-index élevé)
-   - On coupe pointer-events en fin d’anim pour cliquer la liste
+   HERO — Zoom PAR-DESSUS + voile. z-index verrouillé haut.
 =========================================================== */
 (function(){
   const hero  = document.getElementById('hero');
@@ -64,18 +61,14 @@ loadProducts().then(MODELS=>{
   if(!hero || !logo || !stage || !veil) return;
 
   const isMobile = matchMedia('(max-width: 740px)').matches;
-
-  // Réglages : zoom fort, par-dessus
   const ZOOM_START = 1.0;
-  const ZOOM_END   = isMobile ? 3.6 : 2.8;   // énorme sur mobile
+  const ZOOM_END   = isMobile ? 3.6 : 2.8;   // zoom massif
   const LIFT_END   = isMobile ? -24 : -12;   // légère remontée
 
   const clamp  = (v,min,max)=>Math.max(min, Math.min(max,v));
   const lerp   = (a,b,t)=>a+(b-a)*t;
   const easeOut = t => 1 - Math.pow(1 - t, 1.12);
 
-  // progression basée sur la position de la section,
-  // mais normalisée sur ~1 viewport pour garder le feeling
   function progress(){
     const vh = window.innerHeight || 1;
     const top = hero.getBoundingClientRect().top + window.scrollY;
@@ -91,24 +84,21 @@ loadProducts().then(MODELS=>{
     logo.style.transform = `translate3d(0, ${lift}px, 0) scale(${scale})`;
     logo.style.opacity   = 1 - t;
 
-    // voile qui se renforce (le logo disparaît “dans le fond”)
+    // voile qui avale le logo
     const veilStart = 0.30;
     const veilT = clamp((p - veilStart) / (1 - veilStart), 0, 1);
     veil.style.opacity = Math.pow(veilT, 1.08);
 
-    // Toujours AU-DESSUS pour le zoom
-    stage.style.zIndex = 30;
-    // Mais on libère les clics à la fin
-    stage.style.pointerEvents = (p >= 0.98) ? 'none' : 'auto';
+    // Clé : hero AU-DESSUS jusqu’à la toute fin
+    stage.style.zIndex = 6000;
+    stage.style.pointerEvents = (p >= 0.999) ? 'none' : 'auto'; // libère les clics une fois disparu
   }
 
   let ticking=false;
   function onScroll(){
-    if(ticking) return;
-    ticking=true;
+    if(ticking) return; ticking=true;
     requestAnimationFrame(()=>{ render(progress()); ticking=false; });
   }
-
   render(progress());
   addEventListener('scroll', onScroll, {passive:true});
   addEventListener('resize', onScroll);
