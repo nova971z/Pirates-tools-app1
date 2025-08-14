@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- 1) Métadonnées de base -->
+  <!-- Métadonnées de base -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <meta name="theme-color" content="#0a0f14" /> <!-- couleur d’UI (PWA) -->
-  <meta name="apple-mobile-web-app-capable" content="yes" /> <!-- mode app iOS -->
+  <meta name="theme-color" content="#0a0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <!-- 2) Manifeste & icônes (PWA = Progressive Web App) -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" href="favicon.ico" />
 
-  <!-- 3) Perf : préconnexion / préchargement -->
-  <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.webp" imagesrcset="./images/pirates-tools-logo.webp" />
+  <!-- Perf -->
+  <link rel="preconnect" href="https://wa.me" crossorigin>
+  <!-- ✅ On précharge le PNG (le .webp est retiré pour éviter la casse) -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 
-  <!-- 4) Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- 5) OpenGraph + données structurées (SEO) -->
+  <!-- OpenGraph / SEO -->
   <meta property="og:title" content="Pirates Tools — Outillage pro" />
   <meta property="og:description" content="Visseuses à chocs DeWALT, dispo Antilles. WhatsApp pour devis rapide." />
   <meta property="og:image" content="https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png" />
@@ -41,8 +42,7 @@
 </head>
 <body>
 
-  <!-- ================== 1) TOPBAR (fixe) ================== -->
-  <!-- (sticky = collée en haut ; z-index = ordre d’empilement) -->
+  <!-- ================== TOPBAR ================== -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
     <button class="menu-btn" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -65,28 +65,20 @@
     </div>
   </header>
 
-
-  <!-- ================== 2) HERO (logo) ================== -->
-  <!-- (hero-full = section plein écran collée ; le logo est centré, grossit et disparaît au scroll) -->
+  <!-- ================== HERO (logo) ================== -->
+  <!-- ✅ PNG direct (plus de <picture>/<source webp>) -->
   <section class="hero-full" id="hero" aria-label="Identité Pirates Tools">
-    <picture>
-      <!-- WebP prioritaire (compression moderne), PNG en secours -->
-      <source srcset="./images/pirates-tools-logo.webp" type="image/webp" />
-      <img id="heroLogo"
-           class="hero-logo"
-           src="./images/pirates-tools-logo.png"
-           alt="Logo Pirates Tools"
-           decoding="async"
-           fetchpriority="high" />
-    </picture>
-
-    <!-- Dégradé bas (séparation nette mais courte avec la liste) -->
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      src="./images/pirates-tools-logo.png"
+      alt="Logo Pirates Tools"
+      decoding="async"
+      fetchpriority="high" />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
-
-  <!-- ================== 3) TOOLBAR (recherche/filtre — optionnel) ================== -->
-  <!-- (IntersectionObserver = affiche/masque selon le hero ; input type=search = accessibilité) -->
+  <!-- ================== TOOLBAR (recherche/filtre) ================== -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" />
     <select id="tag" class="select" aria-label="Filtrer par tag">
@@ -97,15 +89,12 @@
     </select>
   </section>
 
-
-  <!-- ================== 4) LISTE PRODUITS ================== -->
-  <!-- (le JS injecte des <article class="card"> dans #list) -->
+  <!-- ================== LISTE PRODUITS ================== -->
   <main class="container" role="main">
     <section id="list" class="list" aria-label="Produits"></section>
   </main>
 
-
-  <!-- ================== 5) AVIS (preuve sociale — optionnel) ================== -->
+  <!-- ================== AVIS ================== -->
   <section class="ratings" aria-label="Avis clients">
     <h2>Ils nous font confiance</h2>
     <ul class="ratings__list">
@@ -115,50 +104,27 @@
     </ul>
   </section>
 
-
-  <!-- ================== 6) CONTACT / FOOTER (PRO) ================== -->
-<footer id="contact" class="site-footer" role="contentinfo">
-  <div class="container footer-grid" aria-label="Informations de contact">
-    <div class="footer-col">
-      <div class="footer-brand">Pirates Tools</div>
-      <p class="footer-blurb">
-        Outils pro DeWALT — dispo Antilles. Devis WhatsApp en quelques minutes.
-      </p>
-      <div class="footer-cta">
-        <a class="btn btn-call btn--sm" href="tel:+33774231095" aria-label="Appeler Pirates Tools">📞 07&nbsp;74&nbsp;23&nbsp;10&nbsp;95</a>
-        <a class="btn btn-wa btn--sm" href="https://wa.me/33774231095" target="_blank" rel="noopener" aria-label="WhatsApp Pirates Tools">💬 WhatsApp</a>
+  <!-- ================== FOOTER ================== -->
+  <footer id="contact" class="foot" role="contentinfo">
+    <div class="foot__cols">
+      <div class="foot__col">
+        <h3>Pirates Tools</h3>
+        <p>Outillage pro — Antilles. Devis rapide par téléphone ou WhatsApp.</p>
+      </div>
+      <div class="foot__col">
+        <h4>Contact</h4>
+        <p>Tél&nbsp;: <a href="tel:+33774231095">07 74 23 10 95</a><br/>
+           WhatsApp&nbsp;: <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a></p>
+      </div>
+      <div class="foot__col">
+        <h4>Liens</h4>
+        <p><a href="#list" data-scroll="#list">Produits</a> · <a href="#contact" data-scroll="#contact">Contact</a></p>
       </div>
     </div>
+    <div class="foot__copy">© Pirates Tools — PWA hors-ligne</div>
+  </footer>
 
-    <nav class="footer-col footer-links" aria-label="Liens utiles">
-      <span class="footer-title">Parcourir</span>
-      <a href="#list" data-scroll="#list">Produits</a>
-      <a href="#contact" data-scroll="#contact">Contact</a>
-      <a href="#" aria-disabled="true">Mentions légales</a>
-      <a href="#" aria-disabled="true">CGV</a>
-    </nav>
-
-    <div class="footer-col">
-      <span class="footer-title">Confiance</span>
-      <ul class="trust-badges" role="list">
-        <li>🔒 Paiement/Devis sécurisé</li>
-        <li>⚡ Réponse WhatsApp &lt; 1h</li>
-        <li>📦 Retrait / expédition locale</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="subfooter">
-    <div class="container subfooter__row">
-      <p class="legal">© <span id="year"></span> Pirates Tools — Antilles</p>
-      <button id="toTop" class="to-top" aria-label="Haut de page">↑</button>
-    </div>
-  </div>
-</footer>
-
-
-  <!-- ================== 7) DOCK MOBILE (actions rapides) ================== -->
-  <!-- (visible après le hero ; conversion +++) -->
+  <!-- ================== DOCK MOBILE ================== -->
   <nav class="dock" id="dock" aria-label="Actions rapides">
     <a class="dock__btn" href="tel:+33774231095" aria-label="Appeler">📞</a>
     <button class="dock__btn" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
@@ -166,16 +132,11 @@
     <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
   </nav>
 
-
-  <!-- ================== 8) INSTALL (PWA) ================== -->
+  <!-- Bouton installer (PWA) -->
   <button id="installBtn" hidden>Installer l’app</button>
 
-
-  <!-- ================== 9) SCRIPTS ================== -->
-  <!-- (defer = charge sans bloquer l’affichage ; le SW est enregistré dans app.js) -->
+  <!-- Scripts -->
   <script src="app.js" defer></script>
-
-  <!-- Fallback no-JS (accessibilité) -->
   <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
 </body>
 </html>
