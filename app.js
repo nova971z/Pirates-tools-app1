@@ -317,3 +317,36 @@
     window.scrollTo({ top: 0, behavior: 'smooth' })
   );
 })();
+
+// === HERO : zoom + fondu et passage sous le contenu ===
+(function () {
+  const hero = document.getElementById('hero');
+  const logo = document.getElementById('heroLogo');
+  if (!hero || !logo) return;
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  function onScroll() {
+    const vh = Math.max(window.innerHeight, 1);
+    const p = clamp(window.scrollY / (vh * 0.9), 0, 1); // 0 -> 1
+    const scale = 1 + p * 1.6;                          // zoom fort
+    const opacity = clamp(1 - p * 1.35, 0, 1);          // fondu rapide
+
+    logo.style.transform = `translate3d(0,0,0) scale(${scale})`;
+    logo.style.opacity = opacity;
+
+    // Une fois quasi terminé, on cache le hero et on baisse son z-index
+    if (p >= 0.85) {
+      hero.classList.add('is-hidden');
+    } else {
+      hero.classList.remove('is-hidden');
+    }
+  }
+
+  // init
+  logo.style.transformOrigin = 'center center';
+  logo.style.transition = 'transform 0.08s linear, opacity 0.12s linear';
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+})();
