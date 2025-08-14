@@ -189,164 +189,69 @@
     });
   })();
 
-  /* =========================================================
-   * 6) HERO fallback JS (si CSS scroll-timeline indisponible
-   *    OU si l’utilisateur préfère moins d’animations)
-   *    Effet : zoom massif + légère remontée + fondu,
-   *    AU-DESSUS des cartes, puis libère les clics en fin.
-   * ========================================================= */
-  (function initHeroFallback() {
-    if (!hero || !heroLogo) return;
-
-    // Si CSS moderne dispo ET pas de réduction d’animation → inutile
-    if (supportsScrollTimeline && !prefersReducedMotion) return;
-
-    const isMobile = () => window.innerWidth <= 740;
-
-    const CONFIG = {
-      // états initial / final (mobile / desktop)
-      startScale: () => isMobile() ? 1.25 : 1.20,
-      endScale:   () => isMobile() ? 3.90 : 3.20,    // “voile” ÉNORME
-      startY:     0,
-      endY:       () => isMobile() ? -28   : -22,    // légère remontée
-      endAt:      0.90                                // portion de viewport utilisée
-    };
-
-    // rAF throttle
-    let ticking = false;
-
-    function measureProgress() {
-      const vh = window.innerHeight || 1;
-      const heroTop = hero.getBoundingClientRect().top + window.scrollY;
-      const y = window.scrollY - heroTop;
-      return clamp(y / (vh * CONFIG.endAt), 0, 1); // 0→1
-    }
-
-    function render(p) {
-      const s0 = CONFIG.startScale();
-      const s1 = CONFIG.endScale();
-      const y0 = CONFIG.startY;
-      const y1 = CONFIG.endY();
-
-      const scale = s0 + (s1 - s0) * p;
-      const y     = y0 + (y1 - y0) * p;
-      const opacity = (1 - p);
-
-      heroLogo.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
-      heroLogo.style.opacity   = opacity.toFixed(4);
-
-      // Toujours AU-DESSUS pendant l’anim, libère en fin
-      hero.style.zIndex = (p < 0.999) ? "6000" : "auto";
-      hero.style.pointerEvents = (p < 0.999) ? "auto" : "none";
-    }
-
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        render(measureProgress());
-        ticking = false;
-      });
-    }
-
-    // Init + écouteurs
-    render(measureProgress());
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-  })();
-
-  /* =========================================================
-   * 7) Micro-perf & accessibilité
-   *    - Pré-remplit tel/WA si des boutons existent
-   *    - Lazy “décodage” images au repos (polish)
-   * ========================================================= */
-  (function initContacts() {
-    // S’il existe des boutons sans href, on les renseigne
-    const telBtn = $("#callBtn");
-    if (telBtn && !telBtn.getAttribute("href")) {
-      telBtn.setAttribute("href", `tel:${PHONE_LOCAL}`);
-    }
-    const waBtn = $("#waBtn");
-    if (waBtn && !waBtn.getAttribute("href")) {
-      waBtn.setAttribute("href", `https://wa.me/${PHONE_INTL}`);
-      waBtn.setAttribute("target", "_blank");
-      waBtn.setAttribute("rel", "noopener");
-    }
-  })();
-
-  (function idleDecodeImages() {
-    // Pendant les moments “calmes”, on décode les images visibles (confort)
-    const safeIdle = window.requestIdleCallback || ((fn) => setTimeout(fn, 250));
-    safeIdle(() => {
-      $$("img[loading='lazy']").forEach(img => {
-        if ("decode" in img) {
-          img.decode().catch(() => {});
-        }
-      });
-    });
-  })();
-
-  /* =========================================================
-   * 8) BOOT — on charge les produits après que le DOM existe
-   * ========================================================= */
-  document.addEventListener("DOMContentLoaded", async () => {
-    const models = await loadProducts();
-    renderProducts(models);
-  });
-
-})();
-
-/* ====== Footer helpers (année + back-to-top) ====== */
-(() => {
-  // année auto
-  const y = document.getElementById('year');
-  if (y) y.textContent = new Date().getFullYear();
-
-  // bouton haut de page
-  const topBtn = document.getElementById('toTop');
-  if (!topBtn) return;
-
-  const toggleBtn = () => {
-    const show = window.scrollY > 300;
-    topBtn.style.display = show ? 'grid' : 'none';
-  };
-  window.addEventListener('scroll', toggleBtn, { passive: true });
-  toggleBtn();
-
-  topBtn.addEventListener('click', () =>
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  );
-})();
-
-// === HERO : zoom + fondu et passage sous le contenu ===
+ // === HERO (v2) : zoom conséquent + fondu très fluide avec lissage ===
 (function () {
   const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
   if (!hero || !logo) return;
 
+  // Helpers
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const lerp  = (a, b, t) => a + (b - a) * t;
 
-  function onScroll() {
+  // Easing (douceur)
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const easeInCubic  = t => t * t * t;
+
+  // Zoom cible (plus fort sur mobile)
+  const getMaxScale = () =>
+    (window.innerWidth <= 767) ? 3.1 : 2.4;  // tu peux ajuster ici
+
+  const state = {
+    target: 0,    // progression visée (0 → 1)
+    current: 0,   // progression lissée
+    raf: null
+  };
+
+  function computeTarget() {
     const vh = Math.max(window.innerHeight, 1);
-    const p = clamp(window.scrollY / (vh * 0.9), 0, 1); // 0 -> 1
-    const scale = 1 + p * 1.6;                          // zoom fort
-    const opacity = clamp(1 - p * 1.35, 0, 1);          // fondu rapide
+    // 0 → 1 sur ~90% de la hauteur de l'écran
+    state.target = clamp(window.scrollY / (vh * 0.9), 0, 1);
+  }
+
+  function render() {
+    // Lissage façon inertie (plus la valeur est grande, plus c’est réactif)
+    state.current = lerp(state.current, state.target, 0.16);
+
+    const maxScale = getMaxScale();
+    const easedOut = easeOutCubic(state.current);
+    const easedIn  = easeInCubic(state.current);
+
+    // Zoom conséquent et très progressif
+    const scale   = 1 + (maxScale - 1) * easedOut;
+
+    // Fondu plus doux (mais net à la fin)
+    const opacity = clamp(1 - easedIn * 1.25, 0, 1);
 
     logo.style.transform = `translate3d(0,0,0) scale(${scale})`;
-    logo.style.opacity = opacity;
+    logo.style.opacity   = opacity;
 
-    // Une fois quasi terminé, on cache le hero et on baisse son z-index
-    if (p >= 0.85) {
+    // Quand on a quasi terminé, on passe le hero sous le contenu
+    if (state.current >= 0.97) {
       hero.classList.add('is-hidden');
     } else {
       hero.classList.remove('is-hidden');
     }
+
+    state.raf = requestAnimationFrame(render);
   }
 
-  // init
-  logo.style.transformOrigin = 'center center';
-  logo.style.transition = 'transform 0.08s linear, opacity 0.12s linear';
-  onScroll();
+  function onScroll() { computeTarget(); }
+  function onResize() { computeTarget(); }
+
+  // Init
+  computeTarget();
+  state.raf = requestAnimationFrame(render);
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll);
+  window.addEventListener('resize', onResize);
 })();
