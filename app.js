@@ -1,92 +1,93 @@
-/* =======================================================================
-   Pirates Tools — app.js (zoom “maître”, topbar fondu, scroll lissé)
-   - Topbar qui devient plus opaque en scroll (fondu)
-   - Effet HERO au millimètre (spring + rAF) : zoom ÉNORME, tilt, remontée, fade
-   - Robuste iOS/iPadOS/desktop (lecture scroll + clamp + dt)
-   ======================================================================= */
+/* ---- Install prompt (Android/desktop) ---- */
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); deferredPrompt = e; installBtn.hidden = false;
+});
+installBtn?.addEventListener('click', async () => {
+  installBtn.hidden = true; if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt = null; }
+});
 
+/* ---- Service worker ---- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+}
+
+/* ---- Small helper: smooth jump to anchors via data-scroll ---- */
+document.addEventListener('click', (e)=>{
+  const a = e.target.closest('[data-scroll]');
+  if(!a) return;
+  const sel = a.getAttribute('data-scroll');
+  const el = document.querySelector(sel);
+  if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
+});
+
+/* ---- Load demo products (unchanged; adapt to your JSON) ---- */
+fetch('products.json').then(r=>r.json()).then(MODELS=>{
+  const list = document.getElementById('list');
+  list.innerHTML = MODELS.map(m=>`
+    <article class="card">
+      <div class="head">
+        <h2 class="title">${m.sku}</h2>
+        ${m.badge ? `<span class="chip">${m.badge}</span>` : ``}
+      </div>
+      ${m.img ? `<img src="${m.img}" alt="${m.sku}">` : ``}
+      ${m.desc ? `<p>${m.desc}</p>` : ``}
+    </article>
+  `).join('');
+});
+
+/* =================================================================
+   HERO EFFECT — zoom + fondu + passage au-dessus des articles
+   - centre totalement stable (pas de décalage)
+   - zoom fort sur mobile, moyen sur desktop
+   - disparaît avec un fondu en bas du hero
+================================================================= */
 (function(){
-  'use strict';
-
-  /* 0) Petites utilitaires */
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const isMobile = () => window.innerWidth <= 820;
-
-  /* 1) Topbar : passe en “solid” après 8px (fondu lisible) */
-  const topbar = document.querySelector('.topbar');
-  const onTopbarScroll = () => {
-    if (!topbar) return;
-    const y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    topbar.classList.toggle('solid', y > 8);
-  };
-  addEventListener('scroll', onTopbarScroll, { passive:true });
-  onTopbarScroll();
-
-  /* 2) Scroll doux pour les liens [data-scroll] (menu) */
-  document.querySelectorAll('[data-scroll]').forEach(a=>{
-    a.addEventListener('click', (e)=>{
-      e.preventDefault();
-      const sel = a.getAttribute('data-scroll') || a.getAttribute('href');
-      const el = document.querySelector(sel);
-      if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-    });
-  });
-
-  /* 3) Effet HERO “au millimètre” (spring amorti + rAF) */
-  const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
-  if (!hero || !logo) return;
+  const stage = document.querySelector('.hero-stage');
+  if(!logo || !stage) return;
 
-  // Gains “maître” (tu peux affiner)
-  const desktop = { tiltMax:12, zoomBase:1.00, zoomGain:0.60, liftGain:0.26, fadeGain:1.30 };
-  const mobile  = { tiltMax:18, zoomBase:1.06, zoomGain:1.10, liftGain:0.34, fadeGain:1.60 }; // ÉNORME mais propre
+  const isMobile = matchMedia('(max-width: 740px)').matches;
 
-  let G = isMobile() ? {...mobile} : {...desktop};
-  addEventListener('resize', ()=>{ G = isMobile() ? {...mobile} : {...desktop}; }, { passive:true });
+  // bornes d’animation
+  const ZOOM_START = 1.0;
+  const ZOOM_END   = isMobile ? 2.4 : 1.7; // zoom plus fort sur mobile
+  const TRANSLATE_UP_END = isMobile ? -18 : -10; // en px par 1 de progrès (léger lift)
+  const OPACITY_END = 0.0;
 
-  // Spring (ressort amorti) — (ζ : amortissement, ω0 : vitesse naturelle)
-  const ZETA = 0.86;  // amortissement élevé (pas de pompage)
-  const W0   = 7.5;   // réponse rapide sans à-coups
-  let x = 0, v = 0;   // état (progression) & vitesse
-  let lastT = performance.now();
+  // utilitaires
+  const clamp = (v,min,max)=>Math.max(min, Math.min(max,v));
+  const lerp  = (a,b,t)=>a+(b-a)*t;
 
-  function targetFromScroll(){
-    const vh = innerHeight || 1;
-    const y  = window.pageYOffset || document.documentElement.scrollTop || 0;
-    // 0→1 atteint en ~70% d’un écran (effet visible dès le début)
-    return clamp(y / (vh * 0.70), 0, 1);
+  let ticking = false;
+
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const vh = window.innerHeight || 1;
+      // on fait disparaître le logo d’ici ~85% d’un écran
+      const progress = clamp(window.scrollY / (vh*0.85), 0, 1);
+
+      const scale     = lerp(ZOOM_START, ZOOM_END, progress);
+      const translate = lerp(0, TRANSLATE_UP_END, progress);  // vers le haut
+      const opacity   = lerp(1, OPACITY_END, progress);
+
+      // centre stable + lissage GPU
+      logo.style.transform = `translate3d(0, ${translate}px, 0) scale(${scale})`;
+      logo.style.opacity   = opacity;
+
+      // le "stage" reste au-dessus au début, puis
+      // laisse place aux cartes (z-index baisse très légèrement)
+      stage.style.zIndex = progress < 0.98 ? 10 : 1;
+
+      ticking = false;
+    });
   }
 
-  function stepSpring(x, v, xt, dt){
-    const w = W0, z = ZETA;
-    const a = -2*z*w*v - (w*w)*(x - xt);
-    const v2 = v + a*dt;
-    const x2 = x + v2*dt;
-    return [x2, v2];
-  }
-
-  function tick(now){
-    const dt = Math.min(0.05, (now - lastT) / 1000); // dt ≤ 50ms
-    lastT = now;
-
-    // Cible issue du scroll (robuste iOS/desktop)
-    const xt = targetFromScroll();
-    [x, v] = stepSpring(x, v, xt, dt);
-
-    // Mapping → transform
-    const vh  = innerHeight || 1;
-    const scl = G.zoomBase + G.zoomGain * x;       // ÉNORME mais lissé
-    const ty  = -(vh * G.liftGain * x);            // remonte en scroll
-    const rx  = G.tiltMax * x;                     // inclinaison
-    const op  = clamp(1 - G.fadeGain * x, 0, 1);   // fondu
-
-    logo.style.transform = `translate3d(0, ${ty}px, 0) rotateX(${rx}deg) scale(${scl})`;
-    logo.style.opacity   = op;
-
-    // Masquer totalement l’overlay quand c’est invisible
-    hero.style.visibility = (op <= 0.01) ? 'hidden' : 'visible';
-
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame((t)=>{ lastT = t; requestAnimationFrame(tick); });
+  // démarrage
+  onScroll();
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll);
 })();
