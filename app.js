@@ -20,38 +20,54 @@ const dock     = $('#dock');
 const dockCount= $('#dockCount');
 const dockQuoteBtn = $('#dockQuoteBtn');
 
-/* ------------ HERO : zoom + fondu + z-index ------------- */
-(() => {
-  if (!hero || !heroLogo) return;
 
-  let ticking = false;
+/* === Effet HERO mobile : zoom massif + fondu + sortie propre === */
+(() => {
+  const hero = document.getElementById('hero');
+  const logo = document.getElementById('heroLogo');
+  if (!hero || !logo) return;
+
+  const mq = window.matchMedia('(max-width: 768px)');
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+
   let vh = window.innerHeight || 1;
 
-  const update = () => {
-    const isMobile = matchMedia('(max-width: 768px)').matches;
+  function update() {
     const y = window.scrollY || 0;
-    const p = clamp(y / (vh * 0.90), 0, 1);     // 0→1 en ~90% d’écran
-    const maxScale = isMobile ? 2.35 : 1.75;    // zoom massif
-    const scale = 1 + (maxScale - 1) * p;
-    const translateY = -vh * 0.22 * p;          // léger lift
-    const opacity = clamp(1 - p * 1.25, 0, 1);  // libère vite la liste
+    // distance de scroll pour "terminer" l’animation (un peu plus court sur mobile)
+    const finish = vh * (mq.matches ? 0.78 : 0.90);
 
-    heroLogo.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
-    heroLogo.style.opacity   = opacity.toFixed(3);
+    const raw = Math.min(Math.max(y / finish, 0), 1); // 0..1
+    const p = easeOutCubic(raw);                      // easing doux
 
-    if (opacity <= 0.02) hero.classList.add('is-hidden'); else hero.classList.remove('is-hidden');
-  };
+    // Zoom plus fort sur mobile
+    const base = 1.0;
+    const maxScale = mq.matches ? 2.8 : 1.9;          // <— zoom conséquent sur mobile
+    const scale = base + (maxScale - base) * p;
 
-  const onScroll = () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => { update(); ticking = false; });
-  };
+    // Légère translation vers le bas pendant le zoom (exprimée en vh)
+    const ty = (mq.matches ? 9 : 5) * p;
 
-  window.addEventListener('scroll', onScroll, {passive:true});
-  window.addEventListener('resize', () => { vh = window.innerHeight || 1; update(); }, {passive:true});
-  update();
+    // Fondu un peu plus agressif sur mobile pour libérer l’écran plus vite
+    const opacity = Math.max(0, 1 - (mq.matches ? 1.35 : 1.1) * raw);
+
+    // On pousse tout via variables CSS (donc repaint GPU friendly)
+    logo.style.setProperty('--heroScale', scale.toFixed(3));
+    logo.style.setProperty('--heroY', `${ty.toFixed(2)}vh`);
+    logo.style.setProperty('--heroAlpha', opacity.toFixed(3));
+
+    // Quand on a (presque) fini, on passe le hero sous les cartes (z-index)
+    if (raw > 0.98) hero.classList.add('hero-out');
+    else hero.classList.remove('hero-out');
+  }
+
+  const onScroll = () => requestAnimationFrame(update);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => { vh = window.innerHeight || 1; update(); }, { passive: true });
+
+  update(); // premier calcul
 })();
+
 
 /* ------------ Smooth scroll ------------- */
 $$('[data-scroll]').forEach(a => {
