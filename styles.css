@@ -242,3 +242,10 @@ body.after-hero .list::before{ height:0; }
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
 }
+
+/* HERO : hauteur robuste sur tous navigateurs */
+.hero-full{
+  height: 100vh;   /* fallback */
+  height: 100svh;  /* stable viewport (iOS/Android récents) */
+  height: 100dvh;  /* dynamic viewport (navigateurs modernes) */
+}
