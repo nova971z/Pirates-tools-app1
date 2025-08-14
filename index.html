@@ -1,77 +1,72 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pirates Tools — Outillage pro</title>
-  <meta name="description" content="Pirates Tools — Visseuses à choc DeWALT, conseils et contact rapide (Antilles).">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Pirates Tools • Boutique (App PWA)</title>
+  <meta name="theme-color" content="#0a0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="favicon.ico" />
+  <!-- préchargement du logo -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 </head>
 <body>
 
-  <!-- 1) TOPBAR (toujours visible) -->
-  <header class="topbar" role="navigation" aria-label="Barre supérieure">
-    <div class="topbar__wrap">
-      <div class="brand">Pirates <b>Tools</b></div>
-
-      <nav class="nav">
-        <a href="#list" data-scroll>Produits</a>
-        <a href="#contact" data-scroll>Contact</a>
-      </nav>
-
-      <div class="cta">
-        <a class="btn tel" href="tel:+33774231095" aria-label="Appeler Pirates Tools">📞 07 74 23 10 95</a>
-        <a class="btn wa"  href="https://wa.me/33774231095?text=Bonjour%20Pirates%20Tools%20!" target="_blank" rel="noopener" aria-label="WhatsApp Pirates Tools">💬 WhatsApp</a>
-      </div>
+  <!-- ====== BARRE DE TÂCHES FIXE (menu + actions) ====== -->
+  <header class="topbar" role="banner">
+    <div class="brand">Pirates Tools</div>
+    <nav class="mainnav" aria-label="Navigation principale">
+      <a class="chip" data-scroll="#list">Produits</a>
+      <a class="chip" data-scroll="#contact">Contact</a>
+    </nav>
+    <div class="actions">
+      <a class="pill phone" href="tel:0774231095" aria-label="Appeler Pirates Tools">
+        <span class="emoji">📞</span> 07 74 23 10 95
+      </a>
+      <a class="pill wa" href="https://wa.me/33774231095" target="_blank" rel="noopener"
+         aria-label="Contacter sur WhatsApp">
+        <span class="emoji">💬</span> WhatsApp
+      </a>
     </div>
   </header>
 
-  <!-- 2) HERO (logo au-dessus, zoom + fondu gérés par JS) -->
-  <section id="hero" class="hero">
-    <img id="heroLogo" class="hero__logo" src="images/pirates-tools-logo.png" alt="Pirates Tools — Logo" decoding="async" fetchpriority="high" />
-    <div class="hero__fade"></div>
+  <!-- ====== HERO (logo plein écran) ====== -->
+  <section class="hero" aria-label="Identité Pirates Tools">
+    <div class="hero-stage">
+      <!-- Le wrapper garde le centre stable pendant le zoom -->
+      <div class="hero-wrap">
+        <img id="heroLogo"
+             class="hero-logo"
+             src="./images/pirates-tools-logo.png"
+             alt="Pirates Tools Guadeloupe — logo"
+             decoding="async" fetchpriority="high" />
+      </div>
+
+      <!-- Voile de fondu global (reste dans le hero) -->
+      <div class="hero-fade" aria-hidden="true"></div>
+    </div>
+
+    <!-- Séparateur: fine bande qui évite tout chevauchement perçu
+         (les articles “passent dessous” mais on garde une ligne d’air) -->
+    <div class="hero-gap" aria-hidden="true"></div>
   </section>
 
-  <!-- 3) ESPACE de séparation (évite tout chevauchement au repos) -->
-  <div id="hero-spacer" aria-hidden="true"></div>
-
-  <!-- 4) LISTE PRODUITS -->
-  <main id="list" class="list" role="main" aria-label="Produits">
-    <article class="card">
-      <div class="card__head">
-        <h2 class="card__title">DeWALT DCF887 (18V XR)</h2>
-        <span class="pill">Nouveau</span>
-      </div>
-      <figure class="figure">
-        <img src="images/dewalt-dcf887.png" alt="DeWALT DCF887" loading="lazy" decoding="async" />
-      </figure>
-      <div class="specs">
-        <span class="spec">205 Nm</span>
-        <span class="spec">0–3250 rpm</span>
-        <span class="spec">1/4”</span>
-      </div>
-      <div class="actions">
-        <a class="btn" href="#contact">Fiche</a>
-        <a class="btn primary" href="#contact">Commander</a>
-      </div>
-    </article>
-
-    <!-- Duplique <article> pour ajouter d'autres produits -->
+  <!-- ====== LISTE DES PRODUITS ====== -->
+  <main class="container">
+    <section id="list" class="list" aria-label="Produits"></section>
   </main>
 
-  <!-- 5) CONTACT -->
-  <section id="contact" class="contact" aria-label="Contact">
-    <h2>Contact</h2>
-    <p>📞 <a href="tel:+33774231095">07 74 23 10 95</a> — 💬 <a href="https://wa.me/33774231095" target="_blank" rel="noopener">WhatsApp</a></p>
-  </section>
+  <!-- ====== CONTACT (ancre) ====== -->
+  <footer id="contact" class="foot" role="contentinfo">
+    © Pirates Tools — PWA hors-ligne
+  </footer>
 
-  <!-- 6) FOOTER -->
-  <footer class="foot">© 2025 Pirates Tools — Antilles</footer>
+  <button id="installBtn" hidden>Installer l’app</button>
 
-  <!-- 7) BULLE WHATSAPP (accès rapide) -->
-  <a class="fab-wa" href="https://wa.me/33774231095?text=Bonjour%20Pirates%20Tools%20!" target="_blank" rel="noopener" aria-label="Message WhatsApp">WA</a>
-
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
