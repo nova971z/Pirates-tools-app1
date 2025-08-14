@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- Métadonnées de base -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
-  <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
+
+  <!-- SEO / thème -->
+  <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. Contact immédiat (téléphone & WhatsApp)." />
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -13,89 +14,56 @@
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <link rel="icon" href="favicon.ico" />
 
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin>
-  <!-- ✅ On précharge le PNG (le .webp est retiré pour éviter la casse) -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- OpenGraph / SEO -->
-  <meta property="og:title" content="Pirates Tools — Outillage pro" />
-  <meta property="og:description" content="Visseuses à chocs DeWALT, dispo Antilles. WhatsApp pour devis rapide." />
-  <meta property="og:image" content="https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png" />
-  <meta property="og:type" content="website" />
-
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"Organization",
-    "name":"Pirates Tools",
-    "url":"https://nova971z.github.io/Pirates-tools-app1/",
-    "logo":"https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png",
-    "contactPoint":[{"@type":"ContactPoint","telephone":"+33-7-74-23-10-95","contactType":"customer service","areaServed":"GP"}]
-  }
-  </script>
 </head>
 <body>
 
-  <!-- ================== TOPBAR ================== -->
-  <header class="topbar" role="banner" aria-label="Barre supérieure">
-    <button class="menu-btn" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-
+  <!-- Topbar -->
+  <header class="topbar" role="banner">
     <div class="brand">Pirates Tools</div>
-
-    <nav class="nav" aria-label="Navigation principale">
-      <a class="chip" href="#list" data-scroll="#list">Produits</a>
-      <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
+    <nav class="nav">
+      <a class="chip" href="#list">Produits</a>
+      <a class="chip" href="#contact">Contact</a>
     </nav>
-
     <div class="cta">
-      <a id="callBtn" class="btn btn-call" href="tel:+33774231095" aria-label="Appeler Pirates Tools">
-        📞 <strong>07&nbsp;74&nbsp;23&nbsp;10&nbsp;95</strong>
-      </a>
-      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774231095" target="_blank" rel="noopener" aria-label="WhatsApp Pirates Tools">
-        💬 <strong>WhatsApp</strong>
-      </a>
+      <a class="btn btn-call" href="tel:+33774231095">📞 <strong>07&nbsp;74&nbsp;23&nbsp;10&nbsp;95</strong></a>
+      <a class="btn btn-wa" href="https://wa.me/33774231095" target="_blank" rel="noopener">💬 <strong>WhatsApp</strong></a>
     </div>
   </header>
 
-  <!-- ================== HERO (logo) ================== -->
-  <!-- ✅ PNG direct (plus de <picture>/<source webp>) -->
+  <!-- HERO (logo) -->
   <section class="hero-full" id="hero" aria-label="Identité Pirates Tools">
-    <img
-      id="heroLogo"
-      class="hero-logo"
-      src="./images/pirates-tools-logo.png"
-      alt="Logo Pirates Tools"
-      decoding="async"
-      fetchpriority="high" />
+    <img id="heroLogo" class="hero-logo"
+         src="./images/pirates-tools-logo.png"
+         alt="Logo Pirates Tools" decoding="async" fetchpriority="high" />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
-  <!-- ================== TOOLBAR (recherche/filtre) ================== -->
-  <section class="toolbar" aria-label="Recherche et filtres">
-    <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" />
-    <select id="tag" class="select" aria-label="Filtrer par tag">
+  <!-- Toolbar recherche/filtre -->
+  <section class="toolbar">
+    <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Recherche" />
+    <select id="tag" class="select" aria-label="Filtrer">
       <option value="">Tous</option>
-      <option>18V</option>
-      <option>Brushless</option>
-      <option>Promo</option>
+      <option value="Top">Top</option>
+      <option value="Pack">Pack</option>
+      <option value="Compact">Compact</option>
+      <option value="Puissance">Puissance</option>
     </select>
   </section>
 
-  <!-- ================== LISTE PRODUITS ================== -->
+  <!-- Liste produits -->
   <main class="container" role="main">
     <section id="list" class="list" aria-label="Produits"></section>
   </main>
 
-  <!-- ================== AVIS ================== -->
-  <section class="ratings" aria-label="Avis clients">
+  <!-- Avis -->
+  <section class="ratings">
     <h2>Ils nous font confiance</h2>
     <ul class="ratings__list">
       <li>★★★★★ — “Service rapide en Guadeloupe !” — Marc</li>
@@ -104,39 +72,35 @@
     </ul>
   </section>
 
-  <!-- ================== FOOTER ================== -->
+  <!-- Footer / contact -->
   <footer id="contact" class="foot" role="contentinfo">
-    <div class="foot__cols">
-      <div class="foot__col">
+    <div class="foot__grid">
+      <div>
         <h3>Pirates Tools</h3>
-        <p>Outillage pro — Antilles. Devis rapide par téléphone ou WhatsApp.</p>
+        <p>Outillage pro — Antilles.</p>
       </div>
-      <div class="foot__col">
-        <h4>Contact</h4>
-        <p>Tél&nbsp;: <a href="tel:+33774231095">07 74 23 10 95</a><br/>
-           WhatsApp&nbsp;: <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a></p>
+      <div>
+        <h3>Contact</h3>
+        <p>Tél : <a href="tel:+33774231095">07 74 23 10 95</a><br>
+           WhatsApp : <a href="https://wa.me/33774231095" target="_blank" rel="noopener">ouvrir</a></p>
       </div>
-      <div class="foot__col">
-        <h4>Liens</h4>
-        <p><a href="#list" data-scroll="#list">Produits</a> · <a href="#contact" data-scroll="#contact">Contact</a></p>
+      <div>
+        <h3>PWA</h3>
+        <button id="installBtn" hidden>Installer l’app</button>
       </div>
     </div>
-    <div class="foot__copy">© Pirates Tools — PWA hors-ligne</div>
+    <p class="foot__legal">© Pirates Tools — Tous droits réservés.</p>
   </footer>
 
-  <!-- ================== DOCK MOBILE ================== -->
+  <!-- Dock mobile -->
   <nav class="dock" id="dock" aria-label="Actions rapides">
     <a class="dock__btn" href="tel:+33774231095" aria-label="Appeler">📞</a>
-    <button class="dock__btn" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
-    <a class="dock__btn" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
+    <a class="dock__btn" href="https://wa.me/33774231095" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+    <a class="dock__btn" href="#list" aria-label="Produits">🧰</a>
     <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
   </nav>
 
-  <!-- Bouton installer (PWA) -->
-  <button id="installBtn" hidden>Installer l’app</button>
-
-  <!-- Scripts -->
   <script src="app.js" defer></script>
-  <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
+  <noscript>Activez JavaScript pour le zoom du logo et l’affichage des produits.</noscript>
 </body>
 </html>
