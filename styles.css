@@ -322,3 +322,49 @@ a{ color:inherit; text-decoration:none; }
 @media (max-width: 960px){
   .footer-grid{ grid-template-columns: 1fr; }
 }
+
+/* === FIX superposition hero vs articles === */
+.topbar{ position: sticky; top: 0; z-index: 10; }
+
+.hero-full{
+  position: sticky;           /* plein écran collé en haut */
+  top: 0;
+  height: 100vh;
+  z-index: 3;                 /* au-dessus au début */
+  pointer-events: none;       /* laisse cliquer le contenu */
+}
+
+.hero-logo{
+  display: block;
+  width: 78vmin;
+  max-width: min(78vmin, 680px);
+  height: auto;
+  margin: 0 auto;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+.hero-fade{
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 20vh;
+  background: linear-gradient(180deg,
+              rgba(10,15,20,0) 0%,
+              rgba(10,15,20,.85) 60%,
+              var(--bg, #0a0f14) 100%);
+  pointer-events: none;
+}
+
+/* Le reste du site passe au-dessus (sauf au tout début) */
+.container, .toolbar, .ratings, .foot{
+  position: relative;
+  z-index: 2;
+}
+
+/* Quand le logo a fini de se fondre, on le met sous le contenu */
+.hero-full.is-hidden{
+  z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility 0s linear .25s;
+}
