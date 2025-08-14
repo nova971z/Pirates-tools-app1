@@ -110,6 +110,76 @@ $$('[data-scroll]').forEach(a => {
   });
 });
 
+/* ---------------- EXIT ANIMATION AU SCROLL (tools) ----------------
+   ! Ajouté !
+   Quand un élément [data-tool] sort par le haut du viewport, il glisse
+   une fois à gauche, le suivant à droite, avec un fondu.
+   (Injection CSS = on crée un <style> automatiquement dans <head>.)
+------------------------------------------------------------------- */
+const ScrollExit = (function () {
+  /* Injecte le CSS d’animation une seule fois */
+  function injectExitCSS(){
+    if (document.getElementById('exit-anim-css')) return;
+    const style = document.createElement('style');
+    style.id = 'exit-anim-css';
+    style.textContent = `
+@keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }
+@keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }
+
+.tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
+.tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tool--exit-left,
+  .tool--exit-right { animation: none; opacity: 0; }
+}`;
+    document.head.appendChild(style);
+  }
+
+  injectExitCSS();
+
+  let flip = false; // alternance gauche/droite
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const el = entry.target;
+
+      if (entry.isIntersecting) {
+        // Réinitialise si l’élément re-rentre
+        el.classList.remove('tool--exit-left', 'tool--exit-right');
+        el.removeAttribute('data-exited');
+        return;
+      }
+
+      // On déclenche une seule fois par élément
+      if (el.dataset.exited === '1') return;
+
+      // On n’anime que lorsqu’il sort par le HAUT (scroll descendant)
+      const rect = entry.boundingClientRect;
+      const exitingUp = rect.top < 0;
+      if (!exitingUp) return;
+
+      const cls = flip ? 'tool--exit-right' : 'tool--exit-left';
+      flip = !flip;
+
+      // Force reflow si besoin (pour rejouer proprement)
+      void el.offsetWidth;
+
+      el.classList.add(cls);
+      el.dataset.exited = '1';
+    });
+  }, {
+    threshold: 0.01,
+    rootMargin: '0px 0px -10% 0px'
+  });
+
+  function observeWithin(root=document){
+    root.querySelectorAll('[data-tool]').forEach(el => io.observe(el));
+  }
+
+  return { observeWithin };
+})();
+
 /* ---------------- Produits : chargement + filtre ---------------- */
 let MODELS = [];
 let CART   = [];
@@ -122,8 +192,9 @@ function productToHTML(m){
   const desc  = fallback(m.desc, fallback(m.description,''));
   const id    = fallback(m.id, fallback(m.sku, title)).toString();
 
+  /* Ajout: data-tool pour activer l’animation de sortie */
   return `
-  <article class="card" data-id="${id}" data-tag="${tag}">
+  <article class="card" data-tool data-id="${id}" data-tag="${tag}">
     <div class="head">
       <h3 class="title">${title}</h3>
       ${tag ? `<span class="badge">${tag}</span>` : ``}
@@ -155,6 +226,10 @@ function bindAddToQuote(scopeData){
 function renderList(data){
   if (!Array.isArray(data)) return;
   listEl.innerHTML = data.map(productToHTML).join('\n');
+
+  /* Ajout: observer les nouveaux éléments pour l’anim de sortie */
+  ScrollExit.observeWithin(listEl);
+
   bindAddToQuote(data);
 }
 
