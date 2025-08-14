@@ -21,7 +21,7 @@ const dockCount= $('#dockCount');
 const dockQuoteBtn = $('#dockQuoteBtn');
 
 
-/* === Effet HERO mobile : zoom massif + fondu + sortie propre === */
+/* ==== Effet HERO : zoom + fondu + anti-chevauchement ==== */
 (() => {
   const hero = document.getElementById('hero');
   const logo = document.getElementById('heroLogo');
@@ -34,38 +34,38 @@ const dockQuoteBtn = $('#dockQuoteBtn');
 
   function update() {
     const y = window.scrollY || 0;
-    // distance de scroll pour "terminer" l’animation (un peu plus court sur mobile)
-    const finish = vh * (mq.matches ? 0.78 : 0.90);
+    const finish = vh * (mq.matches ? 0.78 : 0.90);     // distance d’anim
+    const raw = Math.min(Math.max(y / finish, 0), 1);   // 0..1
+    const p = easeOutCubic(raw);
 
-    const raw = Math.min(Math.max(y / finish, 0), 1); // 0..1
-    const p = easeOutCubic(raw);                      // easing doux
-
-    // Zoom plus fort sur mobile
+    // Zoom fort sur mobile
     const base = 1.0;
-    const maxScale = mq.matches ? 2.8 : 1.9;          // <— zoom conséquent sur mobile
+    const maxScale = mq.matches ? 2.8 : 1.9;
     const scale = base + (maxScale - base) * p;
 
-    // Légère translation vers le bas pendant le zoom (exprimée en vh)
-    const ty = (mq.matches ? 9 : 5) * p;
-
-    // Fondu un peu plus agressif sur mobile pour libérer l’écran plus vite
+    // Légère translation + fondu
+    const ty = (mq.matches ? 9 : 5) * p;                // en vh
     const opacity = Math.max(0, 1 - (mq.matches ? 1.35 : 1.1) * raw);
 
-    // On pousse tout via variables CSS (donc repaint GPU friendly)
+    // Variables CSS pilotant le rendu GPU
     logo.style.setProperty('--heroScale', scale.toFixed(3));
     logo.style.setProperty('--heroY', `${ty.toFixed(2)}vh`);
     logo.style.setProperty('--heroAlpha', opacity.toFixed(3));
 
-    // Quand on a (presque) fini, on passe le hero sous les cartes (z-index)
-    if (raw > 0.98) hero.classList.add('hero-out');
-    else hero.classList.remove('hero-out');
+    // Réserve d’espace au-dessus de la liste pour éviter le chevauchement
+    const gap = (1 - raw) * (mq.matches ? 18 : 22);     // en vh
+    document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
+
+    // Quand le hero est « fini », on le passe sous les cartes
+    if (raw > 0.98) document.body.classList.add('after-hero'), hero.classList.add('hero-out');
+    else document.body.classList.remove('after-hero'), hero.classList.remove('hero-out');
   }
 
   const onScroll = () => requestAnimationFrame(update);
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', () => { vh = window.innerHeight || 1; update(); }, { passive: true });
 
-  update(); // premier calcul
+  update();
 })();
 
 
