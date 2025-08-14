@@ -15,59 +15,112 @@
 </head>
 <body>
 
-  <!-- Barre fixe -->
-  <header class="topbar">
-  <button class="menu-btn" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
-
-  <div class="brand">Pirates Tools</div>
-
-  <nav class="nav">
-    <a class="chip" href="#list">Produits</a>
-    <a class="chip" href="#contact">Contact</a>
-  </nav>
-
-  <div class="cta">
-    <a class="btn btn-call" href="tel:+33774231095" aria-label="Appeler">
-      📞 <strong>07&nbsp;74&nbsp;23&nbsp;10&nbsp;95</strong>
-    </a>
-    <a class="btn btn-wa" href="https://wa.me/33774231095" target="_blank" rel="noopener" aria-label="WhatsApp">
-      💬 <strong>WhatsApp</strong>
+  <!-- ======= Topbar accessible & responsive ======= -->
+<header class="topbar" role="banner">
+  <div class="brand">
+    <a href="/" class="brand__link" aria-label="Accueil Pirates Tools">
+      Pirates Tools
     </a>
   </div>
-</header>
 
-  <!-- Hero (logo) -->
-  <section class="hero" id="hero" aria-label="Identité Pirates Tools">
-    <div class="hero-stage">
-      <div class="hero-wrap">
-        <img id="heroLogo" class="hero-logo"
-             src="./images/pirates-tools-logo.png"
-             alt="Pirates Tools Guadeloupe — logo"
-             decoding="async" fetchpriority="high" />
-      </div>
-      <!-- voile qui se renforce = disparition dans le fond -->
-      <div class="hero-veil" aria-hidden="true"></div>
-      <!-- dégradé bas pour passer vers la liste -->
-      <div class="hero-fade" aria-hidden="true"></div>
+  <!-- Bouton hamburger -->
+  <button
+    class="menu-btn"
+    type="button"
+    aria-label="Ouvrir le menu"
+    aria-controls="mainnav"
+    aria-expanded="false"
+  >
+    <span class="menu-btn__bar" aria-hidden="true"></span>
+    <span class="menu-btn__bar" aria-hidden="true"></span>
+    <span class="menu-btn__bar" aria-hidden="true"></span>
+  </button>
+
+  <!-- Navigation principale -->
+  <nav id="mainnav" class="mainnav" aria-label="Navigation principale">
+    <ul class="mainnav__list">
+      <li class="mainnav__item"><a class="chip" href="#list">Produits</a></li>
+      <li class="mainnav__item"><a class="chip" href="#contact">Contact</a></li>
+    </ul>
+
+    <!-- Actions contact -->
+    <div class="actions">
+      <a class="pill pill--phone"
+         href="tel:+33774231095"
+         aria-label="Appeler Pirates Tools au 07 74 23 10 95">
+        <span aria-hidden="true">📞</span> 07 74 23 10 95
+      </a>
+
+      <a class="pill pill--wa"
+         href="https://wa.me/33774231095"
+         target="_blank"
+         rel="noopener noreferrer"
+         aria-label="Contacter sur WhatsApp">
+        <span aria-hidden="true">💬</span> WhatsApp
+      </a>
     </div>
-    <!-- fine séparation pour éviter le collage -->
-    <div class="hero-gap" aria-hidden="true"></div>
-  </section>
+  </nav>
 
-  <!-- Liste produits -->
-  <main class="container">
-    <section id="list" class="list" aria-label="Produits"></section>
-  </main>
+  <style>
+    /* ---- Reset minimal ---- */
+    .topbar, .mainnav { box-sizing: border-box; }
+    .topbar * { box-sizing: inherit; }
+    .topbar { display:flex; align-items:center; justify-content:space-between;
+              gap:1rem; padding:0.75rem 1rem; border-bottom:1px solid #ddd; }
+    .brand__link { font-weight:700; text-decoration:none; }
+    .menu-btn { display:inline-flex; flex-direction:column; gap:4px;
+                border:0; background:transparent; padding:8px; cursor:pointer; }
+    .menu-btn__bar { width:22px; height:2px; background:currentColor; display:block; }
 
-  <!-- Contact -->
-  <footer id="contact" class="foot" role="contentinfo">
-    © Pirates Tools — PWA hors-ligne
-  </footer>
+    .mainnav { display:flex; align-items:center; gap:1rem; }
+    .mainnav__list { display:flex; list-style:none; margin:0; padding:0; gap:0.5rem; }
+    .chip { display:inline-block; padding:0.35rem 0.75rem; border:1px solid currentColor;
+            border-radius:999px; text-decoration:none; font-size:0.95rem; }
+    .actions { display:flex; gap:0.5rem; }
+    .pill { display:inline-flex; align-items:center; gap:0.4rem;
+            padding:0.45rem 0.75rem; border-radius:999px; text-decoration:none;
+            border:1px solid currentColor; white-space:nowrap; }
+    .pill--wa { border-style:solid; }
 
-  <button id="installBtn" hidden>Installer l’app</button>
+    /* ---- Mobile : menu replié ---- */
+    @media (max-width: 820px) {
+      .mainnav { position:fixed; inset:56px 0 auto 0; /* sous la topbar */
+                 background:#fff; border-top:1px solid #eee; padding:0.75rem 1rem;
+                 display:none; flex-direction:column; align-items:stretch; gap:0.75rem; }
+      .mainnav.is-open { display:flex; }
+      .mainnav__list { flex-direction:column; gap:0.25rem; }
+      .actions { justify-content:space-between; }
+    }
+  </style>
 
-  <script src="app.js" defer></script>
-</body>
-</html>
+  <script>
+    (function () {
+      const btn = document.querySelector('.menu-btn');
+      const nav = document.getElementById('mainnav');
+
+      function openNav(open) {
+        btn.setAttribute('aria-expanded', String(open));
+        nav.classList.toggle('is-open', open);
+        btn.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+      }
+
+      btn.addEventListener('click', () => {
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        openNav(!isOpen);
+      });
+
+      // Fermer le menu avec Echap ou après clic sur un lien
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') openNav(false);
+      });
+      nav.addEventListener('click', (e) => {
+        const a = e.target.closest('a');
+        if (a) openNav(false);
+      });
+
+      // Préserver l’affichage desktop au redimensionnement
+      const mq = window.matchMedia('(min-width: 821px)');
+      mq.addEventListener('change', () => openNav(false));
+    })();
+  </script>
+</header>
