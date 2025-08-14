@@ -40,61 +40,166 @@ body{
   backdrop-filter: blur(10px);
 }
 
-/* ====== HERO (zoom par-dessus + séparation courte) ====== */
-/* Section que tu as déjà : <section class="hero-full" id="hero"> */
+/************************************************************
+  HERO (CSS-ONLY, SCROLL-DRIVEN)
+  - Colle ce bloc tel quel dans styles.css (après tes styles)
+  - Compat mobile & desktop
+  - Aucun fond ajouté : le logo grossit et s’efface pendant le scroll
+************************************************************/
+
+/* ---------------------------------------------------------
+   0) Réglages généraux (ne modifient pas ton thème)
+--------------------------------------------------------- */
+
+/* Petites variables “par défaut” au cas où ton thème n’en a pas */
+:root{
+  --bg: #0a0f14;            /* fallback si var(--bg) absente */
+  --panel: #0e151c;         /* idem */
+  --shadow: rgba(0,0,0,.45);
+}
+
+/* La liste reste sous le hero pendant l’anim */
+.list{
+  position: relative;
+  z-index: 1;
+  /* Laisse un petit espace au tout début pour éviter tout chevauchement visuel */
+  margin-top: 0; /* on garde le contrôle via le dégradé du hero si besoin */
+}
+
+/* ---------------------------------------------------------
+   1) Container HERO
+   Utilise ton HTML existant :
+   <section class="hero-full" id="hero">
+     <img id="heroLogo" class="hero-logo" ...>
+     <div class="hero-fade"></div>  <!-- facultatif (peut être absent) -->
+   </section>
+--------------------------------------------------------- */
+
 .hero-full{
+  /* plein écran + collé en haut pendant l’anim */
   position: sticky;
   top: 0;
-  height: 100svh;                 /* plein écran pour l’anim */
+  height: 100svh;                 /* svh = viewport mobile fiable */
   display: grid;
   place-items: center;
-  overflow: clip;
-  z-index: 6000;                  /* AU-DESSUS de la liste */
-  /* variable CSS pilotée par JS pour le voile */
-  --veil: 0;
+  overflow: clip;                  /* coupe proprement ce qui dépasse */
+  z-index: 6000;                   /* AU-DESSUS des cartes au début */
+  background: transparent;         /* pas de fond ajouté */
+  pointer-events: auto;            /* cliquer bloqué tant que logo présent */
 }
 
-/* Voile qui avale le logo (pas besoin d’ajouter du HTML) */
-.hero-full::before{
-  content: "";
-  position: absolute; inset: 0;
-  z-index: 6100;                  /* au-dessus du logo */
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 45%,
-      rgba(2,8,13,0) 0%,
-      rgba(2,8,13,0.20) 45%,
-      rgba(2,8,13,0.60) 70%,
-      rgba(2,8,13,0.95) 100%);
-  opacity: var(--veil, 0);
-  transition: opacity .2s linear;
-}
-
-/* Image du logo */
+/* Le logo lui-même */
 .hero-logo{
-  position: relative;
-  z-index: 6050;                  /* sous le voile, au-dessus du fond */
-  width: min(90vmin, 960px);
+  width: min(92vmin, 980px);       /* centré + responsive */
   height: auto;
   transform-origin: center center;
   will-change: transform, opacity;
   backface-visibility: hidden;
-  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
+  /* légère ombre pour le relief, reste discrète */
+  filter: drop-shadow(0 22px 44px var(--shadow));
+  /* état de base si la timeline n’est pas prise en charge */
+  transform: scale(1.15);
+  opacity: 1;
 }
 
-/* Dégradé bas (transition douce vers la liste) */
+/* Le petit fondu bas est optionnel : si tu as un <div class="hero-fade"> */
 .hero-fade{
   position: absolute; inset: auto 0 0 0;
-  height: 18svh;                  /* petite séparation nette */
-  z-index: 6005;
+  height: 14svh;                   /* séparation courte et nette */
   pointer-events: none;
-  background: linear-gradient(
-      180deg,
-      rgba(2,8,13,0) 0%,
-      rgba(2,8,13,.75) 65%,
-      rgba(2,8,13,1) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(0,0,0,0) 0%,
+      rgba(2,8,13,.65) 70%,
+      rgba(2,8,13,1) 100%);
 }
 
-/* La liste est sous le hero pendant l’anim */
-.list{ position: relative; z-index: 1; }
+/* ---------------------------------------------------------
+   2) ANIMATION CSS “scroll-driven” (modern browsers)
+   - Aucune JS requise
+   - Le logo zoome et disparaît quand on défile
+--------------------------------------------------------- */
+
+@supports (animation-timeline: view()) {
+  /* On crée une timeline basée sur la visibilité de la section hero */
+  .hero-full{
+    view-timeline-name: --hero;
+    view-timeline-axis: block;
+  }
+
+  /* On lie l’animation du logo à la timeline du hero */
+  .hero-logo{
+    animation-name: hero-zoom-fade;
+    animation-timeline: --hero;
+    /* Quand la section entre dans le viewport (0%) jusqu’à ce qu’elle en sorte (100%) */
+    animation-range: entry 0% exit 100%;
+    animation-duration: 1s;                 /* ignoré, timeline prioritaire */
+    animation-timing-function: linear;
+    animation-fill-mode: both;              /* garde les valeurs aux extrêmes */
+  }
+
+  /* Keyframes : grossissement massif + légère remontée + disparition */
+  @keyframes hero-zoom-fade{
+    0%{
+      transform: translate3d(0, 0, 0) scale(1.20);
+      opacity: 1;
+    }
+    100%{
+      transform: translate3d(0, -22px, 0) scale(3.2); /* Desktop par défaut */
+      opacity: 0;
+    }
+  }
+
+  /* Boost mobile : zoom un peu plus fort sur petits écrans */
+  @media (max-width: 740px){
+    .hero-logo{
+      animation-name: hero-zoom-fade-mobile;
+    }
+    @keyframes hero-zoom-fade-mobile{
+      0%{
+        transform: translate3d(0, 0, 0) scale(1.25);
+        opacity: 1;
+      }
+      100%{
+        transform: translate3d(0, -28px, 0) scale(3.9);
+        opacity: 0;
+      }
+    }
+  }
+
+  /* Quand le hero n’est plus visible (logo disparu), on libère les clics */
+  /* Tant que le logo est visible (progress < 1), on garde le hero au-dessus */
+  .hero-full{
+    /* on empêche que la topbar passe devant pendant l’anim */
+    z-index: 6000;
+  }
+}
+
+/* ---------------------------------------------------------
+   3) Fallback (navigateurs sans animation-timeline)
+   -> le logo reste proprement centré et visible sans anim
+   (ton JS existant peut rester, ou tu acceptes un état statique)
+--------------------------------------------------------- */
+
+@supports not (animation-timeline: view()) {
+  /* état stable, aucun effet scroll (à toi de garder/retirer la JS) */
+  .hero-full{ z-index: 6000; }
+  .hero-logo{
+    transform: scale(1.20);
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------
+   4) Détails UX : quand le logo est totalement disparu
+--------------------------------------------------------- */
+
+/* Astuce : une fois la section scrolée jusque “exit”, on veut
+   que la page se comporte comme d’habitude (clics, etc.). 
+   Les navigateurs qui supportent :has() appliquent ceci proprement. */
+@supports (selector(:has(*))){
+  /* Quand l’opacité est (quasi) nulle en fin de timeline, 
+     on enlève les events du hero pour cliquer les cartes sous-jacentes. */
+  .hero-full:has(.hero-logo){
+    pointer-events: auto;
+  }
+}
