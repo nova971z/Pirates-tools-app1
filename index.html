@@ -17,7 +17,8 @@
 
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
+  <!-- On force le chargement du PNG existant -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" imagesrcset="./images/pirates-tools-logo.png?v=7" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
@@ -45,7 +46,8 @@
   <!-- ============== TOPBAR (fixe) ============== -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
     <a class="topbar-logo-link" href="#hero" data-scroll="#hero" aria-label="Retour en haut">
-      <img class="topbar-logo" src="./images/pirates-tools-logo.png" alt="Pirates Tools" />
+      <!-- petit logo à gauche de la barre -->
+      <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" />
     </a>
 
     <div class="brand">Pirates Tools</div>
@@ -67,16 +69,15 @@
 
   <!-- ============== HERO (logo) ============== -->
   <section class="hero-full" id="hero" aria-label="Identité Pirates Tools">
-    <picture>
-      <!-- Si tu ajoutes un .webp, il sera utilisé automatiquement -->
-      <source srcset="./images/pirates-tools-logo.webp" type="image/webp" />
-      <img id="heroLogo"
-           class="hero-logo"
-           src="./images/pirates-tools-logo.png"
-           alt="Logo Pirates Tools"
-           decoding="async"
-           fetchpriority="high" />
-    </picture>
+    <!-- IMPORTANT : on enlève <source webp> pour éviter un 404 qui casse l’affichage -->
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      src="./images/pirates-tools-logo.png?v=7"
+      alt="Logo Pirates Tools"
+      decoding="async"
+      fetchpriority="high" />
+    <!-- Dégradé de séparation (géré en CSS/JS) -->
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
