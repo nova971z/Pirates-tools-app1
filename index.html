@@ -16,22 +16,27 @@
 <body>
 
   <!-- Barre fixe -->
-  <header class="topbar" role="banner">
-    <div class="brand">Pirates Tools</div>
-    <nav class="mainnav" aria-label="Navigation principale">
-      <a class="chip" data-scroll="#list">Produits</a>
-      <a class="chip" data-scroll="#contact">Contact</a>
-    </nav>
-    <div class="actions">
-      <a class="pill phone" href="tel:0774231095" aria-label="Appeler Pirates Tools">
-        <span class="emoji">📞</span> 07 74 23 10 95
-      </a>
-      <a class="pill wa" href="https://wa.me/33774231095" target="_blank" rel="noopener"
-         aria-label="Contacter sur WhatsApp">
-        <span class="emoji">💬</span> WhatsApp
-      </a>
-    </div>
-  </header>
+  <header class="topbar">
+  <button class="menu-btn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+
+  <div class="brand">Pirates Tools</div>
+
+  <nav class="nav">
+    <a class="chip" href="#list">Produits</a>
+    <a class="chip" href="#contact">Contact</a>
+  </nav>
+
+  <div class="cta">
+    <a class="btn btn-call" href="tel:+33774231095" aria-label="Appeler">
+      📞 <strong>07&nbsp;74&nbsp;23&nbsp;10&nbsp;95</strong>
+    </a>
+    <a class="btn btn-wa" href="https://wa.me/33774231095" target="_blank" rel="noopener" aria-label="WhatsApp">
+      💬 <strong>WhatsApp</strong>
+    </a>
+  </div>
+</header>
 
   <!-- Hero (logo) -->
   <section class="hero" id="hero" aria-label="Identité Pirates Tools">
