@@ -257,3 +257,30 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(console.warn);
   });
 }
+
+/* iOS / mobile : garder la toolbar au-dessus du clavier */
+(() => {
+  const tb = document.querySelector('.toolbar');
+  if (!tb || !window.visualViewport) return;
+
+  const vv = window.visualViewport;
+  const getDockOffset = () => getComputedStyle(document.documentElement)
+      .getPropertyValue('--dock-offset').trim() || '78px';
+
+  function updateToolbarPos(){
+    const keyboard = (window.innerHeight - vv.height) > 140; // ~ seuil clavier
+    if (keyboard){
+      // On lève la barre juste au-dessus du clavier
+      const pad = 8; // marge
+      const delta = Math.max(0, window.innerHeight - vv.height) + pad;
+      tb.style.bottom = `${delta}px`;
+    }else{
+      tb.style.bottom = `calc(env(safe-area-inset-bottom) + ${getDockOffset()})`;
+    }
+  }
+
+  vv.addEventListener('resize', updateToolbarPos);
+  vv.addEventListener('scroll', updateToolbarPos);
+  window.addEventListener('orientationchange', updateToolbarPos, { passive:true });
+  updateToolbarPos();
+})();
