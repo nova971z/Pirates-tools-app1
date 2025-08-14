@@ -1,22 +1,16 @@
 /* =========================================================
-   Pirates Tools — app.js (FULL, fusion propre)
-   - HERO : zoom massif + fondu + bascule z-index (anti-chevauchement)
-   - Smooth scroll (ancrages data-scroll)
-   - Chargement + filtre produits (debounce)
-   - Dock + compteur devis (WhatsApp)
-   - PWA : beforeinstallprompt + Service Worker
+   Pirates Tools — app.js (FULL, Android smooth + fixes)
 ========================================================= */
 
-/* ---------------- Utils ---------------- */
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-/* ---------------- Config (numéro unique) ---------------- */
+/* Numéro unique */
 const PHONE_HUMAN = '07 74 23 01 95';
-const PHONE_E164  = '+33774230195'; // format international pour tel:/WhatsApp
+const PHONE_E164  = '+33774230195';
 
-/* ---------------- Sélecteurs ---------------- */
+/* Sélecteurs */
 const hero        = $('#hero');
 const heroLogo    = $('#heroLogo');
 const listEl      = $('#list');
@@ -28,99 +22,84 @@ const dockQuoteBtn= $('#dockQuoteBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 
-/* Harmonise les CTA au chargement */
+/* Harmonise les CTA */
 (function syncCTA(){
-  if (callBtn){
-    callBtn.setAttribute('href', `tel:${PHONE_E164}`);
-    callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
-  }
-  if (waBtn){
-    waBtn.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
-  }
+  callBtn?.setAttribute('href', `tel:${PHONE_E164}`);
+  if (callBtn) callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
+  waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-/* ========================================================
-   HERO : zoom + fondu + anti-chevauchement (version fluide)
-   - Pilote : --heroScale, --heroY, --heroAlpha, --listGap
-   - Disparition + tôt, bascule .hero-out (z-index:-1) + body.after-hero
-======================================================== */
+/* ---------------- HERO : zoom + fondu + anti-chevauchement ---------------- */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
 
   const mq = window.matchMedia('(max-width: 768px)');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 
-  let vh = Math.max(window.innerHeight, 1);
+  const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
+  let vh = getVH();
+  let ticking = false;
 
-  // Cœur du lissage : targetRaw suit le scroll, smoothRaw suit targetRaw avec inertie
-  let targetRaw = 0;  // progression théorique (0..1)
-  let smoothRaw = 0;  // progression lissée (0..1)
-  let raf = 0;
-
-  function measure(){
+  function compute(){
     const y = window.scrollY || 0;
-    // ↓ Disparition plus rapide : distance d’anim réduite (mobile < desktop)
-    const finish = vh * (mq.matches ? 0.64 : 0.82);
-    targetRaw = clamp(y / finish, 0, 1);
-  }
 
-  function render(){
-    // Inertie : réagit vite mais reste doux
-    const k = 0.22; // (0.18..0.28 : plus grand = plus réactif)
-    smoothRaw += (targetRaw - smoothRaw) * k;
+    /* distance d’animation plus courte => disparition plus tôt */
+    const finish = vh * (mq.matches ? 0.70 : 0.85);
+    const raw = clamp(y / finish, 0, 1);
+    const p = easeOutCubic(raw);
 
-    const p = easeOutCubic(smoothRaw);
+    /* zoom fort côté mobile, un peu moins sur desktop */
+    const maxScale = mq.matches ? 3.1 : 2.0;
+    const scale = 1 + (maxScale - 1) * p;
 
-    // Zoom plus fort sur mobile
-    const base = 1.0;
-    const maxScale = mq.matches ? 3.15 : 2.05;
-    const scale = base + (maxScale - base) * p;
-
-    // Translation + fondu (fade plus rapide sur mobile)
-    const tyVh    = (mq.matches ? 12 : 6) * p;
-    const opacity = clamp(1 - (mq.matches ? 1.55 : 1.25) * smoothRaw, 0, 1);
+    const tyVh = (mq.matches ? 12 : 7) * p;                         // translation
+    const opacity = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1); // fondu plus rapide
 
     heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
     heroLogo.style.setProperty('--heroY', `${tyVh.toFixed(2)}vh`);
     heroLogo.style.setProperty('--heroAlpha', opacity.toFixed(3));
 
-    // Réserve élastique au-dessus de la liste pour empêcher le chevauchement
-    const gap = (1 - smoothRaw) * (mq.matches ? 18 : 22); // en vh
+    /* espace élastique au-dessus de la liste ET de la toolbar */
+    const gap = (1 - raw) * (mq.matches ? 18 : 22);  // en vh
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    // Quand terminé → passe sous les cartes
-    if (smoothRaw > 0.985){
+    /* bascule d'empilement quand l’anim est terminée */
+    if (raw > 0.985) {
       document.body.classList.add('after-hero');
-      hero.classList.add('hero-out'); // styles.css => z-index:-1
+      hero.classList.add('hero-out');
     } else {
       document.body.classList.remove('after-hero');
       hero.classList.remove('hero-out');
     }
+  }
 
-    // Continue la boucle tant que l'écart est perceptible
-    if (Math.abs(targetRaw - smoothRaw) > 0.001){
-      raf = requestAnimationFrame(render);
-    } else {
-      raf = 0;
+  function onScroll(){
+    if (!ticking){
+      ticking = true;
+      requestAnimationFrame(() => { compute(); ticking = false; });
     }
   }
 
-  function kick(){
-    measure();
-    if (!raf) raf = requestAnimationFrame(render);
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
+  window.visualViewport?.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
+  window.addEventListener('orientationchange', () => { vh = getVH(); compute(); }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
+
+  /* réduit l’anim si l’utilisateur préfère moins de mouvement */
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    heroLogo.style.setProperty('--heroScale', '1');
+    heroLogo.style.setProperty('--heroY', '0vh');
+    heroLogo.style.setProperty('--heroAlpha', '1');
+    document.documentElement.style.setProperty('--listGap', '0vh');
+    hero.classList.add('hero-out');
+    return;
   }
 
-  window.addEventListener('scroll', kick, { passive:true });
-  window.addEventListener('resize', () => { vh = Math.max(window.innerHeight, 1); kick(); }, { passive:true });
-  window.addEventListener('orientationchange', () => { vh = Math.max(window.innerHeight, 1); kick(); }, { passive:true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
-
-  kick(); // état initial
+  compute();
 })();
 
-/* ========================================================
-   Smooth scroll (utilise scroll-margin-top côté CSS)
-======================================================== */
+/* ---------------- Smooth scroll ---------------- */
 $$('[data-scroll]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
@@ -131,9 +110,7 @@ $$('[data-scroll]').forEach(a => {
   });
 });
 
-/* ========================================================
-   Produits : chargement + rendu + filtre
-======================================================== */
+/* ---------------- Produits : chargement + filtre ---------------- */
 let MODELS = [];
 let CART   = [];
 
@@ -198,7 +175,7 @@ async function loadProducts(){
 }
 loadProducts();
 
-/* ---- Filtre avec debounce ---- */
+/* Filtre avec debounce */
 function debounce(fn, wait=140){
   let t=0; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
 }
@@ -218,9 +195,7 @@ const applyFilters = debounce(()=>{
 searchEl?.addEventListener('input', applyFilters, { passive:true });
 tagEl?.addEventListener('change', applyFilters);
 
-/* ========================================================
-   Dock WhatsApp (devis)
-======================================================== */
+/* ---------------- Dock WhatsApp (devis) ---------------- */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
   const lines = CART.slice(0,40).map((p,i)=>{
@@ -232,9 +207,7 @@ dockQuoteBtn?.addEventListener('click', ()=>{
   window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
 
-/* ========================================================
-   PWA : Install prompt + SW
-======================================================== */
+/* ---------------- PWA ---------------- */
 let deferredPrompt;
 const installBtn = $('#installBtn');
 
@@ -257,30 +230,3 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(console.warn);
   });
 }
-
-/* iOS / mobile : garder la toolbar au-dessus du clavier */
-(() => {
-  const tb = document.querySelector('.toolbar');
-  if (!tb || !window.visualViewport) return;
-
-  const vv = window.visualViewport;
-  const getDockOffset = () => getComputedStyle(document.documentElement)
-      .getPropertyValue('--dock-offset').trim() || '78px';
-
-  function updateToolbarPos(){
-    const keyboard = (window.innerHeight - vv.height) > 140; // ~ seuil clavier
-    if (keyboard){
-      // On lève la barre juste au-dessus du clavier
-      const pad = 8; // marge
-      const delta = Math.max(0, window.innerHeight - vv.height) + pad;
-      tb.style.bottom = `${delta}px`;
-    }else{
-      tb.style.bottom = `calc(env(safe-area-inset-bottom) + ${getDockOffset()})`;
-    }
-  }
-
-  vv.addEventListener('resize', updateToolbarPos);
-  vv.addEventListener('scroll', updateToolbarPos);
-  window.addEventListener('orientationchange', updateToolbarPos, { passive:true });
-  updateToolbarPos();
-})();
