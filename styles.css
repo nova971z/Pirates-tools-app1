@@ -160,3 +160,43 @@ main.container{ margin-top:var(--hero-gap-desktop) }
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
 }
+
+/* === HERO mobile : zoom + fondu ultra fluide, sans bloquer les cartes === */
+.hero-full{
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;          /* isole le plan du hero */
+  z-index: 20;                 /* au-dessus au départ */
+  pointer-events: none;        /* laisse cliquer les cartes dessous */
+}
+
+.hero-logo{
+  /* piloté par le JS via variables CSS */
+  transform: translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
+  opacity: var(--heroAlpha, 1);
+  transform-origin: center center;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,.40));
+  transition: opacity .22s linear; /* lissage quand on relâche le scroll */
+}
+
+/* séparation nette et courte sous le logo (dégradé) */
+.hero-fade{
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 28vh;
+  background: linear-gradient(to bottom, rgba(10,15,20,0),
+                                           rgba(10,15,20,.85) 65%,
+                                           var(--bg, #0a0f14));
+  pointer-events: none;
+}
+
+/* Quand le logo a totalement disparu, on remet le hero sous les cartes */
+.hero-out{ z-index: 0; }
+
+/* Ajustements spécifiques mobile : réduit l’écart initial */
+@media (max-width: 768px){
+  .hero-full{ min-height: 64vh; }  /* moins haut => moins d’espace vide */
+  .list{ scroll-margin-top: 84px; }/* confort d’ancrage sous la topbar */
+}
