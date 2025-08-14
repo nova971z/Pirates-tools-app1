@@ -22,7 +22,7 @@ document.addEventListener('click', (e)=>{
   if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
 });
 
-/* ---- Charge produits (+ fallback pour garantir le scroll) ---- */
+/* ---- Charge produits (fallback local) ---- */
 async function loadProducts(){
   try{
     const r = await fetch('products.json', {cache:'no-store'});
@@ -51,8 +51,10 @@ loadProducts().then(MODELS=>{
 });
 
 /* ===========================================================
-   HERO — Zoom ÉNORME + fondu dans un voile sombre.
-   Calcul basé sur la progression DANS la section hero.
+   HERO — Zoom “par-dessus” + disparition dans un voile.
+   - Héros réduit (38svh) => écart fortement diminué
+   - Le stage reste AU-DESSUS (z-index élevé)
+   - On coupe pointer-events en fin d’anim pour cliquer la liste
 =========================================================== */
 (function(){
   const hero  = document.getElementById('hero');
@@ -63,52 +65,51 @@ loadProducts().then(MODELS=>{
 
   const isMobile = matchMedia('(max-width: 740px)').matches;
 
-  // ---- Réglages du zoom “énorme”
+  // Réglages : zoom fort, par-dessus
   const ZOOM_START = 1.0;
-  const ZOOM_END   = isMobile ? 3.6 : 2.6;   // plus fort sur mobile
-  const LIFT_END   = isMobile ? -26 : -14;   // légère remontée
+  const ZOOM_END   = isMobile ? 3.6 : 2.8;   // énorme sur mobile
+  const LIFT_END   = isMobile ? -24 : -12;   // légère remontée
 
-  const clamp = (v,min,max)=>Math.max(min, Math.min(max,v));
-  const lerp  = (a,b,t)=>a+(b-a)*t;
-  const easeOut = t => 1 - Math.pow(1 - t, 1.15); // sortie douce
-  let ticking = false;
+  const clamp  = (v,min,max)=>Math.max(min, Math.min(max,v));
+  const lerp   = (a,b,t)=>a+(b-a)*t;
+  const easeOut = t => 1 - Math.pow(1 - t, 1.12);
 
-  function progressInHero(){
+  // progression basée sur la position de la section,
+  // mais normalisée sur ~1 viewport pour garder le feeling
+  function progress(){
     const vh = window.innerHeight || 1;
-    const heroTop = hero.offsetTop;
-    const heroH   = Math.max(hero.offsetHeight, vh);
-    const y = window.scrollY - heroTop;
-    return clamp(y / (heroH * 0.85), 0, 1);
+    const top = hero.getBoundingClientRect().top + window.scrollY;
+    const y   = window.scrollY - top;
+    return clamp(y / (vh * 0.9), 0, 1);
   }
 
-  function apply(p){
-    // courbe adoucie
+  function render(p){
     const t = easeOut(p);
-
-    const scale   = lerp(ZOOM_START, ZOOM_END, t);
-    const lift    = lerp(0, LIFT_END,   t);
-    const opacity = 1 - t;                 // fondu du logo
+    const scale = lerp(ZOOM_START, ZOOM_END, t);
+    const lift  = lerp(0, LIFT_END,   t);
 
     logo.style.transform = `translate3d(0, ${lift}px, 0) scale(${scale})`;
-    logo.style.opacity   = opacity;
+    logo.style.opacity   = 1 - t;
 
-    // voile qui “avale” le logo (commence discret puis couvre)
-    const veilStart = 0.35; // à partir de 35% du scroll hero
+    // voile qui se renforce (le logo disparaît “dans le fond”)
+    const veilStart = 0.30;
     const veilT = clamp((p - veilStart) / (1 - veilStart), 0, 1);
-    veil.style.opacity = Math.pow(veilT, 1.1);
+    veil.style.opacity = Math.pow(veilT, 1.08);
 
-    // laisse les cartes passer au-dessus sur la toute fin
-    stage.style.zIndex = p < 0.985 ? 10 : 1;
+    // Toujours AU-DESSUS pour le zoom
+    stage.style.zIndex = 30;
+    // Mais on libère les clics à la fin
+    stage.style.pointerEvents = (p >= 0.98) ? 'none' : 'auto';
   }
 
+  let ticking=false;
   function onScroll(){
     if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(()=>{ apply(progressInHero()); ticking = false; });
+    ticking=true;
+    requestAnimationFrame(()=>{ render(progress()); ticking=false; });
   }
 
-  // init + écouteurs
-  apply(progressInHero());
+  render(progress());
   addEventListener('scroll', onScroll, {passive:true});
   addEventListener('resize', onScroll);
 })();
