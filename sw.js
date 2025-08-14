@@ -1,160 +1,166 @@
-/* =========================================================================
-   Pirates Tools — STYLES.CSS (complet)
-   Style original + LOGO très grand + fondu + séparation nette
-   ========================================================================= */
+/************************************************************
+ * Pirates Tools — Service Worker (COMPLET)
+ * - Pré-cache des ressources essentielles (App Shell)
+ * - Caching intelligent :
+ *     • HTML : network-first (+ fallback offline)
+ *     • JS/CSS/manifest : stale-while-revalidate
+ *     • products.json : network-first (+ cache)
+ *     • images : cache-first + limite d’entrées
+ * - Nettoyage des anciens caches, skipWaiting + clients.claim
+ ************************************************************/
 
-:root{
-  --bg:#0a0f14;
-  --panel:#0e151c;
-  --card:#121b24;
-  --fg:#f4f7fb;
-  --muted:#9fb4c3;
-  --brand:#19d3ff;
-  --accent:#7c4dff;
-  --border:#203040;
-  --r:1rem;
+const VERSION        = 'v7';                      // ⬅️ incrémente à chaque changement
+const STATIC_CACHE   = `ptools-static-${VERSION}`;
+const RUNTIME_CACHE  = `ptools-runtime-${VERSION}`;
+const IMAGE_CACHE    = `ptools-images-${VERSION}`;
+
+// IMPORTANT (GitHub Pages) : reste en chemins RELATIFS pour garder le bon scope
+const PRECACHE_URLS = [
+  './',                 // redirige la nav vers index.html
+  './index.html',
+  './styles.css',
+  './app.js',
+  './products.json',
+  './manifest.webmanifest',
+  './images/pirates-tools-logo.png',
+  './icons/icon-180.png'     // si présent, sinon pas grave (échec ignoré)
+];
+
+// ---------- Helpers de stratégies ----------
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+async function putWithLimit(cacheName, request, response, maxEntries = 80) {
+  const cache = await caches.open(cacheName);
+  await cache.put(request, response.clone());
+  const keys = await cache.keys();
+  if (keys.length > maxEntries) {
+    // supprime la plus ancienne entrée
+    await cache.delete(keys[0]);
+  }
 }
 
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0;
-  background:linear-gradient(180deg,#0a0f14 0%, #060a10 40%, #0a0f14 100%);
-  color:var(--fg);
-  font-family:-apple-system, BlinkMacSystemFont, "Inter", Segoe UI, Roboto, Arial, sans-serif;
-  line-height:1.8;
-  letter-spacing:.2px;
+async function networkFirst(request, cacheName, fallbackUrl = './index.html') {
+  const cache = await caches.open(cacheName);
+  try {
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok) await cache.put(request, fresh.clone());
+    return fresh;
+  } catch (err) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    // Fallback pour les navigations (HTML)
+    if (request.mode === 'navigate' && fallbackUrl) {
+      const shell = await caches.match(fallbackUrl);
+      if (shell) return shell;
+    }
+    return new Response('Hors-ligne.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
 }
 
-.container{width:min(1100px,92vw); margin:0 auto}
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
 
-/* ───────────────── Top bar / CTA (identique style) */
-.topbar{
-  position:sticky; top:0; z-index:1000;
-  display:flex; align-items:center; justify-content:space-between; gap:.8rem;
-  padding:.8rem 1rem;
-  border-bottom:1px solid rgba(16,25,32,.18);
-  background:rgba(10,15,20,.86);
-  backdrop-filter: blur(10px);
-}
-.brand{font-weight:800}
+  const fetchPromise = fetch(request).then(resp => {
+    if (resp && (resp.ok || resp.type === 'opaque')) cache.put(request, resp.clone());
+    return resp;
+  }).catch(() => undefined);
 
-.actions{display:flex; gap:.6rem; align-items:center}
-.btn{
-  display:inline-block; text-decoration:none;
-  padding:.72rem .9rem; border:1px solid var(--border);
-  border-radius:10px; color:var(--fg);
-}
-.btn.cta{ background:linear-gradient(90deg,#0fe0ff,#15f7b8); color:#001018; font-weight:800; border:0 }
-.btn.wa{ background:#25D366; color:#001018; border:0 }
-
-/* ───────────────── LISTE d'articles */
-.list{display:grid; gap:1rem; padding:1.2rem 0 2.5rem}
-@media (min-width: 800px){ .list{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-
-.card{
-  background:var(--card); border:1px solid var(--border);
-  border-radius:12px;
-  box-shadow: 0 10px 24px rgba(10,15,20,.35);
-  overflow:hidden;
-  opacity:0; transform: translateY(14px);
-  transition: opacity .28s ease, transform .28s ease;
-}
-.card.is-in{ opacity:1; transform:none; }
-
-.head{
-  display:flex; align-items:center; justify-content:space-between; gap:1rem;
-  padding:1rem 1.2rem; border-bottom:1px solid var(--border);
-}
-.title{margin:0; font-size:1.2rem}
-.pill,.badge{
-  padding:.35rem .6rem; border-radius:10px; font-size:.8rem;
-  color:#001018;
-  background:linear-gradient(90deg,#0fe0ff,#15f7b8);
-  border:1px solid rgba(0,16,24,.12);
-}
-.figure{
-  display:grid; place-items:center;
-  background:
-    radial-gradient(400px 200px at 50% 30%,rgba(25,211,255,.08),transparent),
-    linear-gradient(180deg,#0a0f14 0%, #060a10 60%, #0a0f14 100%);
-}
-.figure img{max-width:100%; height:auto; display:block}
-.specs{display:flex; flex-wrap:wrap; gap:.6rem; padding:1rem 1.2rem}
-.spec{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:.6rem .8rem}
-.k{opacity:.7; font-size:.85rem}
-.v{font-weight:600}
-.actions{display:flex; gap:.6rem; padding:1rem 1.2rem; align-items:center; flex-wrap:wrap}
-.price{font-weight:800}
-.btn.primary{ background:linear-gradient(90deg,var(--brand),var(--accent)); color:#001018; border:0; font-weight:800 }
-
-/* ───────────────── FOOTER simple */
-.foot{color:var(--muted); border-top:1px solid var(--border); padding:1rem 0}
-
-/* ========================================================================
-   HERO (Logo au-dessus) + possibilité de zoom ÉNORME + fondu + séparation
-   ======================================================================== */
-
-.scene{ perspective:1000px; } /* profondeur 3D pour l’inclinaison (tilt) */
-
-/* Le HERO reste devant visuellement pendant l’animation */
-.hero-full{
-  position:relative;            /* pas fixed → plus de compat avec spacer */
-  overflow:visible;             /* IMPORTANT : autorise le logo à dépasser quand il grossit */
-  z-index:30;                   /* au-dessus de la liste (z:10) */
-  background:
-    radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent),
-    linear-gradient(180deg, #0a0f14 0%, #060a10 60%, #0a0f14 100%);
-  padding-top:.5rem;
+  // renvoie vite ce qu’on a, puis on réactualise en arrière-plan
+  return cached || fetchPromise || fetch(request);
 }
 
-/* LOGO — base plus grande + transform fluide ; prêt pour un zoom énorme */
-.hero-logo{
-  display:block; margin:0 auto;
-  /* base très large : desktop jusqu’à 1400px, mobile quasi plein écran */
-  max-width: clamp(420px, 96vw, 1400px);
-  height:auto;
+async function cacheFirst(request, cacheName, maxEntries = 120) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
 
-  will-change: transform, opacity;  /* (hint perf) */
-  transform-origin:center center;
-  filter: drop-shadow(0 20px 40px rgba(0,0,0,.45));
-  transition: transform .12s ease-out, opacity .12s ease-out;
-  position: relative;
-  z-index: 2; /* devant la bande de fondu */
+  try {
+    const resp = await fetch(request);
+    if (resp && (resp.ok || resp.type === 'opaque')) {
+      await putWithLimit(cacheName, request, resp.clone(), maxEntries);
+    }
+    return resp;
+  } catch (err) {
+    return cached || Response.error();
+  }
 }
 
-/* Bande de fondu (transition douce vers les articles) */
-.hero-fade{
-  position:absolute; inset:auto 0 0 0;
-  height: 18vh; /* court et net ; tu peux pousser à 22vh si tu veux plus de fondu */
-  background: linear-gradient(
-    180deg,
-    rgba(10,15,20,0) 0%,
-    rgba(10,15,20,0.55) 40%,
-    rgba(10,15,20,0.80) 75%,
-    var(--bg) 100%
-  );
-  pointer-events:none;
-  z-index: 1;
-}
+// ---------- Install : pré-cache ----------
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(STATIC_CACHE);
+    // Ajoute individuellement (pour ignorer les 404 sans tout faire échouer)
+    await Promise.allSettled(PRECACHE_URLS.map(async (url) => {
+      try {
+        const req = new Request(url, { cache: 'reload' });
+        const resp = await fetch(req);
+        if (resp && (resp.ok || resp.type === 'opaque')) {
+          await cache.put(req, resp);
+        }
+      } catch (_) { /* ignore */ }
+    }));
+    self.skipWaiting(); // prend la main dès que possible
+  })());
+});
 
-/* Séparation structurelle : évite le chevauchement au repos */
-#hero-spacer{
-  height: 12vh;      /* Espace réel (desktop) — réduit mais sûr */
-  z-index: 5;
-  position: relative;
-}
-@media (max-width: 768px){
-  #hero-spacer{ height: 16vh; } /* Mobile : un peu plus d’air car zoom plus fort en JS */
-}
+// ---------- Activate : nettoyage et prise de contrôle ----------
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys.map((k) => {
+        if (![STATIC_CACHE, RUNTIME_CACHE, IMAGE_CACHE].includes(k)) {
+          return caches.delete(k);
+        }
+      })
+    );
+    await self.clients.claim();
+  })());
+});
 
-/* La liste est sous le HERO (mais démarre après le spacer, donc pas masquée) */
-.list{ position: relative; z-index: 10; }
+// ---------- Fetch : routage des stratégies ----------
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
 
-/* ========================================================================
-   Accessibilité / préférences
-   ======================================================================== */
-@media (prefers-reduced-motion: reduce){
-  .hero-logo{ transition:none !important; }
-  .card{ transition:none !important; opacity:1 !important; transform:none !important; }
-}
+  // On ne gère que les requêtes GET
+  if (req.method !== 'GET') return;
+
+  // Laisse passer les ressources cross-origin (ex : wa.me)
+  if (url.origin !== self.location.origin) return;
+
+  // HTML / navigation → network-first (avec fallback App Shell)
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE, './index.html'));
+    return;
+  }
+
+  // JSON produits → network-first (on veut de la fraicheur, mais offline OK)
+  if (url.pathname.endsWith('/products.json') || url.pathname.endsWith('products.json')) {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
+
+  // JS / CSS / manifest → stale-while-revalidate
+  if (['script', 'style', 'manifest'].includes(req.destination)) {
+    event.respondWith(staleWhileRevalidate(req, STATIC_CACHE));
+    return;
+  }
+
+  // Images → cache-first + limite
+  if (req.destination === 'image') {
+    event.respondWith(cacheFirst(req, IMAGE_CACHE, 120));
+    return;
+  }
+
+  // Par défaut → SWR
+  event.respondWith(staleWhileRevalidate(req, RUNTIME_CACHE));
+});
+
+// ---------- Messages depuis la page (optionnel) ----------
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
