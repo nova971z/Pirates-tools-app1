@@ -1,87 +1,124 @@
 /* =========================================================
-   Pirates Tools — app.js (FULL, fusion)
-   - HERO : zoom massif + fondu + bascule z-index
-   - Smooth scroll
-   - Chargement/filtre produits
+   Pirates Tools — app.js (FULL, fusion propre)
+   - HERO : zoom massif + fondu + bascule z-index (anti-chevauchement)
+   - Smooth scroll (ancrages data-scroll)
+   - Chargement + filtre produits (debounce)
    - Dock + compteur devis (WhatsApp)
    - PWA : beforeinstallprompt + Service Worker
 ========================================================= */
 
+/* ---------------- Utils ---------------- */
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-const hero     = $('#hero');
-const heroLogo = $('#heroLogo');
-const listEl   = $('#list');
-const searchEl = $('#q');
-const tagEl    = $('#tag');
-const dock     = $('#dock');
-const dockCount= $('#dockCount');
-const dockQuoteBtn = $('#dockQuoteBtn');
+/* ---------------- Config (numéro unique) ---------------- */
+const PHONE_HUMAN = '07 74 23 01 95';
+const PHONE_E164  = '+33774230195'; // format international pour tel:/WhatsApp
 
+/* ---------------- Sélecteurs ---------------- */
+const hero        = $('#hero');
+const heroLogo    = $('#heroLogo');
+const listEl      = $('#list');
+const searchEl    = $('#q');
+const tagEl       = $('#tag');
+const dock        = $('#dock');
+const dockCount   = $('#dockCount');
+const dockQuoteBtn= $('#dockQuoteBtn');
+const callBtn     = $('#callBtn');
+const waBtn       = $('#waBtn');
 
-/* ==== Effet HERO : zoom + fondu + anti-chevauchement ==== */
-(() => {
-  const hero = document.getElementById('hero');
-  const logo = document.getElementById('heroLogo');
-  if (!hero || !logo) return;
+/* Harmonise les CTA au chargement */
+(function syncCTA(){
+  if (callBtn){
+    callBtn.setAttribute('href', `tel:${PHONE_E164}`);
+    // conserve l'icône si présente
+    callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
+  }
+  if (waBtn){
+    waBtn.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
+  }
+})();
+
+/* ========================================================
+   HERO : zoom + fondu + anti-chevauchement
+   - Pilote les variables CSS : --heroScale, --heroY, --heroAlpha, --listGap
+   - Passe le hero SOUS la liste en fin d’animation (classe .hero-out)
+======================================================== */
+(function heroEffect(){
+  if (!hero || !heroLogo) return;
 
   const mq = window.matchMedia('(max-width: 768px)');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 
-  let vh = window.innerHeight || 1;
+  let vh = Math.max(window.innerHeight, 1);
+  let ticking = false;
 
-  function update() {
+  function compute(){
     const y = window.scrollY || 0;
-    const finish = vh * (mq.matches ? 0.78 : 0.90);     // distance d’anim
-    const raw = Math.min(Math.max(y / finish, 0), 1);   // 0..1
+    const finish = vh * (mq.matches ? 0.78 : 0.90);  // distance d’anim (en px)
+    const raw = clamp(y / finish, 0, 1);             // progression 0..1
     const p = easeOutCubic(raw);
 
-    // Zoom fort sur mobile
+    // Zoom fort (plus marqué sur mobile)
     const base = 1.0;
     const maxScale = mq.matches ? 2.8 : 1.9;
     const scale = base + (maxScale - base) * p;
 
-    // Légère translation + fondu
-    const ty = (mq.matches ? 9 : 5) * p;                // en vh
-    const opacity = Math.max(0, 1 - (mq.matches ? 1.35 : 1.1) * raw);
+    // Translation douce + fondu
+    const tyVh = (mq.matches ? 9 : 5) * p;           // en vh
+    const opacity = clamp(1 - (mq.matches ? 1.35 : 1.1) * raw, 0, 1);
 
-    // Variables CSS pilotant le rendu GPU
-    logo.style.setProperty('--heroScale', scale.toFixed(3));
-    logo.style.setProperty('--heroY', `${ty.toFixed(2)}vh`);
-    logo.style.setProperty('--heroAlpha', opacity.toFixed(3));
+    // Applique sur l'élément (variables CSS lues dans styles.css)
+    heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
+    heroLogo.style.setProperty('--heroY', `${tyVh.toFixed(2)}vh`);
+    heroLogo.style.setProperty('--heroAlpha', opacity.toFixed(3));
 
-    // Réserve d’espace au-dessus de la liste pour éviter le chevauchement
-    const gap = (1 - raw) * (mq.matches ? 18 : 22);     // en vh
+    // Réserve élastique au-dessus de la liste pour éviter le chevauchement
+    const gap = (1 - raw) * (mq.matches ? 18 : 22);  // en vh
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    // Quand le hero est « fini », on le passe sous les cartes
-    if (raw > 0.98) document.body.classList.add('after-hero'), hero.classList.add('hero-out');
-    else document.body.classList.remove('after-hero'), hero.classList.remove('hero-out');
+    // Bascule z-index quand l’anim est terminée
+    if (raw > 0.98){
+      document.body.classList.add('after-hero');
+      hero.classList.add('hero-out');  // styles.css => z-index:-1
+    } else {
+      document.body.classList.remove('after-hero');
+      hero.classList.remove('hero-out');
+    }
   }
 
-  const onScroll = () => requestAnimationFrame(update);
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', () => { vh = window.innerHeight || 1; update(); }, { passive: true });
+  function onScroll(){
+    if (!ticking){
+      ticking = true;
+      requestAnimationFrame(() => { compute(); ticking = false; });
+    }
+  }
 
-  update();
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', () => { vh = Math.max(window.innerHeight, 1); compute(); }, { passive:true });
+  window.addEventListener('orientationchange', () => { vh = Math.max(window.innerHeight, 1); compute(); }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
+
+  compute(); // état initial
 })();
 
-
-/* ------------ Smooth scroll ------------- */
+/* ========================================================
+   Smooth scroll (utilise scroll-margin-top côté CSS)
+======================================================== */
 $$('[data-scroll]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
     const target = a.getAttribute('data-scroll') || a.getAttribute('href');
-    const el = document.querySelector(target);
+    const el = target ? document.querySelector(target) : null;
     if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 72;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
   });
 });
 
-/* ------------ Produits ------------- */
+/* ========================================================
+   Produits : chargement + rendu + filtre
+======================================================== */
 let MODELS = [];
 let CART   = [];
 
@@ -108,16 +145,14 @@ function productToHTML(m){
   </article>`;
 }
 
-function renderList(data){
-  if (!Array.isArray(data)) return;
-  listEl.innerHTML = data.map(productToHTML).join('\n');
+function bindAddToQuote(scopeData){
   $$('[data-add]', listEl).forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.getAttribute('data-add');
-      const p  = data.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
+      const p  = scopeData.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
       if (!p) return;
       CART.push(p);
-      if (dock && dockCount) {
+      if (dock && dockCount){
         dockCount.textContent = CART.length;
         dock.classList.remove('hidden');
       }
@@ -125,22 +160,34 @@ function renderList(data){
   });
 }
 
+function renderList(data){
+  if (!Array.isArray(data)) return;
+  listEl.innerHTML = data.map(productToHTML).join('\n');
+  bindAddToQuote(data);
+}
+
 async function loadProducts(){
   try{
-    const r = await fetch('products.json', {cache:'no-store'});
+    const r = await fetch('products.json', { cache:'no-store' });
     const json = await r.json();
     MODELS = Array.isArray(json) ? json : (json.products || []);
     renderList(MODELS);
   }catch(e){
     console.error('Erreur chargement produits:', e);
     listEl.innerHTML = `
-      <div class="card"><div class="head"><h3 class="title">Produits indisponibles</h3></div>
-      <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div></div>`;
+      <div class="card">
+        <div class="head"><h3 class="title">Produits indisponibles</h3></div>
+        <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div>
+      </div>`;
   }
 }
 loadProducts();
 
-function applyFilters(){
+/* ---- Filtre avec debounce ---- */
+function debounce(fn, wait=140){
+  let t=0; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
+}
+const applyFilters = debounce(()=>{
   const q = (searchEl?.value || '').trim().toLowerCase();
   const t = (tagEl?.value || '').trim().toLowerCase();
   const filtered = MODELS.filter(m => {
@@ -151,11 +198,14 @@ function applyFilters(){
     return okQ && okT;
   });
   renderList(filtered);
-}
-searchEl?.addEventListener('input', applyFilters);
+}, 120);
+
+searchEl?.addEventListener('input', applyFilters, { passive:true });
 tagEl?.addEventListener('change', applyFilters);
 
-/* ------------ Dock WhatsApp (devis) ------------- */
+/* ========================================================
+   Dock WhatsApp (devis)
+======================================================== */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
   const lines = CART.slice(0,40).map((p,i)=>{
@@ -164,11 +214,12 @@ dockQuoteBtn?.addEventListener('click', ()=>{
     return `• ${sku} – ${title}`.trim();
   });
   const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
-  // ✅ nouveau numéro
-  window.open(`https://wa.me/33774230195?text=${msg}`, '_blank', 'noopener');
+  window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
 
-/* ------------ PWA ------------- */
+/* ========================================================
+   PWA : Install prompt + SW
+======================================================== */
 let deferredPrompt;
 const installBtn = $('#installBtn');
 
@@ -182,7 +233,7 @@ installBtn?.addEventListener('click', async () => {
   installBtn.hidden = true;
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
+  try{ await deferredPrompt.userChoice; }catch(_){}  // ignore
   deferredPrompt = null;
 });
 
