@@ -110,6 +110,39 @@
   </section>
 
   <!-- ============== FOOTER / CONTACT ============== -->
+  <!-- [VIEW] Catalogue (route: #/catalogue) -->
+<section id="view-catalogue" class="view hidden" aria-label="Catalogue">
+  <div class="container">
+    <h1 style="margin:1rem 0 0.5rem">Catalogue</h1>
+    <p style="margin:0 0 1rem; color:#9fb4c5">
+      Parcourez toutes nos catégories et filtres. (Section vierge — on remplit à l’étape 2)
+    </p>
+    <!-- Placeholders (on branchera la vraie liste ensuite) -->
+    <div class="card">
+      <div class="head"><h3 class="title">Visseuses à chocs</h3><span class="badge">Catégorie</span></div>
+      <div class="specs"><p style="margin:0">DCF887, DCF850, DCF899…</p></div>
+      <div class="actions"><a class="btn primary" href="#list" data-scroll="#list">Voir les produits</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- [VIEW] Devis (route: #/devis) -->
+<section id="view-devis" class="view hidden" aria-label="Devis express">
+  <div class="container">
+    <h1 style="margin:1rem 0 0.5rem">Devis express</h1>
+    <p style="margin:0 0 1rem; color:#9fb4c5">
+      Récapitulatif des articles sélectionnés + envoi WhatsApp. (Section vierge — on calcule à l’étape 3)
+    </p>
+    <div class="card">
+      <div class="head"><h3 class="title">Votre sélection</h3></div>
+      <div class="specs" id="devisList"><p style="margin:0">Aucun article pour le moment.</p></div>
+      <div class="actions">
+        <button class="btn primary" id="devisSend">Envoyer le devis via WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</section>
+  
   <footer id="contact" class="foot" role="contentinfo">
     <div class="foot__grid">
       <div>
@@ -127,12 +160,12 @@
   </footer>
 
   <!-- ============== DOCK MOBILE (actions rapides) ============== -->
-  <nav class="dock hidden" id="dock" aria-label="Actions rapides">
-    <a class="dock__btn" href="tel:+33774230195" aria-label="Appeler">📞</a>
-    <button class="dock__btn" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
-    <a class="dock__btn" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
-    <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
-  </nav>
+  <nav class="nav" aria-label="Navigation principale">
+  <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+  <a class="chip" href="#list" data-scroll="#list">Produits</a>
+  <a class="chip" href="#/devis" data-route>Devis</a>
+  <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
+</nav>
 
   <!-- PWA install -->
   <button id="installBtn" hidden>Installer l’app</button>
