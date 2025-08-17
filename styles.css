@@ -227,3 +227,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
     opacity: 0;
   }
 }
+
+/* [ROUTER] vues génériques */
+.view{ width:min(1100px,92vw); margin:0 auto 1.2rem; }
+.view.hidden{ display:none !important; }
