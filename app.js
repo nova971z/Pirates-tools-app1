@@ -305,3 +305,98 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(console.warn);
   });
 }
+
+/* [ROUTER | #/…] — mini routeur hash pour afficher les vues sans recharger */
+(()=>{
+
+  // 1) Références : sections "home" existantes (à masquer quand on change de vue)
+  const HOME_PARTS = [
+    document.getElementById('hero'),
+    document.querySelector('.toolbar'),
+    document.querySelector('main.container'),
+    document.querySelector('.ratings')
+  ].filter(Boolean);
+
+  // 2) Vues dynamiques (catalogue, devis, …)
+  const VIEWS = {
+    catalogue: document.getElementById('view-catalogue'),
+    devis:     document.getElementById('view-devis')
+  };
+
+  // 3) Helpers d’affichage
+  const showHome = (yes)=> HOME_PARTS.forEach(el => el?.classList.toggle('hidden', !yes));
+  const hideAllViews = ()=> Object.values(VIEWS).forEach(el => el?.classList.add('hidden'));
+  const showView = (key)=>{
+    hideAllViews();
+    VIEWS[key]?.classList.remove('hidden');
+  };
+
+  // 4) Logique de route
+  function onRoute(){
+    const h = (location.hash || '').toLowerCase();
+
+    // Normalise: "#/xxx" -> "xxx"
+    const m = h.match(/^#\/([^/?#]+)/);
+    const route = m ? m[1] : '';
+
+    switch(route){
+      case 'catalogue':
+        showHome(false);
+        showView('catalogue');
+        break;
+
+      case 'devis':
+        showHome(false);
+        showView('devis');
+        // petit récap du panier (CART) si dispo
+        try{
+          const wrap = document.getElementById('devisList');
+          if (wrap){
+            if (Array.isArray(window.CART) && window.CART.length){
+              wrap.innerHTML = window.CART.map((p,i)=>`
+                <p style="margin:0">• ${p.sku || p.id || (i+1)} — ${ (p.title||'').replace(/\s+/g,' ').trim() }</p>
+              `).join('');
+            } else {
+              wrap.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
+            }
+          }
+          // bouton d’envoi (réutilise ta conf téléphone)
+          const btn = document.getElementById('devisSend');
+          btn?.addEventListener('click', ()=>{
+            if (!Array.isArray(window.CART) || !window.CART.length) return;
+            const lines = window.CART.slice(0,40).map((p,i)=>{
+              const sku = p.sku || p.id || (i+1);
+              const title = (p.title||'').replace(/\s+/g,' ').trim();
+              return `• ${sku} – ${title}`;
+            });
+            const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
+            const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
+            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener');
+          }, { once:true });
+        }catch(_){}
+        break;
+
+      default:
+        // HOME (par défaut)
+        showHome(true);
+        hideAllViews();
+        // si on vient d’une vue -> remonte en haut pour revoir le HERO
+        try{ window.scrollTo({ top: 0, behavior: 'instant' }); }catch(_){}
+        break;
+    }
+  }
+
+  // 5) Active sur clic des liens data-route (pratique sur iOS)
+  document.querySelectorAll('[data-route]').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+      // laisse le hash se mettre tout seul; le routeur s’exécutera sur hashchange
+      // (on n’empêche pas le comportement par défaut)
+    });
+  });
+
+  // 6) Écoute les changements d’URL (#/…)
+  window.addEventListener('hashchange', onRoute);
+  // 7) Première route au chargement
+  onRoute();
+
+})();
