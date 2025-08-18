@@ -7,11 +7,13 @@
    - Hash routes fallback → index.html
 ========================================================= */
 
-const VERSION        = 'pt-v6';
+'use strict';
+const VERSION        = 'pt-v10';          // ← incrémente
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
+
 
 // Liste des fichiers du shell (préchargés)
 const APP_SHELL = [
