@@ -162,9 +162,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
+/* ====== Dock mobile (fix bottom dynamique Android/iOS) ====== */
 .dock{
   position:fixed; left:50%;
-  bottom: calc(14px + var(--safe-bottom, 0px));
+  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom)));
   transform: translate3d(-50%,0,0);
   display:flex; gap:.6rem; align-items:center;
   padding:.4rem .5rem; border-radius:999px; z-index:110;
@@ -174,6 +175,23 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   will-change: transform;
   contain: layout paint;
 }
+
+/* Boutons du dock (si manquants) */
+.dock__btn{
+  width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
+  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08);
+}
+.dock__btn:active{ transform:translateY(1px); }
+.dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018; }
+.dock__btn--wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016; }
+.dock__btn--cart{ background:rgba(255,255,255,.10); }
+.dock__btn--tools{ background:rgba(255,255,255,.10); }
+.dock__badge{
+  position:absolute; right:-6px; top:-6px; background:#ff6b6b; color:#001018;
+  font-weight:800; font-size:.75rem; line-height:1; border-radius:999px; padding:.35rem .45rem;
+  border:2px solid rgba(10,15,20,.85); cursor:pointer;
+}
+
 /* Utils */
 .hidden{display:none !important}
 
