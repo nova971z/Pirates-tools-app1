@@ -162,29 +162,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* ====== Dock mobile (fixe Android/iOS) ====== */
+/* ===== Dock fixe Android/iOS ===== */
 .dock{
   position: fixed;
-  /* centrage sans transform pour éviter les jitter Android */
-  inset-inline: 0;           /* left:0 + right:0 */
-  margin: 0 auto;
-  width: max-content;
-
-  /* marge bas pilotée par JS (Android/iOS & clavier) */
+  left: 0; right: 0;
+  /* piloté par JS (visualViewport) */
   bottom: var(--dock-bottom, calc(14px + var(--safe-bottom, 0px)));
 
+  display: flex; justify-content: center; z-index:110;
+  pointer-events: none;                 /* le conteneur ne capte pas les clics */
+}
+.dock__shell{
   display:flex; gap:.6rem; align-items:center;
-  padding:.4rem .5rem; border-radius:999px; z-index:110;
+  padding:.4rem .5rem; border-radius:999px;
   background:rgba(10,15,20,.66);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   border:1px solid var(--border); box-shadow:var(--shadow);
-
-  /* important : pas de transform sur l’élément fixed */
-  transform: none;
-  will-change: auto;       /* évite les micro-mouvements */
+  pointer-events: auto;                 /* les clics se font ici */
 }
 
-/* boutons du dock (si absents chez toi, ajoute-les) */
+/* boutons (si pas déjà dans ton fichier) */
 .dock__btn{ width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
   background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08) }
 .dock__btn:active{ transform: translateY(1px) }
