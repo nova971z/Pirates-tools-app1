@@ -871,3 +871,14 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
+
+
+/* ===== Anti double-tap zoom (option douce) ===== */
+(() => {
+  let last = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - last < 350) { e.preventDefault(); }
+    last = now;
+  }, { passive: false });
+})();
