@@ -1,9 +1,10 @@
 /* =========================================================
-   Pirates Tools — styles.css (FULL, fusion + Android fixes)
+   Pirates Tools — styles.css (FULL, fusion + Android/iOS fixes)
    ========================================================= */
 
 /* Thème */
 :root{
+  color-scheme: dark;
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
@@ -11,10 +12,10 @@
   /* marges dynamiques pilotées par JS */
   --listGap: 14vh;
 
-  /* >>> ajout pour l’effet de sortie (tools) <<< */
-  --tool-exit-dx: 60px;                       /* distance du glissement (px) */
-  --tool-exit-dur: 420ms;                     /* durée de l’animation (ms) */
-  --tool-exit-ease: cubic-bezier(.22,.61,.36,1); /* courbe d’accélération */
+  /* Variables (conservées si un jour tu veux repasser l’anim côté CSS) */
+  --tool-exit-dx: 60px;
+  --tool-exit-dur: 420ms;
+  --tool-exit-ease: cubic-bezier(.22,.61,.36,1);
 }
 
 *{box-sizing:border-box}
@@ -60,7 +61,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.58rem .9rem; border-radius:12px; font-weight:700;
   color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
-  white-space:nowrap;           /* évite que le numéro se mette en colonne */
+  white-space:nowrap;
   flex-shrink:0;
 }
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
@@ -72,7 +73,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .hero-full{
   position:relative;
   height:100vh;               /* fallback */
-  height:100svh;              /* Android/IOS barre dynamique */
+  height:100svh;              /* Android/iOS barre dynamique */
   display:grid; place-items:center;
   pointer-events:none;        /* ne bloque pas les clics des cartes */
   isolation:isolate;
@@ -156,7 +157,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 /* ====== Dock mobile ====== */
 .dock{
-  position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+  position:fixed; left:50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
   display:flex; gap:.6rem; align-items:center;
   padding:.4rem .5rem; border-radius:999px; z-index:110;
   background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
@@ -182,58 +185,21 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .btn{padding:.54rem .8rem}
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
+  /* ancrage confortable sous la topbar sticky */
+  #list, #contact { scroll-margin-top: 84px; }
 }
 
 /* =========================================================
-   === EXIT ANIMATIONS (tools) — AJOUT =====================
-   Chaque outil qui sort vers le HAUT glisse alternativement
-   à gauche puis à droite et disparaît en fondu.
+   [NOTE] L’animation "exit left/right" est pilotée par JS
+   (app.js injecte les keyframes et classes .tool--exit-*)
+   → on retire ici la version CSS doublon pour éviter conflits.
    ========================================================= */
-
-/* 1) Keyframes */
-@keyframes tool-exit-left {
-  to {
-    transform: translateX(calc(-1 * var(--tool-exit-dx))) translateZ(0);
-    opacity: 0;
-    filter: blur(2px);
-  }
-}
-@keyframes tool-exit-right {
-  to {
-    transform: translateX(var(--tool-exit-dx)) translateZ(0);
-    opacity: 0;
-    filter: blur(2px);
-  }
-}
-
-/* 2) États d’animation (forwards = garde le dernier état) */
-.tool--exit-left{
-  animation: tool-exit-left var(--tool-exit-dur) var(--tool-exit-ease) forwards;
-  will-change: transform, opacity;
-}
-.tool--exit-right{
-  animation: tool-exit-right var(--tool-exit-dur) var(--tool-exit-ease) forwards;
-  will-change: transform, opacity;
-}
-
-/* 3) Option : retirer du flux après l’anim (nécessite JS: animationend) */
-.tool--gone{ display:none !important }
-
-/* 4) Accessibilité : réduire le mouvement si demandé */
-@media (prefers-reduced-motion: reduce){
-  .tool--exit-left,
-  .tool--exit-right{
-    animation: none !important;
-    opacity: 0;
-  }
-}
 
 /* [ROUTER] vues génériques */
 .view{ width:min(1100px,92vw); margin:0 auto 1.2rem; }
-  .view.hidden{ display:none !important; }
-  
-  
-  /* [PDP] Fiche produit */
+.view.hidden{ display:none !important; }
+
+/* [PDP] Fiche produit */
 .pdp{ padding: .5rem 0 1.2rem; }
 .chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 
@@ -275,7 +241,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .pdp__grid{ grid-template-columns: 1fr; }
 }
 
-
 /* ====== Barre de liens (site-links) ====== */
 .site-links{
   width:min(1100px,92vw);
@@ -296,7 +261,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 @media (max-width:768px){
   .site-links{ margin-bottom:5.2rem; }
 }
-
 
 /* ===== Catalogue (catégories auto) ===== */
 .cat-list{
