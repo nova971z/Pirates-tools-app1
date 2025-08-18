@@ -1,5 +1,3 @@
-FICHIER : README.txt  (à coller à la racine du repo)
-
 /************************************************************
  P I R A T E S   T O O L S  —  P W A   (HTML/CSS/JS pur)
  Boutique légère des visseuses à chocs DeWALT.
