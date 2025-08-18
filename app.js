@@ -1,7 +1,8 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, Android smooth + fixes)
    + FIX data-scroll: retour à Home avant de scroller
-   + Panier persistant + vue devis + WhatsApp unifié
+   + Devis rendu dynamique + dock panier → #/devis
+   + Compte & Fidélité (localStorage + curseur)
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
@@ -21,9 +22,10 @@ const tagEl       = $('#tag');
 const dock        = $('#dock');
 const dockCount   = $('#dockCount');
 const dockQuoteBtn= $('#dockQuoteBtn');
+const dockCartBtn = $('#dockCartBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
-const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
+const homeLink    = $('#homeLink'); // (optionnel)
 
 /* Harmonise les CTA */
 (function syncCTA(){
@@ -32,7 +34,7 @@ const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-/* Logo = retour accueil partout (supporte id #homeLink OU .topbar-logo-link) */
+/* Logo = retour accueil partout */
 (function wireLogoHome(){
   const logo = homeLink || document.querySelector('.topbar-logo-link');
   logo?.addEventListener('click', (e)=>{
@@ -56,34 +58,25 @@ const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
   function compute(){
     const y = window.scrollY || 0;
 
-    /* distance d’animation plus courte => disparition plus tôt */
     const finish = vh * (mq.matches ? 0.70 : 0.85);
     const raw = clamp(y / finish, 0, 1);
     const p = easeOutCubic(raw);
 
-    /* zoom fort côté mobile, un peu moins sur desktop */
     const maxScale = mq.matches ? 3.1 : 2.0;
     const scale = 1 + (maxScale - 1) * p;
 
-    const tyVh = (mq.matches ? 12 : 7) * p;                           // translation
-    const opacity = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1); // fondu plus rapide
+    const tyVh = (mq.matches ? 12 : 7) * p;
+    const opacity = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1);
 
     heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
     heroLogo.style.setProperty('--heroY', `${tyVh.toFixed(2)}vh`);
     heroLogo.style.setProperty('--heroAlpha', opacity.toFixed(3));
 
-    /* espace élastique au-dessus de la liste ET de la toolbar */
-    const gap = (1 - raw) * (mq.matches ? 18 : 22);  // en vh
+    const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    /* bascule d'empilement quand l’anim est terminée */
-    if (raw > 0.985) {
-      document.body.classList.add('after-hero');
-      hero.classList.add('hero-out');
-    } else {
-      document.body.classList.remove('after-hero');
-      hero.classList.remove('hero-out');
-    }
+    if (raw > 0.985) { document.body.classList.add('after-hero'); hero.classList.add('hero-out'); }
+    else { document.body.classList.remove('after-hero'); hero.classList.remove('hero-out'); }
   }
 
   function onScroll(){
@@ -99,7 +92,6 @@ const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
   window.addEventListener('orientationchange', () => { vh = getVH(); compute(); }, { passive:true });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
 
-  /* réduit l’anim si l’utilisateur préfère moins de mouvement */
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     heroLogo.style.setProperty('--heroScale', '1');
     heroLogo.style.setProperty('--heroY', '0vh');
@@ -122,8 +114,6 @@ $$('[data-scroll]').forEach(a => {
       if (!el) return;
       el.scrollIntoView({ behavior:'smooth', block:'start' });
     };
-
-    // Si on est dans une "vue" (hash commençant par "#/"), on revient d'abord à l'accueil
     if (location.hash.startsWith('#/')) {
       const once = () => { requestAnimationFrame(doScroll); window.removeEventListener('hashchange', once); };
       window.addEventListener('hashchange', once, { once:true });
@@ -143,58 +133,39 @@ const ScrollExit = (function () {
     style.textContent = `
 @keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }
 @keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }
-
 .tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 .tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
-
 @media (prefers-reduced-motion: reduce) {
   .tool--exit-left,
   .tool--exit-right { animation: none; opacity: 0; }
 }`;
     document.head.appendChild(style);
   }
-
   injectExitCSS();
 
-  let flip = false; // alternance gauche/droite
-
+  let flip = false;
   const io = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const el = entry.target;
-
-      if (entry.isIntersecting) {
-        el.classList.remove('tool--exit-left', 'tool--exit-right');
-        el.removeAttribute('data-exited');
-        return;
-      }
-
+      if (entry.isIntersecting) { el.classList.remove('tool--exit-left','tool--exit-right'); el.removeAttribute('data-exited'); return; }
       if (el.dataset.exited === '1') return;
-
-      const rect = entry.boundingClientRect;
-      const exitingUp = rect.top < 0;
+      const exitingUp = entry.boundingClientRect.top < 0;
       if (!exitingUp) return;
-
       const cls = flip ? 'tool--exit-right' : 'tool--exit-left';
       flip = !flip;
-
-      void el.offsetWidth; // reflow
-
+      void el.offsetWidth;
       el.classList.add(cls);
       el.dataset.exited = '1';
     });
-  }, {
-    threshold: 0.01,
-    rootMargin: '0px 0px -10% 0px'
-  });
+  }, { threshold: 0.01, rootMargin: '0px 0px -10% 0px' });
 
   function observeWithin(root=document){
     root.querySelectorAll('[data-tool]').forEach(el => io.observe(el));
   }
-
   return { observeWithin };
 })();
 
-/* ---------------- Produits : chargement + filtre ---------------- */
+/* ---------------- Produits / Devis ---------------- */
 let MODELS = [];
 let CART   = [];
 
@@ -209,8 +180,8 @@ function updateDock(){
 
 function saveCart(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
+  updateDock();
 }
-
 function loadCart(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -221,8 +192,7 @@ function loadCart(){
 loadCart();
 
 /* Groupage (même produit, quantité) */
-function keyOf(p){ return (p?.id ?? p?.sku ?? p?.title ?? '').toString(); }
-
+const keyOf = p => (p?.id ?? p?.sku ?? p?.title ?? '').toString();
 function groupCart(){
   const map = new Map();
   CART.forEach(p=>{
@@ -260,12 +230,8 @@ function productToHTML(m){
       <h3 class="title">${title}</h3>
       ${tag ? `<span class="badge">${tag}</span>` : ``}
     </div>
-    <div class="specs">
-      <p style="margin:0">${desc || '—'}</p>
-    </div>
-    <div class="actions">
-      <button class="btn primary" data-add="${id}">Ajouter au devis</button>
-    </div>
+    <div class="specs"><p style="margin:0">${desc || '—'}</p></div>
+    <div class="actions"><button class="btn primary" data-add="${id}">Ajouter au devis</button></div>
   </article>`;
 }
 
@@ -276,13 +242,12 @@ function bindAddToQuote(scopeData){
       const p  = scopeData.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
       if (!p) return;
       CART.push(p);
-      saveCart();           // ← persiste
-      updateDock();         // ← badge dock
+      saveCart();
     });
   });
 }
 
-// Trouve un produit par id/sku/titre
+/* Trouve un produit par id/sku/titre */
 function findProductByKey(key){
   if (!key) return null;
   const k = String(key).toLowerCase();
@@ -294,90 +259,69 @@ function findProductByKey(key){
   }) || null;
 }
 
-// Remplit la vue PDP
-function renderPDP(product){
-  const wrap   = document.getElementById('pdp');
-  const elImg  = document.getElementById('pdpImg');
-  const elT    = document.getElementById('pdpTitle');
-  const elTag  = document.getElementById('pdpTag');
-  const elDesc = document.getElementById('pdpDesc');
-  const elSpecs= document.getElementById('pdpSpecs');
-  const elRel  = document.getElementById('pdpRelated');
-  const btnQ   = document.getElementById('pdpQuote');
-  const btnWa  = document.getElementById('pdpWa');
+/* ===== Rendu de la vue Devis ===== */
+function renderCartView(){
+  const root = $('#devisList');
+  if (!root) return;
 
-  if (!wrap) return;
+  const grouped = groupCart();
+  if (!grouped.length){
+    root.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
+  }else{
+    root.innerHTML = grouped.map(({item,qty})=>{
+      const sku   = item.sku || item.id || '';
+      const title = item.title || `${item.brand||''} ${item.sku||''}`.trim();
+      const key   = keyOf(item);
+      return `
+        <div class="card" style="width:100%">
+          <div class="head">
+            <h3 class="title">${title}</h3>
+            <span class="badge">${sku}</span>
+          </div>
+          <div class="specs" style="display:flex;gap:.6rem;align-items:center">
+            <button class="btn" data-dec="${key}">−</button>
+            <strong>${qty}</strong>
+            <button class="btn" data-inc="${key}">+</button>
+            <button class="btn" data-del="${key}" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec">Supprimer</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
-  const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
-  const tag   = product.tag || '';
-  const desc  = product.desc || product.description || '';
-  const img   = product.img || './images/pirates-tools-logo.png?v=7';
+  // actions
+  root.onclick = (e)=>{
+    const inc = e.target.closest('[data-inc]'); const dec = e.target.closest('[data-dec]'); const del = e.target.closest('[data-del]');
+    const key = inc?.dataset.inc || dec?.dataset.dec || del?.dataset.del;
+    if (!key) return;
 
-  elT.textContent = title;
-  elTag.textContent = tag ? `#${tag}` : '';
-  elDesc.textContent = desc || 'Caractéristiques à venir.';
-  elImg.src = img; elImg.alt = title;
-
-  const specs = Array.isArray(product.specs) ? product.specs : [];
-  elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
-
-  const sku = product.sku || product.id || title;
-  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
-  const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
-  btnWa.href = `https://wa.me/${phone}?text=${msg}`;
-
-  btnQ.onclick = ()=>{
-    CART.push(product);
-    saveCart();           // ← persiste
-    updateDock();         // ← badge dock
+    if (inc){
+      const p = MODELS.find(m => keyOf(m)===key);
+      if (p){ CART.push(p); }
+    }else if (dec){
+      const i = CART.findIndex(p => keyOf(p)===key);
+      if (i>=0) CART.splice(i,1);
+    }else if (del){
+      for (let i=CART.length-1;i>=0;i--) if (keyOf(CART[i])===key) CART.splice(i,1);
+    }
+    saveCart();
+    renderCartView();
   };
 
-  const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
-  elRel.innerHTML = related.map(m=>`
-    <article class="card" data-id="${m.id || m.sku || m.title}">
-      <div class="head">
-        <h3 class="title">${m.title || (m.brand||'')+' '+(m.sku||'')}</h3>
-        ${m.tag ? `<span class="badge">${m.tag}</span>` : ``}
-      </div>
-      <div class="specs"><p style="margin:0">${m.desc || m.description || ''}</p></div>
-      <div class="actions">
-        <button class="btn primary" data-add="${m.id || m.sku || m.title}">Ajouter au devis</button>
-      </div>
-    </article>
-  `).join('');
+  $('#devisSend')?.addEventListener('click', ()=>{
+    const msg = encodeURIComponent(cartToWhatsAppText());
+    if (!msg) return;
+    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
+  }, { once:true });
 
-  $$('.pdp__related .card').forEach(card=>{
-    card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return;
-      const id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = `#/produit/${encodeURIComponent(id)}`;
-    });
-  });
-
-  bindAddToQuote(related);
+  $('#devisClear')?.addEventListener('click', ()=>{
+    CART = [];
+    saveCart();
+    renderCartView();
+  }, { once:true });
 }
 
-function renderList(data){
-  if (!Array.isArray(data)) return;
-  listEl.innerHTML = data.map(productToHTML).join('\n');
-
-  bindAddToQuote(data);
-
-  $$('.card', listEl).forEach(card=>{
-    card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return;
-      const id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = `#/produit/${encodeURIComponent(id)}`;
-    });
-  });
-
-  // démarre l’observateur pour l’anim de sortie
-  ScrollExit.observeWithin(listEl);
-}
-
-/* ========= [CATALOGUE DYNAMIQUE] ========= */
+/* ===== Catalogue dynamique (catégories) ===== */
 function buildCategories(){
   const map = new Map();
   for (const m of MODELS){
@@ -388,7 +332,6 @@ function buildCategories(){
   }
   return [...map.values()].sort((a,b)=> b.count - a.count);
 }
-
 function renderCatalogue(){
   const root = document.getElementById('catList');
   if (!root) return;
@@ -397,10 +340,7 @@ function renderCatalogue(){
   root.innerHTML = cats.length
     ? cats.map(c => `
         <article class="card cat-card" data-cat="${c.key}">
-          <div class="head">
-            <h3 class="title">${c.label}</h3>
-            <span class="badge">Catégorie</span>
-          </div>
+          <div class="head"><h3 class="title">${c.label}</h3><span class="badge">Catégorie</span></div>
           <div class="specs"><p style="margin:0">${c.count} produit${c.count>1?'s':''}</p></div>
           <div class="actions"><button class="btn primary" data-cat-go="${c.key}">Voir</button></div>
         </article>
@@ -410,7 +350,7 @@ function renderCatalogue(){
   const go = (key)=>{
     if (tagEl) tagEl.value = key;
     if (typeof applyFilters === 'function') applyFilters();
-    location.hash = '';  // accueil
+    location.hash = '';
     setTimeout(()=> document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60);
   };
 
@@ -421,67 +361,31 @@ function renderCatalogue(){
     if (card) return go(card.dataset.cat);
   });
 }
-/* ========= /CATALOGUE DYNAMIQUE ========= */
 
-/* ===== Rendu de la vue Devis ===== */
-function renderDevis(){
-  const list = document.getElementById('devisList');
-  const btn  = document.getElementById('devisSend');
-  if (!list) return;
-
-  const grouped = groupCart();
-
-  if (!grouped.length){
-    list.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
-    btn?.setAttribute('disabled','');
-  } else {
-    btn?.removeAttribute('disabled');
-    list.innerHTML = grouped.map(({item,qty}) => `
-      <div class="devis-row" data-key="${keyOf(item)}"
-           style="display:flex;justify-content:space-between;gap:.8rem;align-items:center;padding:.3rem 0;border-bottom:1px dashed rgba(255,255,255,.08)">
-        <div>
-          <strong>${item.title || ((item.brand||'')+' '+(item.sku||''))}</strong>
-          ${item.sku?`<span style="color:#9fb4c5"> (${item.sku})</span>`:''}
-        </div>
-        <div style="display:flex;align-items:center;gap:.45rem">
-          <span class="qty" style="opacity:.9">×${qty}</span>
-          <button class="chip" data-remove="${keyOf(item)}" aria-label="Retirer">✕</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // Retirer une unité d’un article
-  list.onclick = (e)=>{
-    const btnRm = e.target.closest('[data-remove]');
-    if (!btnRm) return;
-    const key = btnRm.getAttribute('data-remove');
-    const idx = CART.findIndex(p => keyOf(p) === key);
-    if (idx > -1){
-      CART.splice(idx,1);
-      saveCart();
-      updateDock();
-      renderDevis(); // refresh
-    }
-  };
-
-  // Envoyer via WhatsApp (évite doublons d’écouteur)
-  btn?.replaceWith(btn.cloneNode(true));
-  const newBtn = document.getElementById('devisSend');
-  newBtn?.addEventListener('click', ()=>{
-    const text = encodeURIComponent(cartToWhatsAppText());
-    if (!text) return;
-    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${text}`, '_blank', 'noopener');
+/* ===== Produits : rendu liste ===== */
+function renderList(data){
+  if (!Array.isArray(data)) return;
+  listEl.innerHTML = data.map(productToHTML).join('\n');
+  bindAddToQuote(data);
+  $$('.card', listEl).forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-add]')) return;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
+    });
   });
+  ScrollExit.observeWithin(listEl);
 }
 
+/* ===== Chargement produits ===== */
 async function loadProducts(){
   try{
     const r = await fetch('products.json', { cache:'no-store' });
     const json = await r.json();
     MODELS = Array.isArray(json) ? json : (json.products || []);
     renderList(MODELS);
-    renderCatalogue(); // <-- remplit la vue Catalogue
+    renderCatalogue();
   }catch(e){
     console.error('Erreur chargement produits:', e);
     listEl.innerHTML = `
@@ -493,10 +397,8 @@ async function loadProducts(){
 }
 loadProducts();
 
-/* Filtre avec debounce */
-function debounce(fn, wait=140){
-  let t=0; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
-}
+/* ===== Filtre avec debounce ===== */
+function debounce(fn, wait=140){ let t=0; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; }
 const applyFilters = debounce(()=>{
   const q = (searchEl?.value || '').trim().toLowerCase();
   const t = (tagEl?.value || '').trim().toLowerCase();
@@ -509,43 +411,81 @@ const applyFilters = debounce(()=>{
   });
   renderList(filtered);
 }, 120);
-
 searchEl?.addEventListener('input', applyFilters, { passive:true });
 tagEl?.addEventListener('change', applyFilters);
 
-/* ---------------- Dock WhatsApp (devis) ---------------- */
+/* ===== Dock ===== */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
   const msg = encodeURIComponent(cartToWhatsAppText());
   window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
+dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
+dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
 /* ---------------- PWA ---------------- */
 let deferredPrompt;
 const installBtn = $('#installBtn');
-
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (installBtn) installBtn.hidden = false;
+  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
 });
-
 installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true;
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  try{ await deferredPrompt.userChoice; }catch(_){}  // ignore
-  deferredPrompt = null;
+  installBtn.hidden = true; if (!deferredPrompt) return;
+  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
 });
-
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(console.warn);
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
+}
+
+/* ===== Compte & Fidélité ===== */
+const USER_KEY = 'pt_user_v1';
+function loadUser(){
+  try{
+    return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 };
+  }catch(_){ return { name:'', email:'', spent:0 }; }
+}
+function saveUser(u){
+  try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){}
+}
+function gradeFromSpent(spent){
+  if (spent >= 5000) return { label:'Excellent acheteur', color:'#00e1b4' };
+  if (spent >= 1000) return { label:'Bon acheteur',       color:'#19d3ff' };
+  return { label:'Moussaillon', color:'#9fb4c5' };
+}
+function renderAccount(){
+  const u = loadUser();
+  $('#accName')?.setAttribute('value', u.name || '');
+  $('#accEmail')?.setAttribute('value', u.email || '');
+  $('#accSpent') && ($('#accSpent').textContent = `${u.spent.toLocaleString('fr-FR')} €`);
+
+  const g = gradeFromSpent(u.spent);
+  const gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
+
+  // Progression 0 → 5000
+  const pct = clamp((u.spent/5000)*100, 0, 100);
+  $('#accFill')  && ($('#accFill').style.width = `${pct}%`);
+  $('#accCursor')&& ($('#accCursor').style.left = `${pct}%`);
+  const slider = $('#accSlider'); if (slider){ slider.value = Math.min(u.spent, 5000); }
+
+  $('#accSave')?.addEventListener('click', ()=>{
+    const nu = { ...u, name: $('#accName')?.value || '', email: $('#accEmail')?.value || '' };
+    saveUser(nu);
+  }, { once:true });
+
+  $('#accReset')?.addEventListener('click', ()=>{
+    saveUser({ name:u.name, email:u.email, spent:0 });
+    renderAccount();
+  }, { once:true });
+
+  $('#accSlider')?.addEventListener('input', (e)=>{
+    const spent = Number(e.target.value || 0);
+    const nu = { ...u, spent };
+    saveUser(nu);
+    renderAccount();
   });
 }
 
-
-/* [ROUTER | #/…] — mini routeur hash (home, catalogue, devis, produit) */
+/* [ROUTER | #/…] */
 (()=>{
   const HOME_PARTS = [
     document.getElementById('hero'),
@@ -557,28 +497,23 @@ if ('serviceWorker' in navigator) {
   const VIEWS = {
     catalogue: document.getElementById('view-catalogue'),
     devis:     document.getElementById('view-devis'),
-    produit:   document.getElementById('view-produit')
+    produit:   document.getElementById('view-produit'),
+    compte:    document.getElementById('view-compte')
   };
 
   const showHome      = (yes)=> HOME_PARTS.forEach(el => el?.classList.toggle('hidden', !yes));
   const hideAllViews  = ()=> Object.values(VIEWS).forEach(el => el?.classList.add('hidden'));
   const showView      = (key)=>{ hideAllViews(); VIEWS[key]?.classList.remove('hidden'); };
 
-  let prevHash = '';                        // ← mémorise d’où on vient
+  let prevHash = '';
 
-  function wireBack(cameFrom){              // ← “Retour” intelligent
-    const back = document.querySelector('#pdpBack, .chip--back'); // compat avec ton HTML
+  function wireBack(cameFrom){
+    const back = document.querySelector('#pdpBack, .chip--back');
     if (!back) return;
     back.onclick = (e)=>{
       e.preventDefault();
-      if (cameFrom && cameFrom !== location.hash) {
-        location.hash = cameFrom;
-        return;
-      }
-      if (history.length > 1) {
-        history.back();
-        return;
-      }
+      if (cameFrom && cameFrom !== location.hash) { location.hash = cameFrom; return; }
+      if (history.length > 1) { history.back(); return; }
       location.hash = '';
     };
   }
@@ -592,64 +527,36 @@ if ('serviceWorker' in navigator) {
     if (m){
       const key = decodeURIComponent(m[1]);
       const p = typeof findProductByKey === 'function' ? findProductByKey(key) : null;
-
-      showHome(false);
-      showView('produit');
-
-      if (p){
-        renderPDP(p);
-        document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
-      } else {
-        const elT = document.getElementById('pdpTitle');
-        const elD = document.getElementById('pdpDesc');
+      showHome(false); showView('produit');
+      if (p){ renderPDP(p); document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`; }
+      else {
+        const elT = document.getElementById('pdpTitle'); const elD = document.getElementById('pdpDesc');
         if (elT) elT.textContent = 'Produit introuvable';
         if (elD) elD.textContent = 'Vérifiez la référence ou revenez au catalogue.';
       }
-
       wireBack(cameFrom);
-      window.scrollTo({top:0, behavior:'auto'});
-      prevHash = h;
-      return;
+      window.scrollTo({top:0, behavior:'auto'}); prevHash = h; return;
     }
 
     // #/catalogue
     m = h.match(/^#\/catalogue\b/);
-    if (m){
-      showHome(false);
-      showView('catalogue');
-      renderCatalogue();
-      document.title = 'Pirates Tools • Catalogue';
-      window.scrollTo({top:0, behavior:'auto'});
-      prevHash = h;
-      return;
-    }
+    if (m){ showHome(false); showView('catalogue'); renderCatalogue(); document.title='Pirates Tools • Catalogue'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
 
     // #/devis
     m = h.match(/^#\/devis\b/);
-    if (m){
-      showHome(false);
-      showView('devis');
-      renderDevis();                         // ← affiche la liste
-      document.title = 'Pirates Tools • Devis';
-      window.scrollTo({top:0, behavior:'auto'});
-      prevHash = h;
-      return;
-    }
+    if (m){ showHome(false); showView('devis'); renderCartView(); document.title='Pirates Tools • Devis'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
+
+    // #/compte
+    m = h.match(/^#\/compte\b/);
+    if (m){ showHome(false); showView('compte'); renderAccount(); document.title='Pirates Tools • Mon compte'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
 
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
-      showHome(true);
-      hideAllViews();
-      document.title = 'Pirates Tools • Outillage pro (PWA)';
-      prevHash = h;
-      return;
+      showHome(true); hideAllViews(); document.title = 'Pirates Tools • Outillage pro (PWA)'; prevHash = h; return;
     }
 
     // fallback : accueil
-    showHome(true);
-    hideAllViews();
-    document.title = 'Pirates Tools • Outillage pro (PWA)';
-    prevHash = h;
+    showHome(true); hideAllViews(); document.title = 'Pirates Tools • Outillage pro (PWA)'; prevHash = h;
   }
 
   window.addEventListener('hashchange', onRoute);
