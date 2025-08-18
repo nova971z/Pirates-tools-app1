@@ -37,6 +37,17 @@ const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
 
+/* Wrap visuel du dock pour centrer sans transform (évite les jitters Android) */
+(function ensureDockShell(){
+  const root = document.getElementById('dock');
+  if (!root) return;
+  if (root.firstElementChild && root.firstElementChild.classList?.contains('dock__shell')) return;
+  const shell = document.createElement('div');
+  shell.className = 'dock__shell';
+  while (root.firstChild) shell.appendChild(root.firstChild);
+  root.appendChild(shell);
+})();
+
 /* ---------- CTA tel/wa homogènes ---------- */
 (function syncCTA(){
   callBtn?.setAttribute('href', `tel:${PHONE_E164}`);
@@ -581,28 +592,37 @@ dockQuoteBtn?.addEventListener('click', ()=>{
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
-/* ===== Dock: stabilisation position (iOS/Android, in-app & clavier) ===== */
+/* ===== Dock: stabilisation position (Android/iOS, webview & clavier) ===== */
 (function stableDock(){
   const root = document.documentElement;
-  const MIN_GAP = 14; // marge min en px
+  const MIN_GAP = 14;               // marge mini en px
 
-  function applyDockBottom(){
-    // visualViewport donne la zone réellement visible (sans barres UI/clavier)
+  function occludedBottom(){
     const vv = window.visualViewport;
-    let occluded = 0;
-    if (vv) {
-      // portion “masquée” en bas par la barre/clavier
-      occluded = Math.max(0, (window.innerHeight - (vv.height + vv.offsetTop)));
-    }
-    const px = Math.round(MIN_GAP + occluded);
+    if (!vv) return 0;
+
+    // portion réellement masquée en bas
+    let hidden = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
+
+    // si barre d'adresse en haut → ne pas pousser le dock
+    if (vv.offsetTop > 0 && hidden > 0) hidden = 0;
+
+    // bornes de sécurité : évite les sauts à mi-écran
+    return Math.max(0, Math.min(hidden, 120));  // max 120px (clavier/bottom bar)
+  }
+
+  function apply(){
+    const px = MIN_GAP + occludedBottom();
     root.style.setProperty('--dock-bottom', px + 'px');
   }
 
-  applyDockBottom();
-  window.addEventListener('resize', applyDockBottom, { passive:true });
-  window.addEventListener('orientationchange', () => setTimeout(applyDockBottom, 60), { passive:true });
-  window.visualViewport?.addEventListener('resize', applyDockBottom, { passive:true });
-  window.visualViewport?.addEventListener('scroll', applyDockBottom, { passive:true });
+  apply();
+  window.addEventListener('resize', () => setTimeout(apply, 60), { passive:true });
+  window.addEventListener('orientationchange', () => setTimeout(apply, 90), { passive:true });
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', apply, { passive:true });
+    window.visualViewport.addEventListener('scroll', apply, { passive:true });
+  }
 })();
 
 /* =========================================================
