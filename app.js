@@ -122,6 +122,24 @@ const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
 
+/* ===== Fallback robuste pour le(s) logo(s) ===== */
+(function logoFallbacks(){
+  const FALLBACK = './images/pirates-tools-logo.png?v=7';
+
+  function ensureFallback(img){
+    if (!img) return;
+    // si WebP échoue → bascule PNG
+    img.addEventListener('error', () => {
+      if (!img.src.includes('pirates-tools-logo.png')) img.src = FALLBACK;
+    });
+    // si déjà cassé quand le DOM est prêt
+    if (img.complete && img.naturalWidth === 0) img.src = FALLBACK;
+  }
+
+  ensureFallback(document.getElementById('heroLogo'));
+  document.querySelectorAll('img.topbar-logo').forEach(ensureFallback);
+})();
+
 /* =========================================================
    0) Anti-zoom Android (facultatif, évite les échelles cassant le dock)
 ========================================================= */
