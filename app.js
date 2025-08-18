@@ -68,21 +68,35 @@ const homeLink    = $('#homeLink');
 })();
 
 
-/* Safe-area bottom (stabilise le dock sur Android/iOS & webviews) */
-(function stableDockSafeArea(){
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  function update(){
-    let inset = 0;
-    if (isIOS && window.visualViewport){
-      const vv = window.visualViewport;
-      inset = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
-    }
-    document.documentElement.style.setProperty('--safe-bottom', inset + 'px');
+/* ===== Dock: stabilisation position (Android/iOS, webview & clavier) ===== */
+(function stableDock(){
+  const root = document.documentElement;
+  const MIN_GAP = 14;                 // marge mini en px
+
+  // Ne considère comme occlusion que le CLAVIER (pas la barre d'adresse)
+  function keyboardOcclusion(){
+    const vv = window.visualViewport;
+    if (!vv) return 0;
+    const diff = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
+    // seuil : si <150px, c’est juste la toolbar/scroll → ignore
+    return diff > 150 ? Math.min(diff, 320) : 0;
   }
-  update();
-  window.visualViewport?.addEventListener('resize', update, { passive:true });
-  window.addEventListener('resize', update, { passive:true });
-  window.addEventListener('orientationchange', update, { passive:true });
+
+  function apply(){
+    const px = MIN_GAP + keyboardOcclusion();
+    root.style.setProperty('--dock-bottom', px + 'px');
+  }
+
+  const rafApply = () => requestAnimationFrame(apply);
+
+  apply();
+  window.addEventListener('resize', rafApply, { passive:true });
+  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive:true });
+
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', rafApply, { passive:true });
+    // ⚠️ pas d'écouteur sur visualViewport.scroll → ça créait les “sauts”
+  }
 })();
 
 /* ---------- Logo = retour accueil ---------- */
