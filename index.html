@@ -9,7 +9,6 @@
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
@@ -18,7 +17,6 @@
 
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
-  <!-- Précharge le logo existant pour éviter le “flash” -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" imagesrcset="./images/pirates-tools-logo.png?v=7" />
 
   <!-- Styles -->
@@ -55,8 +53,11 @@
 
     <div class="brand">Pirates Tools</div>
 
-    <nav class="nav" role="navigation" aria-label="Navigation principale">
+    <nav class="nav" aria-label="Navigation principale">
       <a class="chip" href="#list" data-scroll="#list">Produits</a>
+      <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+      <a class="chip" href="#/devis" data-route>Devis</a>
+      <a class="chip" href="#/compte" data-route>Compte</a>
       <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
     </nav>
 
@@ -114,7 +115,6 @@
   <!-- [VIEW] Produit (route: #/produit/:id) -->
   <section id="view-produit" class="view hidden" aria-label="Fiche produit">
     <div class="container pdp" id="pdp">
-      <!-- id=pdpBack : routeur “retour intelligent” -->
       <a id="pdpBack" class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
       <div class="pdp__grid">
@@ -148,12 +148,9 @@
         Découvrez les catégories générées automatiquement à partir des produits.
         Touchez une catégorie pour voir la liste filtrée.
       </p>
-
-      <!-- Liste des catégories (remplie en JS) -->
       <div id="catList" class="cat-list" role="list"></div>
 
       <div style="margin-top:1rem">
-        <!-- Version “inline” fonctionnelle tant que le gestionnaire data-go-home n’est pas en place -->
         <a class="chip" href="#"
            onclick="document.getElementById('tag').value=''; window.location.hash=''; setTimeout(()=>document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60); return false;">
           Voir tous les produits
@@ -165,26 +162,70 @@
   <!-- [VIEW] Devis (route: #/devis) -->
   <section id="view-devis" class="view hidden" aria-label="Devis express">
     <div class="container">
-      <h1 style="margin:1rem 0 0.5rem">Devis express</h1>
+      <h1 style="margin:1rem 0 .5rem">Devis express</h1>
       <p style="margin:0 0 1rem; color:#9fb4c5">
-        Récapitulatif des articles sélectionnés + envoi WhatsApp. (Section vierge — on calcule à l’étape 3)
+        Récapitulatif des articles sélectionnés + envoi WhatsApp.
       </p>
+
       <div class="card">
         <div class="head"><h3 class="title">Votre sélection</h3></div>
         <div class="specs" id="devisList"><p style="margin:0">Aucun article pour le moment.</p></div>
         <div class="actions">
           <button class="btn primary" id="devisSend">Envoyer le devis via WhatsApp</button>
+          <button class="btn" id="devisClear" style="background:rgba(255,255,255,.06);color:#d9e3ec">Vider</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ====== Barre de liens (réactivée) ====== -->
-  <nav class="site-links" role="navigation" aria-label="Liens rapides">
+  <!-- [VIEW] Compte + Fidélité (route: #/compte) -->
+  <section id="view-compte" class="view hidden" aria-label="Espace client">
+    <div class="container">
+      <h1 style="margin:1rem 0 .5rem">Mon compte</h1>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="head"><h3 class="title">Profil</h3></div>
+        <div class="specs" style="display:grid;gap:.8rem">
+          <label>Nom <input id="accName" class="select" placeholder="Votre nom" /></label>
+          <label>Email <input id="accEmail" class="select" placeholder="vous@exemple.com" /></label>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="accSave">Enregistrer</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="head"><h3 class="title">Fidélité</h3><span id="accGrade" class="badge">Niveau</span></div>
+        <div class="specs" style="display:grid;gap:.6rem">
+          <div> Total dépensé estimé : <strong id="accSpent">0 €</strong></div>
+
+          <!-- Curseur futuriste -->
+          <div class="meter" aria-label="Progression fidélité">
+            <div class="meter__rail">
+              <div class="meter__fill" id="accFill"></div>
+              <div class="meter__cursor" id="accCursor"></div>
+            </div>
+            <div class="meter__scale">
+              <span>0€</span><span>1 000€</span><span>5 000€</span>
+            </div>
+          </div>
+
+          <!-- Curseur interactif pour ajuster (démo/offline) -->
+          <input id="accSlider" type="range" min="0" max="5000" step="50" />
+        </div>
+        <div class="actions">
+          <button class="btn" id="accReset" style="background:rgba(255,255,255,.06);color:#d9e3ec">Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Barre de liens ====== -->
+  <nav class="site-links" aria-label="Liens rapides">
     <a class="chip" href="#/" data-route>Accueil</a>
     <a class="chip" href="#/catalogue" data-route>Catalogue</a>
     <a class="chip" href="#list" data-scroll="#list">Produits</a>
     <a class="chip" href="#/devis" data-route>Devis</a>
+    <a class="chip" href="#/compte" data-route>Compte</a>
     <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
   </nav>
 
@@ -197,7 +238,6 @@
       </div>
       <div>
         Tél : <a href="tel:+33774230195">07 74 23 01 95</a><br />
-        <!-- Ajout rel=noopener pour la sécurité -->
         WhatsApp : <a href="https://wa.me/33774230195" target="_blank" rel="noopener">ouvrir</a>
       </div>
       <div>
@@ -210,7 +250,7 @@
   <nav class="dock hidden" id="dock" aria-label="Actions rapides">
     <a class="dock__btn" href="tel:+33774230195" aria-label="Appeler">📞</a>
     <button class="dock__btn" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
-    <a class="dock__btn" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
+    <button class="dock__btn" id="dockCartBtn" aria-label="Voir mon devis/panier">🧺</button>
     <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
   </nav>
 
