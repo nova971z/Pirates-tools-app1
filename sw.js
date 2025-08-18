@@ -10,13 +10,14 @@
    - Messages: SKIP_WAITING / CLEAR_CACHES / GET_VERSION
 ========================================================= */
 
+// sw.js
 'use strict';
-
-const VERSION        = 'pt-v12';
+const VERSION        = 'pt-v13'; // ← bump
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
+
 
 // Limites simples pour éviter de gonfler
 const LIMIT_STATIC   = 100;
