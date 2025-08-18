@@ -14,19 +14,19 @@
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <meta name="format-detection" content="telephone=no" />
 
+
   <!-- PWA -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <link rel="icon" href="favicon.ico" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="icon" href="favicon.ico" />
 
-  <!-- Perf -->
-  <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="dns-prefetch" href="https://wa.me" />
-  <!-- Pré-chargement logo (WebP + PNG fallback) -->
-  <link rel="preload" as="image"
-        href="./images/pirates-tools-logo.webp"
-        imagesrcset="./images/pirates-tools-logo.webp 1x, ./images/pirates-tools-logo.png?v=7 1x" />
+<!-- Perf -->
+<link rel="preconnect" href="https://wa.me" crossorigin />
+<link rel="dns-prefetch" href="https://wa.me" />
+<link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
+<link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
+  
   <!-- Pré-chargement léger des données produits -->
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
