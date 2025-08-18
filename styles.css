@@ -56,7 +56,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
 .chip:hover{background:rgba(255,255,255,.07)}
-.cta{display:flex; gap:.6rem; align-items:center}
+.cta{display:flex; gap:.6rem; align-items:center; min-width:0}
 .btn{
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.58rem .9rem; border-radius:12px; font-weight:700;
@@ -175,7 +175,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 .dock__shell{
   position: relative;
-  display: inline-flex;
+  display: inline-flex;         /* capsule dimensionnée au contenu */
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
@@ -189,9 +189,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   transform: translateZ(0);     /* évite les sauts sur Android */
-  contain: layout paint;
+  contain: layout;              /* ⚠️ pas "paint" pour ne pas couper la pastille */
   pointer-events: auto;         /* clics actifs sur la « capsule » */
   writing-mode: horizontal-tb;
+  overflow: visible;            /* autorise le débordement du badge */
 }
 
 .dock__btn{
@@ -210,11 +211,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 .dock__badge{
   position: absolute;
-  right: -6px; top: -6px;
+  right: -6px; top: -8px;      /* hors contour pour ne plus être masquée */
   background: #ff6b6b; color:#001018;
   font-weight: 800; font-size: .75rem; line-height: 1;
   border-radius: 999px; padding: .35rem .45rem;
   border: 2px solid rgba(10,15,20,.85);
+  z-index: 2;
   cursor: pointer;
 }
 
@@ -387,27 +389,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
 
-
-
-/* ==== Fix CTA topbar + badge dock (mobile) ================================= */
-
-/* Forcer l’enveloppe du dock à rester horizontale et à ne pas couper la pastille */
-.dock__shell{
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: .6rem;
-  overflow: visible;           /* important: la pastille peut déborder */
-}
-.dock__badge{
-  position: absolute;
-  top: -8px;                   /* décale un peu au-dessus */
-  right: -4px;                 /* légèrement en dehors */
-  z-index: 2;                  /* au-dessus du contour */
-}
-
-/* Les boutons du header doivent pouvoir rétrécir sur petits écrans */
+/* ==== Fix CTA topbar (mobile) ================================= */
 .cta .btn{
   flex: 1 1 auto;              /* autorise la réduction */
   min-width: 0;                /* évite l’overflow min-content */
