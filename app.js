@@ -608,20 +608,121 @@ dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
 /* =========================================================
-   PWA
+   PWA (install + updates, propre & robuste)
+   - Bouton d’installation (beforeinstallprompt)
+   - Enregistrement SW + détection d’update
+   - Bannière "Mise à jour disponible" (injection JS)
+   - SKIP_WAITING → controllerchange → reload doux
+   - Vérif périodique des updates
 ========================================================= */
-let deferredPrompt;
-const installBtn = $('#installBtn');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
-});
-installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true; if (!deferredPrompt) return;
-  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
-});
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
-}
+(() => {
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  /* --- Install prompt natif --- */
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.hidden = false;
+  });
+
+  installBtn?.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    installBtn.hidden = true;
+    deferredPrompt.prompt();
+    try { await deferredPrompt.userChoice; } catch (_) {}
+    deferredPrompt = null;
+  });
+
+  if (!('serviceWorker' in navigator)) return;
+
+  /* --- Reload automatique (une seule fois) lorsque le nouveau SW prend le contrôle --- */
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    // petit délai pour laisser le contrôleur s’installer sans flash
+    setTimeout(() => location.reload(), 120);
+  });
+
+  /* --- Helper: bannière de mise à jour injectée dynamiquement --- */
+  function showUpdateToast(waitingSW) {
+    if (!waitingSW) return;
+
+    // évite les doublons
+    if (document.getElementById('pt-update-toast')) return;
+
+    const toast = document.createElement('div');
+    toast.id = 'pt-update-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.style.cssText = `
+      position: fixed; inset: auto 12px 12px 12px; z-index: 9999;
+      display: grid; grid-template-columns: 1fr auto; gap: .6rem; align-items: center;
+      padding: .75rem .9rem; border-radius: 12px;
+      background: rgba(10,15,20,.92); color: #e6edf5; border: 1px solid #22303b;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35); font: 600 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
+    `;
+    toast.innerHTML = `
+      <span>Une mise à jour de l’application est disponible.</span>
+      <span style="display:flex; gap:.5rem">
+        <button id="pt-update-apply" style="
+            display:inline-flex; align-items:center; gap:.4rem;
+            padding:.5rem .8rem; border:0; border-radius:10px; cursor:pointer;
+            background: linear-gradient(90deg, #19d3ff 0%, #00e1b4 100%); color:#001018; font-weight:800;
+        ">Mettre à jour</button>
+        <button id="pt-update-later" style="
+            display:inline-flex; align-items:center; gap:.4rem;
+            padding:.5rem .8rem; border:1px solid #22303b; border-radius:10px; cursor:pointer;
+            background: rgba(255,255,255,.06); color:#e6edf5; font-weight:700;
+        ">Plus tard</button>
+      </span>
+    `;
+    document.body.appendChild(toast);
+
+    const applyBtn = document.getElementById('pt-update-apply');
+    const laterBtn = document.getElementById('pt-update-later');
+
+    applyBtn?.addEventListener('click', () => {
+      try { waitingSW.postMessage('SKIP_WAITING'); } catch(_) {}
+      // la page se rechargera sur 'controllerchange'
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'Mise à jour…';
+    });
+
+    laterBtn?.addEventListener('click', () => {
+      toast.remove();
+    });
+  }
+
+  /* --- Enregistrement du SW + gestion des updates --- */
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+
+      // Si un SW est déjà en attente (cas de refresh), on propose d’appliquer
+      if (reg.waiting) showUpdateToast(reg.waiting);
+
+      // Quand un nouveau SW est trouvé
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          // 'installed' + un contrôleur existe => une update est disponible
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateToast(sw);
+          }
+        });
+      });
+
+      // Vérif périodique des updates (toutes les 60 min)
+      setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
+
+    } catch (e) {
+      console.warn('SW register failed:', e);
+    }
+  });
+})();
 
 /* =========================================================
    COMPTE & FIDÉLITÉ (démo locale)
