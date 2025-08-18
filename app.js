@@ -283,19 +283,36 @@ function renderPDP(product){
   elT.textContent = title;
   elTag.textContent = tag ? `#${tag}` : '';
   elDesc.textContent = desc || 'Caractéristiques à venir.';
-  if (elImg){ elImg.src = img; elImg.alt = title; }
+  if (elImg){
+    elImg.src = img; elImg.alt = title;
+    // Fallback image si la source externe est KO
+    elImg.onerror = ()=>{ elImg.onerror = null; elImg.src = './images/pirates-tools-logo.png?v=7'; };
+  }
 
   /* 1) Points clés (features) */
   const features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
   const featHtml = features.length ? features.map(s=>`<li>${s}</li>`).join('') : '';
 
-  /* 2) Tableau “Caractéristiques techniques” (specs_kv) */
-  const kv = product.specs_kv && typeof product.specs_kv==='object' ? product.specs_kv : null;
+  /* 2) Tableau “Caractéristiques techniques” (specs_kv + dérivation) */
+  const kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
+  const kvDerived = {
+    'Plateforme': product.platform || undefined,
+    'Moteur': product.motor || undefined,
+    'Couple max': (product.torque_nm!=null) ? `${product.torque_nm} Nm` : undefined,
+    'Vitesses': product.rpm || undefined,
+    'Cadence de chocs': product.ipm || undefined,
+    'Mandrin': product.chuck || undefined,
+    'Longueur': (product.length_mm!=null) ? `${product.length_mm} mm` : undefined,
+    'Poids': (product.weight_kg!=null) ? `${product.weight_kg} kg` : undefined,
+    'Garantie': (product.warranty_months!=null) ? `${product.warranty_months} mois` : undefined
+  };
+  const kvFinal = Object.fromEntries(
+    Object.entries({ ...(kvFromJson||{}), ...kvDerived }).filter(([,v])=> v!=null && v!=='')
+  );
+
   let tableHtml = '';
-  if (kv){
-    const rows = Object.entries(kv).map(([k,v])=>`
-      <tr><th>${k}</th><td>${v}</td></tr>
-    `).join('');
+  if (Object.keys(kvFinal).length){
+    const rows = Object.entries(kvFinal).map(([k,v])=>`<tr><th>${k}</th><td>${v}</td></tr>`).join('');
     tableHtml = `
       <li style="list-style:none; padding:0; margin:.6rem 0 0">
         <div class="badge" style="margin:0 0 .4rem; display:inline-flex; align-items:center; gap:.4rem">⚙️ Caractéristiques techniques</div>
@@ -304,13 +321,10 @@ function renderPDP(product){
             <tbody>${rows}</tbody>
           </table>
         </div>
-      </li>
-    `;
+      </li>`;
   }
 
-  elSpecs.innerHTML = (featHtml || tableHtml)
-    ? `${featHtml}${tableHtml}`
-    : '';
+  elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
 
   /* Boutons */
   btnQ.textContent = 'Ajouter au panier';
@@ -343,9 +357,19 @@ function renderPDP(product){
     </article>
   `).join('');
 
+  // Ajout au panier depuis la section “Produits liés”
+  elRel.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-add]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-add');
+    const p  = MODELS.find(x => ((x.id||x.sku||x.title)+'') === id);
+    if (p){ CART.push(p); saveCart(); }
+    e.stopPropagation();
+  });
+
   $$('.pdp__related .card').forEach(card=>{
     card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return;
+      if (e.target.closest('[data-add]')) return; // déjà géré ci-dessus
       const id = card.getAttribute('data-id');
       if (!id) return;
       location.hash = `#/produit/${encodeURIComponent(id)}`;
