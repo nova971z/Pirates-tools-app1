@@ -60,31 +60,40 @@ try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-/* ===== Dock: stabilisation position (Android/iOS, clavier uniquement) =====
-   - Met à jour la variable CSS --dock-bottom.
-   - Ignore les petits changements liés à la barre d’adresse (sinon jitter).
----------------------------------------------------------------------------- */
-(function stableDock(){
+/* ===== Dock: stabilisation position (Android/iOS, clavier uniquement) ===== */
+(() => {
   const root = document.documentElement;
-  const MIN_GAP = 14;             // marge mini en px
-  const KEYBOARD_THRESHOLD = 150;  // au-delà on considère que c'est le clavier
+  const MIN_GAP = 14;          // marge visuelle constante (px)
+  const KEYBOARD_THRESHOLD = 150; // au-delà = c’est un clavier
 
-  function keyboardOcclusion(){
+  // Calcule le “masquage” réel en bas de l’écran (quand le clavier sort)
+  function keyboardOcclusion() {
     const vv = window.visualViewport;
     if (!vv) return 0;
-    const diff = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
-    return diff > KEYBOARD_THRESHOLD ? Math.min(diff, 360) : 0;
+
+    // portion réellement perdue en bas du viewport visuel
+    const hidden = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
+    // si barre d’adresse qui rentre/sort : ignore (< seuil)
+    return hidden > KEYBOARD_THRESHOLD ? Math.min(hidden, 320) : 0;
   }
 
-  function apply(){ root.style.setProperty('--dock-bottom', (MIN_GAP + keyboardOcclusion()) + 'px'); }
-  const rafApply = () => requestAnimationFrame(apply);
+  function apply() {
+    // On ne pousse le dock QUE pour le clavier (pas pendant le scroll)
+    const px = MIN_GAP + keyboardOcclusion();
+    root.style.setProperty('--dock-bottom', px + 'px');
+  }
 
+  // 1ère application
   apply();
-  window.addEventListener('resize', rafApply, { passive:true });
-  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive:true });
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', rafApply, { passive:true });
-    // ⚠️ PAS d'écouteur sur visualViewport.scroll → causerait des “sauts” sur Android
+
+  // Recalcule sur rotation & resize fenêtre
+  window.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
+  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive: true });
+
+  // Avec visualViewport: uniquement sur "resize" (PAS sur "scroll" → évite les sauts Android)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
+    // pas d'écoute sur visualViewport.scroll : ça provoquait les déplacements du dock
   }
 })();
 
