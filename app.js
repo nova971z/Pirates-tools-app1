@@ -1,5 +1,6 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, Android smooth + fixes)
+   + FIX data-scroll: retour à Home avant de scroller
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
@@ -110,14 +111,25 @@ const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
   compute();
 })();
 
-/* ---------------- Smooth scroll ---------------- */
+/* ---------------- Smooth scroll (FIX: depuis une vue → retour Home avant scroll) ---------------- */
 $$('[data-scroll]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
-    const target = a.getAttribute('data-scroll') || a.getAttribute('href');
-    const el = target ? document.querySelector(target) : null;
-    if (!el) return;
-    el.scrollIntoView({ behavior:'smooth', block:'start' });
+    const targetSel = a.getAttribute('data-scroll') || a.getAttribute('href');
+    const doScroll = () => {
+      const el = targetSel ? document.querySelector(targetSel) : null;
+      if (!el) return;
+      el.scrollIntoView({ behavior:'smooth', block:'start' });
+    };
+
+    // Si on est dans une "vue" (hash commençant par "#/"), on revient d'abord à l'accueil
+    if (location.hash.startsWith('#/')) {
+      const once = () => { requestAnimationFrame(doScroll); window.removeEventListener('hashchange', once); };
+      window.addEventListener('hashchange', once, { once:true });
+      location.hash = '';
+    } else {
+      doScroll();
+    }
   });
 });
 
@@ -460,7 +472,7 @@ if ('serviceWorker' in navigator) {
   let prevHash = '';                        // ← mémorise d’où on vient
 
   function wireBack(cameFrom){              // ← “Retour” intelligent
-    const back = document.querySelector('#pdpBack, .chip--back'); // <-- compat avec ton HTML
+    const back = document.querySelector('#pdpBack, .chip--back'); // compat avec ton HTML
     if (!back) return;
     back.onclick = (e)=>{
       e.preventDefault();
@@ -510,7 +522,7 @@ if ('serviceWorker' in navigator) {
     if (m){
       showHome(false);
       showView('catalogue');
-      renderCatalogue();                       // <-- AJOUT : (re)remplit la vue
+      renderCatalogue();
       document.title = 'Pirates Tools • Catalogue';
       window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
