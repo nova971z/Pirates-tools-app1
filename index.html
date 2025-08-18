@@ -138,19 +138,25 @@
   </section>
 
   <!-- [VIEW] Catalogue (route: #/catalogue) -->
-  <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
-    <div class="container">
-      <h1 style="margin:1rem 0 0.5rem">Catalogue</h1>
-      <p style="margin:0 0 1rem; color:#9fb4c5">
-        Parcourez toutes nos catégories et filtres. (Section vierge — on remplit à l’étape 2)
-      </p>
-      <div class="card">
-        <div class="head"><h3 class="title">Visseuses à chocs</h3><span class="badge">Catégorie</span></div>
-        <div class="specs"><p style="margin:0">DCF887, DCF850, DCF899…</p></div>
-        <div class="actions"><a class="btn primary" href="#list" data-scroll="#list">Voir les produits</a></div>
-      </div>
+<section id="view-catalogue" class="view hidden" aria-label="Catalogue">
+  <div class="container">
+    <h1 style="margin:1rem 0 .5rem">Catalogue</h1>
+    <p style="margin:0 0 1rem; color:#9fb4c5">
+      Découvrez les catégories générées automatiquement à partir des produits.
+      Touchez une catégorie pour voir la liste filtrée.
+    </p>
+
+    <!-- Liste des catégories (remplie en JS) -->
+    <div id="catList" class="cat-list" role="list"></div>
+
+    <div style="margin-top:1rem">
+      <a class="chip" href="#"
+         onclick="document.getElementById('tag').value=''; window.location.hash=''; setTimeout(()=>document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60); return false;">
+        Voir tous les produits
+      </a>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- [VIEW] Devis (route: #/devis) -->
   <section id="view-devis" class="view hidden" aria-label="Devis express">
