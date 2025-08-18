@@ -1,6 +1,6 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, stable, clean)
-   - Dock fixe (CSS-only) : suppression des JS qui bougeaient le bas
+   - Dock fixe (CSS-only) : aucun JS de reposition
    - Hero fluide Android/iOS
    - Smooth scroll (depuis une vue → retour Home)
    - Panier persistant (localStorage) + dock (🛒/badge)
@@ -8,6 +8,7 @@
    - Devis (#/devis) : quantités + envoi WhatsApp
    - Compte & Fidélité (démo locale)
    - Anti-zoom Android + bannière offline
+   - Focus après navigation + toasts (CSS injecté)
 ========================================================= */
 
 'use strict';
@@ -18,19 +19,82 @@ const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
+/* ---------- UX CSS (toasts + badge bump) injecté ---------- */
+(function injectUXCSS(){
+  if (document.getElementById('pt-ux-css')) return;
+  const css = `
+  @keyframes pt-bump { 0%{transform:scale(1)} 35%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  #dockCount.bump{ animation: pt-bump .42s ease }
+
+  #toasts{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:130; display:grid; gap:.5rem; }
+  .toast{ display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; padding:.6rem .75rem; border-radius:12px;
+          background:rgba(10,15,20,.92); border:1px solid #22303b; color:#e6edf5; box-shadow:0 12px 24px rgba(0,0,0,.35);
+          font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif; }
+  .toast__icon{ align-self:center }
+  .toast__body{ align-self:center }
+  .toast__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px; }
+  @keyframes toast-out { to { opacity:0; transform:translateY(6px) } }
+  `;
+  const style = document.createElement('style');
+  style.id = 'pt-ux-css';
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+
+/* ---------- A11y helpers ---------- */
+const live    = $('#sr-live');      // <div id="sr-live" ...> dans l’HTML
+const toastsC = $('#toasts');
+const dockBadge = $('#dockCount');
+
+function announce(msg){
+  if (!live) return;
+  live.textContent = '';
+  setTimeout(()=>{ live.textContent = msg; }, 20);
+}
+
+function toast(msg, kind='success'){
+  if (!toastsC) return;
+  const el = document.createElement('div');
+  el.className = `toast toast--${kind}`;
+  el.innerHTML = `
+    <div class="toast__icon">${kind==='success'?'✅':'ℹ️'}</div>
+    <div class="toast__body">${msg}</div>
+    <button class="toast__close" aria-label="Fermer">✖</button>
+  `;
+  const close = ()=> {
+    el.style.animation = 'toast-out .18s ease-in both';
+    setTimeout(()=> el.remove(), 180);
+  };
+  el.querySelector('.toast__close')?.addEventListener('click', close);
+  toastsC.appendChild(el);
+  setTimeout(close, 3200);
+}
+
+function bumpBadge(){
+  if (!dockBadge) return;
+  dockBadge.classList.remove('bump');
+  void dockBadge.offsetWidth; // reflow
+  dockBadge.classList.add('bump');
+}
+
+function notifyCartAdded(title='Article'){
+  toast(`« ${title} » ajouté au devis`);
+  announce(`${title} ajouté au devis`);
+  bumpBadge();
+}
+
 /* ---------- Focus helper après navigation ---------- */
 function focusView(key){
   let target = null;
-  if (key === 'produit')   target = $('#pdpTitle');
+  if (key === 'produit')      target = $('#pdpTitle');
   else if (key === 'catalogue') target = $('#view-catalogue h1');
-  else if (key === 'devis') target = $('#view-devis h1');
-  else if (key === 'compte') target = $('#view-compte h1');
-  else target = $('#main'); // accueil
+  else if (key === 'devis')     target = $('#view-devis h1');
+  else if (key === 'compte')    target = $('#view-compte h1');
+  else                          target = $('#list'); // accueil
 
   if (target){
-    // focus sans scroll
     target.setAttribute('tabindex','-1');
-    target.focus({ preventScroll: true });
+    target.focus?.({ preventScroll: true });
     setTimeout(()=> target.removeAttribute('tabindex'), 300);
   }
 }
@@ -57,83 +121,21 @@ const dockCartBtn = $('#dockCartBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
-const live    = $('#srLive');
-const toastsC = $('#toasts');
-const dockBadge = $('#dockCount');
-
-function announce(msg){
-  if (!live) return;
-  // reset pour forcer l’annonce
-  live.textContent = '';
-  setTimeout(()=>{ live.textContent = msg; }, 20);
-}
-
-function toast(msg, kind='success'){
-  if (!toastsC) return;
-  const el = document.createElement('div');
-  el.className = `toast toast--${kind}`;
-  el.innerHTML = `
-    <div class="toast__icon">${kind==='success'?'✅':'ℹ️'}</div>
-    <div class="toast__body">${msg}</div>
-    <button class="toast__close" aria-label="Fermer">✖</button>
-  `;
-  const close = ()=> {
-    el.style.animation = 'toast-out .18s ease-in both';
-    setTimeout(()=> el.remove(), 180);
-  };
-  el.querySelector('.toast__close')?.addEventListener('click', close);
-  toastsC.appendChild(el);
-  setTimeout(close, 3200);
-}
-
-function bumpBadge(){
-  if (!dockBadge) return;
-  dockBadge.classList.remove('bump');
-  // reflow pour relancer l’anim
-  void dockBadge.offsetWidth;
-  dockBadge.classList.add('bump');
-}
-
-function notifyCartAdded(title='Article'){
-  toast(`« ${title} » ajouté au devis`);
-  announce(`${title} ajouté au devis`);
-  bumpBadge();
-}
-
-/* Focus sur le titre pertinent après routage */
-function focusView(key){
-  let target = null;
-  if (key === 'produit') target = $('#pdpTitle');
-  else if (key === 'catalogue') target = $('#view-catalogue h1');
-  else if (key === 'devis') target = $('#view-devis h1');
-  else if (key === 'compte') target = $('#view-compte h1');
-  else target = $('#main'); // home
-
-  if (target){
-    target.setAttribute('tabindex','-1');
-    target.focus({ preventScroll: true });
-    setTimeout(()=> target.removeAttribute('tabindex'), 300);
-  }
-}
 
 /* =========================================================
-   0) Qualité de vie : anti-zoom Android (facultatif)
-   (garde le site “solide” visuellement si tu ne veux pas
-    de pinch-zoom. Commente si tu veux le réactiver.)
+   0) Anti-zoom Android (facultatif, évite les échelles cassant le dock)
 ========================================================= */
 (function lockViewportZoomOnAndroid(){
   const isAndroid = /android/i.test(navigator.userAgent);
   if (!isAndroid) return;
   const meta = document.querySelector('meta[name="viewport"]');
   if (!meta) return;
-  // verrouille le zoom pour éviter les mises à l’échelle qui cassent le dock
   const base = 'width=device-width, initial-scale=1, viewport-fit=cover';
   meta.setAttribute('content', `${base}, maximum-scale=1, user-scalable=no`);
 })();
 
 /* =========================================================
-   1) Dock : garantit la structure (une seule fois, CSS-only)
-   (plus AUCUN JS de repositionnement pour éviter les “jitters”)
+   1) Dock : garantit la structure (CSS-only, pas de reposition JS)
 ========================================================= */
 (function ensureDockShell(){
   const root = document.getElementById('dock');
@@ -276,7 +278,7 @@ $$('[data-scroll]').forEach(a => {
 });
 
 /* =========================================================
-   7) Anim “exit” (injection CSS + IO)
+   7) Anim “exit” (injection CSS + IntersectionObserver)
 ========================================================= */
 const ScrollExit = (function () {
   function injectExitCSS(){
@@ -288,9 +290,7 @@ const ScrollExit = (function () {
 @keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }
 .tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 .tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
-@media (prefers-reduced-motion: reduce) {
-  .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; }
-}`;
+@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }`;
     document.head.appendChild(style);
   }
   injectExitCSS();
@@ -466,12 +466,12 @@ function renderPDP(product){
   elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
 
   btnQ.textContent = 'Ajouter au panier';
-btnQ.onclick = ()=>{
-  CART.push(product);
-  saveCart();
-  notifyCartAdded(product.title || product.sku || 'Article');
-};
-   
+  btnQ.onclick = ()=>{
+    CART.push(product);
+    saveCart();
+    notifyCartAdded(product.title || product.sku || 'Article');
+  };
+
   const sku = product.sku || product.id || title;
   const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
   const phone = PHONE_E164.replace('+','');
@@ -496,17 +496,17 @@ btnQ.onclick = ()=>{
   `).join('');
 
   elRel.addEventListener('click', (e)=>{
-  const btn = e.target.closest('[data-add]');
-  if (!btn) return;
-  const id = btn.getAttribute('data-add');
-  const p  = MODELS.find(x => ((x.id||x.sku||x.title)+'') === id);
-  if (p){
-    CART.push(p);
-    saveCart();
-    notifyCartAdded(p.title || p.sku || 'Article');
-  }
-  e.stopPropagation();
-});
+    const btn = e.target.closest('[data-add]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-add');
+    const p  = MODELS.find(x => ((x.id||x.sku||x.title)+'') === id);
+    if (p){
+      CART.push(p);
+      saveCart();
+      notifyCartAdded(p.title || p.sku || 'Article');
+    }
+    e.stopPropagation();
+  });
 
   $$('.pdp__related .card').forEach(card=>{
     card.addEventListener('click', (e)=>{
@@ -679,18 +679,20 @@ function renderCartView(){
   };
 
   $('#devisSend')?.addEventListener('click', ()=>{
-  const msg = encodeURIComponent(cartToWhatsAppText());
-  if (!msg) return;
-  window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
-  toast('Devis ouvert dans WhatsApp'); announce('Devis ouvert dans WhatsApp');
-}, { once:true });
+    const msg = encodeURIComponent(cartToWhatsAppText());
+    if (!msg) return;
+    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
+    toast('Devis ouvert dans WhatsApp'); announce('Devis ouvert dans WhatsApp');
+  }, { once:true });
 
-$('#devisClear')?.addEventListener('click', ()=>{
-  CART = [];
-  saveCart();
-  renderCartView();
-  toast('Devis vidé'); announce('Devis vidé');
-}, { once:true });
+  $('#devisClear')?.addEventListener('click', ()=>{
+    CART = [];
+    saveCart();
+    renderCartView();
+    toast('Devis vidé'); announce('Devis vidé');
+  }, { once:true });
+}
+
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
@@ -717,8 +719,6 @@ installBtn?.addEventListener('click', async () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
 }
-   window.addEventListener('online',  ()=> toast('Connexion rétablie', 'success'));
-window.addEventListener('offline', ()=> toast('Vous êtes hors ligne', 'info'));
 
 /* =========================================================
    16) COMPTE & FIDÉLITÉ (démo locale)
@@ -800,106 +800,83 @@ function renderAccount(){
     };
   }
 
+  function onRoute(){
+    const h = (location.hash || '').toLowerCase();
+    const cameFrom = prevHash;
 
-   function onRoute(){
-  const h = (location.hash || '').toLowerCase();
-  const cameFrom = prevHash;
-
-  // #/produit/:id
-  let m = h.match(/^#\/produit\/([^/?#]+)/);
-  if (m){
-    const key = decodeURIComponent(m[1]);
-
-    // si produits pas encore chargés, on attend l’événement
-    const tryRender = ()=>{
-      const p = findProductByKey(key);
-      showHome(false); showView('produit');
-      if (p){
-        renderPDP(p);
-        document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
+    // #/produit/:id
+    let m = h.match(/^#\/produit\/([^/?#]+)/);
+    if (m){
+      const key = decodeURIComponent(m[1]);
+      const tryRender = ()=>{
+        const p = findProductByKey(key);
+        showHome(false); showView('produit');
+        if (p){
+          renderPDP(p);
+          document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
+        }else{
+          $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
+          $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
+        }
+        wireBack(cameFrom);
+        window.scrollTo({top:0, behavior:'auto'});
+        focusView('produit');
+        prevHash = h;
+      };
+      if (!MODELS.length){
+        const once = ()=>{ window.removeEventListener('pt:productsLoaded', once); tryRender(); };
+        window.addEventListener('pt:productsLoaded', once, { once:true });
       }else{
-        $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
-        $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
+        tryRender();
       }
-      wireBack(cameFrom);
-      window.scrollTo({top:0, behavior:'auto'});
-      focusView('produit');  // ← ICI le focus sur la fiche
-      prevHash = h;
-    };
-
-    if (!MODELS.length){
-      const once = ()=>{ window.removeEventListener('pt:productsLoaded', once); tryRender(); };
-      window.addEventListener('pt:productsLoaded', once, { once:true });
-    }else{
-      tryRender();
+      return;
     }
-    return;
-  }
-
-  // #/catalogue
-  m = h.match(/^#\/catalogue\b/);
-  if (m){
-    showHome(false); showView('catalogue'); renderCatalogue();
-    document.title='Pirates Tools • Catalogue';
-    window.scrollTo({top:0,behavior:'auto'});
-    focusView('catalogue');   // ← focus titre Catalogue
-    prevHash=h; return;
-  }
-
-  // #/devis
-  m = h.match(/^#\/devis\b/);
-  if (m){
-    showHome(false); showView('devis'); renderCartView();
-    document.title='Pirates Tools • Devis';
-    window.scrollTo({top:0,behavior:'auto'});
-    focusView('devis');       // ← focus titre Devis
-    prevHash=h; return;
-  }
-
-  // #/compte
-  m = h.match(/^#\/compte\b/);
-  if (m){
-    showHome(false); showView('compte'); renderAccount();
-    document.title='Pirates Tools • Mon compte';
-    window.scrollTo({top:0,behavior:'auto'});
-    focusView('compte');      // ← focus titre Compte
-    prevHash=h; return;
-  }
-
-  // Accueil
-  if (h === '' || h === '#' || h === '#/' || h === '#/home'){
-    showHome(true); hideAllViews();
-    document.title = 'Pirates Tools • Outillage pro (PWA)';
-    focusView('home');        // ← focus sur #main (liste)
-    prevHash = h; return;
-  }
-
-  // fallback : accueil
-  showHome(true); hideAllViews();
-  document.title = 'Pirates Tools • Outillage pro (PWA)';
-  focusView('home');          // ← idem
-  prevHash = h;
-}
 
     // #/catalogue
     m = h.match(/^#\/catalogue\b/);
-    if (m){ showHome(false); showView('catalogue'); renderCatalogue(); document.title='Pirates Tools • Catalogue'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
+    if (m){
+      showHome(false); showView('catalogue'); renderCatalogue();
+      document.title='Pirates Tools • Catalogue';
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('catalogue');
+      prevHash=h; return;
+    }
 
     // #/devis
     m = h.match(/^#\/devis\b/);
-    if (m){ showHome(false); showView('devis'); renderCartView(); document.title='Pirates Tools • Devis'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
+    if (m){
+      showHome(false); showView('devis'); renderCartView();
+      document.title='Pirates Tools • Devis';
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('devis');
+      prevHash=h; return;
+    }
 
     // #/compte
     m = h.match(/^#\/compte\b/);
-    if (m){ showHome(false); showView('compte'); renderAccount(); document.title='Pirates Tools • Mon compte'; window.scrollTo({top:0,behavior:'auto'}); prevHash=h; return; }
+    if (m){
+      showHome(false); showView('compte'); renderAccount();
+      document.title='Pirates Tools • Mon compte';
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('compte');
+      prevHash=h; return;
+    }
 
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
-      showHome(true); hideAllViews(); document.title = 'Pirates Tools • Outillage pro (PWA)'; prevHash = h; return;
+      showHome(true); hideAllViews();
+      document.title = 'Pirates Tools • Outillage pro (PWA)';
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('home');
+      prevHash = h; return;
     }
 
     // fallback : accueil
-    showHome(true); hideAllViews(); document.title = 'Pirates Tools • Outillage pro (PWA)'; prevHash = h;
+    showHome(true); hideAllViews();
+    document.title = 'Pirates Tools • Outillage pro (PWA)';
+    window.scrollTo({top:0,behavior:'auto'});
+    focusView('home');
+    prevHash = h;
   }
 
   window.addEventListener('hashchange', onRoute);
