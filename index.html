@@ -50,6 +50,15 @@
 </head>
 <body>
 
+<!-- Skip-link (accessibilité) -->
+<a href="#main" class="skip-link">Aller au contenu</a>
+
+<!-- Région aria-live pour annonces SR (lecteurs d’écran) -->
+<div id="srLive" class="sr-only" aria-live="polite" role="status"></div>
+
+<!-- Pile de toasts (feedback visuel) -->
+<div id="toasts" aria-live="polite" aria-atomic="true"></div>
+  
   <!-- ============== TOPBAR (fixe) ============== -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
     <!-- id=homeLink : géré par app.js -> retour accueil partout -->
@@ -101,9 +110,9 @@
   </section>
 
   <!-- ============== LISTE PRODUITS (injectée en JS) ============== -->
-  <main class="container" role="main">
-    <section id="list" class="list" role="list" aria-label="Produits"></section>
-  </main>
+  <main id="main" class="container" role="main">
+  <section id="list" class="list" role="list" aria-label="Produits"></section>
+</main>
 
   <!-- ============== AVIS ============== -->
   <section class="ratings" aria-label="Avis clients">
