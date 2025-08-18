@@ -161,25 +161,22 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* ===== Dock fixe Android/iOS ===== */
+/* ===== Dock FIXE Android/iOS (sans JS) ===== */
 .dock{
   position: fixed;
   left: 50%;
-  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
-  transform: translateX(-50%);
+  transform: translateX(-50%);             /* centrage pur CSS */
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   z-index: 110;
-  pointer-events: none;      /* clics gérés par la capsule interne */
-  contain: layout paint;
-  will-change: transform;
+  pointer-events: none;                     /* clics seulement sur la capsule */
+  writing-mode: horizontal-tb;              /* empêche toute mise à la verticale */
 }
 
 .dock__shell{
   position: relative;
   display: inline-flex;
-  flex-direction: row;
   align-items: center;
   gap: .6rem;
-  white-space: nowrap;
   padding: .4rem .5rem;
   border-radius: 999px;
   background: rgba(10,15,20,.66);
@@ -187,8 +184,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  transform: translateZ(0);
-  pointer-events: auto;
+  white-space: nowrap;                      /* pas de retour à la ligne */
+  overflow: visible;                        /* la pastille peut déborder */
+  pointer-events: auto;                     /* clics actifs ici */
+  transform: translateZ(0);                 /* anti-jitter Android */
+  contain: layout paint;
 }
 
 .dock__btn{
@@ -207,14 +207,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 .dock__badge{
   position: absolute;
-  top: -8px;
-  right: -4px;
+  top: -8px; right: -4px;                   /* visible hors bord */
   background: #ff6b6b; color:#001018;
   font-weight: 800; font-size: .75rem; line-height: 1;
   border-radius: 999px; padding: .35rem .45rem;
   border: 2px solid rgba(10,15,20,.85);
   cursor: pointer;
-  z-index: 2;               /* au-dessus du contour */
 }
 
 /* Utils */
