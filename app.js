@@ -563,6 +563,30 @@ dockQuoteBtn?.addEventListener('click', ()=>{
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
+/* ===== Dock: stabilisation position (iOS/Android, in-app & clavier) ===== */
+(function stableDock(){
+  const root = document.documentElement;
+  const MIN_GAP = 14; // marge min en px
+
+  function applyDockBottom(){
+    // visualViewport donne la zone réellement visible (sans barres UI/clavier)
+    const vv = window.visualViewport;
+    let occluded = 0;
+    if (vv) {
+      // portion “masquée” en bas par la barre/clavier
+      occluded = Math.max(0, (window.innerHeight - (vv.height + vv.offsetTop)));
+    }
+    const px = Math.round(MIN_GAP + occluded);
+    root.style.setProperty('--dock-bottom', px + 'px');
+  }
+
+  applyDockBottom();
+  window.addEventListener('resize', applyDockBottom, { passive:true });
+  window.addEventListener('orientationchange', () => setTimeout(applyDockBottom, 60), { passive:true });
+  window.visualViewport?.addEventListener('resize', applyDockBottom, { passive:true });
+  window.visualViewport?.addEventListener('scroll', applyDockBottom, { passive:true });
+})();
+
 /* =========================================================
    PWA
 ========================================================= */
