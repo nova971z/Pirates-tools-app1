@@ -1,5 +1,6 @@
 /* =========================================================
    Pirates Tools — styles.css (FULL, fusion + Android/iOS fixes)
+   Cohérent avec app.js (focus, toasts, dock CSS-only)
    ========================================================= */
 
 /* Thème */
@@ -9,7 +10,7 @@
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
 
-  /* marges dynamiques pilotées par JS */
+  /* marges dynamiques pilotées par JS (hero) */
   --listGap: 14vh;
 
   /* (si un jour tu veux repasser l’anim côté CSS) */
@@ -18,7 +19,7 @@
   --tool-exit-ease: cubic-bezier(.22,.61,.36,1);
 }
 
-*{box-sizing:border-box}
+*{ box-sizing:border-box }
 html{
   scroll-behavior:smooth;
   /* empêche les zooms auto de texte sur mobiles */
@@ -37,9 +38,13 @@ body{
   width:100%; max-width:100%; overflow-x:hidden;
   touch-action: manipulation; /* limite le double-tap zoom */
 }
-a{color:inherit;text-decoration:none}
-a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
-.container{width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2}
+a{ color:inherit; text-decoration:none }
+a:focus-visible,button:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; border-radius:10px }
+button,input,select,textarea{ font:inherit; color:inherit }
+img,svg,video{ max-width:100%; height:auto; }
+
+/* Conteneur */
+.container{ width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2 }
 
 /* ================= TOPBAR ================= */
 .topbar{
@@ -51,20 +56,20 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
 }
-.topbar-logo-link{display:flex; align-items:center}
-.topbar-logo{height:28px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
-@media (max-width:768px){ .topbar-logo{height:24px} }
+.topbar-logo-link{ display:flex; align-items:center }
+.topbar-logo{ height:28px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)) }
+@media (max-width:768px){ .topbar-logo{ height:24px } }
 
-.brand{font-weight:800; letter-spacing:.2px; color:#fff}
-.nav{display:flex; gap:.5rem; justify-content:center}
+.brand{ font-weight:800; letter-spacing:.2px; color:#fff }
+.nav{ display:flex; gap:.5rem; justify-content:center }
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
   padding:.42rem .9rem; border-radius:999px;
   background:rgba(255,255,255,.04); border:1px solid var(--border); color:#d9e3ec;
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
-.chip:hover{background:rgba(255,255,255,.07)}
-.cta{display:flex; gap:.6rem; align-items:center; min-width:0}
+.chip:hover{ background:rgba(255,255,255,.07) }
+.cta{ display:flex; gap:.6rem; align-items:center; min-width:0 }
 .btn{
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.58rem .9rem; border-radius:12px; font-weight:700;
@@ -73,9 +78,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   flex-shrink:0;
 }
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
-.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
-.btn:active{transform:translateY(1px)}
-@media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
+.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.btn:active{ transform:translateY(1px) }
+@media (max-width:960px){ .topbar{ grid-template-columns:auto 1fr auto; gap:.6rem } .nav{ display:none } }
 
 /* ================= HERO (zoom + fondu) ================= */
 .hero-full{
@@ -118,7 +123,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   border:1px solid var(--border); border-radius:12px; color:var(--fg);
   padding:.85rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
-.search::placeholder{color:#7f94a5}
+.search::placeholder{ color:#7f94a5 }
 
 /* ====== Liste / Cartes ====== */
 .list{
@@ -137,15 +142,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   display:flex; align-items:center; justify-content:space-between;
   padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04);
 }
-.title{margin:0; font-size:1.05rem}
+.title{ margin:0; font-size:1.05rem }
 .badge{
   display:inline-flex; align-items:center; padding:.35rem .7rem;
   border-radius:999px; font-weight:700; color:#cfeaf8;
   background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
   border:1px solid rgba(25,211,255,.35);
 }
-.specs{display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem}
-.actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
+.specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem }
+.actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem }
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
 /* Perf: ne peins/rasterise les cartes visibles que lorsqu'elles entrent à l'écran */
@@ -160,24 +165,22 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
   padding:1rem 1.1rem; box-shadow:var(--shadow)
 }
-.ratings h2{margin:0 0 .5rem; font-size:1.05rem}
-.ratings__list{margin:0; padding-left:1.1rem}
+.ratings h2{ margin:0 0 .5rem; font-size:1.05rem }
+.ratings__list{ margin:0; padding-left:1.1rem }
 
 .foot{
   width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
   border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
 }
-.foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.foot__grid{ display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 
-/* ===== Dock FIXE Android/iOS (stableDock JS + safe area) ===== */
+/* ===== Dock FIXE Android/iOS (CSS-only + safe area) ===== */
 .dock{
   position: fixed;
   left: 50%;
   transform: translateX(-50%); /* centrage pur CSS */
-  /* clé: le JS met à jour --dock-bottom avec visualViewport → stop jitter Android */
   bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
-  /* support anciens iOS */
-  bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px)));
+  bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px))); /* iOS < 11.2 */
   z-index: 110;
   pointer-events: none;        /* clics seulement sur la capsule */
   writing-mode: horizontal-tb; /* empêche la mise à la verticale en webviews */
@@ -227,12 +230,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 
 /* Utils */
-.hidden{display:none !important}
+.hidden{ display:none !important }
 
 @media (max-width:768px){
-  .btn{padding:.54rem .8rem}
-  .ratings{margin:1.4rem auto .6rem}
-  .foot{margin:1rem auto 4.8rem}
+  .btn{ padding:.54rem .8rem }
+  .ratings{ margin:1.4rem auto .6rem }
+  .foot{ margin:1rem auto 4.8rem }
   /* espace final pour que le dock ne masque jamais le bas de page */
   body{ padding-bottom: 96px; }
   /* ancrage confortable sous la topbar sticky */
@@ -312,7 +315,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .pdp__grid{ grid-template-columns: 1fr; }
 }
 
-/* ====== Barre de liens (site-links) — compact encore plus ====== */
+/* ====== Barre de liens (site-links) — compact ====== */
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
@@ -424,10 +427,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .topbar-logo{ height:22px; }
 }
 
-
-
 /* =================== A11y utils =================== */
 .sr-only{
+  position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+/* zone live utilisée par app.js → même style qu’un sr-only */
+#sr-live{
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
@@ -440,7 +446,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .skip-link:focus{ top:8px; outline:2px solid var(--brand); }
 
-/* =================== Toasts =================== */
+/* =================== Toasts (cohérent app.js) =================== */
 #toasts{
   position:fixed; z-index:120;
   right:12px;
