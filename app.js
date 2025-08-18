@@ -1,6 +1,7 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, Android smooth + fixes)
    + FIX data-scroll: retour à Home avant de scroller
+   + Panier persistant + vue devis + WhatsApp unifié
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
@@ -275,10 +276,8 @@ function bindAddToQuote(scopeData){
       const p  = scopeData.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
       if (!p) return;
       CART.push(p);
-      if (dock && dockCount){
-        dockCount.textContent = CART.length;
-        dock.classList.remove('hidden');
-      }
+      saveCart();           // ← persiste
+      updateDock();         // ← badge dock
     });
   });
 }
@@ -329,7 +328,8 @@ function renderPDP(product){
 
   btnQ.onclick = ()=>{
     CART.push(product);
-    if (dock && dockCount){ dockCount.textContent = CART.length; dock.classList.remove('hidden'); }
+    saveCart();           // ← persiste
+    updateDock();         // ← badge dock
   };
 
   const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
@@ -423,6 +423,58 @@ function renderCatalogue(){
 }
 /* ========= /CATALOGUE DYNAMIQUE ========= */
 
+/* ===== Rendu de la vue Devis ===== */
+function renderDevis(){
+  const list = document.getElementById('devisList');
+  const btn  = document.getElementById('devisSend');
+  if (!list) return;
+
+  const grouped = groupCart();
+
+  if (!grouped.length){
+    list.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
+    btn?.setAttribute('disabled','');
+  } else {
+    btn?.removeAttribute('disabled');
+    list.innerHTML = grouped.map(({item,qty}) => `
+      <div class="devis-row" data-key="${keyOf(item)}"
+           style="display:flex;justify-content:space-between;gap:.8rem;align-items:center;padding:.3rem 0;border-bottom:1px dashed rgba(255,255,255,.08)">
+        <div>
+          <strong>${item.title || ((item.brand||'')+' '+(item.sku||''))}</strong>
+          ${item.sku?`<span style="color:#9fb4c5"> (${item.sku})</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:.45rem">
+          <span class="qty" style="opacity:.9">×${qty}</span>
+          <button class="chip" data-remove="${keyOf(item)}" aria-label="Retirer">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Retirer une unité d’un article
+  list.onclick = (e)=>{
+    const btnRm = e.target.closest('[data-remove]');
+    if (!btnRm) return;
+    const key = btnRm.getAttribute('data-remove');
+    const idx = CART.findIndex(p => keyOf(p) === key);
+    if (idx > -1){
+      CART.splice(idx,1);
+      saveCart();
+      updateDock();
+      renderDevis(); // refresh
+    }
+  };
+
+  // Envoyer via WhatsApp (évite doublons d’écouteur)
+  btn?.replaceWith(btn.cloneNode(true));
+  const newBtn = document.getElementById('devisSend');
+  newBtn?.addEventListener('click', ()=>{
+    const text = encodeURIComponent(cartToWhatsAppText());
+    if (!text) return;
+    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${text}`, '_blank', 'noopener');
+  });
+}
+
 async function loadProducts(){
   try{
     const r = await fetch('products.json', { cache:'no-store' });
@@ -464,12 +516,7 @@ tagEl?.addEventListener('change', applyFilters);
 /* ---------------- Dock WhatsApp (devis) ---------------- */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
-  const lines = CART.slice(0,40).map((p,i)=>{
-    const sku = fallback(p.sku, fallback(p.id, i+1));
-    const title = fallback(p.title, '').replace(/\s+/g,' ').trim();
-    return `• ${sku} – ${title}`.trim();
-  });
-  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
+  const msg = encodeURIComponent(cartToWhatsAppText());
   window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
 
@@ -582,6 +629,7 @@ if ('serviceWorker' in navigator) {
     if (m){
       showHome(false);
       showView('devis');
+      renderDevis();                         // ← affiche la liste
       document.title = 'Pirates Tools • Devis';
       window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
