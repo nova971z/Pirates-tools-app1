@@ -423,3 +423,68 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .cta .btn{ font-size:.88rem; padding:.42rem .55rem; }
   .topbar-logo{ height:22px; }
 }
+
+
+
+/* =================== A11y utils =================== */
+.sr-only{
+  position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+.skip-link{
+  position:fixed; left:8px; top:-42px; z-index:9999;
+  padding:.5rem .7rem; border-radius:8px;
+  background:#111a22; color:#e6edf5; border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  transition:top .18s ease;
+}
+.skip-link:focus{ top:8px; outline:2px solid var(--brand); }
+
+/* =================== Toasts =================== */
+#toasts{
+  position:fixed; z-index:120;
+  right:12px;
+  bottom: calc(var(--dock-bottom, 14px) + env(safe-area-inset-bottom, 0px) + 62px);
+  display:grid; gap:.5rem; width:min(92vw, 420px);
+  pointer-events:none; /* clics seulement sur les toasts */
+}
+.toast{
+  pointer-events:auto;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:.7rem .9rem;
+  box-shadow:var(--shadow);
+  display:flex; align-items:flex-start; gap:.6rem;
+  animation: toast-in .18s ease-out both;
+}
+.toast__icon{ font-size:1.1rem; line-height:1; }
+.toast__body{ flex:1; color:#d8e6f1; }
+.toast__close{
+  background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:1.1rem;
+}
+.toast--success .toast__icon{ filter: drop-shadow(0 0 8px rgba(0,225,180,.45)); }
+.toast--error   .toast__icon{ filter: drop-shadow(0 0 8px rgba(255,80,80,.45)); }
+@keyframes toast-in { from{ transform:translateY(8px); opacity:0 } to{ transform:none; opacity:1 } }
+@keyframes toast-out{ to{ transform:translateY(8px); opacity:0 } }
+@media (max-width:480px){
+  #toasts{ right:8px; width:min(94vw, 420px); }
+}
+
+/* =================== Badge “bump” (dock) =================== */
+@keyframes bump {
+  0%   { transform: scale(1);   }
+  30%  { transform: scale(1.22);}
+  60%  { transform: scale(0.94);}
+  100% { transform: scale(1);   }
+}
+.dock__badge.bump{
+  animation: bump 380ms cubic-bezier(.22,.61,.36,1);
+  will-change: transform;
+}
+
+/* Option “réduction des animations” */
+@media (prefers-reduced-motion: reduce){
+  .toast{ animation: none; }
+  .dock__badge.bump{ animation: none; }
+}
