@@ -326,3 +326,32 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   background:linear-gradient(90deg, #19d3ff, #00e1b4);
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
+
+
+/* ===== Jauge fidélité (compte) ===== */
+.meter{ display:block; }
+.meter__rail{
+  position:relative; height:12px; border-radius:999px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.meter__fill{
+  height:100%; width:0%;
+  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
+  transition:width .25s ease;
+}
+.meter__cursor{
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.35);
+}
+.meter__scale{
+  display:flex; justify-content:space-between; gap:.6rem;
+  color:var(--muted); font-size:.85rem; margin-top:.4rem;
+}
+
+/* Dock : clic sur le badge + couleurs robustes */
+.dock__badge{ cursor:pointer; }
+.dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
+.dock__btn--wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
