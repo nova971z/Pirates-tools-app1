@@ -741,59 +741,70 @@ dockQuoteBtn?.addEventListener('click', ()=>{
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
+
 /* =========================================================
-   15) PWA (install + SW avec mise à jour instantanée)
+   15) PWA (install + SW + update banner)
 ========================================================= */
 let deferredPrompt;
 const installBtn = $('#installBtn');
 
-// Bouton "Installer"
+function showUpdateBanner(waitingSW){
+  // mini-bannière fixe au-dessus du dock
+  const bar = document.createElement('div');
+  bar.id = 'updateBanner';
+  bar.innerHTML = `
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <span>Nouvelle version disponible.</span>
+      <button class="btn primary" id="btnReload">Mettre à jour</button>
+    </div>`;
+  Object.assign(bar.style, {
+    position:'fixed', left:'50%', transform:'translateX(-50%)',
+    bottom:'calc(96px + env(safe-area-inset-bottom,0px))',
+    background:'rgba(10,15,20,.92)', border:'1px solid var(--border)',
+    padding:'.5rem .7rem', borderRadius:'10px', zIndex:'130', boxShadow:'var(--shadow)'
+  });
+  document.body.appendChild(bar);
+
+  $('#btnReload', bar)?.addEventListener('click', ()=>{
+    waitingSW.postMessage('SKIP_WAITING');
+  });
+
+  // Quand le nouveau SW devient contrôleur → on recharge
+  navigator.serviceWorker.addEventListener('controllerchange', ()=> location.reload());
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  if (installBtn) installBtn.hidden = false;
+  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
 });
 installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true;
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  try { await deferredPrompt.userChoice; } catch (_) {}
-  deferredPrompt = null;
+  installBtn.hidden = true; if (!deferredPrompt) return;
+  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
 });
 
-// Enregistrement du Service Worker + activation immédiate des nouvelles versions
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then((reg) => {
-      // 1) Vérifie tout de suite s’il existe une mise à jour
-      reg.update();
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
 
-      // 2) S’il y a déjà un SW en attente → on le promeut immédiatement
-      if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+      // SW déjà prêt à remplacer ?
+      if (reg.waiting) showUpdateBanner(reg.waiting);
 
-      // 3) Si un nouveau SW est trouvé, on lui demande de prendre la main dès qu’il est "installed"
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
         sw.addEventListener('statechange', () => {
           if (sw.state === 'installed' && reg.waiting) {
-            reg.waiting.postMessage('SKIP_WAITING');
+            showUpdateBanner(reg.waiting);
           }
         });
       });
-    }).catch(console.warn);
-  });
-
-  // 4) Quand le nouveau SW prend le contrôle, on recharge une seule fois la page
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!window.__swRefreshed) {
-      window.__swRefreshed = true;
-      location.reload();
+    } catch (err) {
+      console.warn(err);
     }
   });
 }
 
-// Petits toasts de statut réseau
+// Petits toasts réseau (déjà visibles)
 window.addEventListener('online',  ()=> toast('Connexion rétablie', 'success'));
 window.addEventListener('offline', ()=> toast('Vous êtes hors ligne', 'info'));
 
