@@ -223,6 +223,89 @@ function bindAddToQuote(scopeData){
   });
 }
 
+// Trouve un produit par id/sku/titre
+function findProductByKey(key){
+  if (!key) return null;
+  const k = String(key).toLowerCase();
+  return MODELS.find(m=>{
+    const id  = (m.id ?? m.sku ?? '').toString().toLowerCase();
+    const sku = (m.sku ?? '').toString().toLowerCase();
+    const ttl = (m.title ?? '').toLowerCase();
+    return id===k || sku===k || ttl===k;
+  }) || null;
+}
+
+// Remplit la vue PDP
+function renderPDP(product){
+  const wrap   = document.getElementById('pdp');
+  const elImg  = document.getElementById('pdpImg');
+  const elT    = document.getElementById('pdpTitle');
+  const elTag  = document.getElementById('pdpTag');
+  const elDesc = document.getElementById('pdpDesc');
+  const elSpecs= document.getElementById('pdpSpecs');
+  const elRel  = document.getElementById('pdpRelated');
+  const btnQ   = document.getElementById('pdpQuote');
+  const btnWa  = document.getElementById('pdpWa');
+
+  if (!wrap) return;
+
+  // Données
+  const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
+  const tag   = product.tag || '';
+  const desc  = product.desc || product.description || '';
+  const img   = product.img || './images/pirates-tools-logo.png?v=7';
+
+  // Remplissage
+  elT.textContent = title;
+  elTag.textContent = tag ? `#${tag}` : '';
+  elDesc.textContent = desc || 'Caractéristiques à venir.';
+  elImg.src = img; elImg.alt = title;
+
+  // Spécs (si tu fournis product.specs = [ "..." ])
+  const specs = Array.isArray(product.specs) ? product.specs : [];
+  elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
+
+  // WhatsApp direct pour CE produit
+  const sku = product.sku || product.id || title;
+  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
+  const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
+  btnWa.href = `https://wa.me/${phone}?text=${msg}`;
+
+  // Ajouter au devis
+  btnQ.onclick = ()=>{
+    CART.push(product);
+    if (dock && dockCount){ dockCount.textContent = CART.length; dock.classList.remove('hidden'); }
+  };
+
+  // Produits liés (même tag → 3 items max)
+  const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
+  elRel.innerHTML = related.map(m=>`
+    <article class="card" data-id="${m.id || m.sku || m.title}">
+      <div class="head">
+        <h3 class="title">${m.title || (m.brand||'')+' '+(m.sku||'')}</h3>
+        ${m.tag ? `<span class="badge">${m.tag}</span>` : ``}
+      </div>
+      <div class="specs"><p style="margin:0">${m.desc || m.description || ''}</p></div>
+      <div class="actions">
+        <button class="btn primary" data-add="${m.id || m.sku || m.title}">Ajouter au devis</button>
+      </div>
+    </article>
+  `).join('');
+
+  // clic sur related = ouvrir PDP
+  $$('.pdp__related .card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-add]')) return;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
+    });
+  });
+
+  // bind add on related
+  bindAddToQuote(related);
+}
+
 function renderList(data){
   if (!Array.isArray(data)) return;
   listEl.innerHTML = data.map(productToHTML).join('\n');
@@ -314,10 +397,10 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-/* [ROUTER | #/…] — mini routeur hash pour afficher les vues sans recharger */
-(()=>{
 
-  // 1) Références : sections "home" existantes (à masquer quand on change de vue)
+
+/* [ROUTER | #/…] — mini routeur hash (home, catalogue, devis, produit) */
+(()=>{
   const HOME_PARTS = [
     document.getElementById('hero'),
     document.querySelector('.toolbar'),
@@ -325,86 +408,89 @@ if ('serviceWorker' in navigator) {
     document.querySelector('.ratings')
   ].filter(Boolean);
 
-  // 2) Vues dynamiques (catalogue, devis, …)
   const VIEWS = {
     catalogue: document.getElementById('view-catalogue'),
-    devis:     document.getElementById('view-devis')
+    devis:     document.getElementById('view-devis'),
+    produit:   document.getElementById('view-produit')
   };
 
-  // 3) Helpers d’affichage
-  const showHome = (yes)=> HOME_PARTS.forEach(el => el?.classList.toggle('hidden', !yes));
-  const hideAllViews = ()=> Object.values(VIEWS).forEach(el => el?.classList.add('hidden'));
-  const showView = (key)=>{
-    hideAllViews();
-    VIEWS[key]?.classList.remove('hidden');
-  };
+  const showHome      = (yes)=> HOME_PARTS.forEach(el => el?.classList.toggle('hidden', !yes));
+  const hideAllViews  = ()=> Object.values(VIEWS).forEach(el => el?.classList.add('hidden'));
+  const showView      = (key)=>{ hideAllViews(); VIEWS[key]?.classList.remove('hidden'); };
 
-  // 4) Logique de route
   function onRoute(){
     const h = (location.hash || '').toLowerCase();
 
-    // Normalise: "#/xxx" -> "xxx"
-    const m = h.match(/^#\/([^/?#]+)/);
-    const route = m ? m[1] : '';
-
-    switch(route){
-      case 'catalogue':
-        showHome(false);
-        showView('catalogue');
-        break;
-
-      case 'devis':
-        showHome(false);
-        showView('devis');
-        // petit récap du panier (CART) si dispo
-        try{
-          const wrap = document.getElementById('devisList');
-          if (wrap){
-            if (Array.isArray(window.CART) && window.CART.length){
-              wrap.innerHTML = window.CART.map((p,i)=>`
-                <p style="margin:0">• ${p.sku || p.id || (i+1)} — ${ (p.title||'').replace(/\s+/g,' ').trim() }</p>
-              `).join('');
-            } else {
-              wrap.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
-            }
-          }
-          // bouton d’envoi (réutilise ta conf téléphone)
-          const btn = document.getElementById('devisSend');
-          btn?.addEventListener('click', ()=>{
-            if (!Array.isArray(window.CART) || !window.CART.length) return;
-            const lines = window.CART.slice(0,40).map((p,i)=>{
-              const sku = p.sku || p.id || (i+1);
-              const title = (p.title||'').replace(/\s+/g,' ').trim();
-              return `• ${sku} – ${title}`;
-            });
-            const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
-            const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
-            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener');
-          }, { once:true });
-        }catch(_){}
-        break;
-
-      default:
-        // HOME (par défaut)
-        showHome(true);
-        hideAllViews();
-        // si on vient d’une vue -> remonte en haut pour revoir le HERO
-        try{ window.scrollTo({ top: 0, behavior: 'instant' }); }catch(_){}
-        break;
+    // #/produit/:id
+    let m = h.match(/^#\/produit\/([^/?#]+)/);
+    if (m){
+      const key = decodeURIComponent(m[1]);
+      const p = findProductByKey(key);
+      showHome(false);
+      showView('produit');
+      if (p){ renderPDP(p); document.title = `Pirates Tools • ${p.title||p.sku||'Produit'}`; }
+      else {
+        // fallback simple
+        const elT = document.getElementById('pdpTitle');
+        const elD = document.getElementById('pdpDesc');
+        elT.textContent = 'Produit introuvable';
+        elD.textContent = 'Vérifiez la référence ou revenez au catalogue.';
+      }
+      window.scrollTo({top:0, behavior:'instant'});
+      return;
     }
+
+    // #/catalogue
+    m = h.match(/^#\/catalogue\b/);
+    if (m){
+      showHome(false);
+      showView('catalogue');
+      document.title = 'Pirates Tools • Catalogue';
+      window.scrollTo({top:0, behavior:'instant'});
+      return;
+    }
+
+    // #/devis
+    m = h.match(/^#\/devis\b/);
+    if (m){
+      showHome(false);
+      showView('devis');
+      document.title = 'Pirates Tools • Devis';
+      // met à jour le récap
+      try{
+        const wrap = document.getElementById('devisList');
+        if (wrap){
+          if (Array.isArray(window.CART) && window.CART.length){
+            wrap.innerHTML = window.CART.map((p,i)=>`
+              <p style="margin:0">• ${p.sku || p.id || (i+1)} — ${(p.title||'').replace(/\s+/g,' ').trim()}</p>
+            `).join('');
+          } else {
+            wrap.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
+          }
+        }
+        const btn = document.getElementById('devisSend');
+        btn?.addEventListener('click', ()=>{
+          if (!Array.isArray(window.CART) || !window.CART.length) return;
+          const lines = window.CART.slice(0,40).map((p,i)=>{
+            const sku = p.sku || p.id || (i+1);
+            const title = (p.title||'').replace(/\s+/g,' ').trim();
+            return `• ${sku} – ${title}`;
+          });
+          const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
+          const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
+          window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener');
+        }, { once:true });
+      }catch(_){}
+      window.scrollTo({top:0, behavior:'instant'});
+      return;
+    }
+
+    // Accueil (par défaut)
+    showHome(true);
+    hideAllViews();
+    document.title = 'Pirates Tools • Outillage pro (PWA)';
   }
 
-  // 5) Active sur clic des liens data-route (pratique sur iOS)
-  document.querySelectorAll('[data-route]').forEach(a=>{
-    a.addEventListener('click', (e)=>{
-      // laisse le hash se mettre tout seul; le routeur s’exécutera sur hashchange
-      // (on n’empêche pas le comportement par défaut)
-    });
-  });
-
-  // 6) Écoute les changements d’URL (#/…)
   window.addEventListener('hashchange', onRoute);
-  // 7) Première route au chargement
   onRoute();
-
 })();
