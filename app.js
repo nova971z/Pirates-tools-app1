@@ -3,14 +3,31 @@
    + FIX data-scroll: retour à Home avant de scroller
    + Devis rendu dynamique + dock panier → #/devis
    + Compte & Fidélité (localStorage + curseur)
-   + Mot de passe local (PBKDF2/SHA-256 + salt, 200k itérations)
+   + Slug produit robuste (résout #/produit/dewalt-dcf887-n)
+   + Boutons "Ajouter au panier"
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
-/* Numéro unique */
+/* --------- Helpers slug --------- */
+function slugify(str){
+  return String(str||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-')                        // sep
+    .replace(/^-+|-+$/g,'');                           // trim -
+}
+function productSlug(m){
+  // priorité éventuelle à m.slug si présent
+  if (m.slug) return slugify(m.slug);
+  const base = (m.brand ? `${m.brand} ` : '') + (m.sku || m.title || '');
+  return slugify(base || m.id || '');
+}
+
+/* --------- Téléphone / CTA --------- */
 const PHONE_HUMAN = '07 74 23 01 95';
 const PHONE_E164  = '+33774230195';
 
@@ -23,7 +40,7 @@ const tagEl       = $('#tag');
 const dock        = $('#dock');
 const dockCount   = $('#dockCount');
 const dockQuoteBtn= $('#dockQuoteBtn');
-const dockCartBtn = $('#dockCartBtn');       // ← bouton panier rouge (si présent)
+const dockCartBtn = $('#dockCartBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink'); // (optionnel)
@@ -217,30 +234,29 @@ function cartToWhatsAppText(){
   return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
 }
 
-const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
-
+/* ===== Rendu carte produit (liste) ===== */
 function productToHTML(m){
   const title = fallback(m.title, `${fallback(m.brand,'')}${m.brand?' ':''}${fallback(m.sku,'')}`).trim();
   const tag   = fallback(m.tag,'').trim();
   const desc  = fallback(m.desc, fallback(m.description,''));
-  const id    = fallback(m.id, fallback(m.sku, title)).toString();
+  const slug  = productSlug(m); // <<< identifiant de navigation unique
 
   return `
-  <article class="card" data-tool data-id="${id}" data-tag="${tag}">
+  <article class="card" data-tool data-id="${slug}" data-tag="${tag}">
     <div class="head">
       <h3 class="title">${title}</h3>
       ${tag ? `<span class="badge">${tag}</span>` : ``}
     </div>
     <div class="specs"><p style="margin:0">${desc || '—'}</p></div>
-    <div class="actions"><button class="btn primary" data-add="${id}">Ajouter au devis</button></div>
+    <div class="actions"><button class="btn primary" data-add="${slug}">Ajouter au panier</button></div>
   </article>`;
 }
 
 function bindAddToQuote(scopeData){
   $$('[data-add]', listEl).forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const id = btn.getAttribute('data-add');
-      const p  = scopeData.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
+      const slug = btn.getAttribute('data-add');
+      const p  = scopeData.find(x => productSlug(x) === slug);
       if (!p) return;
       CART.push(p);
       saveCart();
@@ -248,78 +264,115 @@ function bindAddToQuote(scopeData){
   });
 }
 
-/* Trouve un produit par id/sku/titre */
+/* Trouve un produit par id/sku/titre/slug (+ tolérant) */
+function plain(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function findProductByKey(key){
   if (!key) return null;
-  const k = String(key).toLowerCase();
+  const kSlug = slugify(key);
+  const kFlat = plain(key);
+
   return MODELS.find(m=>{
-    const id  = (m.id ?? m.sku ?? '').toString().toLowerCase();
-    const sku = (m.sku ?? '').toString().toLowerCase();
-    const ttl = (m.title ?? '').toLowerCase();
-    return id===k || sku===k || ttl===k;
+    const id  = (m.id ?? m.sku ?? m.title ?? '').toString();
+    const fields = [
+      id,
+      m.sku, m.title, m.brand && `${m.brand} ${m.sku||m.title||''}`,
+      productSlug(m)
+    ].filter(Boolean);
+
+    // 1) égalité stricte sur slug
+    if (fields.some(f => slugify(f) === kSlug)) return true;
+
+    // 2) égalité stricte sur "flat" (sans tirets/espaces)
+    if (fields.some(f => plain(f) === kFlat)) return true;
+
+    // 3) inclusion (tolérant ex: "dewalt-dcf887-n" ≈ "DCF887N")
+    if (fields.some(f => plain(f).includes(kFlat) || kFlat.includes(plain(f)))) return true;
+
+    return false;
   }) || null;
 }
 
-/* ===== Rendu de la vue Devis ===== */
-function renderCartView(){
-  const root = $('#devisList');
-  if (!root) return;
+/* ===== Rendu de la vue PDP ===== */
+function renderPDP(product){
+  const wrap   = document.getElementById('pdp');
+  const elImg  = document.getElementById('pdpImg');
+  const elT    = document.getElementById('pdpTitle');
+  const elTag  = document.getElementById('pdpTag');
+  const elDesc = document.getElementById('pdpDesc');
+  const elSpecs= document.getElementById('pdpSpecs');
+  const elRel  = document.getElementById('pdpRelated');
+  const btnQ   = document.getElementById('pdpQuote');
+  const btnWa  = document.getElementById('pdpWa');
 
-  const grouped = groupCart();
-  if (!grouped.length){
-    root.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
-  }else{
-    root.innerHTML = grouped.map(({item,qty})=>{
-      const sku   = item.sku || item.id || '';
-      const title = item.title || `${item.brand||''} ${item.sku||''}`.trim();
-      const key   = keyOf(item);
-      return `
-        <div class="card" style="width:100%">
-          <div class="head">
-            <h3 class="title">${title}</h3>
-            <span class="badge">${sku}</span>
-          </div>
-          <div class="specs" style="display:flex;gap:.6rem;align-items:center">
-            <button class="btn" data-dec="${key}">−</button>
-            <strong>${qty}</strong>
-            <button class="btn" data-inc="${key}">+</button>
-            <button class="btn" data-del="${key}" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec">Supprimer</button>
-          </div>
-        </div>
-      `;
-    }).join('');
+  if (!wrap) return;
+
+  const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
+  const tag   = product.tag || '';
+  const desc  = product.desc || product.description || '';
+  const img   = product.img || './images/pirates-tools-logo.png?v=7';
+
+  elT.textContent = title;
+  elTag.textContent = tag ? `#${tag}` : '';
+  elDesc.textContent = desc || 'Caractéristiques à venir.';
+  elImg.src = img; elImg.alt = title;
+
+  // Label bouton
+  if (btnQ) btnQ.textContent = 'Ajouter au panier';
+
+  // specs (liste)
+  const specs = Array.isArray(product.specs) ? product.specs : [];
+  elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
+
+  // WhatsApp direct
+  const sku = product.sku || product.id || title;
+  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
+  const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
+  btnWa && (btnWa.href = `https://wa.me/${phone}?text=${msg}`);
+
+  // Ajouter au panier
+  if (btnQ){
+    btnQ.onclick = ()=>{
+      CART.push(product);
+      saveCart();
+    };
   }
 
-  // actions
-  root.onclick = (e)=>{
-    const inc = e.target.closest('[data-inc]'); const dec = e.target.closest('[data-dec]'); const del = e.target.closest('[data-del]');
-    const key = inc?.dataset.inc || dec?.dataset.dec || del?.dataset.del;
-    if (!key) return;
+  // Produits liés (même tag)
+  const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
+  elRel.innerHTML = related.map(m=>`
+    <article class="card" data-id="${productSlug(m)}">
+      <div class="head">
+        <h3 class="title">${m.title || (m.brand||'')+' '+(m.sku||'')}</h3>
+        ${m.tag ? `<span class="badge">${m.tag}</span>` : ``}
+      </div>
+      <div class="specs"><p style="margin:0">${m.desc || m.description || ''}</p></div>
+      <div class="actions">
+        <button class="btn primary" data-add="${productSlug(m)}">Ajouter au panier</button>
+      </div>
+    </article>
+  `).join('');
 
-    if (inc){
-      const p = MODELS.find(m => keyOf(m)===key);
-      if (p){ CART.push(p); }
-    }else if (dec){
-      const i = CART.findIndex(p => keyOf(p)===key);
-      if (i>=0) CART.splice(i,1);
-    }else if (del){
-      for (let i=CART.length-1;i>=0;i--) if (keyOf(CART[i])===key) CART.splice(i,1);
-    }
-    saveCart();
-    renderCartView();
-  };
+  // clic sur une carte liée → PDP
+  $$('.pdp__related .card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-add]')) return;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
+    });
+  });
 
-  $('#devisSend')?.addEventListener('click', ()=>{
-    const msg = encodeURIComponent(cartToWhatsAppText());
-    if (!msg) return;
-    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
-  }, { once:true });
-
-  $('#devisClear')?.addEventListener('click', ()=>{
-    CART = [];
-    saveCart();
-    renderCartView();
-  }, { once:true });
+  // activer "Ajouter au panier" sur les liées
+  $$('[data-add]', elRel).forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const slug = btn.getAttribute('data-add');
+      const p  = MODELS.find(x => productSlug(x) === slug);
+      if (!p) return;
+      CART.push(p);
+      saveCart();
+    });
+  });
 }
 
 /* ===== Catalogue dynamique (catégories) ===== */
@@ -371,9 +424,9 @@ function renderList(data){
   $$('.card', listEl).forEach(card=>{
     card.addEventListener('click', (e)=>{
       if (e.target.closest('[data-add]')) return;
-      const id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = `#/produit/${encodeURIComponent(id)}`;
+      const slug = card.getAttribute('data-id');
+      if (!slug) return;
+      location.hash = `#/produit/${encodeURIComponent(slug)}`;
     });
   });
   ScrollExit.observeWithin(listEl);
@@ -438,193 +491,52 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
 }
 
-/* ===== Compte & Fidélité (avec mot de passe local) ===== */
-const USER_KEY  = 'pt_user_v1';
-const AUTH_KEY  = 'pt_auth_v1';
-const SESSION_KEY = 'pt_session_login';
-
+/* ===== Compte & Fidélité (démo locale) ===== */
+const USER_KEY = 'pt_user_v1';
 function loadUser(){
-  try{ return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 }; }
-  catch(_){ return { name:'', email:'', spent:0 }; }
+  try{
+    return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 };
+  }catch(_){ return { name:'', email:'', spent:0 }; }
 }
-function saveUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){} }
-
+function saveUser(u){
+  try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){}
+}
 function gradeFromSpent(spent){
   if (spent >= 5000) return { label:'Excellent acheteur', color:'#00e1b4' };
   if (spent >= 1000) return { label:'Bon acheteur',       color:'#19d3ff' };
   return { label:'Moussaillon', color:'#9fb4c5' };
 }
-
-/* --- helpers auth (PBKDF2/SHA-256) --- */
-const b64 = {
-  enc: buf => btoa(String.fromCharCode(...new Uint8Array(buf))),
-  dec: str => Uint8Array.from(atob(str), c => c.charCodeAt(0))
-};
-function getAuth(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }catch(_){ return null; } }
-function setAuth(a){ try{ localStorage.setItem(AUTH_KEY, JSON.stringify(a)); }catch(_){} }
-function isLoggedIn(){ return sessionStorage.getItem(SESSION_KEY)==='1'; }
-function setLoggedIn(v){ sessionStorage.setItem(SESSION_KEY, v ? '1' : '0'); }
-
-async function hashPassword(password, saltB64=null, iterations=200000){
-  const enc = new TextEncoder();
-  const salt = saltB64 ? b64.dec(saltB64) : crypto.getRandomValues(new Uint8Array(16));
-  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt, iterations }, keyMaterial, 256);
-  return { saltB64: b64.enc(salt), hashB64: b64.enc(bits), iterations };
-}
-async function verifyPassword(password, auth){
-  const h = await hashPassword(password, auth.saltB64, auth.iterations);
-  return h.hashB64 === auth.hashB64;
-}
-
-/* UI bootstrap (injecte la section compte si manquante) */
-function ensureAccountUI(){
-  const view = $('#view-compte');
-  if (!view) return;
-  const box = view.querySelector('.container') || view;
-  // Crée les conteneurs si absents
-  if (!$('#accAuth', box) || !$('#accProfile', box)){
-    box.innerHTML = `
-      <h1 style="margin:1rem 0 .5rem">Mon compte</h1>
-      <div id="accAuth" class="card" style="margin:.6rem 0; padding:1rem"></div>
-      <div id="accProfile" class="card" style="margin:.6rem 0; padding:1rem; display:none">
-        <div style="display:grid; gap:.6rem">
-          <label>Nom <input id="accName" class="search" placeholder="Votre nom" /></label>
-          <label>Email <input id="accEmail" class="search" type="email" placeholder="vous@exemple.com" /></label>
-          <div>
-            <strong>Fidélité</strong>
-            <div class="meter">
-              <div class="meter__fill" id="accFill"></div>
-              <div class="meter__cursor" id="accCursor" title="Progression"></div>
-            </div>
-            <div style="display:flex;gap:.6rem;align-items:center;margin-top:.4rem">
-              <span>Total dépensé : <strong id="accSpent">0 €</strong></span>
-              <span id="accGrade" class="chip" style="margin-left:auto">Moussaillon</span>
-            </div>
-            <input id="accSlider" type="range" min="0" max="5000" step="50" style="width:100%; margin-top:.6rem"/>
-          </div>
-          <div style="display:flex; gap:.6rem; flex-wrap:wrap">
-            <button class="btn primary" id="accSave">Enregistrer</button>
-            <button class="btn" id="accReset" style="background:rgba(255,255,255,.06);color:#d9e3ec">Remettre la fidélité à 0</button>
-            <button class="btn" id="accLogout" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec">Se déconnecter</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-}
-
-/* Rendu/logic du compte (inscription/connexion + profil) */
 function renderAccount(){
-  ensureAccountUI();
+  const u = loadUser();
+  $('#accName')?.setAttribute('value', u.name || '');
+  $('#accEmail')?.setAttribute('value', u.email || '');
+  $('#accSpent') && ($('#accSpent').textContent = `${u.spent.toLocaleString('fr-FR')} €`);
 
-  const authRoot = $('#accAuth');
-  const profRoot = $('#accProfile');
-  if (!authRoot || !profRoot) return;
+  const g = gradeFromSpent(u.spent);
+  const gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
 
-  const user = loadUser();
-  const auth = getAuth();
-  const logged = isLoggedIn();
+  // Progression 0 → 5000
+  const pct = clamp((u.spent/5000)*100, 0, 100);
+  $('#accFill')  && ($('#accFill').style.width = `${pct}%`);
+  $('#accCursor')&& ($('#accCursor').style.left = `${pct}%`);
+  const slider = $('#accSlider'); if (slider){ slider.value = Math.min(u.spent, 5000); }
 
-  function showLogin(){
-    authRoot.innerHTML = `
-      <div style="display:grid;gap:.6rem">
-        <p style="margin:0 0 .4rem;color:#9fb4c5">Connectez-vous pour accéder à votre profil et à la fidélité.</p>
-        <label>Email <input id="loginEmail" class="search" type="email" placeholder="vous@exemple.com" value="${user.email||''}"/></label>
-        <label>Mot de passe <input id="loginPass" class="search" type="password" autocomplete="current-password" /></label>
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
-          <button class="btn primary" id="loginBtn">Se connecter</button>
-          <button class="btn" id="gotoSignup" style="background:rgba(255,255,255,.06);color:#d9e3ec">Créer un compte</button>
-        </div>
-        <p id="authMsg" style="color:#ff8a8a;margin:.2rem 0 0"></p>
-      </div>`;
-    profRoot.style.display = 'none';
-    $('#loginBtn')?.addEventListener('click', async ()=>{
-      const pass = $('#loginPass')?.value || '';
-      const ok = auth && pass ? await verifyPassword(pass, auth) : false;
-      if (ok){ setLoggedIn(true); renderAccount(); }
-      else { const m=$('#authMsg'); if (m) m.textContent='Identifiants incorrects.'; }
-    });
-    $('#gotoSignup')?.addEventListener('click', showSignup);
-  }
+  $('#accSave')?.addEventListener('click', ()=>{
+    const nu = { ...u, name: $('#accName')?.value || '', email: $('#accEmail')?.value || '' };
+    saveUser(nu);
+  }, { once:true });
 
-  function showSignup(){
-    authRoot.innerHTML = `
-      <div style="display:grid;gap:.6rem">
-        <p style="margin:0 0 .4rem;color:#9fb4c5">Créez un mot de passe pour protéger votre compte sur cet appareil.</p>
-        <label>Nom <input id="suName" class="search" placeholder="Votre nom" value="${user.name||''}"/></label>
-        <label>Email <input id="suEmail" class="search" type="email" placeholder="vous@exemple.com" value="${user.email||''}"/></label>
-        <label>Mot de passe <input id="suPass1" class="search" type="password" autocomplete="new-password" placeholder="Au moins 8 caractères"/></label>
-        <label>Confirmer <input id="suPass2" class="search" type="password" autocomplete="new-password"/></label>
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
-          <button class="btn primary" id="signupBtn">Créer le compte</button>
-          <button class="btn" id="gotoLogin" style="background:rgba(255,255,255,.06);color:#d9e3ec">J’ai déjà un compte</button>
-        </div>
-        <p id="authMsg" style="color:#ff8a8a;margin:.2rem 0 0"></p>
-      </div>`;
-    profRoot.style.display = 'none';
-    $('#signupBtn')?.addEventListener('click', async ()=>{
-      const name = $('#suName')?.value?.trim() || '';
-      const email= $('#suEmail')?.value?.trim()||'';
-      const p1   = $('#suPass1')?.value||'';
-      const p2   = $('#suPass2')?.value||'';
-      const msg  = $('#authMsg');
-      if (p1.length<8){ if(msg) msg.textContent='Mot de passe trop court (min. 8).'; return; }
-      if (p1!==p2){ if(msg) msg.textContent='Les mots de passe ne correspondent pas.'; return; }
-      const h = await hashPassword(p1);
-      setAuth({ ...h, createdAt: Date.now() });
-      saveUser({ name, email, spent: user.spent||0 });
-      setLoggedIn(true);
-      renderAccount();
-    });
-    $('#gotoLogin')?.addEventListener('click', showLogin);
-  }
+  $('#accReset')?.addEventListener('click', ()=>{
+    saveUser({ name:u.name, email:u.email, spent:0 });
+    renderAccount();
+  }, { once:true });
 
-  function showProfile(){
-    authRoot.innerHTML = '';
-    profRoot.style.display = '';
-
-    // Préremplir (compat Safari iOS : passer par .value)
-    const nameEl  = $('#accName');  if (nameEl)  nameEl.value  = user.name  || '';
-    const emailEl = $('#accEmail'); if (emailEl) emailEl.value = user.email || '';
-    const spentEl = $('#accSpent'); if (spentEl) spentEl.textContent = `${(user.spent||0).toLocaleString('fr-FR')} €`;
-
-    const g = gradeFromSpent(user.spent||0);
-    const gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
-    const pct = clamp(((user.spent||0)/5000)*100, 0, 100);
-    $('#accFill')  && ($('#accFill').style.width = `${pct}%`);
-    $('#accCursor')&& ($('#accCursor').style.left = `${pct}%`);
-    const slider = $('#accSlider'); if (slider){ slider.value = Math.min(user.spent||0, 5000); }
-
-    $('#accSave')?.addEventListener('click', ()=>{
-      const nu = { ...user, name: $('#accName')?.value || '', email: $('#accEmail')?.value || '' };
-      saveUser(nu);
-    }, { once:true });
-
-    $('#accReset')?.addEventListener('click', ()=>{
-      saveUser({ name:user.name, email:user.email, spent:0 });
-      renderAccount();
-    }, { once:true });
-
-    $('#accSlider')?.addEventListener('input', (e)=>{
-      const spent = Number(e.target.value || 0);
-      saveUser({ ...user, spent });
-      renderAccount();
-    });
-
-    $('#accLogout')?.addEventListener('click', ()=>{
-      setLoggedIn(false);
-      renderAccount();
-    }, { once:true });
-  }
-
-  if (!auth){            // pas encore de mot de passe → inscription
-    showSignup();
-  }else if (!logged){    // mot de passe présent mais utilisateur non connecté → login
-    showLogin();
-  }else{                 // connecté → profil
-    showProfile();
-  }
+  $('#accSlider')?.addEventListener('input', (e)=>{
+    const spent = Number(e.target.value || 0);
+    const nu = { ...u, spent };
+    saveUser(nu);
+    renderAccount();
+  });
 }
 
 /* [ROUTER | #/…] */
