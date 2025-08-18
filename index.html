@@ -110,7 +110,35 @@
   </section>
 
   <!-- ============== FOOTER / CONTACT ============== -->
-  <!-- [VIEW] Catalogue (route: #/catalogue) -->
+  
+ <!-- [VIEW] Produit (route: #/produit/:id) -->
+<section id="view-produit" class="view hidden" aria-label="Fiche produit">
+  <div class="container pdp" id="pdp">
+    <a class="chip chip--back" href="#/catalogue" data-route aria-label="Retour au catalogue">← Retour</a>
+
+    <div class="pdp__grid">
+      <div class="pdp__media">
+        <img id="pdpImg" alt="" loading="lazy" />
+      </div>
+
+      <div class="pdp__info">
+        <h1 id="pdpTitle" class="pdp__title"></h1>
+        <p id="pdpTag" class="pdp__tag"></p>
+        <p id="pdpDesc" class="pdp__desc"></p>
+
+        <div class="actions">
+          <button class="btn primary" id="pdpQuote">Ajouter au devis</button>
+          <a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>
+        </div>
+
+        <ul class="pdp__specs" id="pdpSpecs"></ul>
+      </div>
+    </div>
+
+    <div class="pdp__related" id="pdpRelated"></div>
+  </div>
+</section> 
+ <!-- [VIEW] Catalogue (route: #/catalogue) -->
 <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
   <div class="container">
     <h1 style="margin:1rem 0 0.5rem">Catalogue</h1>
