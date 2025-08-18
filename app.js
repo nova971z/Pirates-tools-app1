@@ -44,6 +44,24 @@ const homeLink    = $('#homeLink');
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
+
+/* Safe-area bottom (stabilise le dock sur Android/iOS & webviews) */
+(function stableDockSafeArea(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  function update(){
+    let inset = 0;
+    if (isIOS && window.visualViewport){
+      const vv = window.visualViewport;
+      inset = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+    }
+    document.documentElement.style.setProperty('--safe-bottom', inset + 'px');
+  }
+  update();
+  window.visualViewport?.addEventListener('resize', update, { passive:true });
+  window.addEventListener('resize', update, { passive:true });
+  window.addEventListener('orientationchange', update, { passive:true });
+})();
+
 /* ---------- Logo = retour accueil ---------- */
 (function wireLogoHome(){
   const logo = homeLink || document.querySelector('.topbar-logo-link');
