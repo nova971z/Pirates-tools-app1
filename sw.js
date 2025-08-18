@@ -3,27 +3,28 @@
    - App shell précache (+ index fallback)
    - Navigations: network-first (+ preload si dispo)
    - products.json: network-first (retombe sur cache)
-   - Images: cache-first (ok opaque CORS)
-   - CSS/JS/Fonts/JSON: stale-while-revalidate
+   - Images: cache-first (ok opaque CORS) + fallback offline
+   - CSS/JS/Fonts/JSON: stale-while-revalidate (ignoreSearch ok)
    - Trim automatique des caches (anti-gonflement)
-   - Message 'SKIP_WAITING' supporté
+   - Warm-up products.json à l'install
+   - Messages: SKIP_WAITING / CLEAR_CACHES / GET_VERSION
 ========================================================= */
 
 'use strict';
 
-const VERSION        = 'pt-v11';
+const VERSION        = 'pt-v12';
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
 
 // Limites simples pour éviter de gonfler
-const LIMIT_STATIC   = 80;
-const LIMIT_DYNAMIC  = 80;
-const LIMIT_IMAGES   = 140;
-const LIMIT_PRODUCTS = 10;
+const LIMIT_STATIC   = 100;
+const LIMIT_DYNAMIC  = 100;
+const LIMIT_IMAGES   = 180;
+const LIMIT_PRODUCTS = 12;
 
-// App shell (mets ici les assets critiques)
+// App shell (assets critiques)
 const APP_SHELL = [
   './',
   './index.html',
@@ -44,12 +45,22 @@ const APP_SHELL = [
 
 /* ---------------- Install ---------------- */
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_STATIC)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-      .catch(() => void 0)
-  );
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(CACHE_STATIC);
+      await cache.addAll(APP_SHELL);
+      // Warm-up du catalogue (si présent)
+      try {
+        const req = new Request('./products.json', { cache: 'no-store' });
+        const res = await fetch(req);
+        if (res && (res.ok || res.type === 'opaque')) {
+          const c = await caches.open(CACHE_PRODUCTS);
+          await c.put(req, res.clone());
+        }
+      } catch (_) {}
+    } catch (_) {}
+    await self.skipWaiting();
+  })());
 });
 
 /* ---------------- Activate ---------------- */
@@ -72,6 +83,12 @@ self.addEventListener('activate', (event) => {
     } catch (_) {}
 
     await self.clients.claim();
+
+    // Informe les clients (facultatif)
+    try {
+      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+      for (const c of clients) c.postMessage({ type: 'SW_READY', version: VERSION });
+    } catch (_) {}
   })());
 });
 
@@ -79,34 +96,62 @@ self.addEventListener('activate', (event) => {
 const isCachable = (req, res) =>
   req.method === 'GET' &&
   res &&
-  (res.ok || res.type === 'opaque'); // autorise les réponses opaques (CORS)
+  (res.ok || res.type === 'opaque'); // autorise opaque (CORS)
 
 async function putInCache(cacheName, request, response) {
   if (!isCachable(request, response)) return response;
-  const cache = await caches.open(cacheName);
-  try { await cache.put(request, response.clone()); } catch (_) {}
+  try {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response.clone());
+  } catch (_) {}
   return response;
 }
 
 async function fromCache(cacheName, request, { ignoreSearch = false } = {}) {
   const cache = await caches.open(cacheName);
-  return cache.match(request, { ignoreVary: true, ignoreSearch }) || null;
+  const match = await cache.match(request, { ignoreVary: true, ignoreSearch });
+  return match || null;
+}
+
+// Si l’URL est versionnée (?v=...), on essaie d’abord avec la query,
+// puis sans (ignoreSearch:true) pour maximiser les hits.
+async function fromCacheLoose(cacheName, request) {
+  const cached = await fromCache(cacheName, request, { ignoreSearch: false });
+  if (cached) return cached;
+  return fromCache(cacheName, request, { ignoreSearch: true });
 }
 
 async function trimCache(cacheName, maxEntries) {
   if (!maxEntries || maxEntries <= 0) return;
-  const cache = await caches.open(cacheName);
-  const keys = await cache.keys();
-  const extra = keys.length - maxEntries;
-  if (extra > 0) {
-    await Promise.all(keys.slice(0, extra).map(k => cache.delete(k)));
-  }
+  try {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    const extra = keys.length - maxEntries;
+    if (extra > 0) {
+      await Promise.all(keys.slice(0, extra).map(k => cache.delete(k)));
+    }
+  } catch (_) {}
+}
+
+// Fallback image (offline) — SVG léger en data URI
+function offlineImageResponse() {
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">
+  <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#0a0f14"/><stop offset="1" stop-color="#06141b"/></linearGradient></defs>
+  <rect width="100%" height="100%" fill="url(#g)"/>
+  <g font-family="system-ui,Segoe UI,Roboto,Arial" fill="#9fb4c5" text-anchor="middle">
+    <text x="50%" y="48%" font-size="26">Image indisponible hors ligne</text>
+    <text x="50%" y="60%" font-size="18" fill="#19d3ff">Pirates Tools</text>
+  </g>
+</svg>`;
+  return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml' } });
 }
 
 // Strategies
-async function cacheFirst(event, request, cacheName, limit) {
-  const cached = await fromCache(cacheName, request);
+async function cacheFirst(event, request, cacheName, limit, { loose = false } = {}) {
+  const cached = loose ? await fromCacheLoose(cacheName, request) : await fromCache(cacheName, request);
   if (cached) return cached;
+
   try {
     const res = await fetch(request);
     event.waitUntil((async () => {
@@ -115,12 +160,13 @@ async function cacheFirst(event, request, cacheName, limit) {
     })());
     return res.clone();
   } catch (_) {
-    return cached || Response.error();
+    if (request.destination === 'image') return offlineImageResponse();
+    return Response.error();
   }
 }
 
-async function staleWhileRevalidate(event, request, cacheName, limit) {
-  const cachePromise = fromCache(cacheName, request);
+async function staleWhileRevalidate(event, request, cacheName, limit, { loose = false } = {}) {
+  const cachePromise = loose ? fromCacheLoose(cacheName, request) : fromCache(cacheName, request);
   const fetchPromise = fetch(request)
     .then(async (res) => {
       await putInCache(cacheName, request, res);
@@ -131,8 +177,7 @@ async function staleWhileRevalidate(event, request, cacheName, limit) {
 
   const cached = await cachePromise;
   if (cached) {
-    // rafraîchit en arrière-plan
-    event.waitUntil(fetchPromise);
+    event.waitUntil(fetchPromise); // refresh en arrière-plan
     return cached;
   }
   const fresh = await fetchPromise;
@@ -141,7 +186,6 @@ async function staleWhileRevalidate(event, request, cacheName, limit) {
 
 async function networkFirst(event, request, cacheName, limit, fallbackResponse = null) {
   try {
-    // navigation preload si dispo
     const preload = await event.preloadResponse;
     if (preload) {
       event.waitUntil((async () => {
@@ -157,7 +201,7 @@ async function networkFirst(event, request, cacheName, limit, fallbackResponse =
       await trimCache(cacheName, limit);
     })());
     return res.clone();
-  } catch (err) {
+  } catch (_) {
     const cached = await fromCache(cacheName, request);
     if (cached) return cached;
     if (fallbackResponse) return fallbackResponse;
@@ -185,16 +229,13 @@ self.addEventListener('fetch', (event) => {
       try {
         const preload = await event.preloadResponse;
         if (preload) {
-          // on rafraîchit l'index si c'est lui
           const u = new URL(preload.url);
           if (u.pathname === '/' || u.pathname.endsWith('/index.html')) {
             event.waitUntil(putInCache(CACHE_STATIC, './index.html', preload.clone()));
           }
           return preload;
         }
-
         const net = await fetch(request);
-        // mise en cache de l'index si on l'a touché
         const u = new URL(net.url);
         if (u.pathname === '/' || u.pathname.endsWith('/index.html')) {
           event.waitUntil(putInCache(CACHE_STATIC, './index.html', net.clone()));
@@ -208,10 +249,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Externe (CDN) : images en cache-first, sinon passthrough
+  // Externe (CDN) : images en cache-first (loose), sinon passthrough
   if (url.origin !== location.origin) {
     if (request.destination === 'image') {
-      event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES));
+      event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: true }));
     }
     return;
   }
@@ -223,29 +264,53 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // CSS / JS / Fonts / JSON (autres) → SWR
+  // CSS / JS / Fonts / JSON → SWR (loose pour couvrir ?v=)
   if (
     request.destination === 'style' ||
     request.destination === 'script' ||
     request.destination === 'font'  ||
     (request.destination === '' && url.pathname.endsWith('.json'))
   ) {
-    event.respondWith(staleWhileRevalidate(event, request, CACHE_STATIC, LIMIT_STATIC));
+    event.respondWith(staleWhileRevalidate(event, request, CACHE_STATIC, LIMIT_STATIC, { loose: true }));
     return;
   }
 
-  // Images → cache-first
+  // Images internes → cache-first (loose)
   if (request.destination === 'image') {
-    event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES));
+    event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: true }));
     return;
   }
 
   // Par défaut → SWR (dyn)
-  event.respondWith(staleWhileRevalidate(event, request, CACHE_DYNAMIC, LIMIT_DYNAMIC));
+  event.respondWith(staleWhileRevalidate(event, request, CACHE_DYNAMIC, LIMIT_DYNAMIC, { loose: false }));
 });
 
 /* ---------------- Messages ---------------- */
-self.addEventListener('message', (event) => {
+self.addEventListener('message', async (event) => {
   if (!event || !event.data) return;
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  const data = event.data;
+
+  // pour app.js : navigator.serviceWorker.controller.postMessage('SKIP_WAITING')
+  if (data === 'SKIP_WAITING' || data?.type === 'SKIP_WAITING') {
+    await self.skipWaiting();
+    return;
+  }
+
+  // Purge manuelle (si besoin de débug)
+  if (data === 'CLEAR_CACHES' || data?.type === 'CLEAR_CACHES') {
+    const names = await caches.keys();
+    await Promise.all(names.filter(n => n.startsWith('pt-')).map(n => caches.delete(n)));
+    try {
+      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+      for (const c of clients) c.postMessage({ type: 'CACHES_CLEARED' });
+    } catch (_) {}
+    return;
+  }
+
+  // Version courante
+  if (data === 'GET_VERSION' || data?.type === 'GET_VERSION') {
+    try {
+      event.source?.postMessage?.({ type: 'VERSION', version: VERSION });
+    } catch (_) {}
+  }
 });
