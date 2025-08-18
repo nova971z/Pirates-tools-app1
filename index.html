@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
@@ -17,7 +18,7 @@
 
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
-  <!-- On force le chargement du PNG existant -->
+  <!-- Précharge le logo existant pour éviter le “flash” -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" imagesrcset="./images/pirates-tools-logo.png?v=7" />
 
   <!-- Styles -->
@@ -54,7 +55,7 @@
 
     <div class="brand">Pirates Tools</div>
 
-    <nav class="nav" aria-label="Navigation principale">
+    <nav class="nav" role="navigation" aria-label="Navigation principale">
       <a class="chip" href="#list" data-scroll="#list">Produits</a>
       <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
     </nav>
@@ -152,6 +153,7 @@
       <div id="catList" class="cat-list" role="list"></div>
 
       <div style="margin-top:1rem">
+        <!-- Version “inline” fonctionnelle tant que le gestionnaire data-go-home n’est pas en place -->
         <a class="chip" href="#"
            onclick="document.getElementById('tag').value=''; window.location.hash=''; setTimeout(()=>document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60); return false;">
           Voir tous les produits
@@ -178,7 +180,7 @@
   </section>
 
   <!-- ====== Barre de liens (réactivée) ====== -->
-  <nav class="site-links" aria-label="Liens rapides">
+  <nav class="site-links" role="navigation" aria-label="Liens rapides">
     <a class="chip" href="#/" data-route>Accueil</a>
     <a class="chip" href="#/catalogue" data-route>Catalogue</a>
     <a class="chip" href="#list" data-scroll="#list">Produits</a>
@@ -195,6 +197,7 @@
       </div>
       <div>
         Tél : <a href="tel:+33774230195">07 74 23 01 95</a><br />
+        <!-- Ajout rel=noopener pour la sécurité -->
         WhatsApp : <a href="https://wa.me/33774230195" target="_blank" rel="noopener">ouvrir</a>
       </div>
       <div>
