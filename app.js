@@ -40,6 +40,64 @@ const dockCartBtn = $('#dockCartBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
+const live    = $('#srLive');
+const toastsC = $('#toasts');
+const dockBadge = $('#dockCount');
+
+function announce(msg){
+  if (!live) return;
+  // reset pour forcer l’annonce
+  live.textContent = '';
+  setTimeout(()=>{ live.textContent = msg; }, 20);
+}
+
+function toast(msg, kind='success'){
+  if (!toastsC) return;
+  const el = document.createElement('div');
+  el.className = `toast toast--${kind}`;
+  el.innerHTML = `
+    <div class="toast__icon">${kind==='success'?'✅':'ℹ️'}</div>
+    <div class="toast__body">${msg}</div>
+    <button class="toast__close" aria-label="Fermer">✖</button>
+  `;
+  const close = ()=> {
+    el.style.animation = 'toast-out .18s ease-in both';
+    setTimeout(()=> el.remove(), 180);
+  };
+  el.querySelector('.toast__close')?.addEventListener('click', close);
+  toastsC.appendChild(el);
+  setTimeout(close, 3200);
+}
+
+function bumpBadge(){
+  if (!dockBadge) return;
+  dockBadge.classList.remove('bump');
+  // reflow pour relancer l’anim
+  void dockBadge.offsetWidth;
+  dockBadge.classList.add('bump');
+}
+
+function notifyCartAdded(title='Article'){
+  toast(`« ${title} » ajouté au devis`);
+  announce(`${title} ajouté au devis`);
+  bumpBadge();
+}
+
+/* Focus sur le titre pertinent après routage */
+function focusView(key){
+  let target = null;
+  if (key === 'produit') target = $('#pdpTitle');
+  else if (key === 'catalogue') target = $('#view-catalogue h1');
+  else if (key === 'devis') target = $('#view-devis h1');
+  else if (key === 'compte') target = $('#view-compte h1');
+  else target = $('#main'); // home
+
+  if (target){
+    target.setAttribute('tabindex','-1');
+    target.focus({ preventScroll: true });
+    setTimeout(()=> target.removeAttribute('tabindex'), 300);
+  }
+}
 
 /* =========================================================
    0) Qualité de vie : anti-zoom Android (facultatif)
@@ -313,6 +371,7 @@ function bindAddToCart(scopeData){
       if (!p) return;
       CART.push(p);
       saveCart();
+      notifyCartAdded(p.title || p.sku || 'Article');
     });
   });
 }
@@ -390,8 +449,12 @@ function renderPDP(product){
   elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
 
   btnQ.textContent = 'Ajouter au panier';
-  btnQ.onclick = ()=>{ CART.push(product); saveCart(); };
-
+btnQ.onclick = ()=>{
+  CART.push(product);
+  saveCart();
+  notifyCartAdded(product.title || product.sku || 'Article');
+};
+   
   const sku = product.sku || product.id || title;
   const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
   const phone = PHONE_E164.replace('+','');
@@ -416,13 +479,17 @@ function renderPDP(product){
   `).join('');
 
   elRel.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-add]');
-    if (!btn) return;
-    const id = btn.getAttribute('data-add');
-    const p  = MODELS.find(x => ((x.id||x.sku||x.title)+'') === id);
-    if (p){ CART.push(p); saveCart(); }
-    e.stopPropagation();
-  });
+  const btn = e.target.closest('[data-add]');
+  if (!btn) return;
+  const id = btn.getAttribute('data-add');
+  const p  = MODELS.find(x => ((x.id||x.sku||x.title)+'') === id);
+  if (p){
+    CART.push(p);
+    saveCart();
+    notifyCartAdded(p.title || p.sku || 'Article');
+  }
+  e.stopPropagation();
+});
 
   $$('.pdp__related .card').forEach(card=>{
     card.addEventListener('click', (e)=>{
@@ -595,18 +662,18 @@ function renderCartView(){
   };
 
   $('#devisSend')?.addEventListener('click', ()=>{
-    const msg = encodeURIComponent(cartToWhatsAppText());
-    if (!msg) return;
-    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
-  }, { once:true });
+  const msg = encodeURIComponent(cartToWhatsAppText());
+  if (!msg) return;
+  window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
+  toast('Devis ouvert dans WhatsApp'); announce('Devis ouvert dans WhatsApp');
+}, { once:true });
 
-  $('#devisClear')?.addEventListener('click', ()=>{
-    CART = [];
-    saveCart();
-    renderCartView();
-  }, { once:true });
-}
-
+$('#devisClear')?.addEventListener('click', ()=>{
+  CART = [];
+  saveCart();
+  renderCartView();
+  toast('Devis vidé'); announce('Devis vidé');
+}, { once:true });
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
@@ -633,6 +700,8 @@ installBtn?.addEventListener('click', async () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
 }
+   window.addEventListener('online',  ()=> toast('Connexion rétablie', 'success'));
+window.addEventListener('offline', ()=> toast('Vous êtes hors ligne', 'info'));
 
 /* =========================================================
    16) COMPTE & FIDÉLITÉ (démo locale)
