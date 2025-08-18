@@ -1,14 +1,11 @@
 /* =========================================================
-   Pirates Tools — sw.js (PWA cache/offline, GitHub Pages OK)
-   - App shell pré-cache
-   - Navigations → network-first + fallback index.html (SPA/hash)
-   - products.json → network-first (+fallback cache)
-   - CSS/JS → stale-while-revalidate
-   - Images → cache-first
-   - Nettoyage anciens caches + navigationPreload (si supporté)
-   ========================================================= */
-
-'use strict';
+   Pirates Tools — sw.js (PWA cache/offline stable)
+   - App shell precache
+   - NetworkFirst: products.json + navigations
+   - CacheFirst: images
+   - StaleWhileRevalidate: CSS/JS
+   - Hash routes fallback → index.html
+========================================================= */
 
 const VERSION        = 'pt-v6';
 const CACHE_STATIC   = `pt-static-${VERSION}`;
@@ -16,30 +13,37 @@ const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
 
-// Fichiers du shell (pré-cache) — compat GitHub Pages
+// Liste des fichiers du shell (préchargés)
 const APP_SHELL = [
+  './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
+  // icônes PWA
   './icons/icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-256.png',
+  './icons/icon-384.png',
+  './icons/icon-512.png',
+  // logos
   './images/pirates-tools-logo.webp',
   './images/pirates-tools-logo.png'
 ];
 
-/* ---------------- Install ---------------- */
+// --- Install: precache + skipWaiting
 self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_STATIC);
-    try { await cache.addAll(APP_SHELL); } catch (_) { /* ignore */ }
-    await self.skipWaiting();
-  })());
+  event.waitUntil(
+    caches.open(CACHE_STATIC)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
 });
 
-/* ---------------- Activate ---------------- */
-self.addEventListener('activate', (event) => {
+// --- Activate: cleanup + clientsClaim + navigationPreload
+self.addEventListener('activate', async (event) => {
   event.waitUntil((async () => {
-    // Nettoyage
+    // Nettoyage des anciens caches
     const names = await caches.keys();
     await Promise.all(
       names
@@ -47,148 +51,125 @@ self.addEventListener('activate', (event) => {
         .map(n => caches.delete(n))
     );
 
-    // Navigation preload (si supporté)
+    // Essaye d'activer la navigation preload (si supporté)
     if ('navigationPreload' in self.registration) {
       try { await self.registration.navigationPreload.enable(); } catch(_) {}
     }
-
     await self.clients.claim();
   })());
 });
 
-/* ---------------- Helpers ---------------- */
+// --- Utils
 async function putInCache(cacheName, request, response) {
-  try {
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-  } catch (_) {}
+  const cache = await caches.open(cacheName);
+  try { await cache.put(request, response.clone()); } catch (_) {}
   return response;
 }
 
 async function fromCache(cacheName, request) {
   const cache = await caches.open(cacheName);
-  const cached = await cache.match(request, { ignoreVary: true });
+  const cached = await cache.match(request, { ignoreVary: true, ignoreSearch: false });
   return cached || null;
 }
 
 async function cacheFirst(request, cacheName) {
   const cached = await fromCache(cacheName, request);
   if (cached) return cached;
-  try {
-    const res = await fetch(request);
-    if (res && res.ok) return putInCache(cacheName, request, res);
-    return res;
-  } catch (_) {
-    return cached || new Response('', { status: 503 });
-  }
+  const res = await fetch(request);
+  return putInCache(cacheName, request, res);
 }
 
-async function networkFirst(event, request, cacheName, fallbackResponse = null) {
+async function networkFirst(request, cacheName, fallbackResponse = null) {
   try {
-    // Pré-réponse de navigation (Chrome) si dispo
-    const preload = event.preloadResponse ? await event.preloadResponse : null;
-    if (preload) {
-      putInCache(cacheName, request, preload.clone());
-      return preload;
-    }
-    const res = await fetch(request, { cache: 'no-cache' });
-    if (res && res.ok) putInCache(cacheName, request, res.clone());
-    return res;
-  } catch (err) {
+    const preload = await eventPreloadResponse();
+    if (preload) return putInCache(cacheName, request, preload);
+    const res = await fetch(request);
+    return putInCache(cacheName, request, res);
+  } catch (_) {
     const cached = await fromCache(cacheName, request);
-    if (cached) return cached;
-    if (fallbackResponse) return fallbackResponse;
-    return new Response('', { status: 503 });
+    return cached || (fallbackResponse ? fallbackResponse : Promise.reject(_));
   }
 }
 
 async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cachedPromise = cache.match(request, { ignoreVary: true });
+  const cachePromise = fromCache(cacheName, request);
   const fetchPromise = fetch(request)
-    .then(res => {
-      if (res && res.ok) cache.put(request, res.clone());
-      return res;
-    })
+    .then(res => putInCache(cacheName, request, res))
     .catch(() => null);
-
-  const cached = await cachedPromise;
-  if (cached) { fetchPromise; return cached; }
-
-  const fresh = await fetchPromise;
-  return fresh || new Response('', { status: 503 });
+  const cached = await cachePromise;
+  return cached || (await fetchPromise);
 }
 
-/* ---------------- Fetch router ---------------- */
+async function eventPreloadResponse() {
+  try {
+    // @ts-ignore
+    return await self.navigationPreload?.getState?.() ? await self.preloadResponse : null;
+  } catch (_) { return null; }
+}
+
+// --- Fetch strategy router
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // GET uniquement
+  // On ne gère que GET
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
-  // Ignorer certaines origines/protocoles
+  // Ignorer tel:, wa.me, analytics & autres origines non pertinentes
   if (url.protocol === 'chrome-extension:') return;
   if (url.hostname === 'wa.me') return;
   if (/google-analytics|gstatic|googletagmanager/.test(url.hostname)) return;
 
-  // Origine externe → cache images sinon passthrough
-  if (url.origin !== self.location.origin) {
+  // Origine externe (CDN images éventuelles) → images en cacheFirst sinon passthrough
+  if (url.origin !== location.origin) {
     if (request.destination === 'image') {
       event.respondWith(cacheFirst(request, CACHE_IMAGES));
     }
     return;
   }
 
-  // Navigations → network-first + fallback index.html
+  // ----- Navigation requests (hash routes #/… y compris)
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        const preload = event.preloadResponse ? await event.preloadResponse : null;
-        if (preload) {
-          putInCache(CACHE_STATIC, './index.html', preload.clone());
-          return preload;
-        }
+        // Préload si dispo (Chrome)
+        const preload = await eventPreloadResponse();
+        if (preload) return preload;
 
         const net = await fetch(request);
-        // Si c'est l'index, on le met à jour dans le cache
-        const u = new URL(net.url);
-        if (u.pathname === '/' || u.pathname.endsWith('index.html')) {
+        // On met en cache l'index si c'est lui / sinon on laisse passer
+        if (new URL(net.url).pathname.endsWith('index.html') || new URL(net.url).pathname === '/' ) {
           putInCache(CACHE_STATIC, './index.html', net.clone());
         }
         return net;
       } catch (_) {
+        // Offline → fallback index.html du cache
         const cachedIndex = await caches.match('./index.html', { ignoreSearch: true });
-        return cachedIndex || new Response('<h1>Hors-ligne</h1>', { headers: { 'Content-Type': 'text/html' } });
+        return cachedIndex || Response.error();
       }
     })());
     return;
   }
 
-  // products.json → network-first
+  // ----- products.json → NetworkFirst (retombe sur cache offline)
   if (url.pathname.endsWith('/products.json') || url.pathname.endsWith('products.json')) {
-    event.respondWith(networkFirst(event, request, CACHE_PRODUCTS, new Response('[]', { headers: { 'Content-Type': 'application/json' } })));
+    event.respondWith(networkFirst(request, CACHE_PRODUCTS));
     return;
   }
 
-  // CSS / JS → SWR
+  // ----- CSS / JS → SWR
   if (request.destination === 'style' || request.destination === 'script') {
     event.respondWith(staleWhileRevalidate(request, CACHE_STATIC));
     return;
   }
 
-  // Images → cache-first
+  // ----- Images → CacheFirst
   if (request.destination === 'image') {
     event.respondWith(cacheFirst(request, CACHE_IMAGES));
     return;
   }
 
-  // Par défaut → SWR (dynamique)
+  // ----- Par défaut → SWR (dyn)
   event.respondWith(staleWhileRevalidate(request, CACHE_DYNAMIC));
-});
-
-/* ---------------- Mise à jour immédiate via postMessage ---------------- */
-self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
