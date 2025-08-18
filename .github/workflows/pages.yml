@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"]      # change en "master" si ta branche par défaut s'appelle master
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -19,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      # Pour un site statique à la racine du repo (index.html, styles.css, app.js, images, etc.)
+      - uses: actions/upload-pages-artifact@v3
         with:
-          path: .            # ton index.html est bien à la racine
+          path: ./
 
   deploy:
     needs: build
