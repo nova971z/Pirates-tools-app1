@@ -8,12 +8,11 @@
 ========================================================= */
 
 'use strict';
-const VERSION        = 'pt-v10';          // ← incrémente
+const VERSION        = 'pt-v11';   // ← bump
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
-
 
 // Liste des fichiers du shell (préchargés)
 const APP_SHELL = [
