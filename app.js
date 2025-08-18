@@ -3,6 +3,7 @@
    + FIX data-scroll: retour à Home avant de scroller
    + Devis rendu dynamique + dock panier → #/devis
    + Compte & Fidélité (localStorage + curseur)
+   + Mot de passe local (PBKDF2/SHA-256 + salt, 200k itérations)
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
@@ -22,7 +23,7 @@ const tagEl       = $('#tag');
 const dock        = $('#dock');
 const dockCount   = $('#dockCount');
 const dockQuoteBtn= $('#dockQuoteBtn');
-const dockCartBtn = $('#dockCartBtn');
+const dockCartBtn = $('#dockCartBtn');       // ← bouton panier rouge (si présent)
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink'); // (optionnel)
@@ -437,52 +438,193 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
 }
 
-/* ===== Compte & Fidélité ===== */
-const USER_KEY = 'pt_user_v1';
+/* ===== Compte & Fidélité (avec mot de passe local) ===== */
+const USER_KEY  = 'pt_user_v1';
+const AUTH_KEY  = 'pt_auth_v1';
+const SESSION_KEY = 'pt_session_login';
+
 function loadUser(){
-  try{
-    return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 };
-  }catch(_){ return { name:'', email:'', spent:0 }; }
+  try{ return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 }; }
+  catch(_){ return { name:'', email:'', spent:0 }; }
 }
-function saveUser(u){
-  try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){}
-}
+function saveUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){} }
+
 function gradeFromSpent(spent){
   if (spent >= 5000) return { label:'Excellent acheteur', color:'#00e1b4' };
   if (spent >= 1000) return { label:'Bon acheteur',       color:'#19d3ff' };
   return { label:'Moussaillon', color:'#9fb4c5' };
 }
+
+/* --- helpers auth (PBKDF2/SHA-256) --- */
+const b64 = {
+  enc: buf => btoa(String.fromCharCode(...new Uint8Array(buf))),
+  dec: str => Uint8Array.from(atob(str), c => c.charCodeAt(0))
+};
+function getAuth(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)) || null; }catch(_){ return null; } }
+function setAuth(a){ try{ localStorage.setItem(AUTH_KEY, JSON.stringify(a)); }catch(_){} }
+function isLoggedIn(){ return sessionStorage.getItem(SESSION_KEY)==='1'; }
+function setLoggedIn(v){ sessionStorage.setItem(SESSION_KEY, v ? '1' : '0'); }
+
+async function hashPassword(password, saltB64=null, iterations=200000){
+  const enc = new TextEncoder();
+  const salt = saltB64 ? b64.dec(saltB64) : crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt, iterations }, keyMaterial, 256);
+  return { saltB64: b64.enc(salt), hashB64: b64.enc(bits), iterations };
+}
+async function verifyPassword(password, auth){
+  const h = await hashPassword(password, auth.saltB64, auth.iterations);
+  return h.hashB64 === auth.hashB64;
+}
+
+/* UI bootstrap (injecte la section compte si manquante) */
+function ensureAccountUI(){
+  const view = $('#view-compte');
+  if (!view) return;
+  const box = view.querySelector('.container') || view;
+  // Crée les conteneurs si absents
+  if (!$('#accAuth', box) || !$('#accProfile', box)){
+    box.innerHTML = `
+      <h1 style="margin:1rem 0 .5rem">Mon compte</h1>
+      <div id="accAuth" class="card" style="margin:.6rem 0; padding:1rem"></div>
+      <div id="accProfile" class="card" style="margin:.6rem 0; padding:1rem; display:none">
+        <div style="display:grid; gap:.6rem">
+          <label>Nom <input id="accName" class="search" placeholder="Votre nom" /></label>
+          <label>Email <input id="accEmail" class="search" type="email" placeholder="vous@exemple.com" /></label>
+          <div>
+            <strong>Fidélité</strong>
+            <div class="meter">
+              <div class="meter__fill" id="accFill"></div>
+              <div class="meter__cursor" id="accCursor" title="Progression"></div>
+            </div>
+            <div style="display:flex;gap:.6rem;align-items:center;margin-top:.4rem">
+              <span>Total dépensé : <strong id="accSpent">0 €</strong></span>
+              <span id="accGrade" class="chip" style="margin-left:auto">Moussaillon</span>
+            </div>
+            <input id="accSlider" type="range" min="0" max="5000" step="50" style="width:100%; margin-top:.6rem"/>
+          </div>
+          <div style="display:flex; gap:.6rem; flex-wrap:wrap">
+            <button class="btn primary" id="accSave">Enregistrer</button>
+            <button class="btn" id="accReset" style="background:rgba(255,255,255,.06);color:#d9e3ec">Remettre la fidélité à 0</button>
+            <button class="btn" id="accLogout" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec">Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+/* Rendu/logic du compte (inscription/connexion + profil) */
 function renderAccount(){
-  const u = loadUser();
-  $('#accName')?.setAttribute('value', u.name || '');
-  $('#accEmail')?.setAttribute('value', u.email || '');
-  $('#accSpent') && ($('#accSpent').textContent = `${u.spent.toLocaleString('fr-FR')} €`);
+  ensureAccountUI();
 
-  const g = gradeFromSpent(u.spent);
-  const gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
+  const authRoot = $('#accAuth');
+  const profRoot = $('#accProfile');
+  if (!authRoot || !profRoot) return;
 
-  // Progression 0 → 5000
-  const pct = clamp((u.spent/5000)*100, 0, 100);
-  $('#accFill')  && ($('#accFill').style.width = `${pct}%`);
-  $('#accCursor')&& ($('#accCursor').style.left = `${pct}%`);
-  const slider = $('#accSlider'); if (slider){ slider.value = Math.min(u.spent, 5000); }
+  const user = loadUser();
+  const auth = getAuth();
+  const logged = isLoggedIn();
 
-  $('#accSave')?.addEventListener('click', ()=>{
-    const nu = { ...u, name: $('#accName')?.value || '', email: $('#accEmail')?.value || '' };
-    saveUser(nu);
-  }, { once:true });
+  function showLogin(){
+    authRoot.innerHTML = `
+      <div style="display:grid;gap:.6rem">
+        <p style="margin:0 0 .4rem;color:#9fb4c5">Connectez-vous pour accéder à votre profil et à la fidélité.</p>
+        <label>Email <input id="loginEmail" class="search" type="email" placeholder="vous@exemple.com" value="${user.email||''}"/></label>
+        <label>Mot de passe <input id="loginPass" class="search" type="password" autocomplete="current-password" /></label>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="btn primary" id="loginBtn">Se connecter</button>
+          <button class="btn" id="gotoSignup" style="background:rgba(255,255,255,.06);color:#d9e3ec">Créer un compte</button>
+        </div>
+        <p id="authMsg" style="color:#ff8a8a;margin:.2rem 0 0"></p>
+      </div>`;
+    profRoot.style.display = 'none';
+    $('#loginBtn')?.addEventListener('click', async ()=>{
+      const pass = $('#loginPass')?.value || '';
+      const ok = auth && pass ? await verifyPassword(pass, auth) : false;
+      if (ok){ setLoggedIn(true); renderAccount(); }
+      else { const m=$('#authMsg'); if (m) m.textContent='Identifiants incorrects.'; }
+    });
+    $('#gotoSignup')?.addEventListener('click', showSignup);
+  }
 
-  $('#accReset')?.addEventListener('click', ()=>{
-    saveUser({ name:u.name, email:u.email, spent:0 });
-    renderAccount();
-  }, { once:true });
+  function showSignup(){
+    authRoot.innerHTML = `
+      <div style="display:grid;gap:.6rem">
+        <p style="margin:0 0 .4rem;color:#9fb4c5">Créez un mot de passe pour protéger votre compte sur cet appareil.</p>
+        <label>Nom <input id="suName" class="search" placeholder="Votre nom" value="${user.name||''}"/></label>
+        <label>Email <input id="suEmail" class="search" type="email" placeholder="vous@exemple.com" value="${user.email||''}"/></label>
+        <label>Mot de passe <input id="suPass1" class="search" type="password" autocomplete="new-password" placeholder="Au moins 8 caractères"/></label>
+        <label>Confirmer <input id="suPass2" class="search" type="password" autocomplete="new-password"/></label>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="btn primary" id="signupBtn">Créer le compte</button>
+          <button class="btn" id="gotoLogin" style="background:rgba(255,255,255,.06);color:#d9e3ec">J’ai déjà un compte</button>
+        </div>
+        <p id="authMsg" style="color:#ff8a8a;margin:.2rem 0 0"></p>
+      </div>`;
+    profRoot.style.display = 'none';
+    $('#signupBtn')?.addEventListener('click', async ()=>{
+      const name = $('#suName')?.value?.trim() || '';
+      const email= $('#suEmail')?.value?.trim()||'';
+      const p1   = $('#suPass1')?.value||'';
+      const p2   = $('#suPass2')?.value||'';
+      const msg  = $('#authMsg');
+      if (p1.length<8){ if(msg) msg.textContent='Mot de passe trop court (min. 8).'; return; }
+      if (p1!==p2){ if(msg) msg.textContent='Les mots de passe ne correspondent pas.'; return; }
+      const h = await hashPassword(p1);
+      setAuth({ ...h, createdAt: Date.now() });
+      saveUser({ name, email, spent: user.spent||0 });
+      setLoggedIn(true);
+      renderAccount();
+    });
+    $('#gotoLogin')?.addEventListener('click', showLogin);
+  }
 
-  $('#accSlider')?.addEventListener('input', (e)=>{
-    const spent = Number(e.target.value || 0);
-    const nu = { ...u, spent };
-    saveUser(nu);
-    renderAccount();
-  });
+  function showProfile(){
+    authRoot.innerHTML = '';
+    profRoot.style.display = '';
+
+    // Préremplir (compat Safari iOS : passer par .value)
+    const nameEl  = $('#accName');  if (nameEl)  nameEl.value  = user.name  || '';
+    const emailEl = $('#accEmail'); if (emailEl) emailEl.value = user.email || '';
+    const spentEl = $('#accSpent'); if (spentEl) spentEl.textContent = `${(user.spent||0).toLocaleString('fr-FR')} €`;
+
+    const g = gradeFromSpent(user.spent||0);
+    const gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
+    const pct = clamp(((user.spent||0)/5000)*100, 0, 100);
+    $('#accFill')  && ($('#accFill').style.width = `${pct}%`);
+    $('#accCursor')&& ($('#accCursor').style.left = `${pct}%`);
+    const slider = $('#accSlider'); if (slider){ slider.value = Math.min(user.spent||0, 5000); }
+
+    $('#accSave')?.addEventListener('click', ()=>{
+      const nu = { ...user, name: $('#accName')?.value || '', email: $('#accEmail')?.value || '' };
+      saveUser(nu);
+    }, { once:true });
+
+    $('#accReset')?.addEventListener('click', ()=>{
+      saveUser({ name:user.name, email:user.email, spent:0 });
+      renderAccount();
+    }, { once:true });
+
+    $('#accSlider')?.addEventListener('input', (e)=>{
+      const spent = Number(e.target.value || 0);
+      saveUser({ ...user, spent });
+      renderAccount();
+    });
+
+    $('#accLogout')?.addEventListener('click', ()=>{
+      setLoggedIn(false);
+      renderAccount();
+    }, { once:true });
+  }
+
+  if (!auth){            // pas encore de mot de passe → inscription
+    showSignup();
+  }else if (!logged){    // mot de passe présent mais utilisateur non connecté → login
+    showLogin();
+  }else{                 // connecté → profil
+    showProfile();
+  }
 }
 
 /* [ROUTER | #/…] */
