@@ -48,39 +48,43 @@ img,svg,video{ max-width:100%; height:auto; }
 
 /* ================= TOPBAR ================= */
 .topbar{
-  position:sticky; top:0; inset-inline:0; z-index:100;
-  display:grid; grid-template-columns:auto auto 1fr auto;
-  align-items:center; gap:.8rem;
-  padding:.7rem .9rem;
-  background:rgba(10,15,20,.72);
+  position:sticky; top:0; inset-inline:0; z-index:200;
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.8rem;
+  padding:.6rem .9rem;
+  background:rgba(10,15,20,.78);
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
 }
-.topbar-logo-link{ display:flex; align-items:center }
-.topbar-logo{ height:28px; width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)) }
-@media (max-width:768px){ .topbar-logo{ height:24px } }
+.topbar-logo-link{
+  display:flex; align-items:center;
+  pointer-events:auto; -webkit-tap-highlight-color:transparent;
+}
+.topbar-logo{
+  height:28px; width:auto; display:block; cursor:pointer;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
+@media (max-width:768px){ .topbar-logo{height:24px} }
 
-.brand{ font-weight:800; letter-spacing:.2px; color:#fff }
-.nav{ display:flex; gap:.5rem; justify-content:center }
+.brand{font-weight:800; letter-spacing:.2px; color:#fff}
+.nav{display:flex; gap:.5rem; justify-content:center}
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
   padding:.42rem .9rem; border-radius:999px;
   background:rgba(255,255,255,.04); border:1px solid var(--border); color:#d9e3ec;
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
-.chip:hover{ background:rgba(255,255,255,.07) }
-.cta{ display:flex; gap:.6rem; align-items:center; min-width:0 }
+.chip:hover{background:rgba(255,255,255,.07)}
+.cta{display:flex; gap:.6rem; align-items:center; min-width:0}
 .btn{
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.58rem .9rem; border-radius:12px; font-weight:700;
   color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
-  white-space:nowrap;
-  flex-shrink:0;
+  white-space:nowrap; flex-shrink:0;
 }
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
-.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-.btn:active{ transform:translateY(1px) }
-@media (max-width:960px){ .topbar{ grid-template-columns:auto 1fr auto; gap:.6rem } .nav{ display:none } }
+.btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
+.btn:active{transform:translateY(1px)}
+@media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
 /* ================= HERO (zoom + fondu) ================= */
 .hero-full{
