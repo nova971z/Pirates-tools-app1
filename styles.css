@@ -19,7 +19,13 @@
 }
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{
+  scroll-behavior:smooth;
+  /* empêche les zooms auto de texte sur mobiles */
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  width:100%; max-width:100%; overflow-x:hidden;
+}
 body{
   margin:0;
   background:
@@ -28,6 +34,8 @@ body{
   color:var(--fg);
   font:400 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  width:100%; max-width:100%; overflow-x:hidden;
+  touch-action: manipulation; /* limite le double-tap zoom */
 }
 a{color:inherit;text-decoration:none}
 a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:10px}
@@ -161,15 +169,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* ===== Dock FIXE Android/iOS (sans JS) ===== */
+/* ===== Dock FIXE Android/iOS (stableDock JS + safe area) ===== */
 .dock{
   position: fixed;
   left: 50%;
-  transform: translateX(-50%);             /* centrage pur CSS */
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%); /* centrage pur CSS */
+  /* clé: le JS met à jour --dock-bottom avec visualViewport → stop jitter Android */
+  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
+  /* support anciens iOS */
+  bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px)));
   z-index: 110;
-  pointer-events: none;                     /* clics seulement sur la capsule */
-  writing-mode: horizontal-tb;              /* empêche toute mise à la verticale */
+  pointer-events: none;        /* clics seulement sur la capsule */
+  writing-mode: horizontal-tb; /* empêche la mise à la verticale en webviews */
 }
 
 .dock__shell{
@@ -184,10 +195,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  white-space: nowrap;                      /* pas de retour à la ligne */
-  overflow: visible;                        /* la pastille peut déborder */
-  pointer-events: auto;                     /* clics actifs ici */
-  transform: translateZ(0);                 /* anti-jitter Android */
+  white-space: nowrap;         /* pas de retour à la ligne */
+  overflow: visible;           /* la pastille peut déborder */
+  pointer-events: auto;        /* clics actifs ici */
+  transform: translateZ(0);    /* anti-jitter Android */
   contain: layout paint;
 }
 
@@ -207,7 +218,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 .dock__badge{
   position: absolute;
-  top: -8px; right: -4px;                   /* visible hors bord */
+  top: -8px; right: -4px;     /* visible hors bord */
   background: #ff6b6b; color:#001018;
   font-weight: 800; font-size: .75rem; line-height: 1;
   border-radius: 999px; padding: .35rem .45rem;
@@ -222,6 +233,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .btn{padding:.54rem .8rem}
   .ratings{margin:1.4rem auto .6rem}
   .foot{margin:1rem auto 4.8rem}
+  /* espace final pour que le dock ne masque jamais le bas de page */
+  body{ padding-bottom: 96px; }
   /* ancrage confortable sous la topbar sticky */
   #list, #contact { scroll-margin-top: 84px; }
 }
@@ -300,12 +313,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 
 /* ====== Barre de liens (site-links) ====== */
-
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
   display:flex; gap:.45rem; flex-wrap:wrap; justify-content:center;
-  padding:.55rem .65rem;                     /* bulle un peu plus grande */
+  padding:.55rem .65rem;           /* bulle un peu plus grande */
   border:1px solid var(--border);
   border-radius:999px;
   background:rgba(255,255,255,.03);
@@ -315,20 +327,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .site-links .chip{
   background:rgba(255,255,255,.05);
-  padding:.34rem .7rem;                      /* chips plus petites */
+  padding:.34rem .7rem;            /* chips plus petites */
   font-size:.95rem;
 }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 
-@media (max-width: 420px){
+/* éviter que le dock recouvre la bulle de liens */
+@media (max-width:768px){
+  .site-links{ margin-bottom:5.2rem; }
+}
+@media (max-width:420px){
   .site-links{ gap:.35rem; padding:.5rem .6rem; }
   .site-links .chip{ font-size:.9rem; padding:.30rem .6rem; }
-}
-
-/* Affinage petits écrans */
-@media (max-width:420px){
-  .site-links{ gap:.4rem; padding:.5rem .55rem; }
-  .site-links .chip{ font-size:.9rem; padding:.3rem .56rem; }
 }
 
 /* ===== Catalogue (catégories auto) ===== */
@@ -397,11 +407,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 /* ==== Fix CTA topbar (mobile) ================================= */
 .cta .btn{
-  flex: 1 1 auto;              /* autorise la réduction */
-  min-width: 0;                /* évite l’overflow min-content */
+  flex: 1 1 auto;  /* autorise la réduction */
+  min-width: 0;    /* évite l’overflow min-content */
 }
-
-/* Mise en page spéciale pour écrans étroits: les deux CTA prennent chacun 50% */
 @media (max-width: 420px){
   .topbar{ grid-template-columns: auto 1fr; row-gap:.4rem; }
   .cta{
