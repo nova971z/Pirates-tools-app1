@@ -1,11 +1,13 @@
 /* =========================================================
-   Pirates Tools — app.js (FULL, stable)
+   Pirates Tools — app.js (FULL, stable, clean)
+   - Dock fixe (CSS-only) : suppression des JS qui bougeaient le bas
    - Hero fluide Android/iOS
    - Smooth scroll (depuis une vue → retour Home)
    - Panier persistant (localStorage) + dock (🛒/badge)
    - PDP riche : description + points clés + tableau specs
    - Devis (#/devis) : quantités + envoi WhatsApp
    - Compte & Fidélité (démo locale)
+   - Anti-zoom Android + bannière offline
 ========================================================= */
 
 'use strict';
@@ -39,10 +41,25 @@ const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
 
-/* Pour éviter des retours de scroll inattendus avec le hash routing */
-try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
+/* =========================================================
+   0) Qualité de vie : anti-zoom Android (facultatif)
+   (garde le site “solide” visuellement si tu ne veux pas
+    de pinch-zoom. Commente si tu veux le réactiver.)
+========================================================= */
+(function lockViewportZoomOnAndroid(){
+  const isAndroid = /android/i.test(navigator.userAgent);
+  if (!isAndroid) return;
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (!meta) return;
+  // verrouille le zoom pour éviter les mises à l’échelle qui cassent le dock
+  const base = 'width=device-width, initial-scale=1, viewport-fit=cover';
+  meta.setAttribute('content', `${base}, maximum-scale=1, user-scalable=no`);
+})();
 
-/* ---------- Dock: assure la bonne structure HTML ---------- */
+/* =========================================================
+   1) Dock : garantit la structure (une seule fois, CSS-only)
+   (plus AUCUN JS de repositionnement pour éviter les “jitters”)
+========================================================= */
 (function ensureDockShell(){
   const root = document.getElementById('dock');
   if (!root) return;
@@ -53,51 +70,47 @@ try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }
   root.appendChild(shell);
 })();
 
-/* ---------- CTA tel/wa homogènes ---------- */
+/* =========================================================
+   2) CTA tel/wa homogènes (topbar & PDP & dock)
+========================================================= */
 (function syncCTA(){
   callBtn?.setAttribute('href', `tel:${PHONE_E164}`);
   if (callBtn) callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-/* ===== Dock: stabilisation position (Android/iOS, clavier uniquement) ===== */
-(() => {
-  const root = document.documentElement;
-  const MIN_GAP = 14;          // marge visuelle constante (px)
-  const KEYBOARD_THRESHOLD = 150; // au-delà = c’est un clavier
+/* =========================================================
+   3) Bannière Offline / Online
+========================================================= */
+(function netBanner(){
+  const bar = document.createElement('div');
+  bar.id = 'netBanner';
+  bar.setAttribute('aria-live','polite');
+  Object.assign(bar.style, {
+    position:'fixed', left:'50%', transform:'translateX(-50%)',
+    bottom:'calc(72px + env(safe-area-inset-bottom, 0px))',
+    background:'rgba(10,15,20,.88)', border:'1px solid #22303b',
+    padding:'.5rem .8rem', borderRadius:'10px', zIndex:'120', boxShadow:'0 10px 24px rgba(0,0,0,.35)',
+    font:'600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif',
+    color:'#e6edf5', display:'none'
+  });
+  document.body.appendChild(bar);
 
-  // Calcule le “masquage” réel en bas de l’écran (quand le clavier sort)
-  function keyboardOcclusion() {
-    const vv = window.visualViewport;
-    if (!vv) return 0;
-
-    // portion réellement perdue en bas du viewport visuel
-    const hidden = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
-    // si barre d’adresse qui rentre/sort : ignore (< seuil)
-    return hidden > KEYBOARD_THRESHOLD ? Math.min(hidden, 320) : 0;
-  }
-
-  function apply() {
-    // On ne pousse le dock QUE pour le clavier (pas pendant le scroll)
-    const px = MIN_GAP + keyboardOcclusion();
-    root.style.setProperty('--dock-bottom', px + 'px');
-  }
-
-  // 1ère application
-  apply();
-
-  // Recalcule sur rotation & resize fenêtre
-  window.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
-  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive: true });
-
-  // Avec visualViewport: uniquement sur "resize" (PAS sur "scroll" → évite les sauts Android)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
-    // pas d'écoute sur visualViewport.scroll : ça provoquait les déplacements du dock
-  }
+  let hideT = 0;
+  const show = (txt, ok) => {
+    bar.textContent = txt;
+    bar.style.display = 'block';
+    bar.style.borderColor = ok ? '#00e1b4' : '#ff6b6b';
+    clearTimeout(hideT);
+    hideT = setTimeout(()=> bar.style.display='none', 2400);
+  };
+  window.addEventListener('offline', ()=> show('Hors ligne — contenu en cache', false));
+  window.addEventListener('online',  ()=> show('De nouveau en ligne', true));
 })();
 
-/* ---------- Logo = retour accueil ---------- */
+/* =========================================================
+   4) Logo = retour accueil (SPA)
+========================================================= */
 (function wireLogoHome(){
   const logo = homeLink || document.querySelector('.topbar-logo-link');
   logo?.addEventListener('click', (e)=>{
@@ -107,7 +120,9 @@ try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }
   });
 })();
 
-/* ---------- HERO : zoom + fondu + anti-chevauchement ---------- */
+/* =========================================================
+   5) HERO : zoom + fondu + anti-chevauchement
+========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
 
@@ -161,11 +176,12 @@ try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }
     hero.classList.add('hero-out');
     return;
   }
-
   compute();
 })();
 
-/* ---------- Smooth scroll (depuis une vue → retour home avant scroll) ---------- */
+/* =========================================================
+   6) Smooth scroll (depuis une vue → retour home avant scroll)
+========================================================= */
 $$('[data-scroll]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
@@ -184,7 +200,9 @@ $$('[data-scroll]').forEach(a => {
   });
 });
 
-/* ---------- Exit animation au scroll (injectée) ---------- */
+/* =========================================================
+   7) Anim “exit” (injection CSS + IO)
+========================================================= */
 const ScrollExit = (function () {
   function injectExitCSS(){
     if (document.getElementById('exit-anim-css')) return;
@@ -222,7 +240,7 @@ const ScrollExit = (function () {
 })();
 
 /* =========================================================
-   PANIER (persistant)
+   8) PANIER (persistant)
 ========================================================= */
 function updateDock(){
   if (!dock || !dockCount) return;
@@ -267,10 +285,8 @@ function cartToWhatsAppText(){
 }
 
 /* =========================================================
-   PRODUITS : rendu liste / PDP
+   9) PRODUITS : rendu liste / PDP
 ========================================================= */
-
-/* Carte produit (liste) */
 function productToHTML(m){
   const title = fallback(m.title, `${fallback(m.brand,'')}${m.brand?' ':''}${fallback(m.sku,'')}`).trim();
   const tag   = fallback(m.badge, (Array.isArray(m.tags)&&m.tags[0]) || fallback(m.tag,'')).trim();
@@ -288,7 +304,6 @@ function productToHTML(m){
   </article>`;
 }
 
-/* Binding “Ajouter au panier” dans la liste courante */
 function bindAddToCart(scopeData){
   $$('[data-add]', listEl).forEach(btn=>{
     btn.addEventListener('click', (e)=>{
@@ -302,7 +317,6 @@ function bindAddToCart(scopeData){
   });
 }
 
-/* Trouve un produit par id/sku/titre (insensible à la casse) */
 function findProductByKey(key){
   if (!key) return null;
   const k = String(key).toLowerCase();
@@ -314,7 +328,6 @@ function findProductByKey(key){
   }) || null;
 }
 
-/* Rendu fiche produit (PDP) */
 function renderPDP(product){
   const wrap   = document.getElementById('pdp');
   if (!wrap) return;
@@ -338,15 +351,12 @@ function renderPDP(product){
   elDesc.textContent = desc || 'Caractéristiques à venir.';
   if (elImg){
     elImg.src = img; elImg.alt = title;
-    // Fallback image si la source externe est KO
     elImg.onerror = ()=>{ elImg.onerror = null; elImg.src = './images/pirates-tools-logo.png?v=7'; };
   }
 
-  /* 1) Points clés (features) */
   const features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
   const featHtml = features.length ? features.map(s=>`<li>${s}</li>`).join('') : '';
 
-  /* 2) Tableau “Caractéristiques techniques” (specs_kv + dérivation) */
   const kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
   const kvDerived = {
     'Plateforme': product.platform || undefined,
@@ -379,19 +389,14 @@ function renderPDP(product){
 
   elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
 
-  /* Boutons */
   btnQ.textContent = 'Ajouter au panier';
-  btnQ.onclick = ()=>{
-    CART.push(product);
-    saveCart();
-  };
+  btnQ.onclick = ()=>{ CART.push(product); saveCart(); };
 
   const sku = product.sku || product.id || title;
   const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
   const phone = PHONE_E164.replace('+','');
   btnWa.href = `https://wa.me/${phone}?text=${msg}`;
 
-  /* Produits liés */
   const related = MODELS.filter(m => (m!==product) && (
     (product.category && m.category===product.category) ||
     (tag && ((m.badge===tag) || (Array.isArray(m.tags) && m.tags.includes(tag))))
@@ -410,7 +415,6 @@ function renderPDP(product){
     </article>
   `).join('');
 
-  // Ajout au panier depuis la section “Produits liés”
   elRel.addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-add]');
     if (!btn) return;
@@ -422,7 +426,7 @@ function renderPDP(product){
 
   $$('.pdp__related .card').forEach(card=>{
     card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return; // déjà géré ci-dessus
+      if (e.target.closest('[data-add]')) return;
       const id = card.getAttribute('data-id');
       if (!id) return;
       location.hash = `#/produit/${encodeURIComponent(id)}`;
@@ -430,7 +434,6 @@ function renderPDP(product){
   });
 }
 
-/* Rendu de la liste */
 function renderList(data){
   if (!Array.isArray(data)) return;
   listEl.innerHTML = data.map(productToHTML).join('\n');
@@ -450,7 +453,7 @@ function renderList(data){
 }
 
 /* =========================================================
-   CATALOGUE (catégories auto)
+   10) CATALOGUE (catégories auto)
 ========================================================= */
 function buildCategories(){
   const map = new Map();
@@ -494,7 +497,7 @@ function renderCatalogue(){
 }
 
 /* =========================================================
-   CHARGEMENT PRODUITS
+   11) CHARGEMENT PRODUITS
 ========================================================= */
 async function loadProducts(){
   try{
@@ -516,7 +519,7 @@ async function loadProducts(){
 loadProducts();
 
 /* =========================================================
-   FILTRE (debounce)
+   12) FILTRE (debounce)
 ========================================================= */
 function debounce(fn, wait=140){ let t=0; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; }
 const applyFilters = debounce(()=>{
@@ -542,7 +545,7 @@ searchEl?.addEventListener('input', applyFilters, { passive:true });
 tagEl?.addEventListener('change', applyFilters);
 
 /* =========================================================
-   DEVIS (#/devis) — rendu dynamique
+   13) DEVIS (#/devis) — rendu dynamique
 ========================================================= */
 function renderCartView(){
   const root = $('#devisList');
@@ -573,7 +576,6 @@ function renderCartView(){
     }).join('');
   }
 
-  // actions quantités
   root.onclick = (e)=>{
     const inc = e.target.closest('[data-inc]'); const dec = e.target.closest('[data-dec]'); const del = e.target.closest('[data-del]');
     const key = inc?.dataset.inc || dec?.dataset.dec || del?.dataset.del;
@@ -606,7 +608,7 @@ function renderCartView(){
 }
 
 /* =========================================================
-   DOCK (bas d’écran) — actions
+   14) DOCK (bas d’écran) — actions
 ========================================================= */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
@@ -617,124 +619,23 @@ dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
 /* =========================================================
-   PWA (install + updates, propre & robuste)
-   - Bouton d’installation (beforeinstallprompt)
-   - Enregistrement SW + détection d’update
-   - Bannière "Mise à jour disponible" (injection JS)
-   - SKIP_WAITING → controllerchange → reload doux
-   - Vérif périodique des updates
+   15) PWA (install + SW)
 ========================================================= */
-(() => {
-  let deferredPrompt = null;
-  const installBtn = document.getElementById('installBtn');
-
-  /* --- Install prompt natif --- */
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (installBtn) installBtn.hidden = false;
-  });
-
-  installBtn?.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    installBtn.hidden = true;
-    deferredPrompt.prompt();
-    try { await deferredPrompt.userChoice; } catch (_) {}
-    deferredPrompt = null;
-  });
-
-  if (!('serviceWorker' in navigator)) return;
-
-  /* --- Reload automatique (une seule fois) lorsque le nouveau SW prend le contrôle --- */
-  let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading) return;
-    reloading = true;
-    // petit délai pour laisser le contrôleur s’installer sans flash
-    setTimeout(() => location.reload(), 120);
-  });
-
-  /* --- Helper: bannière de mise à jour injectée dynamiquement --- */
-  function showUpdateToast(waitingSW) {
-    if (!waitingSW) return;
-
-    // évite les doublons
-    if (document.getElementById('pt-update-toast')) return;
-
-    const toast = document.createElement('div');
-    toast.id = 'pt-update-toast';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.style.cssText = `
-      position: fixed; inset: auto 12px 12px 12px; z-index: 9999;
-      display: grid; grid-template-columns: 1fr auto; gap: .6rem; align-items: center;
-      padding: .75rem .9rem; border-radius: 12px;
-      background: rgba(10,15,20,.92); color: #e6edf5; border: 1px solid #22303b;
-      box-shadow: 0 10px 24px rgba(0,0,0,.35); font: 600 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
-    `;
-    toast.innerHTML = `
-      <span>Une mise à jour de l’application est disponible.</span>
-      <span style="display:flex; gap:.5rem">
-        <button id="pt-update-apply" style="
-            display:inline-flex; align-items:center; gap:.4rem;
-            padding:.5rem .8rem; border:0; border-radius:10px; cursor:pointer;
-            background: linear-gradient(90deg, #19d3ff 0%, #00e1b4 100%); color:#001018; font-weight:800;
-        ">Mettre à jour</button>
-        <button id="pt-update-later" style="
-            display:inline-flex; align-items:center; gap:.4rem;
-            padding:.5rem .8rem; border:1px solid #22303b; border-radius:10px; cursor:pointer;
-            background: rgba(255,255,255,.06); color:#e6edf5; font-weight:700;
-        ">Plus tard</button>
-      </span>
-    `;
-    document.body.appendChild(toast);
-
-    const applyBtn = document.getElementById('pt-update-apply');
-    const laterBtn = document.getElementById('pt-update-later');
-
-    applyBtn?.addEventListener('click', () => {
-      try { waitingSW.postMessage('SKIP_WAITING'); } catch(_) {}
-      // la page se rechargera sur 'controllerchange'
-      applyBtn.disabled = true;
-      applyBtn.textContent = 'Mise à jour…';
-    });
-
-    laterBtn?.addEventListener('click', () => {
-      toast.remove();
-    });
-  }
-
-  /* --- Enregistrement du SW + gestion des updates --- */
-  window.addEventListener('load', async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
-
-      // Si un SW est déjà en attente (cas de refresh), on propose d’appliquer
-      if (reg.waiting) showUpdateToast(reg.waiting);
-
-      // Quand un nouveau SW est trouvé
-      reg.addEventListener('updatefound', () => {
-        const sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener('statechange', () => {
-          // 'installed' + un contrôleur existe => une update est disponible
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateToast(sw);
-          }
-        });
-      });
-
-      // Vérif périodique des updates (toutes les 60 min)
-      setInterval(() => reg.update().catch(()=>{}), 60 * 60 * 1000);
-
-    } catch (e) {
-      console.warn('SW register failed:', e);
-    }
-  });
-})();
+let deferredPrompt;
+const installBtn = $('#installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
+});
+installBtn?.addEventListener('click', async () => {
+  installBtn.hidden = true; if (!deferredPrompt) return;
+  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
+}
 
 /* =========================================================
-   COMPTE & FIDÉLITÉ (démo locale)
+   16) COMPTE & FIDÉLITÉ (démo locale)
 ========================================================= */
 function loadUser(){
   try{ return JSON.parse(localStorage.getItem(USER_KEY)) || { name:'', email:'', spent:0 }; }
@@ -779,7 +680,7 @@ function renderAccount(){
 }
 
 /* =========================================================
-   ROUTER (#/…)
+   17) ROUTER (#/…)
 ========================================================= */
 (()=>{
   const HOME_PARTS = [
@@ -822,7 +723,6 @@ function renderAccount(){
     if (m){
       const key = decodeURIComponent(m[1]);
 
-      // si produits pas encore chargés, on attend l’événement
       const tryRender = ()=>{
         const p = findProductByKey(key);
         showHome(false); showView('produit');
@@ -870,15 +770,4 @@ function renderAccount(){
 
   window.addEventListener('hashchange', onRoute);
   onRoute();
-})();
-
-
-/* ===== Anti double-tap zoom (option douce) ===== */
-(() => {
-  let last = 0;
-  document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - last < 350) { e.preventDefault(); }
-    last = now;
-  }, { passive: false });
 })();
