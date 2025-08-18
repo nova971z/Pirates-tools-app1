@@ -37,6 +37,18 @@ const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
 
+/* ---- Dock: assure la bonne structure HTML même si l'index n'est pas à jour ---- */
+(function ensureDockShell(){
+  const d = document.getElementById('dock');
+  if (!d) return;
+  if (!d.querySelector('.dock__shell')) {
+    const shell = document.createElement('div');
+    shell.className = 'dock__shell';
+    while (d.firstChild) shell.appendChild(d.firstChild);
+    d.appendChild(shell);
+  }
+})();
+
 /* Wrap visuel du dock pour centrer sans transform (évite les jitters Android) */
 (function ensureDockShell(){
   const root = document.getElementById('dock');
