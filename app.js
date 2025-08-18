@@ -222,6 +222,7 @@ const homeLink    = $('#homeLink');
   if (!hero || !heroLogo) return;
 
   const mq = window.matchMedia('(max-width: 768px)');
+  const mqr = window.matchMedia('(prefers-reduced-motion: reduce)');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
   const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
 
@@ -257,20 +258,28 @@ const homeLink    = $('#homeLink');
     }
   }
 
+  // --- Mode “réduction des animations” : garder le hero visible, sans anim
+  if (mqr.matches){
+    heroLogo.style.setProperty('--heroScale', '1');
+    heroLogo.style.setProperty('--heroY', '0vh');
+    heroLogo.style.setProperty('--heroAlpha', '1');
+    // Conserver un espace pour ne pas recouvrir le logo par la liste
+    document.documentElement.style.setProperty('--listGap', '18vh');
+    document.body.classList.remove('after-hero');
+    hero.classList.remove('hero-out');
+    return;
+  }
+
   window.addEventListener('scroll', onScroll, { passive:true });
   window.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
   window.visualViewport?.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
   window.addEventListener('orientationchange', () => { vh = getVH(); compute(); }, { passive:true });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
+  // iOS bfcache / back-forward cache
+  window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); compute(); } }, { passive:true });
+  // si l’utilisateur active/désactive la préférence à chaud
+  mqr.addEventListener?.('change', () => location.reload?.());
 
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    heroLogo.style.setProperty('--heroScale', '1');
-    heroLogo.style.setProperty('--heroY', '0vh');
-    heroLogo.style.setProperty('--heroAlpha', '1');
-    document.documentElement.style.setProperty('--listGap', '0vh');
-    hero.classList.add('hero-out');
-    return;
-  }
   compute();
 })();
 
