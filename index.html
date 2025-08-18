@@ -3,9 +3,7 @@
 <head>
   <!-- Métadonnées de base -->
   <meta charset="utf-8" />
-  <!-- Anti-zoom mobile demandé (+ safe areas iOS) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="format-detection" content="telephone=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
   <meta name="theme-color" content="#0a0f14" />
@@ -13,18 +11,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="application-name" content="Pirates Tools" />
   <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
-  <meta name="robots" content="index,follow" />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <meta name="format-detection" content="telephone=no" />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" href="favicon.ico" />
-  <!-- Favicon PNG haute résolution (bonus netteté) -->
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.webp" imagesrcset="./images/pirates-tools-logo.webp" />
+  <link rel="dns-prefetch" href="https://wa.me" />
+  <!-- Préchargement logo (WebP + PNG fallback) -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.webp" imagesrcset="./images/pirates-tools-logo.webp 1x, ./images/pirates-tools-logo.png?v=7 1x" />
   <!-- Pré-chargement léger des données produits -->
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
@@ -53,29 +52,27 @@
   }
   </script>
 
-  <!-- Micro-styles accessibilité (isoles, ne touchent pas ton thème) -->
+  <!-- A11y helpers (minimes) -->
   <style>
+    .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
     .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    .skip-link{position:absolute;inset-inline-start:8px;top:8px;background:#0a0f14;color:#fff;padding:.5rem .75rem;border-radius:10px;border:1px solid #22303b;transform:translateY(-200%);transition:transform .2s}
-    .skip-link:focus{transform:translateY(0)}
   </style>
 </head>
 <body>
 
-  <!-- Skip-link (accessibility) -->
-  <a href="#main" class="skip-link">Aller au contenu</a>
+  <!-- Skip link -->
+  <a href="#list" class="skip-link">Aller au contenu</a>
 
-  <!-- Région aria-live pour annonces (lecteurs d’écran) -->
-  <div id="srLive" class="sr-only" aria-live="polite" role="status"></div>
-
-  <!-- Pile de toasts (feedback visuel) -->
-  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
+  <!-- Zones d’annonces SR et toasts (câblage JS prévu dans le plan) -->
+  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
   <!-- ============== TOPBAR (fixe) ============== -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
     <!-- id=homeLink : géré par app.js -> retour accueil partout -->
     <a id="homeLink" class="topbar-logo-link" href="#" aria-label="Revenir à l’accueil">
-      <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" />
+      <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" decoding="async" />
     </a>
 
     <div class="brand">Pirates Tools</div>
@@ -115,7 +112,7 @@
 
   <!-- ============== BARRE OUTILS (recherche/filtre) ============== -->
   <section class="toolbar" aria-label="Recherche et filtres">
-    <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" />
+    <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
     <select id="tag" class="select" aria-label="Filtrer par tag">
       <option value="">Tous</option>
       <option>18V</option>
@@ -125,14 +122,13 @@
   </section>
 
   <!-- ============== LISTE PRODUITS (injectée en JS) ============== -->
-  <main id="main" class="container" role="main" aria-labelledby="title-home">
-    <h1 id="title-home" class="sr-only" tabindex="-1">Pirates Tools — Accueil</h1>
+  <main class="container" role="main">
     <section id="list" class="list" role="list" aria-label="Produits"></section>
   </main>
 
   <!-- ============== AVIS ============== -->
   <section class="ratings" aria-label="Avis clients">
-    <h2>Ils nous font confiance</h2>
+    <h2 tabindex="-1" id="h-ratings">Ils nous font confiance</h2>
     <ul class="ratings__list">
       <li>★★★★★ — “Service rapide en Guadeloupe !” — Marc</li>
       <li>★★★★★ — “DeWALT dispo, prix corrects.” — Sara</li>
@@ -153,7 +149,7 @@
         </div>
 
         <div class="pdp__info">
-          <h1 id="pdpTitle" class="pdp__title" tabindex="-1"></h1>
+          <h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>
           <p id="pdpTag" class="pdp__tag"></p>
           <p id="pdpDesc" class="pdp__desc"></p>
 
@@ -162,18 +158,18 @@
             <a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>
           </div>
 
-          <ul class="pdp__specs" id="pdpSpecs"></ul>
+          <ul class="pdp__specs" id="pdpSpecs" aria-label="Caractéristiques"></ul>
         </div>
       </div>
 
-      <div class="pdp__related" id="pdpRelated"></div>
+      <div class="pdp__related" id="pdpRelated" aria-label="Produits liés"></div>
     </div>
   </section>
 
   <!-- [VIEW] Catalogue (route: #/catalogue) -->
   <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
     <div class="container">
-      <h1 class="view__title" id="title-catalogue" tabindex="-1" style="margin:1rem 0 .5rem">Catalogue</h1>
+      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Catalogue</h1>
       <p style="margin:0 0 1rem; color:#9fb4c5">
         Découvrez les catégories générées automatiquement à partir des produits.
         Touchez une catégorie pour voir la liste filtrée.
@@ -192,7 +188,7 @@
   <!-- [VIEW] Devis (route: #/devis) -->
   <section id="view-devis" class="view hidden" aria-label="Devis express">
     <div class="container">
-      <h1 class="view__title" id="title-devis" tabindex="-1" style="margin:1rem 0 .5rem">Devis express</h1>
+      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Devis express</h1>
       <p style="margin:0 0 1rem; color:#9fb4c5">
         Récapitulatif des articles sélectionnés + envoi WhatsApp.
       </p>
@@ -211,12 +207,12 @@
   <!-- [VIEW] Compte + Fidélité (route: #/compte) -->
   <section id="view-compte" class="view hidden" aria-label="Espace client">
     <div class="container">
-      <h1 class="view__title" id="title-compte" tabindex="-1" style="margin:1rem 0 .5rem">Mon compte</h1>
+      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Mon compte</h1>
       <div class="card" style="margin-bottom:1rem">
         <div class="head"><h3 class="title">Profil</h3></div>
         <div class="specs" style="display:grid;gap:.8rem">
           <label>Nom <input id="accName" class="select" placeholder="Votre nom" autocomplete="name" /></label>
-          <label>Email <input id="accEmail" class="select" placeholder="vous@exemple.com" autocomplete="email" inputmode="email" /></label>
+          <label>Email <input id="accEmail" class="select" placeholder="vous@exemple.com" autocomplete="email" /></label>
         </div>
         <div class="actions">
           <button class="btn primary" id="accSave">Enregistrer</button>
@@ -277,24 +273,14 @@
   </footer>
 
   <!-- ============== DOCK MOBILE (actions rapides) ============== -->
+  <!-- NB: app.js ajoute .dock__shell si absent -->
   <nav class="dock hidden" id="dock" aria-label="Actions rapides">
-    <div class="dock__shell">
-      <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
-      <button class="dock__btn dock__btn--wa" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
-      <button class="dock__btn dock__btn--cart" id="dockCartBtn" aria-label="Voir mon devis/panier">🛒</button>
-      <a class="dock__btn dock__btn--tools" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
-      <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
-    </div>
+    <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
+    <button class="dock__btn dock__btn--wa" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
+    <button class="dock__btn dock__btn--cart" id="dockCartBtn" aria-label="Voir mon devis/panier">🛒</button>
+    <a class="dock__btn dock__btn--tools" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
+    <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
   </nav>
-
-  <!-- Template toast (pour la future notif "ajouté au panier", MAJ SW, etc.) -->
-  <template id="toast-template">
-    <div class="toast" role="status" aria-live="polite">
-      <span class="toast__icon">✅</span>
-      <span class="toast__msg">Message</span>
-      <button class="toast__close" aria-label="Fermer">✕</button>
-    </div>
-  </template>
 
   <!-- PWA install -->
   <button id="installBtn" hidden>Installer l’app</button>
