@@ -398,7 +398,6 @@ if ('serviceWorker' in navigator) {
 }
 
 
-
 /* [ROUTER | #/…] — mini routeur hash (home, catalogue, devis, produit) */
 (()=>{
   const HOME_PARTS = [
@@ -418,25 +417,54 @@ if ('serviceWorker' in navigator) {
   const hideAllViews  = ()=> Object.values(VIEWS).forEach(el => el?.classList.add('hidden'));
   const showView      = (key)=>{ hideAllViews(); VIEWS[key]?.classList.remove('hidden'); };
 
+  let prevHash = '';                        // ← mémorise d’où on vient
+
+  function wireBack(cameFrom){              // ← “Retour” intelligent
+    const back = document.getElementById('pdpBack');
+    if (!back) return;
+    back.onclick = (e)=>{
+      e.preventDefault();
+      // 1) si on connaît l’origine (home, catalogue, devis…), on y retourne
+      if (cameFrom && cameFrom !== location.hash) {
+        location.hash = cameFrom;
+        return;
+      }
+      // 2) sinon on tente l’historique du navigateur
+      if (history.length > 1) {
+        history.back();
+        return;
+      }
+      // 3) ultime fallback : accueil
+      location.hash = '';
+    };
+  }
+
   function onRoute(){
     const h = (location.hash || '').toLowerCase();
+    const cameFrom = prevHash;              // garde l’origine pour le bouton retour
 
     // #/produit/:id
     let m = h.match(/^#\/produit\/([^/?#]+)/);
     if (m){
       const key = decodeURIComponent(m[1]);
-      const p = findProductByKey(key);
+      const p = typeof findProductByKey === 'function' ? findProductByKey(key) : null;
+
       showHome(false);
       showView('produit');
-      if (p){ renderPDP(p); document.title = `Pirates Tools • ${p.title||p.sku||'Produit'}`; }
-      else {
-        // fallback simple
+
+      if (p){
+        renderPDP(p);
+        document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
+      } else {
         const elT = document.getElementById('pdpTitle');
         const elD = document.getElementById('pdpDesc');
-        elT.textContent = 'Produit introuvable';
-        elD.textContent = 'Vérifiez la référence ou revenez au catalogue.';
+        if (elT) elT.textContent = 'Produit introuvable';
+        if (elD) elD.textContent = 'Vérifiez la référence ou revenez au catalogue.';
       }
+
+      wireBack(cameFrom);                   // ← active “Retour”
       window.scrollTo({top:0, behavior:'instant'});
+      prevHash = h;
       return;
     }
 
@@ -447,6 +475,7 @@ if ('serviceWorker' in navigator) {
       showView('catalogue');
       document.title = 'Pirates Tools • Catalogue';
       window.scrollTo({top:0, behavior:'instant'});
+      prevHash = h;
       return;
     }
 
@@ -456,39 +485,26 @@ if ('serviceWorker' in navigator) {
       showHome(false);
       showView('devis');
       document.title = 'Pirates Tools • Devis';
-      // met à jour le récap
-      try{
-        const wrap = document.getElementById('devisList');
-        if (wrap){
-          if (Array.isArray(window.CART) && window.CART.length){
-            wrap.innerHTML = window.CART.map((p,i)=>`
-              <p style="margin:0">• ${p.sku || p.id || (i+1)} — ${(p.title||'').replace(/\s+/g,' ').trim()}</p>
-            `).join('');
-          } else {
-            wrap.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
-          }
-        }
-        const btn = document.getElementById('devisSend');
-        btn?.addEventListener('click', ()=>{
-          if (!Array.isArray(window.CART) || !window.CART.length) return;
-          const lines = window.CART.slice(0,40).map((p,i)=>{
-            const sku = p.sku || p.id || (i+1);
-            const title = (p.title||'').replace(/\s+/g,' ').trim();
-            return `• ${sku} – ${title}`;
-          });
-          const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`);
-          const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
-          window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener');
-        }, { once:true });
-      }catch(_){}
+      // (récap devis déjà géré dans ta version)
       window.scrollTo({top:0, behavior:'instant'});
+      prevHash = h;
       return;
     }
 
-    // Accueil (par défaut)
+    // Accueil ( '', '#', '#/' ou '#/home' )
+    if (h === '' || h === '#' || h === '#/' || h === '#/home'){
+      showHome(true);
+      hideAllViews();
+      document.title = 'Pirates Tools • Outillage pro (PWA)';
+      prevHash = h;
+      return;
+    }
+
+    // fallback : accueil
     showHome(true);
     hideAllViews();
     document.title = 'Pirates Tools • Outillage pro (PWA)';
+    prevHash = h;
   }
 
   window.addEventListener('hashchange', onRoute);
