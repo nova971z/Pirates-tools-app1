@@ -8,6 +8,8 @@
    - Compte & Fidélité (démo locale)
 ========================================================= */
 
+'use strict';
+
 /* ---------- Helpers ---------- */
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
@@ -37,19 +39,10 @@ const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
 const homeLink    = $('#homeLink');
 
-/* ---- Dock: assure la bonne structure HTML même si l'index n'est pas à jour ---- */
-(function ensureDockShell(){
-  const d = document.getElementById('dock');
-  if (!d) return;
-  if (!d.querySelector('.dock__shell')) {
-    const shell = document.createElement('div');
-    shell.className = 'dock__shell';
-    while (d.firstChild) shell.appendChild(d.firstChild);
-    d.appendChild(shell);
-  }
-})();
+/* Pour éviter des retours de scroll inattendus avec le hash routing */
+try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
 
-/* Wrap visuel du dock pour centrer sans transform (évite les jitters Android) */
+/* ---------- Dock: assure la bonne structure HTML ---------- */
 (function ensureDockShell(){
   const root = document.getElementById('dock');
   if (!root) return;
@@ -67,35 +60,31 @@ const homeLink    = $('#homeLink');
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-
-/* ===== Dock: stabilisation position (Android/iOS, webview & clavier) ===== */
+/* ===== Dock: stabilisation position (Android/iOS, clavier uniquement) =====
+   - Met à jour la variable CSS --dock-bottom.
+   - Ignore les petits changements liés à la barre d’adresse (sinon jitter).
+---------------------------------------------------------------------------- */
 (function stableDock(){
   const root = document.documentElement;
-  const MIN_GAP = 14;                 // marge mini en px
+  const MIN_GAP = 14;             // marge mini en px
+  const KEYBOARD_THRESHOLD = 150;  // au-delà on considère que c'est le clavier
 
-  // Ne considère comme occlusion que le CLAVIER (pas la barre d'adresse)
   function keyboardOcclusion(){
     const vv = window.visualViewport;
     if (!vv) return 0;
     const diff = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
-    // seuil : si <150px, c’est juste la toolbar/scroll → ignore
-    return diff > 150 ? Math.min(diff, 320) : 0;
+    return diff > KEYBOARD_THRESHOLD ? Math.min(diff, 360) : 0;
   }
 
-  function apply(){
-    const px = MIN_GAP + keyboardOcclusion();
-    root.style.setProperty('--dock-bottom', px + 'px');
-  }
-
+  function apply(){ root.style.setProperty('--dock-bottom', (MIN_GAP + keyboardOcclusion()) + 'px'); }
   const rafApply = () => requestAnimationFrame(apply);
 
   apply();
   window.addEventListener('resize', rafApply, { passive:true });
   window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive:true });
-
   if (window.visualViewport){
     window.visualViewport.addEventListener('resize', rafApply, { passive:true });
-    // ⚠️ pas d'écouteur sur visualViewport.scroll → ça créait les “sauts”
+    // ⚠️ PAS d'écouteur sur visualViewport.scroll → causerait des “sauts” sur Android
   }
 })();
 
@@ -608,7 +597,7 @@ function renderCartView(){
 }
 
 /* =========================================================
-   DOCK (bas d’écran)
+   DOCK (bas d’écran) — actions
 ========================================================= */
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
@@ -617,39 +606,6 @@ dockQuoteBtn?.addEventListener('click', ()=>{
 });
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
-
-/* ===== Dock: stabilisation position (Android/iOS, webview & clavier) ===== */
-(function stableDock(){
-  const root = document.documentElement;
-  const MIN_GAP = 14;               // marge mini en px
-
-  function occludedBottom(){
-    const vv = window.visualViewport;
-    if (!vv) return 0;
-
-    // portion réellement masquée en bas
-    let hidden = Math.round(window.innerHeight - (vv.height + vv.offsetTop));
-
-    // si barre d'adresse en haut → ne pas pousser le dock
-    if (vv.offsetTop > 0 && hidden > 0) hidden = 0;
-
-    // bornes de sécurité : évite les sauts à mi-écran
-    return Math.max(0, Math.min(hidden, 120));  // max 120px (clavier/bottom bar)
-  }
-
-  function apply(){
-    const px = MIN_GAP + occludedBottom();
-    root.style.setProperty('--dock-bottom', px + 'px');
-  }
-
-  apply();
-  window.addEventListener('resize', () => setTimeout(apply, 60), { passive:true });
-  window.addEventListener('orientationchange', () => setTimeout(apply, 90), { passive:true });
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', apply, { passive:true });
-    window.visualViewport.addEventListener('scroll', apply, { passive:true });
-  }
-})();
 
 /* =========================================================
    PWA
