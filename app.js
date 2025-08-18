@@ -1,33 +1,16 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, Android smooth + fixes)
    + FIX data-scroll: retour à Home avant de scroller
-   + Devis rendu dynamique + dock panier → #/devis
+   + Devis/ panier dynamique + dock panier → #/devis (robuste)
    + Compte & Fidélité (localStorage + curseur)
-   + Slug produit robuste (résout #/produit/dewalt-dcf887-n)
-   + Boutons "Ajouter au panier"
+   + FIX PDP: bouton "Ajouter au panier" + saveCart()
 ========================================================= */
 
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
-/* --------- Helpers slug --------- */
-function slugify(str){
-  return String(str||'')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // accents
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g,'-')                        // sep
-    .replace(/^-+|-+$/g,'');                           // trim -
-}
-function productSlug(m){
-  // priorité éventuelle à m.slug si présent
-  if (m.slug) return slugify(m.slug);
-  const base = (m.brand ? `${m.brand} ` : '') + (m.sku || m.title || '');
-  return slugify(base || m.id || '');
-}
-
-/* --------- Téléphone / CTA --------- */
+/* Numéro unique */
 const PHONE_HUMAN = '07 74 23 01 95';
 const PHONE_E164  = '+33774230195';
 
@@ -183,7 +166,7 @@ const ScrollExit = (function () {
   return { observeWithin };
 })();
 
-/* ---------------- Produits / Devis ---------------- */
+/* ---------------- Produits / Panier ---------------- */
 let MODELS = [];
 let CART   = [];
 
@@ -234,29 +217,30 @@ function cartToWhatsAppText(){
   return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
 }
 
-/* ===== Rendu carte produit (liste) ===== */
+const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
+
 function productToHTML(m){
   const title = fallback(m.title, `${fallback(m.brand,'')}${m.brand?' ':''}${fallback(m.sku,'')}`).trim();
   const tag   = fallback(m.tag,'').trim();
   const desc  = fallback(m.desc, fallback(m.description,''));
-  const slug  = productSlug(m); // <<< identifiant de navigation unique
+  const id    = fallback(m.id, fallback(m.sku, title)).toString();
 
   return `
-  <article class="card" data-tool data-id="${slug}" data-tag="${tag}">
+  <article class="card" data-tool data-id="${id}" data-tag="${tag}">
     <div class="head">
       <h3 class="title">${title}</h3>
       ${tag ? `<span class="badge">${tag}</span>` : ``}
     </div>
     <div class="specs"><p style="margin:0">${desc || '—'}</p></div>
-    <div class="actions"><button class="btn primary" data-add="${slug}">Ajouter au panier</button></div>
+    <div class="actions"><button class="btn primary" data-add="${id}">Ajouter au panier</button></div>
   </article>`;
 }
 
 function bindAddToQuote(scopeData){
   $$('[data-add]', listEl).forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      const slug = btn.getAttribute('data-add');
-      const p  = scopeData.find(x => productSlug(x) === slug);
+      const id = btn.getAttribute('data-add');
+      const p  = scopeData.find(x => (x.id?.toString()===id) || (x.sku?.toString()===id) || (x.title===id));
       if (!p) return;
       CART.push(p);
       saveCart();
@@ -264,115 +248,78 @@ function bindAddToQuote(scopeData){
   });
 }
 
-/* Trouve un produit par id/sku/titre/slug (+ tolérant) */
-function plain(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+/* Trouve un produit par id/sku/titre */
 function findProductByKey(key){
   if (!key) return null;
-  const kSlug = slugify(key);
-  const kFlat = plain(key);
-
+  const k = String(key).toLowerCase();
   return MODELS.find(m=>{
-    const id  = (m.id ?? m.sku ?? m.title ?? '').toString();
-    const fields = [
-      id,
-      m.sku, m.title, m.brand && `${m.brand} ${m.sku||m.title||''}`,
-      productSlug(m)
-    ].filter(Boolean);
-
-    // 1) égalité stricte sur slug
-    if (fields.some(f => slugify(f) === kSlug)) return true;
-
-    // 2) égalité stricte sur "flat" (sans tirets/espaces)
-    if (fields.some(f => plain(f) === kFlat)) return true;
-
-    // 3) inclusion (tolérant ex: "dewalt-dcf887-n" ≈ "DCF887N")
-    if (fields.some(f => plain(f).includes(kFlat) || kFlat.includes(plain(f)))) return true;
-
-    return false;
+    const id  = (m.id ?? m.sku ?? '').toString().toLowerCase();
+    const sku = (m.sku ?? '').toString().toLowerCase();
+    const ttl = (m.title ?? '').toLowerCase();
+    return id===k || sku===k || ttl===k;
   }) || null;
 }
 
-/* ===== Rendu de la vue PDP ===== */
-function renderPDP(product){
-  const wrap   = document.getElementById('pdp');
-  const elImg  = document.getElementById('pdpImg');
-  const elT    = document.getElementById('pdpTitle');
-  const elTag  = document.getElementById('pdpTag');
-  const elDesc = document.getElementById('pdpDesc');
-  const elSpecs= document.getElementById('pdpSpecs');
-  const elRel  = document.getElementById('pdpRelated');
-  const btnQ   = document.getElementById('pdpQuote');
-  const btnWa  = document.getElementById('pdpWa');
+/* ===== Rendu de la vue Devis ===== */
+function renderCartView(){
+  const root = $('#devisList');
+  if (!root) return;
 
-  if (!wrap) return;
-
-  const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
-  const tag   = product.tag || '';
-  const desc  = product.desc || product.description || '';
-  const img   = product.img || './images/pirates-tools-logo.png?v=7';
-
-  elT.textContent = title;
-  elTag.textContent = tag ? `#${tag}` : '';
-  elDesc.textContent = desc || 'Caractéristiques à venir.';
-  elImg.src = img; elImg.alt = title;
-
-  // Label bouton
-  if (btnQ) btnQ.textContent = 'Ajouter au panier';
-
-  // specs (liste)
-  const specs = Array.isArray(product.specs) ? product.specs : [];
-  elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
-
-  // WhatsApp direct
-  const sku = product.sku || product.id || title;
-  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
-  const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
-  btnWa && (btnWa.href = `https://wa.me/${phone}?text=${msg}`);
-
-  // Ajouter au panier
-  if (btnQ){
-    btnQ.onclick = ()=>{
-      CART.push(product);
-      saveCart();
-    };
+  const grouped = groupCart();
+  if (!grouped.length){
+    root.innerHTML = `<p style="margin:0">Aucun article pour le moment.</p>`;
+  }else{
+    root.innerHTML = grouped.map(({item,qty})=>{
+      const sku   = item.sku || item.id || '';
+      const title = item.title || `${item.brand||''} ${item.sku||''}`.trim();
+      const key   = keyOf(item);
+      return `
+        <div class="card" style="width:100%">
+          <div class="head">
+            <h3 class="title">${title}</h3>
+            <span class="badge">${sku}</span>
+          </div>
+          <div class="specs" style="display:flex;gap:.6rem;align-items:center">
+            <button class="btn" data-dec="${key}">−</button>
+            <strong>${qty}</strong>
+            <button class="btn" data-inc="${key}">+</button>
+            <button class="btn" data-del="${key}" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec">Supprimer</button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  // Produits liés (même tag)
-  const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
-  elRel.innerHTML = related.map(m=>`
-    <article class="card" data-id="${productSlug(m)}">
-      <div class="head">
-        <h3 class="title">${m.title || (m.brand||'')+' '+(m.sku||'')}</h3>
-        ${m.tag ? `<span class="badge">${m.tag}</span>` : ``}
-      </div>
-      <div class="specs"><p style="margin:0">${m.desc || m.description || ''}</p></div>
-      <div class="actions">
-        <button class="btn primary" data-add="${productSlug(m)}">Ajouter au panier</button>
-      </div>
-    </article>
-  `).join('');
+  // actions
+  root.onclick = (e)=>{
+    const inc = e.target.closest('[data-inc]'); const dec = e.target.closest('[data-dec]'); const del = e.target.closest('[data-del]');
+    const key = inc?.dataset.inc || dec?.dataset.dec || del?.dataset.del;
+    if (!key) return;
 
-  // clic sur une carte liée → PDP
-  $$('.pdp__related .card').forEach(card=>{
-    card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return;
-      const id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = `#/produit/${encodeURIComponent(id)}`;
-    });
-  });
+    if (inc){
+      const p = MODELS.find(m => keyOf(m)===key);
+      if (p){ CART.push(p); }
+    }else if (dec){
+      const i = CART.findIndex(p => keyOf(p)===key);
+      if (i>=0) CART.splice(i,1);
+    }else if (del){
+      for (let i=CART.length-1;i>=0;i--) if (keyOf(CART[i])===key) CART.splice(i,1);
+    }
+    saveCart();
+    renderCartView();
+  };
 
-  // activer "Ajouter au panier" sur les liées
-  $$('[data-add]', elRel).forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const slug = btn.getAttribute('data-add');
-      const p  = MODELS.find(x => productSlug(x) === slug);
-      if (!p) return;
-      CART.push(p);
-      saveCart();
-    });
-  });
+  $('#devisSend')?.addEventListener('click', ()=>{
+    const msg = encodeURIComponent(cartToWhatsAppText());
+    if (!msg) return;
+    window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
+  }, { once:true });
+
+  $('#devisClear')?.addEventListener('click', ()=>{
+    CART = [];
+    saveCart();
+    renderCartView();
+  }, { once:true });
 }
 
 /* ===== Catalogue dynamique (catégories) ===== */
@@ -424,9 +371,9 @@ function renderList(data){
   $$('.card', listEl).forEach(card=>{
     card.addEventListener('click', (e)=>{
       if (e.target.closest('[data-add]')) return;
-      const slug = card.getAttribute('data-id');
-      if (!slug) return;
-      location.hash = `#/produit/${encodeURIComponent(slug)}`;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
     });
   });
   ScrollExit.observeWithin(listEl);
@@ -469,13 +416,25 @@ searchEl?.addEventListener('input', applyFilters, { passive:true });
 tagEl?.addEventListener('change', applyFilters);
 
 /* ===== Dock ===== */
+function gotoCart(){ location.hash = '#/devis'; }
 dockQuoteBtn?.addEventListener('click', ()=>{
   if (!CART.length) return;
   const msg = encodeURIComponent(cartToWhatsAppText());
   window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
-dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
-dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
+dockCartBtn?.addEventListener('click', gotoCart);
+dockCount?.addEventListener('click', gotoCart);
+
+/* Délégation (robuste) : si l’id a changé ou si on clique l’icône/badge */
+['click','touchend'].forEach(evt=>{
+  dock?.addEventListener(evt, (e)=>{
+    const t = e.target;
+    if (t.closest('#dockCartBtn, .dock__btn--cart, #dockCount, .dock__badge')) {
+      e.preventDefault();
+      gotoCart();
+    }
+  }, { passive: evt==='touchend' });
+});
 
 /* ---------------- PWA ---------------- */
 let deferredPrompt;
@@ -491,7 +450,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
 }
 
-/* ===== Compte & Fidélité (démo locale) ===== */
+/* ===== Compte & Fidélité ===== */
 const USER_KEY = 'pt_user_v1';
 function loadUser(){
   try{
@@ -537,6 +496,74 @@ function renderAccount(){
     saveUser(nu);
     renderAccount();
   });
+}
+
+/* ===== PDP (fiche produit) ===== */
+function renderPDP(product){
+  const wrap   = document.getElementById('pdp');
+  const elImg  = document.getElementById('pdpImg');
+  const elT    = document.getElementById('pdpTitle');
+  const elTag  = document.getElementById('pdpTag');
+  const elDesc = document.getElementById('pdpDesc');
+  const elSpecs= document.getElementById('pdpSpecs');
+  const elRel  = document.getElementById('pdpRelated');
+  const btnQ   = document.getElementById('pdpQuote');
+  const btnWa  = document.getElementById('pdpWa');
+
+  if (!wrap) return;
+
+  const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
+  const tag   = product.tag || '';
+  const desc  = product.desc || product.description || '';
+  const img   = product.img || './images/pirates-tools-logo.png?v=7';
+
+  elT.textContent = title;
+  elTag.textContent = tag ? `#${tag}` : '';
+  elDesc.textContent = desc || 'Caractéristiques à venir.';
+  elImg.src = img; elImg.alt = title;
+
+  const specs = Array.isArray(product.specs) ? product.specs : [];
+  elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
+
+  const sku = product.sku || product.id || title;
+  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
+  const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
+  btnWa.href = `https://wa.me/${phone}?text=${msg}`;
+
+  // libellé + ajout panier avec persistance
+  if (btnQ){
+    btnQ.textContent = 'Ajouter au panier';
+    btnQ.onclick = ()=>{
+      CART.push(product);
+      saveCart();
+    };
+  }
+
+  const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
+  elRel.innerHTML = related.map(m=>`
+    <article class="card" data-id="${m.id || m.sku || m.title}">
+      <div class="head">
+        <h3 class="title">${m.title || (m.brand||'')+' '+(m.sku||'')}</h3>
+        ${m.tag ? `<span class="badge">${m.tag}</span>` : ``}
+      </div>
+      <div class="specs"><p style="margin:0">${m.desc || m.description || ''}</p></div>
+      <div class="actions">
+        <button class="btn primary" data-add="${m.id || m.sku || m.title}">Ajouter au panier</button>
+      </div>
+    </article>
+  `).join('');
+
+  $$('.pdp__related .card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-add]')) return;
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
+    });
+  });
+
+  // permettre l’ajout depuis les produits liés
+  bindAddToQuote(related);
 }
 
 /* [ROUTER | #/…] */
