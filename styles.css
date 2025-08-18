@@ -398,18 +398,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 /* Mise en page spéciale pour écrans étroits: les deux CTA prennent chacun 50% */
 @media (max-width: 420px){
   .topbar{
-    grid-template-columns: auto 1fr;   /* logo + zone contenu */
+    grid-template-columns: auto 1fr;
     row-gap: .4rem;
   }
-  .brand{ font-size: 1rem; }           /* compacter un peu la marque */
+  .brand{ font-size: 1rem; }
 
   .cta{
     display: grid;
-    grid-template-columns: 1fr 1fr;    /* 2 colonnes = 2 boutons côte à côte */
+    grid-template-columns: 1fr 1fr;
     gap: .4rem;
     justify-self: end;
     width: 100%;
-    max-width: 340px;                  /* garde des marges sur ultra-étroit */
+    max-width: 340px;
+    grid-column: 1 / -1;   /* ← AJOUT important : force la rangée entière */
   }
   .cta .btn{
     width: 100%;
@@ -418,7 +419,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
     line-height: 1.1;
   }
 }
-
 /* Ultra-étroit (ex: 360 px) : réduire un poil la typo et le logo */
 @media (max-width: 360px){
   .cta .btn{ font-size: .88rem; padding: .42rem .55rem; }
