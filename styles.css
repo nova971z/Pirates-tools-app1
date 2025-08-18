@@ -140,6 +140,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
+
+/* Perf: ne peins/rasterise les cartes visibles que lorsqu'elles entrent à l'écran */
+.card, .cat-card{
+  content-visibility:auto;
+  contain-intrinsic-size: 320px;
+}
+
 /* ====== Avis / Footer ====== */
 .ratings{
   margin:2rem auto 1rem; width:min(1100px,92vw);
