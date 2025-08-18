@@ -300,14 +300,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 
 /* ====== Barre de liens (site-links) ====== */
+
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
-  display:flex; flex-wrap:wrap; justify-content:center;
-  gap:.5rem;
-  padding:.55rem .6rem;             /* un peu plus d’air autour */
+  display:flex; gap:.45rem; flex-wrap:wrap; justify-content:center;
+  padding:.55rem .65rem;                     /* bulle un peu plus grande */
   border:1px solid var(--border);
-  border-radius:28px;               /* capsule plus marquée */
+  border-radius:999px;
   background:rgba(255,255,255,.03);
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   box-shadow:var(--shadow);
@@ -315,15 +315,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .site-links .chip{
   background:rgba(255,255,255,.05);
-  padding:.34rem .62rem;            /* chips plus compactes */
-  font-size:.98rem;
-  border-radius:999px;
+  padding:.34rem .7rem;                      /* chips plus petites */
+  font-size:.95rem;
 }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 
-/* Evite le chevauchement avec le dock mobile (barre flottante) */
-@media (max-width:768px){
-  .site-links{ margin-bottom:5.2rem; }
+@media (max-width: 420px){
+  .site-links{ gap:.35rem; padding:.5rem .6rem; }
+  .site-links .chip{ font-size:.9rem; padding:.30rem .6rem; }
 }
 
 /* Affinage petits écrans */
