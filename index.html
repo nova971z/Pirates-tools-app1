@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- Métadonnées de base -->
+  <!-- Métadonnées -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
@@ -22,9 +22,8 @@
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
   <link rel="dns-prefetch" href="https://wa.me" />
-  <!-- Préchargement logo (WebP + PNG fallback) -->
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.webp">
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7">
+  <!-- Préchargement logo (PNG uniquement) -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
   <!-- Pré-chargement léger des données produits -->
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
@@ -41,19 +40,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
 
-  <!-- Données structurées (JSON-LD) -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"Organization",
-    "name":"Pirates Tools",
-    "url":"https://nova971z.github.io/Pirates-tools-app1/",
-    "logo":"https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png",
-    "contactPoint":[{"@type":"ContactPoint","telephone":"+33-7-74-23-01-95","contactType":"customer service","areaServed":"GP"}]
-  }
-  </script>
-
-  <!-- A11y helpers (minimes) -->
+  <!-- A11y helpers (fallback minimal, doublonné par styles.css) -->
   <style>
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
@@ -69,20 +56,19 @@
   <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
-  <!-- =================== TOPBAR =================== -->
-  <header class="topbar">
-    <!-- Logo -->
+  <!-- ======= TOPBAR (logo + CTA téléphone / WhatsApp) ======= -->
+  <header class="topbar" role="banner" aria-label="Barre supérieure">
     <a id="homeLink" class="topbar-logo-link" href="#/">
-      <picture>
-        <source type="image/webp" srcset="./images/pirates-tools-logo.webp">
-        <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" decoding="async">
-      </picture>
+      <img
+        class="topbar-logo"
+        src="./images/pirates-tools-logo.png"
+        alt="Pirates Tools"
+        onerror="this.onerror=null; this.src='./images/Logo%20pirates%20tools%202.png';"
+      />
     </a>
 
-    <!-- Marque (optionnel, utile pour la grille) -->
-    <div class="brand">Pirates Tools</div>
+    <strong class="brand">Pirates Tools</strong>
 
-    <!-- Navigation (affichée desktop, masquée mobile par CSS) -->
     <nav class="nav" aria-label="Navigation principale">
       <a class="chip" href="#/" data-route>Accueil</a>
       <a class="chip" href="#/catalogue" data-route>Catalogue</a>
@@ -92,23 +78,25 @@
       <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
     </nav>
 
-    <!-- CTA (synchronisés par app.js) -->
     <div class="cta">
       <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener">WhatsApp</a>
+      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener">💬 WhatsApp</a>
     </div>
   </header>
 
-  <!-- =================== HERO =================== -->
+  <!-- ======= HERO (logo animé) ======= -->
   <section id="hero" class="hero-full" aria-label="Pirates Tools">
-    <picture>
-      <source type="image/webp" srcset="./images/pirates-tools-logo.webp">
-      <img id="heroLogo" class="hero-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools — Outillage pro" decoding="async" fetchpriority="high">
-    </picture>
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      src="./images/pirates-tools-logo.png"
+      alt="Pirates Tools"
+      onerror="this.onerror=null; this.src='./images/Logo%20pirates%20tools%202.png';"
+    />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
-  <!-- ============== BARRE OUTILS (recherche/filtre) ============== -->
+  <!-- ======= BARRE OUTILS (recherche/filtre) ======= -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
     <select id="tag" class="select" aria-label="Filtrer par tag">
@@ -119,12 +107,12 @@
     </select>
   </section>
 
-  <!-- ============== LISTE PRODUITS (injectée en JS) ============== -->
+  <!-- ======= LISTE PRODUITS (injectée en JS) ======= -->
   <main id="main" class="container" role="main">
     <section id="list" class="list" role="list" aria-label="Produits"></section>
   </main>
 
-  <!-- ============== AVIS ============== -->
+  <!-- ======= AVIS ======= -->
   <section class="ratings" aria-label="Avis clients">
     <h2 tabindex="-1" id="h-ratings">Ils nous font confiance</h2>
     <ul class="ratings__list">
@@ -134,9 +122,9 @@
     </ul>
   </section>
 
-  <!-- ============== VUES (router hash) ============== -->
+  <!-- ======= VUES (router hash) ======= -->
 
-  <!-- [VIEW] Produit (route: #/produit/:id) -->
+  <!-- [VIEW] Produit -->
   <section id="view-produit" class="view hidden" aria-label="Fiche produit">
     <div class="container pdp" id="pdp">
       <a id="pdpBack" class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
@@ -164,7 +152,7 @@
     </div>
   </section>
 
-  <!-- [VIEW] Catalogue (route: #/catalogue) -->
+  <!-- [VIEW] Catalogue -->
   <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
     <div class="container">
       <h1 style="margin:1rem 0 .5rem" tabindex="-1">Catalogue</h1>
@@ -183,7 +171,7 @@
     </div>
   </section>
 
-  <!-- [VIEW] Devis (route: #/devis) -->
+  <!-- [VIEW] Devis -->
   <section id="view-devis" class="view hidden" aria-label="Devis express">
     <div class="container">
       <h1 style="margin:1rem 0 .5rem" tabindex="-1">Devis express</h1>
@@ -202,7 +190,7 @@
     </div>
   </section>
 
-  <!-- [VIEW] Compte + Fidélité (route: #/compte) -->
+  <!-- [VIEW] Compte + Fidélité -->
   <section id="view-compte" class="view hidden" aria-label="Espace client">
     <div class="container">
       <h1 style="margin:1rem 0 .5rem" tabindex="-1">Mon compte</h1>
@@ -222,7 +210,6 @@
         <div class="specs" style="display:grid;gap:.6rem">
           <div> Total dépensé estimé : <strong id="accSpent">0 €</strong></div>
 
-          <!-- Curseur futuriste -->
           <div class="meter" aria-label="Progression fidélité">
             <div class="meter__rail">
               <div class="meter__fill" id="accFill"></div>
@@ -233,7 +220,6 @@
             </div>
           </div>
 
-          <!-- Curseur interactif pour ajuster (démo/offline) -->
           <input id="accSlider" type="range" min="0" max="5000" step="50" />
         </div>
         <div class="actions">
@@ -243,7 +229,7 @@
     </div>
   </section>
 
-  <!-- ====== Barre de liens ====== -->
+  <!-- ====== Barre de liens (doublon pratique, masquée sur mobile via CSS nav) ====== -->
   <nav class="site-links" aria-label="Liens rapides">
     <a class="chip" href="#/" data-route>Accueil</a>
     <a class="chip" href="#/catalogue" data-route>Catalogue</a>
@@ -253,7 +239,7 @@
     <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
   </nav>
 
-  <!-- ============== FOOTER / CONTACT ============== -->
+  <!-- ====== FOOTER / CONTACT ====== -->
   <footer id="contact" class="foot" role="contentinfo">
     <div class="foot__grid">
       <div>
@@ -270,8 +256,7 @@
     </div>
   </footer>
 
-  <!-- ============== DOCK MOBILE (actions rapides) ============== -->
-  <!-- NB: app.js ajoute .dock__shell si absent -->
+  <!-- ====== DOCK MOBILE (actions rapides) ====== -->
   <nav class="dock hidden" id="dock" aria-label="Actions rapides">
     <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
     <button class="dock__btn dock__btn--wa" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
