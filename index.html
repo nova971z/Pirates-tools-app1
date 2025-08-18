@@ -59,46 +59,40 @@
   <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
-  <!-- ========= TOPBAR (fixe) ========= -->
-  <header class="topbar" role="banner" aria-label="Barre supérieure">
-    <!-- Logo cliquable (iOS ok) -->
-    <a id="homeLink" class="topbar-logo-link" href="#/">
-      <picture>
-        <source type="image/webp" srcset="./images/pirates-tools-logo.webp" />
-        <img class="topbar-logo"
-             src="./images/pirates-tools-logo.png?v=7"
-             alt="Pirates Tools"
-             width="180" height="32"
-             decoding="async" fetchpriority="high" />
-      </picture>
-    </a>
+ <!-- ========= TOPBAR (fixe) ========= -->
+<header class="topbar" role="banner" aria-label="Barre supérieure">
+  <!-- Logo cliquable (iOS ok) -->
+  <a id="homeLink" class="topbar-logo-link" href="#/">
+    <img class="topbar-logo"
+         src="./images/pirates-tools-logo.png?v=7"
+         alt="Pirates Tools"
+         width="180" height="32"
+         decoding="async" fetchpriority="high" />
+  </a>
 
-    <!-- Mini navigation -->
-    <nav class="nav" aria-label="Navigation principale">
-      <a class="chip" href="#/catalogue" data-route>Catalogue</a>
-      <a class="chip" href="#list" data-scroll="#list">Produits</a>
-    </nav>
+  <!-- Mini navigation -->
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+    <a class="chip" href="#list" data-scroll="#list">Produits</a>
+  </nav>
 
-    <!-- Appels rapides (sync via app.js) -->
-    <div class="cta">
-      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬 WhatsApp</a>
-    </div>
-  </header>
+  <!-- Appels rapides (sync via app.js) -->
+  <div class="cta">
+    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+    <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬 WhatsApp</a>
+  </div>
+</header>
 
-  <!-- ========= HERO (logo animé) ========= -->
-  <section id="hero" class="hero-full" aria-label="Pirates Tools">
-    <picture>
-      <source type="image/webp" srcset="./images/pirates-tools-logo.webp" />
-      <img id="heroLogo" class="hero-logo"
-           src="./images/pirates-tools-logo.png?v=7"
-           alt="Pirates Tools"
-           width="900" height="900"
-           loading="eager" decoding="async" />
-    </picture>
-    <div class="hero-fade" aria-hidden="true"></div>
-  </section>
-
+<!-- ========= HERO (logo animé) ========= -->
+<section id="hero" class="hero-full" aria-label="Pirates Tools">
+  <img id="heroLogo" class="hero-logo"
+       src="./images/pirates-tools-logo.png?v=7"
+       alt="Pirates Tools"
+       width="900" height="900"
+       loading="eager" decoding="async" />
+  <div class="hero-fade" aria-hidden="true"></div>
+</section>
+  
   <!-- ======= BARRE OUTILS (recherche/filtre) ======= -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
