@@ -12,11 +12,11 @@
     "badge": "Top",
     "new": false,
     "tags": ["18V", "XR", "Brushless", "1/4\" Hex", "3 vitesses"],
-    "img": "images/products/DCF887.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887NT-XJ/DCF887NT-A1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF887_front.png",
-      "images/products/DCF887_side.png",
-      "images/products/DCF887_detail.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887NT-XJ/DCF887NT-A2.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887NT-XJ/DCF887NT-B1.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887NT-XJ/DCF887NT-C1.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 179,
@@ -61,10 +61,10 @@
     "badge": "Pack",
     "new": false,
     "tags": ["Kit", "5Ah", "Chargeur", "TSTAK"],
-    "img": "images/products/DCF887P2.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887P2-QW/DCF887P2-A1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF887P2_kit.png",
-      "images/products/DCF887P2_case.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887P2-QW/DCF887P2-B1.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF887P2-QW/DCF887P2-C1.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 329,
@@ -108,10 +108,10 @@
     "badge": "Compact",
     "new": true,
     "tags": ["Ultra-compact", "18V", "XR", "Brushless"],
-    "img": "images/products/DCF850.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850NT-XJ/DCF850NT_XJ_1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF850_side.png",
-      "images/products/DCF850_top.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850NT-XJ/DCF850NT_XJ_2.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850NT-XJ/DCF850NT_XJ_3.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 199,
@@ -155,10 +155,10 @@
     "badge": "Pack",
     "new": true,
     "tags": ["Ultra-compact", "Kit", "5Ah", "TSTAK"],
-    "img": "images/products/DCF850P2T.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850P2T-XJ/DCF850P2T-XJ_C1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF850P2T_kit.png",
-      "images/products/DCF850P2T_case.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850P2T-XJ/DCF850P2T-XJ_B1.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF850P2T-XJ/DCF850P2T-XJ_A1.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 349,
@@ -203,9 +203,10 @@
     "badge": "Conseil",
     "new": false,
     "tags": ["18V", "XR", "Brushless", "Quotidien"],
-    "img": "images/products/DCF840.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF840NT-XJ/DCF840NT_XJ_1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF840_front.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF840NT-XJ/DCF840NT_XJ_2.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF840NT-XJ/DCF840NT_XJ_3.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 169,
@@ -249,11 +250,8 @@
     "badge": "Puissance",
     "new": true,
     "tags": ["18V", "XR", "Brushless", "Haut rendement"],
-    "img": "images/products/DCF845.png",
-    "gallery": [
-      "images/products/DCF845_front.png",
-      "images/products/DCF845_angle.png"
-    ],
+    "img": "images/pirates-tools-logo.png?v=7",
+    "gallery": [],
     "image_bg": "transparent",
     "price": 219,
     "price_old": 249,
@@ -296,9 +294,10 @@
     "badge": "Atomic",
     "new": false,
     "tags": ["Atomic", "Compact", "18V", "XR"],
-    "img": "images/products/DCF809.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF809NT-XJ/DCF809NT_XJ_1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF809_side.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF809NT-XJ/DCF809NT_XJ_2.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF809NT-XJ/DCF809NT_XJ_3.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 159,
@@ -343,9 +342,10 @@
     "badge": "Léger",
     "new": false,
     "tags": ["12V", "Xtreme", "Léger"],
-    "img": "images/products/DCF801.png",
+    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_1.jpg?resize=900,900",
     "gallery": [
-      "images/products/DCF801_front.png"
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_2.jpg?resize=1200,1200",
+      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_3.jpg?resize=1200,1200"
     ],
     "image_bg": "transparent",
     "price": 119,
