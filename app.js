@@ -21,7 +21,7 @@ const dockCount   = $('#dockCount');
 const dockQuoteBtn= $('#dockQuoteBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
-const homeLink    = $('#homeLink'); // ← AJOUT : logo cliquable = accueil
+const homeLink    = $('#homeLink'); // (optionnel si présent dans le HTML)
 
 /* Harmonise les CTA */
 (function syncCTA(){
@@ -30,12 +30,15 @@ const homeLink    = $('#homeLink'); // ← AJOUT : logo cliquable = accueil
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
 
-/* Logo = retour accueil partout (efface le hash) */
-homeLink?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  location.hash = '';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+/* Logo = retour accueil partout (supporte id #homeLink OU .topbar-logo-link) */
+(function wireLogoHome(){
+  const logo = homeLink || document.querySelector('.topbar-logo-link');
+  logo?.addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.hash = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
 
 /* ---------------- HERO : zoom + fondu + anti-chevauchement ---------------- */
 (function heroEffect(){
@@ -118,10 +121,7 @@ $$('[data-scroll]').forEach(a => {
   });
 });
 
-/* ---------------- EXIT ANIMATION AU SCROLL (tools) ----------------
-   Quand un élément [data-tool] sort par le haut du viewport, il glisse
-   une fois à gauche, le suivant à droite, avec un fondu.
-------------------------------------------------------------------- */
+/* ---------------- EXIT ANIMATION AU SCROLL (tools) ---------------- */
 const ScrollExit = (function () {
   function injectExitCSS(){
     if (document.getElementById('exit-anim-css')) return;
@@ -313,9 +313,55 @@ function renderList(data){
     });
   });
 
-  // ← AJOUT : démarre l’observateur pour l’anim de sortie
+  // démarre l’observateur pour l’anim de sortie
   ScrollExit.observeWithin(listEl);
 }
+
+/* ========= [CATALOGUE DYNAMIQUE] ========= */
+function buildCategories(){
+  const map = new Map();
+  for (const m of MODELS){
+    const raw = (m.tag || m.brand || '').toString().trim();
+    if (!raw) continue;
+    const key = raw.toLowerCase();
+    map.set(key, { key, label: raw, count: (map.get(key)?.count || 0) + 1 });
+  }
+  return [...map.values()].sort((a,b)=> b.count - a.count);
+}
+
+function renderCatalogue(){
+  const root = document.getElementById('catList');
+  if (!root) return;
+
+  const cats = buildCategories();
+  root.innerHTML = cats.length
+    ? cats.map(c => `
+        <article class="card cat-card" data-cat="${c.key}">
+          <div class="head">
+            <h3 class="title">${c.label}</h3>
+            <span class="badge">Catégorie</span>
+          </div>
+          <div class="specs"><p style="margin:0">${c.count} produit${c.count>1?'s':''}</p></div>
+          <div class="actions"><button class="btn primary" data-cat-go="${c.key}">Voir</button></div>
+        </article>
+      `).join('')
+    : `<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>`;
+
+  const go = (key)=>{
+    if (tagEl) tagEl.value = key;
+    if (typeof applyFilters === 'function') applyFilters();
+    location.hash = '';  // accueil
+    setTimeout(()=> document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60);
+  };
+
+  root.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-cat-go]');
+    const card= e.target.closest('.cat-card');
+    if (btn) return go(btn.dataset.catGo);
+    if (card) return go(card.dataset.cat);
+  });
+}
+/* ========= /CATALOGUE DYNAMIQUE ========= */
 
 async function loadProducts(){
   try{
@@ -323,6 +369,7 @@ async function loadProducts(){
     const json = await r.json();
     MODELS = Array.isArray(json) ? json : (json.products || []);
     renderList(MODELS);
+    renderCatalogue(); // <-- remplit la vue Catalogue
   }catch(e){
     console.error('Erreur chargement produits:', e);
     listEl.innerHTML = `
@@ -413,7 +460,7 @@ if ('serviceWorker' in navigator) {
   let prevHash = '';                        // ← mémorise d’où on vient
 
   function wireBack(cameFrom){              // ← “Retour” intelligent
-    const back = document.getElementById('pdpBack');
+    const back = document.querySelector('#pdpBack, .chip--back'); // <-- compat avec ton HTML
     if (!back) return;
     back.onclick = (e)=>{
       e.preventDefault();
@@ -453,7 +500,7 @@ if ('serviceWorker' in navigator) {
       }
 
       wireBack(cameFrom);
-      window.scrollTo({top:0, behavior:'auto'}); // ← compat standard
+      window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
       return;
     }
@@ -463,6 +510,7 @@ if ('serviceWorker' in navigator) {
     if (m){
       showHome(false);
       showView('catalogue');
+      renderCatalogue();                       // <-- AJOUT : (re)remplit la vue
       document.title = 'Pirates Tools • Catalogue';
       window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
