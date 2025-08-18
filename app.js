@@ -18,6 +18,23 @@ const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
+/* ---------- Focus helper après navigation ---------- */
+function focusView(key){
+  let target = null;
+  if (key === 'produit')   target = $('#pdpTitle');
+  else if (key === 'catalogue') target = $('#view-catalogue h1');
+  else if (key === 'devis') target = $('#view-devis h1');
+  else if (key === 'compte') target = $('#view-compte h1');
+  else target = $('#main'); // accueil
+
+  if (target){
+    // focus sans scroll
+    target.setAttribute('tabindex','-1');
+    target.focus({ preventScroll: true });
+    setTimeout(()=> target.removeAttribute('tabindex'), 300);
+  }
+}
+
 /* ---------- Globals ---------- */
 const PHONE_HUMAN = '07 74 23 01 95';
 const PHONE_E164  = '+33774230195';
@@ -783,38 +800,86 @@ function renderAccount(){
     };
   }
 
-  function onRoute(){
-    const h = (location.hash || '').toLowerCase();
-    const cameFrom = prevHash;
 
-    // #/produit/:id
-    let m = h.match(/^#\/produit\/([^/?#]+)/);
-    if (m){
-      const key = decodeURIComponent(m[1]);
+   function onRoute(){
+  const h = (location.hash || '').toLowerCase();
+  const cameFrom = prevHash;
 
-      const tryRender = ()=>{
-        const p = findProductByKey(key);
-        showHome(false); showView('produit');
-        if (p){
-          renderPDP(p);
-          document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
-        }else{
-          $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
-          $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
-        }
-        wireBack(cameFrom);
-        window.scrollTo({top:0, behavior:'auto'});
-        prevHash = h;
-      };
+  // #/produit/:id
+  let m = h.match(/^#\/produit\/([^/?#]+)/);
+  if (m){
+    const key = decodeURIComponent(m[1]);
 
-      if (!MODELS.length){
-        const once = ()=>{ window.removeEventListener('pt:productsLoaded', once); tryRender(); };
-        window.addEventListener('pt:productsLoaded', once, { once:true });
+    // si produits pas encore chargés, on attend l’événement
+    const tryRender = ()=>{
+      const p = findProductByKey(key);
+      showHome(false); showView('produit');
+      if (p){
+        renderPDP(p);
+        document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
       }else{
-        tryRender();
+        $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
+        $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
       }
-      return;
+      wireBack(cameFrom);
+      window.scrollTo({top:0, behavior:'auto'});
+      focusView('produit');  // ← ICI le focus sur la fiche
+      prevHash = h;
+    };
+
+    if (!MODELS.length){
+      const once = ()=>{ window.removeEventListener('pt:productsLoaded', once); tryRender(); };
+      window.addEventListener('pt:productsLoaded', once, { once:true });
+    }else{
+      tryRender();
     }
+    return;
+  }
+
+  // #/catalogue
+  m = h.match(/^#\/catalogue\b/);
+  if (m){
+    showHome(false); showView('catalogue'); renderCatalogue();
+    document.title='Pirates Tools • Catalogue';
+    window.scrollTo({top:0,behavior:'auto'});
+    focusView('catalogue');   // ← focus titre Catalogue
+    prevHash=h; return;
+  }
+
+  // #/devis
+  m = h.match(/^#\/devis\b/);
+  if (m){
+    showHome(false); showView('devis'); renderCartView();
+    document.title='Pirates Tools • Devis';
+    window.scrollTo({top:0,behavior:'auto'});
+    focusView('devis');       // ← focus titre Devis
+    prevHash=h; return;
+  }
+
+  // #/compte
+  m = h.match(/^#\/compte\b/);
+  if (m){
+    showHome(false); showView('compte'); renderAccount();
+    document.title='Pirates Tools • Mon compte';
+    window.scrollTo({top:0,behavior:'auto'});
+    focusView('compte');      // ← focus titre Compte
+    prevHash=h; return;
+  }
+
+  // Accueil
+  if (h === '' || h === '#' || h === '#/' || h === '#/home'){
+    showHome(true); hideAllViews();
+    document.title = 'Pirates Tools • Outillage pro (PWA)';
+    focusView('home');        // ← focus sur #main (liste)
+    prevHash = h; return;
+  }
+
+  // fallback : accueil
+  showHome(true); hideAllViews();
+  document.title = 'Pirates Tools • Outillage pro (PWA)';
+  focusView('home');          // ← idem
+  prevHash = h;
+}
 
     // #/catalogue
     m = h.match(/^#\/catalogue\b/);
