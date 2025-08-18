@@ -13,35 +13,10 @@
 
 'use strict';
 
-// === Service Worker: enregistrement + MAJ auto (skipWaiting + reload) ===
-(function setupServiceWorker(){
-  if (!('serviceWorker' in navigator)) return;
-
-  let reloaded = false;
-
-  navigator.serviceWorker.register('./sw.js').then(reg => {
-    // Un nouveau SW est déjà prêt à prendre la main
-    if (reg.waiting) {
-      reg.waiting.postMessage('SKIP_WAITING');
-    }
-
-    // Un nouveau SW est en cours d’install → on le fait activer dès qu’il est prêt
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          nw.postMessage('SKIP_WAITING');
-        }
-      });
-    });
-  }).catch(()=>{ /* silencieux */ });
-
-  // Quand le contrôleur change (nouveau SW actif), on recharge 1 seule fois
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!reloaded) { reloaded = true; location.reload(); }
-  });
-})();
+/* === Service Worker ===
+   Géré UNIQUEMENT en section 15 (update banner + skipWaiting).
+   -> Pas d'enregistrement ici pour éviter les doubles handlers.
+*/
 
 /* ---------- Helpers ---------- */
 const $  = (sel, root=document) => root.querySelector(sel);
@@ -72,7 +47,7 @@ const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 })();
 
 /* ---------- A11y helpers ---------- */
-const live    = $('#sr-live');      // <div id="sr-live" ...> dans l’HTML
+const live    = document.getElementById('sr-live') || document.getElementById('srLive');
 const toastsC = $('#toasts');
 const dockBadge = $('#dockCount');
 
