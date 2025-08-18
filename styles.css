@@ -12,7 +12,7 @@
   /* marges dynamiques pilotées par JS */
   --listGap: 14vh;
 
-  /* Variables (conservées si un jour tu veux repasser l’anim côté CSS) */
+  /* (si un jour tu veux repasser l’anim côté CSS) */
   --tool-exit-dx: 60px;
   --tool-exit-dur: 420ms;
   --tool-exit-ease: cubic-bezier(.22,.61,.36,1);
@@ -170,12 +170,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08)
 }
 .dock__btn:active{transform:translateY(1px)}
-.dock__btn:nth-child(1){background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018}
-.dock__btn:nth-child(2){background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
+/* couleurs par CLASSES (plus de :nth-child) */
+.dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
+.dock__btn--wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.dock__btn--cart{ background:rgba(255,255,255,.10); }
+.dock__btn--tools{ background:rgba(255,255,255,.10); }
 .dock__badge{
   position:absolute; right:-6px; top:-6px; background:#ff6b6b; color:#001018;
   font-weight:800; font-size:.75rem; line-height:1; border-radius:999px; padding:.35rem .45rem;
-  border:2px solid rgba(10,15,20,.85)
+  border:2px solid rgba(10,15,20,.85); cursor:pointer;
 }
 
 /* Utils */
@@ -190,9 +193,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 
 /* =========================================================
-   [NOTE] L’animation "exit left/right" est pilotée par JS
-   (app.js injecte les keyframes et classes .tool--exit-*)
-   → on retire ici la version CSS doublon pour éviter conflits.
+   [NOTE] Les animations "exit left/right" sont injectées par JS
+   (app.js ajoute les keyframes & classes .tool--exit-*)
    ========================================================= */
 
 /* [ROUTER] vues génériques */
@@ -212,11 +214,13 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   border:1px solid var(--border);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
-  padding: .8rem;
+  padding:.8rem;
   display:grid; place-items:center;
+  min-height:180px;
 }
 .pdp__media img{
   width:100%; height:auto; display:block;
+  max-height:56vh; object-fit:contain;
   transform: translateZ(0);
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.35));
 }
@@ -284,11 +288,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .cat-card__title{ margin:0 0 .25rem; font-weight:800; }
 .cat-card__count{ color:var(--muted); font-size:.95rem; }
 
-
 /* ===== Devis (liste) ===== */
 #devisList .card .btn { padding:.45rem .7rem; }
 
-/* ===== Compte / Fidélité ===== */
+/* ===== Compte / Fidélité (une seule version) ===== */
 .meter{ display:grid; gap:.4rem; }
 .meter__rail{
   position:relative; height:14px; border-radius:999px; overflow:hidden;
@@ -298,7 +301,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .meter__fill{
   position:absolute; inset:0 auto 0 0; width:0%;
-  background:linear-gradient(90deg, #19d3ff, #00e1b4);
+  background:linear-gradient(90deg, var(--brand), var(--brand-2));
   filter: drop-shadow(0 0 10px rgba(0,225,180,.45));
   transition:width .25s ease;
 }
@@ -317,41 +320,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 #accSlider::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none; width:22px; height:22px; border-radius:50%;
-  background:linear-gradient(90deg, #19d3ff, #00e1b4);
+  background:linear-gradient(90deg, var(--brand), var(--brand-2));
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
   margin-top:-11px;
 }
 #accSlider::-moz-range-thumb{
   width:22px; height:22px; border-radius:50%;
-  background:linear-gradient(90deg, #19d3ff, #00e1b4);
+  background:linear-gradient(90deg, var(--brand), var(--brand-2));
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
-
-
-/* ===== Jauge fidélité (compte) ===== */
-.meter{ display:block; }
-.meter__rail{
-  position:relative; height:12px; border-radius:999px; overflow:hidden;
-  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  border:1px solid var(--border);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-}
-.meter__fill{
-  height:100%; width:0%;
-  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
-  transition:width .25s ease;
-}
-.meter__cursor{
-  position:absolute; top:50%; transform:translate(-50%,-50%);
-  width:18px; height:18px; border-radius:50%;
-  background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.35);
-}
-.meter__scale{
-  display:flex; justify-content:space-between; gap:.6rem;
-  color:var(--muted); font-size:.85rem; margin-top:.4rem;
-}
-
-/* Dock : clic sur le badge + couleurs robustes */
-.dock__badge{ cursor:pointer; }
-.dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
-.dock__btn--wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
