@@ -21,6 +21,7 @@ const dockCount   = $('#dockCount');
 const dockQuoteBtn= $('#dockQuoteBtn');
 const callBtn     = $('#callBtn');
 const waBtn       = $('#waBtn');
+const homeLink    = $('#homeLink'); // ← AJOUT : logo cliquable = accueil
 
 /* Harmonise les CTA */
 (function syncCTA(){
@@ -28,6 +29,13 @@ const waBtn       = $('#waBtn');
   if (callBtn) callBtn.innerHTML = `📞 <strong>${PHONE_HUMAN}</strong>`;
   waBtn?.setAttribute('href', `https://wa.me/${PHONE_E164.replace('+','')}`);
 })();
+
+/* Logo = retour accueil partout (efface le hash) */
+homeLink?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  location.hash = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 /* ---------------- HERO : zoom + fondu + anti-chevauchement ---------------- */
 (function heroEffect(){
@@ -52,7 +60,7 @@ const waBtn       = $('#waBtn');
     const maxScale = mq.matches ? 3.1 : 2.0;
     const scale = 1 + (maxScale - 1) * p;
 
-    const tyVh = (mq.matches ? 12 : 7) * p;                         // translation
+    const tyVh = (mq.matches ? 12 : 7) * p;                           // translation
     const opacity = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1); // fondu plus rapide
 
     heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
@@ -111,13 +119,10 @@ $$('[data-scroll]').forEach(a => {
 });
 
 /* ---------------- EXIT ANIMATION AU SCROLL (tools) ----------------
-   ! Ajouté !
    Quand un élément [data-tool] sort par le haut du viewport, il glisse
    une fois à gauche, le suivant à droite, avec un fondu.
-   (Injection CSS = on crée un <style> automatiquement dans <head>.)
 ------------------------------------------------------------------- */
 const ScrollExit = (function () {
-  /* Injecte le CSS d’animation une seule fois */
   function injectExitCSS(){
     if (document.getElementById('exit-anim-css')) return;
     const style = document.createElement('style');
@@ -145,16 +150,13 @@ const ScrollExit = (function () {
       const el = entry.target;
 
       if (entry.isIntersecting) {
-        // Réinitialise si l’élément re-rentre
         el.classList.remove('tool--exit-left', 'tool--exit-right');
         el.removeAttribute('data-exited');
         return;
       }
 
-      // On déclenche une seule fois par élément
       if (el.dataset.exited === '1') return;
 
-      // On n’anime que lorsqu’il sort par le HAUT (scroll descendant)
       const rect = entry.boundingClientRect;
       const exitingUp = rect.top < 0;
       if (!exitingUp) return;
@@ -162,8 +164,7 @@ const ScrollExit = (function () {
       const cls = flip ? 'tool--exit-right' : 'tool--exit-left';
       flip = !flip;
 
-      // Force reflow si besoin (pour rejouer proprement)
-      void el.offsetWidth;
+      void el.offsetWidth; // reflow
 
       el.classList.add(cls);
       el.dataset.exited = '1';
@@ -192,7 +193,6 @@ function productToHTML(m){
   const desc  = fallback(m.desc, fallback(m.description,''));
   const id    = fallback(m.id, fallback(m.sku, title)).toString();
 
-  /* Ajout: data-tool pour activer l’animation de sortie */
   return `
   <article class="card" data-tool data-id="${id}" data-tag="${tag}">
     <div class="head">
@@ -249,35 +249,29 @@ function renderPDP(product){
 
   if (!wrap) return;
 
-  // Données
   const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
   const tag   = product.tag || '';
   const desc  = product.desc || product.description || '';
   const img   = product.img || './images/pirates-tools-logo.png?v=7';
 
-  // Remplissage
   elT.textContent = title;
   elTag.textContent = tag ? `#${tag}` : '';
   elDesc.textContent = desc || 'Caractéristiques à venir.';
   elImg.src = img; elImg.alt = title;
 
-  // Spécs (si tu fournis product.specs = [ "..." ])
   const specs = Array.isArray(product.specs) ? product.specs : [];
   elSpecs.innerHTML = specs.map(s=>`<li>${s}</li>`).join('');
 
-  // WhatsApp direct pour CE produit
   const sku = product.sku || product.id || title;
   const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
   const phone = (typeof PHONE_E164 === 'string' ? PHONE_E164.replace('+','') : '33774230195');
   btnWa.href = `https://wa.me/${phone}?text=${msg}`;
 
-  // Ajouter au devis
   btnQ.onclick = ()=>{
     CART.push(product);
     if (dock && dockCount){ dockCount.textContent = CART.length; dock.classList.remove('hidden'); }
   };
 
-  // Produits liés (même tag → 3 items max)
   const related = MODELS.filter(m => (m!==product) && tag && (m.tag===tag)).slice(0,3);
   elRel.innerHTML = related.map(m=>`
     <article class="card" data-id="${m.id || m.sku || m.title}">
@@ -292,7 +286,6 @@ function renderPDP(product){
     </article>
   `).join('');
 
-  // clic sur related = ouvrir PDP
   $$('.pdp__related .card').forEach(card=>{
     card.addEventListener('click', (e)=>{
       if (e.target.closest('[data-add]')) return;
@@ -302,7 +295,6 @@ function renderPDP(product){
     });
   });
 
-  // bind add on related
   bindAddToQuote(related);
 }
 
@@ -310,18 +302,19 @@ function renderList(data){
   if (!Array.isArray(data)) return;
   listEl.innerHTML = data.map(productToHTML).join('\n');
 
-  // 1) bouton "Ajouter au devis"
   bindAddToQuote(data);
 
-  // 2) ouverture PDP quand on clique la carte (sauf sur le bouton)
   $$('.card', listEl).forEach(card=>{
     card.addEventListener('click', (e)=>{
-      if (e.target.closest('[data-add]')) return; // ne pas intercepter le bouton
+      if (e.target.closest('[data-add]')) return;
       const id = card.getAttribute('data-id');
       if (!id) return;
       location.hash = `#/produit/${encodeURIComponent(id)}`;
     });
   });
+
+  // ← AJOUT : démarre l’observateur pour l’anim de sortie
+  ScrollExit.observeWithin(listEl);
 }
 
 async function loadProducts(){
@@ -424,24 +417,21 @@ if ('serviceWorker' in navigator) {
     if (!back) return;
     back.onclick = (e)=>{
       e.preventDefault();
-      // 1) si on connaît l’origine (home, catalogue, devis…), on y retourne
       if (cameFrom && cameFrom !== location.hash) {
         location.hash = cameFrom;
         return;
       }
-      // 2) sinon on tente l’historique du navigateur
       if (history.length > 1) {
         history.back();
         return;
       }
-      // 3) ultime fallback : accueil
       location.hash = '';
     };
   }
 
   function onRoute(){
     const h = (location.hash || '').toLowerCase();
-    const cameFrom = prevHash;              // garde l’origine pour le bouton retour
+    const cameFrom = prevHash;
 
     // #/produit/:id
     let m = h.match(/^#\/produit\/([^/?#]+)/);
@@ -462,8 +452,8 @@ if ('serviceWorker' in navigator) {
         if (elD) elD.textContent = 'Vérifiez la référence ou revenez au catalogue.';
       }
 
-      wireBack(cameFrom);                   // ← active “Retour”
-      window.scrollTo({top:0, behavior:'instant'});
+      wireBack(cameFrom);
+      window.scrollTo({top:0, behavior:'auto'}); // ← compat standard
       prevHash = h;
       return;
     }
@@ -474,7 +464,7 @@ if ('serviceWorker' in navigator) {
       showHome(false);
       showView('catalogue');
       document.title = 'Pirates Tools • Catalogue';
-      window.scrollTo({top:0, behavior:'instant'});
+      window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
       return;
     }
@@ -485,13 +475,12 @@ if ('serviceWorker' in navigator) {
       showHome(false);
       showView('devis');
       document.title = 'Pirates Tools • Devis';
-      // (récap devis déjà géré dans ta version)
-      window.scrollTo({top:0, behavior:'instant'});
+      window.scrollTo({top:0, behavior:'auto'});
       prevHash = h;
       return;
     }
 
-    // Accueil ( '', '#', '#/' ou '#/home' )
+    // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
       showHome(true);
       hideAllViews();
