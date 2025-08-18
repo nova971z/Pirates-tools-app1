@@ -312,12 +312,12 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   .pdp__grid{ grid-template-columns: 1fr; }
 }
 
-/* ====== Barre de liens (site-links) ====== */
+/* ====== Barre de liens (site-links) — compact encore plus ====== */
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
-  display:flex; gap:.45rem; flex-wrap:wrap; justify-content:center;
-  padding:.55rem .65rem;           /* bulle un peu plus grande */
+  display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center;
+  padding:.48rem .6rem;
   border:1px solid var(--border);
   border-radius:999px;
   background:rgba(255,255,255,.03);
@@ -327,18 +327,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .site-links .chip{
   background:rgba(255,255,255,.05);
-  padding:.34rem .7rem;            /* chips plus petites */
-  font-size:.95rem;
+  padding:.30rem .58rem;
+  font-size:.92rem;
+  line-height:1.1;
+  max-width:100%;
+  text-overflow:ellipsis;
+  overflow:hidden;
+  white-space:nowrap;
 }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 
-/* éviter que le dock recouvre la bulle de liens */
-@media (max-width:768px){
-  .site-links{ margin-bottom:5.2rem; }
-}
-@media (max-width:420px){
-  .site-links{ gap:.35rem; padding:.5rem .6rem; }
-  .site-links .chip{ font-size:.9rem; padding:.30rem .6rem; }
+@media (max-width: 420px){
+  .site-links{ gap:.28rem; padding:.44rem .55rem; }
+  .site-links .chip{ font-size:.88rem; padding:.28rem .54rem; }
 }
 
 /* ===== Catalogue (catégories auto) ===== */
