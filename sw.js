@@ -12,7 +12,7 @@
 
 // sw.js
 'use strict';
-const VERSION        = 'pt-v13'; // ← bump
+const VERSION        = 'pt-v14'; // ← bump
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
@@ -38,10 +38,9 @@ const APP_SHELL = [
   './icons/icon-256.png',
   './icons/icon-384.png',
   './icons/icon-512.png',
-  // logos (avec et sans query pour couvrir les deux)
+  // logos (PNG uniquement ; on couvre aussi la variante ?v=7)
   './images/pirates-tools-logo.png',
-  './images/pirates-tools-logo.png?v=7',
-  './images/pirates-tools-logo.webp'
+  './images/pirates-tools-logo.png?v=7'
 ];
 
 /* ---------------- Install ---------------- */
