@@ -197,6 +197,54 @@ const ScrollExit = (function () {
 let MODELS = [];
 let CART   = [];
 
+/* ===== Panier (persistant) ===== */
+const STORE_KEY = 'pt_cart_v1';
+
+function updateDock(){
+  if (!dock || !dockCount) return;
+  dockCount.textContent = CART.length;
+  if (CART.length) dock.classList.remove('hidden');
+}
+
+function saveCart(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
+}
+
+function loadCart(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    CART = raw ? JSON.parse(raw) : [];
+  }catch(_){ CART = []; }
+  updateDock();
+}
+loadCart();
+
+/* Groupage (même produit, quantité) */
+function keyOf(p){ return (p?.id ?? p?.sku ?? p?.title ?? '').toString(); }
+
+function groupCart(){
+  const map = new Map();
+  CART.forEach(p=>{
+    const k = keyOf(p);
+    const g = map.get(k) || { item:p, qty:0 };
+    g.qty++;
+    map.set(k, g);
+  });
+  return [...map.values()];
+}
+
+/* Message WhatsApp réutilisable */
+function cartToWhatsAppText(){
+  const grouped = groupCart();
+  if (!grouped.length) return '';
+  const lines = grouped.map(({item,qty})=>{
+    const sku = item.sku || item.id || '';
+    const title = item.title || `${item.brand||''} ${item.sku||''}`.trim();
+    return `• ${sku} – ${title}${qty>1?` ×${qty}`:''}`;
+  });
+  return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
+}
+
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
 function productToHTML(m){
