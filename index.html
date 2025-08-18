@@ -20,7 +20,8 @@
   <!-- Perf -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" imagesrcset="./images/pirates-tools-logo.png?v=7" />
-  <link rel="prefetch" href="products.json" as="fetch" />
+  <!-- Pré-chargement léger des données produits -->
+  <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
