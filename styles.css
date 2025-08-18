@@ -164,23 +164,22 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 /* ===== Dock fixe Android/iOS ===== */
 .dock{
   position: fixed;
-  left: 0; right: 0;
-  bottom: var(--dock-bottom, calc(14px + var(--safe-bottom, 0px)));
+  left: 50%;
+  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
+  transform: translateX(-50%);
   z-index: 110;
-  display: grid;
-  place-items: end center;      /* centre horizontal, bas vertical */
-  pointer-events: none;         /* le conteneur ne capte pas les clics */
-  writing-mode: horizontal-tb;  /* empêche une mise en colonne en webview */
+  pointer-events: none;      /* clics gérés par la capsule interne */
+  contain: layout paint;
+  will-change: transform;
 }
 
 .dock__shell{
   position: relative;
-  display: inline-flex;         /* capsule dimensionnée au contenu */
+  display: inline-flex;
   flex-direction: row;
-  flex-wrap: nowrap;
   align-items: center;
   gap: .6rem;
-  white-space: nowrap;          /* pas de retour à la ligne */
+  white-space: nowrap;
   padding: .4rem .5rem;
   border-radius: 999px;
   background: rgba(10,15,20,.66);
@@ -188,11 +187,8 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  transform: translateZ(0);     /* évite les sauts sur Android */
-  contain: layout;              /* ⚠️ pas "paint" pour ne pas couper la pastille */
-  pointer-events: auto;         /* clics actifs sur la « capsule » */
-  writing-mode: horizontal-tb;
-  overflow: visible;            /* autorise le débordement du badge */
+  transform: translateZ(0);
+  pointer-events: auto;
 }
 
 .dock__btn{
@@ -206,18 +202,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .dock__btn:active{ transform: translateY(1px) }
 .dock__btn--call { background: linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa   { background: linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-.dock__btn--cart { background: rgba(255,255,255,.10) }
+.dock__btn--cart,
 .dock__btn--tools{ background: rgba(255,255,255,.10) }
 
 .dock__badge{
   position: absolute;
-  right: -6px; top: -8px;      /* hors contour pour ne plus être masquée */
+  top: -8px;
+  right: -4px;
   background: #ff6b6b; color:#001018;
   font-weight: 800; font-size: .75rem; line-height: 1;
   border-radius: 999px; padding: .35rem .45rem;
   border: 2px solid rgba(10,15,20,.85);
-  z-index: 2;
   cursor: pointer;
+  z-index: 2;               /* au-dessus du contour */
 }
 
 /* Utils */
@@ -308,21 +305,33 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
-  display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;
-  padding:.45rem .55rem;
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:.5rem;
+  padding:.55rem .6rem;             /* un peu plus d’air autour */
   border:1px solid var(--border);
-  border-radius:999px;
+  border-radius:28px;               /* capsule plus marquée */
   background:rgba(255,255,255,.03);
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   box-shadow:var(--shadow);
   z-index:15;
 }
-.site-links .chip{ background:rgba(255,255,255,.05) }
+.site-links .chip{
+  background:rgba(255,255,255,.05);
+  padding:.34rem .62rem;            /* chips plus compactes */
+  font-size:.98rem;
+  border-radius:999px;
+}
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 
 /* Evite le chevauchement avec le dock mobile (barre flottante) */
 @media (max-width:768px){
   .site-links{ margin-bottom:5.2rem; }
+}
+
+/* Affinage petits écrans */
+@media (max-width:420px){
+  .site-links{ gap:.4rem; padding:.5rem .55rem; }
+  .site-links .chip{ font-size:.9rem; padding:.3rem .56rem; }
 }
 
 /* ===== Catalogue (catégories auto) ===== */
