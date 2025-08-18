@@ -1,39 +1,57 @@
 {
+  "id": "./",
   "name": "Pirates Tools — Outillage pro",
   "short_name": "Pirates Tools",
-  "id": "/Pirates-tools-app1/",
-  "start_url": "/Pirates-tools-app1/?source=pwa",
-  "scope": "/Pirates-tools-app1/",
-  "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
-  "background_color": "#0a0f14",
-  "theme_color": "#0a0f14",
-  "description": "Boutique PWA Pirates Tools : visseuses à chocs DeWALT. Logo plein écran qui zoome et s’efface au scroll, contact direct téléphone & WhatsApp.",
   "lang": "fr-FR",
-  "dir": "ltr",
+  "description": "Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone"],
   "orientation": "portrait",
-  "categories": ["shopping", "business", "productivity"],
+  "theme_color": "#0a0f14",
+  "background_color": "#0a0f14",
+
   "icons": [
-    { "src": "icons/icon-192.png",           "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-192-maskable.png",  "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/icon-256.png",           "sizes": "256x256", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-384.png",           "sizes": "384x384", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png",           "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512-maskable.png",  "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ],
-  "shortcuts": [
     {
-      "name": "Voir les produits",
-      "short_name": "Produits",
-      "url": "/Pirates-tools-app1/#list",
-      "icons": [{ "src": "icons/shortcut-products.png", "sizes": "96x96", "type": "image/png" }]
+      "src": "icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "name": "Contact",
-      "short_name": "Contact",
-      "url": "/Pirates-tools-app1/#contact",
-      "icons": [{ "src": "icons/shortcut-contact.png", "sizes": "96x96", "type": "image/png" }]
+      "src": "images/pirates-tools-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "prefer_related_applications": false
+
+  "categories": ["shopping", "tools", "productivity", "business"],
+  "dir": "ltr",
+  "prefer_related_applications": false,
+
+  "shortcuts": [
+    {
+      "name": "Ouvrir le catalogue",
+      "short_name": "Catalogue",
+      "description": "Accéder aux catégories",
+      "url": "./#/catalogue",
+      "icons": [{ "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" }]
+    },
+    {
+      "name": "Mon devis / Panier",
+      "short_name": "Devis",
+      "description": "Voir et envoyer mon devis",
+      "url": "./#/devis",
+      "icons": [{ "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" }]
+    },
+    {
+      "name": "Mon compte",
+      "short_name": "Compte",
+      "description": "Profil + fidélité",
+      "url": "./#/compte",
+      "icons": [{ "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" }]
+    }
+  ]
 }
