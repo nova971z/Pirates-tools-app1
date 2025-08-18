@@ -227,10 +227,18 @@ function renderList(data){
   if (!Array.isArray(data)) return;
   listEl.innerHTML = data.map(productToHTML).join('\n');
 
-  /* Ajout: observer les nouveaux éléments pour l’anim de sortie */
-  ScrollExit.observeWithin(listEl);
-
+  // 1) bouton "Ajouter au devis"
   bindAddToQuote(data);
+
+  // 2) ouverture PDP quand on clique la carte (sauf sur le bouton)
+  $$('.card', listEl).forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if (e.target.closest('[data-add]')) return; // ne pas intercepter le bouton
+      const id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = `#/produit/${encodeURIComponent(id)}`;
+    });
+  });
 }
 
 async function loadProducts(){
