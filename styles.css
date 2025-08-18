@@ -230,4 +230,47 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 
 /* [ROUTER] vues génériques */
 .view{ width:min(1100px,92vw); margin:0 auto 1.2rem; }
-.view.hidden{ display:none !important; }
+  .view.hidden{ display:none !important; }
+  
+  
+  /* [PDP] Fiche produit */
+.pdp{ padding: .5rem 0 1.2rem; }
+.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
+
+.pdp__grid{
+  display:grid; gap:1.2rem;
+  grid-template-columns: 1.2fr 1fr;
+}
+.pdp__media{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding: .8rem;
+  display:grid; place-items:center;
+}
+.pdp__media img{
+  width:100%; height:auto; display:block;
+  transform: translateZ(0);
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,.35));
+}
+
+.pdp__info{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:1rem 1.1rem;
+}
+.pdp__title{ margin:.2rem 0 .2rem; }
+.pdp__tag{ margin:.2rem 0 .6rem; color:#cfeaf8 }
+.pdp__desc{ margin:0 0 1rem; color:#d8e6f1 }
+
+.pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
+.pdp__specs li{ margin:.25rem 0 }
+
+.pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
+
+@media (max-width: 960px){
+  .pdp__grid{ grid-template-columns: 1fr; }
+}
