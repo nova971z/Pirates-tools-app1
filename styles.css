@@ -239,6 +239,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
 .pdp__specs li{ margin:.25rem 0 }
 
+/* Tableau specs (injection JS dans .pdp__specs) */
+.pdp__specs table{
+  width:100%; border-collapse:collapse; font-size:.95rem; margin-top:.25rem;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+}
+.pdp__specs th,
+.pdp__specs td{
+  text-align:left; padding:.55rem .7rem; vertical-align:top;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.pdp__specs th{ width:38%; color:#cfeaf8; font-weight:700; }
+.pdp__specs tr:last-child th,
+.pdp__specs tr:last-child td{ border-bottom:0; }
+.pdp__specs .badge{
+  background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10));
+  border-color:rgba(25,211,255,.45);
+  color:#e6f7ff;
+}
+
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 
 @media (max-width: 960px){
