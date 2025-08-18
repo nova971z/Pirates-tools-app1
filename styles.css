@@ -274,3 +274,25 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 @media (max-width: 960px){
   .pdp__grid{ grid-template-columns: 1fr; }
 }
+
+
+/* ====== Barre de liens (site-links) ====== */
+.site-links{
+  width:min(1100px,92vw);
+  margin:1rem auto 1.25rem;
+  display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center;
+  padding:.45rem .55rem;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:rgba(255,255,255,.03);
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  box-shadow:var(--shadow);
+  z-index:15;
+}
+.site-links .chip{ background:rgba(255,255,255,.05) }
+.site-links .chip:hover{ background:rgba(255,255,255,.08) }
+
+/* Evite le chevauchement avec le dock mobile (barre flottante) */
+@media (max-width:768px){
+  .site-links{ margin-bottom:5.2rem; }
+}
