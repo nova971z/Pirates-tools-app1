@@ -296,3 +296,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 @media (max-width:768px){
   .site-links{ margin-bottom:5.2rem; }
 }
+
+
+/* ===== Catalogue (catégories auto) ===== */
+.cat-list{
+  display:grid; gap:1rem;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+.cat-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1rem 1.1rem;
+  box-shadow:var(--shadow);
+  cursor:pointer;
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.cat-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(25,211,255,.45);
+  box-shadow:0 12px 28px rgba(0,0,0,.38);
+}
+.cat-card__title{ margin:0 0 .25rem; font-weight:800; }
+.cat-card__count{ color:var(--muted); font-size:.95rem; }
