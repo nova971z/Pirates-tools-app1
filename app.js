@@ -204,15 +204,25 @@ const homeLink    = $('#homeLink');
 })();
 
 /* =========================================================
-   4) Logo = retour accueil (SPA)
+   4) Logo = retour accueil (SPA, iOS-safe)
 ========================================================= */
 (function wireLogoHome(){
-  const logo = homeLink || document.querySelector('.topbar-logo-link');
-  logo?.addEventListener('click', (e)=>{
+  const logoLink = document.getElementById('homeLink') || document.querySelector('.topbar-logo-link');
+  if (!logoLink) return;
+
+  const goHome = (e) => {
     e.preventDefault();
     location.hash = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  };
+
+  // Click standard
+  logoLink.addEventListener('click', goHome, { passive:false });
+
+  // iOS/webviews: parfois le "click" saute → fallback pointer/touch
+  logoLink.addEventListener('pointerup', (e)=>{
+    if (e.pointerType === 'touch') goHome(e);
+  }, { passive:false });
 })();
 
 /* =========================================================
