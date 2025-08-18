@@ -140,7 +140,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 .actions{display:flex; gap:.6rem; padding:0 1.1rem 1.1rem}
 .btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
 
-
 /* Perf: ne peins/rasterise les cartes visibles que lorsqu'elles entrent à l'écran */
 .card, .cat-card{
   content-visibility:auto;
@@ -162,29 +161,26 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand); outline-off
 }
 .foot__grid{display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 
-/* ===== Dock fixe Android/iOS ===== */
+/* ===== Dock fixe Android/iOS (compatible Chrome mobile) ===== */
 .dock{
-  position: fixed;
-  left: 0; right: 0;
-  /* piloté par JS (visualViewport) */
-  bottom: var(--dock-bottom, calc(14px + var(--safe-bottom, 0px)));
-
-  display: flex; justify-content: center; z-index:110;
-  pointer-events: none;                 /* le conteneur ne capte pas les clics */
-}
-.dock__shell{
+  position:fixed;
+  left:50%;
+  bottom: var(--dock-bottom, calc(14px + var(--safe-bottom, env(safe-area-inset-bottom, 0px))));
+  transform:translateX(-50%);            /* centre sans occuper toute la largeur */
   display:flex; gap:.6rem; align-items:center;
-  padding:.4rem .5rem; border-radius:999px;
+  padding:.4rem .5rem; border-radius:999px; z-index:110;
   background:rgba(10,15,20,.66);
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   border:1px solid var(--border); box-shadow:var(--shadow);
-  pointer-events: auto;                 /* les clics se font ici */
+  width:max-content;                      /* évite l’étirement plein écran */
+  max-width:calc(100vw - 24px);           /* garde un peu de marge aux bords */
+  /* pas de contain / will-change ici → évite les bugs de positionnement */
 }
-
-/* boutons (si pas déjà dans ton fichier) */
-.dock__btn{ width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
-  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08) }
-.dock__btn:active{ transform: translateY(1px) }
+.dock__btn{
+  width:40px; height:40px; display:grid; place-items:center; border-radius:12px;
+  background:rgba(255,255,255,.06); color:#d9e9f2; border:1px solid rgba(255,255,255,.08)
+}
+.dock__btn:active{transform:translateY(1px)}
 .dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
 .dock__btn--cart{ background:rgba(255,255,255,.10) }
