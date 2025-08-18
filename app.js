@@ -723,20 +723,60 @@ dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
 /* =========================================================
-   15) PWA (install + SW)
+   15) PWA (install + SW avec mise à jour instantanée)
 ========================================================= */
 let deferredPrompt;
 const installBtn = $('#installBtn');
+
+// Bouton "Installer"
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
+  e.preventDefault();
+  deferredPrompt = e;
+  if (installBtn) installBtn.hidden = false;
 });
 installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true; if (!deferredPrompt) return;
-  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
+  installBtn.hidden = true;
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try { await deferredPrompt.userChoice; } catch (_) {}
+  deferredPrompt = null;
 });
+
+// Enregistrement du Service Worker + activation immédiate des nouvelles versions
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(console.warn); });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // 1) Vérifie tout de suite s’il existe une mise à jour
+      reg.update();
+
+      // 2) S’il y a déjà un SW en attente → on le promeut immédiatement
+      if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+
+      // 3) Si un nouveau SW est trouvé, on lui demande de prendre la main dès qu’il est "installed"
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && reg.waiting) {
+            reg.waiting.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+    }).catch(console.warn);
+  });
+
+  // 4) Quand le nouveau SW prend le contrôle, on recharge une seule fois la page
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!window.__swRefreshed) {
+      window.__swRefreshed = true;
+      location.reload();
+    }
+  });
 }
+
+// Petits toasts de statut réseau
+window.addEventListener('online',  ()=> toast('Connexion rétablie', 'success'));
+window.addEventListener('offline', ()=> toast('Vous êtes hors ligne', 'info'));
 
 /* =========================================================
    16) COMPTE & FIDÉLITÉ (démo locale)
