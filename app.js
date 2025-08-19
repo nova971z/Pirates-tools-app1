@@ -121,19 +121,14 @@ let CART   = [];                 // panier (tableau d’objets produit)
 const STORE_KEY = 'pt_cart_v1';  // clé localStorage
 const USER_KEY  = 'pt_user_v1';  // compte (démo)
 
-/* ---------- DOM refs ---------- */
-const hero        = $('#hero');
-const heroLogo    = $('#heroLogo');
-const listEl      = $('#list');
-const searchEl    = $('#q');
-const tagEl       = $('#tag');
-const dock        = $('#dock');
-const dockCount   = $('#dockCount');
-const dockQuoteBtn= $('#dockQuoteBtn');
-const dockCartBtn = $('#dockCartBtn');
-const callBtn     = $('#callBtn');
-const waBtn       = $('#waBtn');
-const homeLink    = $('#homeLink');
+// === DOM refs (NÉCESSAIRES à l'anim du logo & au dock) ===
+const hero      = document.getElementById('hero');
+const heroLogo  = document.getElementById('heroLogo');
+
+const dock          = document.getElementById('dock');
+const dockCount     = document.getElementById('dockCount');    // optionnel
+const dockQuoteBtn  = document.getElementById('dockQuoteBtn'); // optionnel
+const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -241,9 +236,10 @@ const homeLink    = $('#homeLink');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
-   - rAF ticker (ne dépend pas de l'évènement scroll)
+   - rAF ticker (indépendant de l'événement scroll)
    - calcule transform/opacity directement
    - met à jour --listGap pour l’espace sous le hero
+   - déclenche l’apparition du dock en fin d’anim
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -266,7 +262,7 @@ const homeLink    = $('#homeLink');
   let rafId = 0;
 
   function render(y){
-    const fin = vh * (mq.matches ? 0.70 : 0.85);          // distance pour terminer l'anim
+    const fin = vh * (mq.matches ? 0.70 : 0.85);              // distance de scroll pour terminer l'anim
     const raw = Math.max(0, Math.min(1, y / (fin || 1)));
     const p   = easeOutCubic(raw);
 
@@ -279,26 +275,27 @@ const homeLink    = $('#homeLink');
 
     const opacity  = Math.max(0, Math.min(1, 1 - (mq.matches ? 1.75 : 1.25) * raw));
 
+    // transform/opacity directs
     const t = `translate3d(0, ${tyPx.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
     heroLogo.style.transform = t;
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = opacity.toFixed(3);
 
     // espace sous le hero (fait descendre la barre outils/listes)
-        // ...
-    // Espace sous le hero (garde l’effet d’apparition de la liste)
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    if (raw > 0.985) {
-      document.body.classList.add('after-hero');
-      hero.classList.add('hero-out');
-      showDock(true);      // ⬅️ AFFICHER le dock (fondu)
-    } else {
-      document.body.classList.remove('after-hero');
-      hero.classList.remove('hero-out');
-      showDock(false);     // ⬅️ CACHER le dock
+    // états de fin/début d'anim
+    const done = raw > 0.985;
+    document.body.classList.toggle('after-hero', done);
+    hero.classList.toggle('hero-out', done);
+
+    // Apparition du dock quand le hero est "terminé"
+    if (dock){
+      if (raw > 0.97) dock.classList.add('dock--visible');
+      else            dock.classList.remove('dock--visible');
     }
+  }
 
   function tick(){
     const y = getScrollY();
@@ -309,18 +306,20 @@ const homeLink    = $('#homeLink');
     rafId = requestAnimationFrame(tick);
   }
 
-  // Mode “réduction des animations” : on fige un état propre
+  // Mode “réduction des animations” : état figé propre
   if (mqr.matches){
     const t0 = 'translate3d(0,0,0) scale(1)';
     heroLogo.style.transform = t0;
     heroLogo.style.webkitTransform = t0;
     heroLogo.style.opacity = '1';
     document.documentElement.style.setProperty('--listGap', '18vh');
-    document.body.classList.remove('after-hero'); hero.classList.remove('hero-out');
+    document.body.classList.remove('after-hero');
+    hero.classList.remove('hero-out');
+    if (dock) dock.classList.add('dock--visible'); // on laisse le dock visible
     return;
   }
 
-  // rAF loop = plus fiable que l'évènement scroll sur iOS/iPadOS
+  // rAF loop = plus fiable que l'événement scroll sur iOS/iPadOS
   rafId = requestAnimationFrame(tick);
 
   // maj du viewport (rotation barre d’adresse, split-view, etc.)
