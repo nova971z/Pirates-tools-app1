@@ -9,7 +9,6 @@
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
-
   /* marge dynamique sous le hero (pilotée par app.js) */
   --listGap: 18vh;
 }
@@ -91,28 +90,31 @@ h3{ font-size: 1.05rem; }
 /* ================= HERO (zoom + fondu) ================= */
 .hero-full{
   position:relative;
-  /* ordre = compat -> iOS/Android -> dynamique moderne */
   height:100vh;      /* fallback */
   height:100svh;     /* iOS/Android barres dynamiques */
   height:100dvh;     /* viewport dynamique moderne */
   display:grid; place-items:center;
-  pointer-events:none;        /* ne bloque pas scroll/tap */
+  pointer-events:none;
   isolation:isolate;
-  z-index:30;                 /* au-dessus au début */
+  z-index:30;
 }
 
-.hero-logo{
-  /* valeurs par défaut (écrasées par app.js) */
+/* Valeurs par défaut – écrasées par app.js en scroll */
+:root{
   --heroScale: 1;
   --heroY: 0vh;
   --heroAlpha: 1;
+}
 
+.hero-logo{
   width:min(78vmin, 900px);
   max-width:900px;
   height:auto;
-  opacity: var(--heroAlpha, 1);
 
-  /* IMPORTANT: double déclaration pour WebKit/iOS */
+  opacity: var(--heroAlpha, 1);
+  transition: opacity .18s linear;
+
+  /* redondance WebKit pour iOS */
   transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
   -webkit-transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
 
@@ -120,19 +122,8 @@ h3{ font-size: 1.05rem; }
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-  contain: paint;            /* isole la peinture du logo */
-
-  /* On ne transitionne pas transform (rAF déjà fluide) */
-  transition: opacity .18s linear;
 
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
-}
-
-/* 🔧 Micro-optimisation mobile : alléger l’ombre (GPU moins sollicité) */
-@media (pointer:coarse), (max-width: 480px){
-  .hero-logo{ filter: drop-shadow(0 16px 32px rgba(0,0,0,.38)); }
 }
 
 .hero-fade{
@@ -145,6 +136,51 @@ h3{ font-size: 1.05rem; }
 /* quand l’anim est “finie”, le hero passe sous la liste */
 .hero-full.hero-out{ z-index:-1 }
 
+/* ================= Toolbar / champs ================= */
+.toolbar{
+  position:relative; z-index:20;
+  width:min(1100px,92vw);
+  margin:0 auto 1rem;
+  padding:.4rem 0;
+  display:grid; grid-template-columns: 1fr 140px; gap:.6rem;
+  margin-top: calc(var(--listGap) * .55);
+  align-items:center;
+}
+
+.search,
+.select{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--fg);
+  padding:.85rem .9rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  width:100%;
+  min-height:44px;
+  outline: none;
+  appearance:none;
+  -webkit-appearance:none;
+}
+.search::placeholder{ color:#7f94a5 }
+
+/* Select: flèche personnalisée */
+.select{
+  padding-right:2.1rem;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239fb4c5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position: right .65rem center;
+  background-size:.9rem auto;
+}
+.select:focus,
+.search:focus{
+  box-shadow: 0 0 0 2px rgba(25,211,255,.25), inset 0 1px 0 rgba(255,255,255,.04);
+  border-color: rgba(25,211,255,.55);
+}
+
+@media (max-width:680px){
+  .toolbar{ grid-template-columns: 1fr; gap:.5rem; }
+}
 
 /* ================= LISTE / CARTES ================= */
 .list{
@@ -310,7 +346,7 @@ h3{ font-size: 1.05rem; }
 
 @media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr; } }
 
-/* ================= Catalogue (catégories) ================= */
+/* ================= Catalogue ================= */
 .cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 .cat-card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
@@ -363,7 +399,7 @@ h3{ font-size: 1.05rem; }
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
 
-/* ================= Toasts (cohérent app.js) ================= */
+/* ================= Toasts ================= */
 #toasts{
   position:fixed; z-index:120;
   right:12px;
@@ -395,7 +431,6 @@ h3{ font-size: 1.05rem; }
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
-/* zone live utilisée par app.js */
 #sr-live{
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -425,8 +460,8 @@ h3{ font-size: 1.05rem; }
   .btn{ padding:.54rem .8rem }
   .ratings{ margin:1.4rem auto .6rem }
   .foot{ margin:1rem auto 4.8rem }
-  body{ padding-bottom: 96px; }                 /* pour ne pas que le dock masque le bas */
-  #list, #contact { scroll-margin-top: 84px; }  /* ancrage confortable */
+  body{ padding-bottom: 96px; }
+  #list, #contact { scroll-margin-top: 84px; }
 }
 
 /* ================= (Facultatif) Update banner ================= */
