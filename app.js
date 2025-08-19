@@ -233,9 +233,8 @@ const homeLink    = $('#homeLink');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
-   - transform appliqué directement (pas de var() CSS)
-   - --listGap conservée pour l’espace de la liste
-   - prefers-reduced-motion : anim adoucie (pas coupée)
+   - calcule le transform directement (pas via var() CSS)
+   - garde --listGap pour l’espace liste
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -247,29 +246,19 @@ const homeLink    = $('#homeLink');
 
   let vh = getVH();
   let ticking = false;
-  let reduce = mqr.matches; // animé mais plus doux si true
 
   function render(y){
     const fin = vh * (mq.matches ? 0.70 : 0.85);
-    const raw = clamp(y / fin, 0, 1);
+    const raw = Math.max(0, Math.min(1, y / fin));
     const p   = easeOutCubic(raw);
 
-    // Amplitudes adoucies si prefers-reduced-motion
-    const scaleMax = mq.matches
-      ? (reduce ? 1.60 : 3.10)   // mobile
-      : (reduce ? 1.25 : 2.00);  // desktop
+    const maxScale = mq.matches ? 3.1 : 2.0;
+    const scale    = 1 + (maxScale - 1) * p;
 
-    const tyVhBase = mq.matches
-      ? (reduce ? 6 : 12)        // mobile
-      : (reduce ? 3.5 : 7);      // desktop
+    const tyPxBase = (mq.matches ? 12 : 7) * (vh / 100);
+    const tyPx     = tyPxBase * p;
 
-    const scale = 1 + (scaleMax - 1) * p;
-    const tyPx  = (tyVhBase * (vh / 100)) * p;
-
-    const fadeFactor = mq.matches
-      ? (reduce ? 0.90 : 1.75)   // mobile
-      : (reduce ? 0.70 : 1.25);  // desktop
-    const opacity = Math.max(0, Math.min(1, 1 - fadeFactor * raw));
+    const opacity  = Math.max(0, Math.min(1, 1 - (mq.matches ? 1.75 : 1.25) * raw));
 
     const t = `translate3d(0, ${tyPx.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
     heroLogo.style.transform = t;
@@ -290,7 +279,16 @@ const homeLink    = $('#homeLink');
     }
   }
 
-  // Écoutes
+  if (mqr.matches){
+    const t0 = 'translate3d(0,0,0) scale(1)';
+    heroLogo.style.transform = t0;
+    heroLogo.style.webkitTransform = t0;
+    heroLogo.style.opacity = '1';
+    document.documentElement.style.setProperty('--listGap', '18vh');
+    document.body.classList.remove('after-hero'); hero.classList.remove('hero-out');
+    return;
+  }
+
   window.addEventListener('scroll', onScroll, { passive:true });
   window.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
   window.visualViewport?.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
@@ -298,10 +296,6 @@ const homeLink    = $('#homeLink');
   document.addEventListener('visibilitychange', () => { if (!document.hidden) render(window.scrollY || 0); }, { passive:true });
   window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); render(window.scrollY || 0); } }, { passive:true });
 
-  // Si l’utilisateur change la préférence à chaud
-  mqr.addEventListener?.('change', (e) => { reduce = e.matches; render(window.scrollY || 0); });
-
-  // Première peinture
   render(window.scrollY || 0);
 })();
 
