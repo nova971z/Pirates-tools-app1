@@ -24,8 +24,6 @@ const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
-
-
 /* ---------- UX CSS (toasts + badge bump) injecté ---------- */
 (function injectUXCSS(){
   if (document.getElementById('pt-ux-css')) return;
@@ -48,7 +46,7 @@ const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
   document.head.appendChild(style);
 })();
 
-// Dock: visibilité contrôlée par le scroll du hero
+// Dock: visibilité contrôlée par le scroll du hero (et via le router)
 function showDock(visible){
   if (!dock) return;
   dock.classList.toggle('dock--visible', !!visible);
@@ -99,7 +97,7 @@ function notifyCartAdded(title='Article'){
 /* ---------- Focus helper après navigation ---------- */
 function focusView(key){
   let target = null;
-  if (key === 'produit')      target = $('#pdpTitle');
+  if (key === 'produit')        target = $('#pdpTitle');
   else if (key === 'catalogue') target = $('#view-catalogue h1');
   else if (key === 'devis')     target = $('#view-devis h1');
   else if (key === 'compte')    target = $('#view-compte h1');
@@ -130,17 +128,22 @@ const dockCount     = document.getElementById('dockCount');    // optionnel
 const dockQuoteBtn  = document.getElementById('dockQuoteBtn'); // optionnel
 const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 
+// === DOM refs (CTA + toolbar + liste) ===
+const callBtn  = document.getElementById('callBtn');
+const waBtn    = document.getElementById('waBtn');
+const listEl   = document.getElementById('list');
+const searchEl = document.getElementById('q');
+const tagEl    = document.getElementById('tag');
+
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
   const FALLBACK = './images/pirates-tools-logo.png?v=7';
 
   function ensureFallback(img){
     if (!img) return;
-    // si WebP échoue → bascule PNG
     img.addEventListener('error', () => {
       if (!img.src.includes('pirates-tools-logo.png')) img.src = FALLBACK;
     });
-    // si déjà cassé quand le DOM est prêt
     if (img.complete && img.naturalWidth === 0) img.src = FALLBACK;
   }
 
@@ -149,7 +152,7 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 })();
 
 /* =========================================================
-   0) Anti-zoom Android (facultatif, évite les échelles cassant le dock)
+   0) Anti-zoom Android
 ========================================================= */
 (function lockViewportZoomOnAndroid(){
   const isAndroid = /android/i.test(navigator.userAgent);
@@ -161,11 +164,12 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 })();
 
 /* =========================================================
-   1) Dock : garantit la structure (CSS-only, pas de reposition JS)
+   1) Dock : garantit la structure (CSS-only)
 ========================================================= */
 (function ensureDockShell(){
   const root = document.getElementById('dock');
   if (!root) return;
+  root.classList.remove('hidden'); // s'il restait caché dans l'HTML
   if (root.firstElementChild && root.firstElementChild.classList?.contains('dock__shell')) return;
   const shell = document.createElement('div');
   shell.className = 'dock__shell';
@@ -174,7 +178,7 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 })();
 
 /* =========================================================
-   2) CTA tel/wa homogènes (topbar & PDP & dock)
+   2) CTA tel/wa homogènes
 ========================================================= */
 (function syncCTA(){
   callBtn?.setAttribute('href', `tel:${PHONE_E164}`);
@@ -224,15 +228,11 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Click standard
   logoLink.addEventListener('click', goHome, { passive:false });
-
-  // iOS/webviews: parfois le "click" saute → fallback pointer/touch
   logoLink.addEventListener('pointerup', (e)=>{
     if (e.pointerType === 'touch') goHome(e);
   }, { passive:false });
 })();
-
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
@@ -249,7 +249,6 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
   const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
 
-  // lecture de scroll ultra robuste
   const getScrollY = () =>
     (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
     (document.scrollingElement && document.scrollingElement.scrollTop) ||
@@ -262,35 +261,34 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
   let rafId = 0;
 
   function render(y){
-    const fin = vh * (mq.matches ? 0.70 : 0.85);              // distance de scroll pour terminer l'anim
+    const fin = vh * (mq.matches ? 0.70 : 0.85);
     const raw = Math.max(0, Math.min(1, y / (fin || 1)));
     const p   = easeOutCubic(raw);
 
     const maxScale = mq.matches ? 3.1 : 2.0;
     const scale    = 1 + (maxScale - 1) * p;
 
-    // 12vh / 7vh convertis en px (plus stable sur WebKit)
+    // 12vh / 7vh → px (stable WebKit)
     const tyPxBase = (mq.matches ? 12 : 7) * (vh / 100);
     const tyPx     = tyPxBase * p;
 
     const opacity  = Math.max(0, Math.min(1, 1 - (mq.matches ? 1.75 : 1.25) * raw));
 
-    // transform/opacity directs
     const t = `translate3d(0, ${tyPx.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
     heroLogo.style.transform = t;
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = opacity.toFixed(3);
 
-    // espace sous le hero (fait descendre la barre outils/listes)
+    // espace sous le hero
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    // états de fin/début d'anim
+    // fin d'anim
     const done = raw > 0.985;
     document.body.classList.toggle('after-hero', done);
     hero.classList.toggle('hero-out', done);
 
-    // Apparition du dock quand le hero est "terminé"
+    // Dock → visible quand l’anim est quasi terminée
     if (dock){
       if (raw > 0.97) dock.classList.add('dock--visible');
       else            dock.classList.remove('dock--visible');
@@ -306,7 +304,6 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
     rafId = requestAnimationFrame(tick);
   }
 
-  // Mode “réduction des animations” : état figé propre
   if (mqr.matches){
     const t0 = 'translate3d(0,0,0) scale(1)';
     heroLogo.style.transform = t0;
@@ -315,25 +312,20 @@ const dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
     document.documentElement.style.setProperty('--listGap', '18vh');
     document.body.classList.remove('after-hero');
     hero.classList.remove('hero-out');
-    if (dock) dock.classList.add('dock--visible'); // on laisse le dock visible
+    if (dock) dock.classList.add('dock--visible');
     return;
   }
 
-  // rAF loop = plus fiable que l'événement scroll sur iOS/iPadOS
   rafId = requestAnimationFrame(tick);
 
-  // maj du viewport (rotation barre d’adresse, split-view, etc.)
   const recalc = () => { vh = getVH(); render(getScrollY()); };
   window.addEventListener('resize', recalc, { passive:true });
   window.visualViewport?.addEventListener('resize', recalc, { passive:true });
   window.addEventListener('orientationchange', recalc, { passive:true });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) recalc(); }, { passive:true });
   window.addEventListener('pageshow', (e) => { if (e.persisted) recalc(); }, { passive:true });
-
-  // nettoyage si la page est déchargée
   window.addEventListener('pagehide', () => cancelAnimationFrame(rafId), { passive:true });
 
-  // première peinture
   render(getScrollY());
 })();
 
@@ -400,15 +392,8 @@ const ScrollExit = (function () {
 ========================================================= */
 function updateDock(){
   if (!dock || !dockCount) return;
-  dockCount.textContent = CART.length;   // met juste à jour le badge
-  // NE PAS masquer ici : la visibilité est gérée par showDock() via le hero
-}
-
-  // Badge = quantité
   const n = CART.length;
   dockCount.textContent = n;
-
-  // Masque la pastille si 0 (mais garde la barre visible)
   dockCount.style.display = n ? '' : 'none';
 }
 function saveCart(){
@@ -785,7 +770,6 @@ function renderCartView(){
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
-// Ouvre WhatsApp même si le panier est vide (message générique)
 dockQuoteBtn?.addEventListener('click', ()=>{
   const text = cartToWhatsAppText() || 'Bonjour, je souhaite des informations.';
   const msg  = encodeURIComponent(text);
@@ -794,7 +778,6 @@ dockQuoteBtn?.addEventListener('click', ()=>{
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
-
 /* =========================================================
    15) PWA (install + SW + update banner)
 ========================================================= */
@@ -802,7 +785,6 @@ let deferredPrompt;
 const installBtn = $('#installBtn');
 
 function showUpdateBanner(waitingSW){
-  // mini-bannière fixe au-dessus du dock
   const bar = document.createElement('div');
   bar.id = 'updateBanner';
   bar.innerHTML = `
@@ -822,7 +804,6 @@ function showUpdateBanner(waitingSW){
     waitingSW.postMessage('SKIP_WAITING');
   });
 
-  // Quand le nouveau SW devient contrôleur → on recharge
   navigator.serviceWorker.addEventListener('controllerchange', ()=> location.reload());
 }
 
@@ -838,10 +819,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('sw.js');
-
-      // SW déjà prêt à remplacer ?
       if (reg.waiting) showUpdateBanner(reg.waiting);
-
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
@@ -857,7 +835,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Petits toasts réseau (déjà visibles)
 window.addEventListener('online',  ()=> toast('Connexion rétablie', 'success'));
 window.addEventListener('offline', ()=> toast('Vous êtes hors ligne', 'info'));
 
@@ -930,6 +907,16 @@ function renderAccount(){
 
   let prevHash = '';
 
+  function ensureDockVisibleOnViews(isHome){
+    if (!dock) return;
+    if (isHome){
+      // la visibilité est gérée par l’animation du hero
+      // ne force rien ici
+    }else{
+      dock.classList.add('dock--visible');
+    }
+  }
+
   function wireBack(cameFrom){
     const back = document.querySelector('#pdpBack, .chip--back');
     if (!back) return;
@@ -951,7 +938,7 @@ function renderAccount(){
       const key = decodeURIComponent(m[1]);
       const tryRender = ()=>{
         const p = findProductByKey(key);
-        showHome(false); showView('produit');
+        showHome(false); showView('produit'); ensureDockVisibleOnViews(false);
         if (p){
           renderPDP(p);
           document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
@@ -976,7 +963,7 @@ function renderAccount(){
     // #/catalogue
     m = h.match(/^#\/catalogue\b/);
     if (m){
-      showHome(false); showView('catalogue'); renderCatalogue();
+      showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
       document.title='Pirates Tools • Catalogue';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
@@ -986,7 +973,7 @@ function renderAccount(){
     // #/devis
     m = h.match(/^#\/devis\b/);
     if (m){
-      showHome(false); showView('devis'); renderCartView();
+      showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
       document.title='Pirates Tools • Devis';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
@@ -996,7 +983,7 @@ function renderAccount(){
     // #/compte
     m = h.match(/^#\/compte\b/);
     if (m){
-      showHome(false); showView('compte'); renderAccount();
+      showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
       document.title='Pirates Tools • Mon compte';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
@@ -1005,7 +992,7 @@ function renderAccount(){
 
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
-      showHome(true); hideAllViews();
+      showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
       document.title = 'Pirates Tools • Outillage pro (PWA)';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
@@ -1013,7 +1000,7 @@ function renderAccount(){
     }
 
     // fallback : accueil
-    showHome(true); hideAllViews();
+    showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
     document.title = 'Pirates Tools • Outillage pro (PWA)';
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
