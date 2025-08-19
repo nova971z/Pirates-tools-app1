@@ -87,54 +87,80 @@ h3{ font-size: 1.05rem; }
 
 @media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
-/* ================= HERO (zoom + fondu) ================= */
-.hero-full{
-  position:relative;
-  height:100vh;      /* fallback */
-  height:100svh;     /* iOS/Android barres dynamiques */
-  height:100dvh;     /* viewport dynamique moderne */
-  display:grid; place-items:center;
-  pointer-events:none;
-  isolation:isolate;
-  z-index:30;
-}
+/* =========================================================
+   5) HERO : zoom + fondu (robuste iOS/Android)
+   - calcule le transform directement (pas via var() CSS)
+   - garde --listGap pour l’espace liste
+========================================================= */
+(function heroEffect(){
+  if (!hero || !heroLogo) return;
 
-/* Valeurs par défaut – écrasées par app.js en scroll */
-:root{
-  --heroScale: 1;
-  --heroY: 0vh;
-  --heroAlpha: 1;
-}
+  const mq  = window.matchMedia('(max-width: 768px)');
+  const mqr = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
 
-.hero-logo{
-  width:min(78vmin, 900px);
-  max-width:900px;
-  height:auto;
+  let vh = getVH();
+  let ticking = false;
 
-  opacity: var(--heroAlpha, 1);
-  transition: opacity .18s linear;
+  // Applique le rendu (transform + opacity) directement sur l’élément
+  function render(y){
+    const fin = vh * (mq.matches ? 0.70 : 0.85);     // distance de scroll pour finir l’anim
+    const raw = clamp(y / fin, 0, 1);
+    const p   = easeOutCubic(raw);
 
-  /* redondance WebKit pour iOS */
-  transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
-  -webkit-transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
+    const maxScale = mq.matches ? 3.1 : 2.0;
+    const scale    = 1 + (maxScale - 1) * p;
 
-  transform-origin:center;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+    // Anciennement 12vh / 7vh → converti en px pour stabilité WebKit
+    const tyPxBase = (mq.matches ? 12 : 7) * (vh / 100);
+    const tyPx     = tyPxBase * p;
 
-  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
-}
+    const opacity  = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1);
 
-.hero-fade{
-  position:absolute; inset:auto 0 0 0; height:26vh;
-  background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
-  pointer-events:none;
-  z-index:-1;
-}
+    // transform/opacity directs (+ préfixe WebKit pour sûreté)
+    const t = `translate3d(0, ${tyPx.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
+    heroLogo.style.transform = t;
+    heroLogo.style.webkitTransform = t;
+    heroLogo.style.opacity = opacity.toFixed(3);
 
-/* quand l’anim est “finie”, le hero passe sous la liste */
-.hero-full.hero-out{ z-index:-1 }
+    // Espace sous le hero (garde l’effet d’apparition de la liste)
+    const gap = (1 - raw) * (mq.matches ? 18 : 22);
+    document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
+
+    if (raw > 0.985) { document.body.classList.add('after-hero'); hero.classList.add('hero-out'); }
+    else { document.body.classList.remove('after-hero'); hero.classList.remove('hero-out'); }
+  }
+
+  function onScroll(){
+    if (!ticking){
+      ticking = true;
+      requestAnimationFrame(() => { render(window.scrollY || 0); ticking = false; });
+    }
+  }
+
+  // Mode “réduction des animations” : on fige un état propre et on sort
+  if (mqr.matches){
+    const t0 = 'translate3d(0,0,0) scale(1)';
+    heroLogo.style.transform = t0;
+    heroLogo.style.webkitTransform = t0;
+    heroLogo.style.opacity = '1';
+    document.documentElement.style.setProperty('--listGap', '18vh');
+    document.body.classList.remove('after-hero'); hero.classList.remove('hero-out');
+    return;
+  }
+
+  // Écoutes
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  window.visualViewport?.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  window.addEventListener('orientationchange', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(window.scrollY || 0); }, { passive:true });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); render(window.scrollY || 0); } }, { passive:true });
+
+  // Première peinture
+  render(window.scrollY || 0);
+})();
 
 /* ================= Toolbar / champs ================= */
 .toolbar{
