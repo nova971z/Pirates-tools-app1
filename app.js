@@ -533,6 +533,90 @@ function cartToWhatsAppText(){
   return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
 }
 
+
+/* ===== JSON-LD Product (SEO) ===== */
+function absoluteUrl(u){
+  try { return new URL(u, location.href).href; } catch(_){ return u; }
+}
+function schemaAvailability(p){
+  const s = (p.stock_status || '').toLowerCase();
+  if (s === 'in_stock')    return 'http://schema.org/InStock';
+  if (s === 'low_stock')   return 'http://schema.org/LimitedAvailability';
+  if (s === 'out_of_stock')return 'http://schema.org/OutOfStock';
+  return (p.stock_qty > 0) ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock';
+}
+function buildProductJsonLD(p){
+  const images = [];
+  if (p.img) images.push(absoluteUrl(p.img));
+  if (Array.isArray(p.gallery)) p.gallery.forEach(g => images.push(absoluteUrl(g)));
+
+  const price = (typeof p.price === 'number')
+    ? p.price
+    : (typeof p.price_cents === 'number' ? p.price_cents/100 : undefined);
+
+  const url = `${location.origin}${location.pathname}#/produit/${encodeURIComponent(p.id || p.sku || (p.title || ''))}`;
+
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": p.title || `${p.brand||''} ${p.sku||''}`.trim(),
+    "sku":  p.sku || p.id || undefined,
+    "mpn":  p.sku || undefined,
+    "brand": p.brand ? { "@type": "Brand", "name": p.brand } : undefined,
+    "category": p.category || undefined,
+    "description": p.seo?.description || p.desc || p.description || undefined,
+    "image": images.length ? images : undefined,
+    "url": url,
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": (p.currency || "EUR"),
+      "price": price != null ? String(price) : undefined,
+      "availability": schemaAvailability(p),
+      "itemCondition": p.new ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+      "url": url
+    }
+  };
+
+  if (typeof p.rating === 'number' && typeof p.reviews === 'number' && p.reviews > 0){
+    data.aggregateRating = {
+      "@type": "AggregateRating",
+      "ratingValue": String(p.rating),
+      "ratingCount": String(p.reviews)
+    };
+  }
+
+  // Nettoyage des champs vides/undefined
+  const prune = (o) => {
+    if (Array.isArray(o)) return o.map(prune).filter(v => v != null);
+    if (o && typeof o === 'object'){
+      const r = {};
+      Object.entries(o).forEach(([k,v])=>{
+        const pv = prune(v);
+        if (pv != null && !(Array.isArray(pv) && pv.length === 0)) r[k] = pv;
+      });
+      return Object.keys(r).length ? r : null;
+    }
+    return (o === undefined || o === null) ? null : o;
+  };
+  return prune(data);
+}
+function injectProductJsonLD(p){
+  try{
+    const id = 'jsonld-product';
+    document.getElementById(id)?.remove();
+    const json = buildProductJsonLD(p);
+    if (!json) return;
+    const s = document.createElement('script');
+    s.type = 'application/ld+json';
+    s.id = id;
+    s.textContent = JSON.stringify(json);
+    document.head.appendChild(s);
+  }catch(_){}
+}
+function clearProductJsonLD(){
+  document.getElementById('jsonld-product')?.remove();
+}
+
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
