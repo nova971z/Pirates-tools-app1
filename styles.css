@@ -490,3 +490,25 @@ h3{ font-size: 1.05rem; }
   border:1px solid var(--border); border-radius: 10px;
   padding:.55rem .7rem; z-index:130; box-shadow:var(--shadow);
 }
+
+/* ===== iOS A2HS helper (bulle pédagogique au-dessus du dock) ===== */
+#a2hsTip{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom,0px));
+  z-index:125;
+  background:rgba(10,15,20,.92); color:var(--fg);
+  border:1px solid var(--border); border-radius:12px;
+  padding:.55rem .75rem; box-shadow:var(--shadow);
+  display:flex; align-items:center; gap:.6rem;
+  max-width:min(92vw,520px);
+  animation:a2hs-in .18s ease-out both;
+}
+#a2hsTip.out{ animation: toast-out .18s ease-in both; } /* réutilise @keyframes existante */
+.a2hs-tip__icon{
+  display:inline-block; padding:.18rem .38rem; border-radius:8px;
+  background:rgba(255,255,255,.06); border:1px solid var(--border);
+  margin:0 .2rem;
+}
+.a2hs-tip__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px }
+@keyframes a2hs-in{ from{ transform:translateX(-50%) translateY(6px); opacity:0 } to{ transform:translateX(-50%) translateY(0); opacity:1 } }
+```0
