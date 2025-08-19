@@ -385,8 +385,15 @@ const ScrollExit = (function () {
 ========================================================= */
 function updateDock(){
   if (!dock || !dockCount) return;
-  dockCount.textContent = CART.length;
-  dock.classList.toggle('hidden', CART.length === 0);
+  // Toujours visible
+  dock.classList.remove('hidden');
+
+  // Badge = quantité
+  const n = CART.length;
+  dockCount.textContent = n;
+
+  // Masque la pastille si 0 (mais garde la barre visible)
+  dockCount.style.display = n ? '' : 'none';
 }
 function saveCart(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
