@@ -12,7 +12,7 @@
 
 
 'use strict';
-const VERSION        = 'pt-v17'; // bump version pour forcer la MAJ
+const VERSION        = 'pt-v18'; // bump version pour forcer la MAJ
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
