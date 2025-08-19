@@ -90,7 +90,6 @@ h3{ font-size: 1.05rem; }
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
 .hero-full{
   position: relative;
-  /* ordre = compat → iOS/Android → viewport dynamique moderne */
   height: 100vh;      /* fallback */
   height: 100svh;     /* barres dynamiques mobiles */
   height: 100dvh;     /* viewport dynamique moderne */
@@ -132,9 +131,7 @@ h3{ font-size: 1.05rem; }
 }
 
 /* Quand l’anim est “terminée”, le hero passe sous la liste */
-.hero-full.hero-out{
-  z-index: -1;
-}
+.hero-full.hero-out{ z-index: -1; }
 
 /* ================= Toolbar / champs ================= */
 .toolbar{
