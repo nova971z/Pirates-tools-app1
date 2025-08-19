@@ -1,28 +1,23 @@
 /* =========================================================
    Pirates Tools — styles.css (FULL, fusion + Android/iOS fixes)
    Cohérent avec app.js (focus, toasts, dock CSS-only)
-   ========================================================= */
+========================================================= */
 
-/* Thème */
+/* ---------- Thème ---------- */
 :root{
   color-scheme: dark;
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
 
-  /* marges dynamiques pilotées par JS (hero) */
-  --listGap: 14vh;
-
-  /* (si un jour tu veux repasser l’anim côté CSS) */
-  --tool-exit-dx: 60px;
-  --tool-exit-dur: 420ms;
-  --tool-exit-ease: cubic-bezier(.22,.61,.36,1);
+  /* marge dynamique sous le hero (pilotée par app.js) */
+  --listGap: 18vh;
 }
 
+/* ---------- Reset & base ---------- */
 *{ box-sizing:border-box }
 html{
   scroll-behavior:smooth;
-  /* empêche les zooms auto de texte sur mobiles */
   -webkit-text-size-adjust:100%;
   text-size-adjust:100%;
   width:100%; max-width:100%; overflow-x:hidden;
@@ -33,18 +28,24 @@ body{
     radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent 70%),
     linear-gradient(180deg, #0a0f14 0%, #06141b 100%);
   color:var(--fg);
-  font:400 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
+  font:500 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   width:100%; max-width:100%; overflow-x:hidden;
-  touch-action: manipulation; /* limite le double-tap zoom */
+  touch-action: manipulation;
 }
+img,svg,video{ max-width:100%; height:auto; display:block; }
 a{ color:inherit; text-decoration:none }
 a:focus-visible,button:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; border-radius:10px }
 button,input,select,textarea{ font:inherit; color:inherit }
-img,svg,video{ max-width:100%; height:auto; }
 
-/* Conteneur */
 .container{ width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2 }
+.hidden{ display:none !important }
+
+/* ---------- Titres ---------- */
+h1,h2,h3{ font-weight:900; letter-spacing:.2px; }
+h1{ font-size: clamp(1.4rem, 1.2rem + 1.5vw, 2rem); }
+h2{ font-size: clamp(1.2rem, 1.05rem + 1vw, 1.6rem); }
+h3{ font-size: 1.05rem; }
 
 /* ================= TOPBAR ================= */
 .topbar{
@@ -60,12 +61,11 @@ img,svg,video{ max-width:100%; height:auto; }
   pointer-events:auto; -webkit-tap-highlight-color:transparent;
 }
 .topbar-logo{
-  height:28px; width:auto; display:block; cursor:pointer;
+  height:32px; width:auto; display:block; cursor:pointer;
   filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
 }
-@media (max-width:768px){ .topbar-logo{height:24px} }
+@media (max-width:768px){ .topbar-logo{height:28px} }
 
-.brand{font-weight:800; letter-spacing:.2px; color:#fff}
 .nav{display:flex; gap:.5rem; justify-content:center}
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
@@ -74,6 +74,7 @@ img,svg,video{ max-width:100%; height:auto; }
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
 .chip:hover{background:rgba(255,255,255,.07)}
+
 .cta{display:flex; gap:.6rem; align-items:center; min-width:0}
 .btn{
   display:inline-flex; align-items:center; gap:.5rem;
@@ -81,9 +82,10 @@ img,svg,video{ max-width:100%; height:auto; }
   color:#001018; border:0; cursor:pointer; box-shadow:var(--shadow);
   white-space:nowrap; flex-shrink:0;
 }
+.btn:active{transform:translateY(1px)}
 .btn-call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%) }
 .btn-wa{   background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016}
-.btn:active{transform:translateY(1px)}
+
 @media (max-width:960px){ .topbar{grid-template-columns:auto 1fr auto; gap:.6rem} .nav{display:none} }
 
 /* ================= HERO (zoom + fondu) ================= */
@@ -92,34 +94,34 @@ img,svg,video{ max-width:100%; height:auto; }
   height:100vh;               /* fallback */
   height:100svh;              /* Android/iOS barre dynamique */
   display:grid; place-items:center;
-  pointer-events:none;        /* ne bloque pas les clics des cartes */
+  pointer-events:none;
   isolation:isolate;
-  z-index:30;                 /* au-dessus au début */
+  z-index:30;
 }
 .hero-logo{
-  width:min(78vmin,680px); height:auto;
-  transform:translate3d(0, var(--heroY, 0), 0) scale(var(--heroScale, 1));
-  opacity:var(--heroAlpha, 1);
+  --heroScale: 1; --heroY: 0vh; --heroAlpha: 1;
+  width:min(78vmin,900px); height:auto;
+  transform:translate3d(0, var(--heroY), 0) scale(var(--heroScale));
+  opacity:var(--heroAlpha);
   transform-origin:center;
   will-change:transform, opacity;
   filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
-  transition:opacity .18s linear;
+  transition: transform .18s linear, opacity .18s linear;
 }
 .hero-fade{
   position:absolute; inset:auto 0 0 0; height:26vh;
   background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
   pointer-events:none;
-  z-index:-1;                 /* derrière le logo ET la liste */
+  z-index:-1;
 }
-.hero-full.hero-out{ z-index:-1 } /* passe sous la liste quand l'anim est finie */
+.hero-full.hero-out{ z-index:-1 }
 
-/* ====== Toolbar ====== */
+/* ================= TOOLBAR ================= */
 .toolbar{
   position:relative; z-index:20;
   width:min(1100px,92vw); margin:0 auto 1rem;
   padding:.4rem 0;
   display:grid; grid-template-columns:1fr 140px; gap:.6rem;
-  /* garde toujours un espace sous le hero, rétrécit avec le scroll */
   margin-top: calc(var(--listGap) * .55);
 }
 .search,.select{
@@ -129,7 +131,7 @@ img,svg,video{ max-width:100%; height:auto; }
 }
 .search::placeholder{ color:#7f94a5 }
 
-/* ====== Liste / Cartes ====== */
+/* ================= LISTE / CARTES ================= */
 .list{
   display:grid; gap:1rem;
   position:relative; z-index:10;
@@ -146,24 +148,27 @@ img,svg,video{ max-width:100%; height:auto; }
   display:flex; align-items:center; justify-content:space-between;
   padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04);
 }
-.title{ margin:0; font-size:1.05rem }
+.title{ margin:0; font-size:1.05rem; font-weight:800 }
 .badge{
   display:inline-flex; align-items:center; padding:.35rem .7rem;
   border-radius:999px; font-weight:700; color:#cfeaf8;
   background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
   border:1px solid rgba(25,211,255,.35);
 }
-.specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem }
+.specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem; color:var(--muted) }
 .actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem }
-.btn.primary{ background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%); color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px }
+.btn.primary{
+  background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
+  color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px
+}
 
-/* Perf: ne peins/rasterise les cartes visibles que lorsqu'elles entrent à l'écran */
+/* Perf: n’afficher que ce qui entre à l’écran */
 .card, .cat-card{
   content-visibility:auto;
   contain-intrinsic-size: 320px;
 }
 
-/* ====== Avis / Footer ====== */
+/* ================= AVIS ================= */
 .ratings{
   margin:2rem auto 1rem; width:min(1100px,92vw);
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -172,154 +177,7 @@ img,svg,video{ max-width:100%; height:auto; }
 .ratings h2{ margin:0 0 .5rem; font-size:1.05rem }
 .ratings__list{ margin:0; padding-left:1.1rem }
 
-.foot{
-  width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
-  border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
-}
-.foot__grid{ display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
-
-/* ===== Dock FIXE Android/iOS (CSS-only + safe area) ===== */
-.dock{
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%); /* centrage pur CSS */
-  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
-  bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px))); /* iOS < 11.2 */
-  z-index: 110;
-  pointer-events: none;        /* clics seulement sur la capsule */
-  writing-mode: horizontal-tb; /* empêche la mise à la verticale en webviews */
-}
-
-.dock__shell{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .4rem .5rem;
-  border-radius: 999px;
-  background: rgba(10,15,20,.66);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  white-space: nowrap;         /* pas de retour à la ligne */
-  overflow: visible;           /* la pastille peut déborder */
-  pointer-events: auto;        /* clics actifs ici */
-  transform: translateZ(0);    /* anti-jitter Android */
-  contain: layout paint;
-}
-
-.dock__btn{
-  width: 40px; height: 40px;
-  display: grid; place-items: center;
-  border-radius: 12px;
-  background: rgba(255,255,255,.06);
-  color: #d9e9f2;
-  border: 1px solid rgba(255,255,255,.08);
-}
-.dock__btn:active{ transform: translateY(1px) }
-.dock__btn--call { background: linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
-.dock__btn--wa   { background: linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-.dock__btn--cart,
-.dock__btn--tools{ background: rgba(255,255,255,.10) }
-
-.dock__badge{
-  position: absolute;
-  top: -8px; right: -4px;     /* visible hors bord */
-  background: #ff6b6b; color:#001018;
-  font-weight: 800; font-size: .75rem; line-height: 1;
-  border-radius: 999px; padding: .35rem .45rem;
-  border: 2px solid rgba(10,15,20,.85);
-  cursor: pointer;
-}
-
-/* Utils */
-.hidden{ display:none !important }
-
-@media (max-width:768px){
-  .btn{ padding:.54rem .8rem }
-  .ratings{ margin:1.4rem auto .6rem }
-  .foot{ margin:1rem auto 4.8rem }
-  /* espace final pour que le dock ne masque jamais le bas de page */
-  body{ padding-bottom: 96px; }
-  /* ancrage confortable sous la topbar sticky */
-  #list, #contact { scroll-margin-top: 84px; }
-}
-
-/* =========================================================
-   [NOTE] Les animations "exit left/right" sont injectées par JS
-   (app.js ajoute les keyframes & classes .tool--exit-*)
-   ========================================================= */
-
-/* [ROUTER] vues génériques */
-.view{ width:min(1100px,92vw); margin:0 auto 1.2rem; }
-.view.hidden{ display:none !important; }
-
-/* [PDP] Fiche produit */
-.pdp{ padding: .5rem 0 1.2rem; }
-.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
-
-.pdp__grid{
-  display:grid; gap:1.2rem;
-  grid-template-columns: 1.2fr 1fr;
-}
-.pdp__media{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:.8rem;
-  display:grid; place-items:center;
-  min-height:180px;
-}
-.pdp__media img{
-  width:100%; height:auto; display:block;
-  max-height:56vh; object-fit:contain;
-  transform: translateZ(0);
-  filter: drop-shadow(0 18px 36px rgba(0,0,0,.35));
-}
-
-.pdp__info{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:1rem 1.1rem;
-}
-.pdp__title{ margin:.2rem 0 .2rem; }
-.pdp__tag{ margin:.2rem 0 .6rem; color:#cfeaf8 }
-.pdp__desc{ margin:0 0 1rem; color:#d8e6f1 }
-
-.pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
-.pdp__specs li{ margin:.25rem 0 }
-
-/* Tableau specs (injection JS dans .pdp__specs) */
-.pdp__specs table{
-  width:100%; border-collapse:collapse; font-size:.95rem; margin-top:.25rem;
-  border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-}
-.pdp__specs th,
-.pdp__specs td{
-  text-align:left; padding:.55rem .7rem; vertical-align:top;
-  border-bottom:1px solid rgba(255,255,255,.06);
-}
-.pdp__specs th{ width:38%; color:#cfeaf8; font-weight:700; }
-.pdp__specs tr:last-child th,
-.pdp__specs tr:last-child td{ border-bottom:0; }
-.pdp__specs .badge{
-  background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10));
-  border-color:rgba(25,211,255,.45);
-  color:#e6f7ff;
-}
-
-.pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
-
-@media (max-width: 960px){
-  .pdp__grid{ grid-template-columns: 1fr; }
-}
-
-/* ====== Barre de liens (site-links) — compact ====== */
+/* ================= SITE LINKS ================= */
 .site-links{
   width:min(1100px,92vw);
   margin:1rem auto 1.25rem;
@@ -335,32 +193,113 @@ img,svg,video{ max-width:100%; height:auto; }
 .site-links .chip{
   background:rgba(255,255,255,.05);
   padding:.30rem .58rem;
-  font-size:.92rem;
-  line-height:1.1;
-  max-width:100%;
-  text-overflow:ellipsis;
-  overflow:hidden;
-  white-space:nowrap;
+  font-size:.92rem; line-height:1.1;
+  max-width:100%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;
 }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
-
 @media (max-width: 420px){
   .site-links{ gap:.28rem; padding:.44rem .55rem; }
   .site-links .chip{ font-size:.88rem; padding:.28rem .54rem; }
 }
 
-/* ===== Catalogue (catégories auto) ===== */
-.cat-list{
-  display:grid; gap:1rem;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+/* ================= FOOTER ================= */
+.foot{
+  width:min(1100px,92vw); margin:1.5rem auto 3.5rem; color:var(--muted);
+  border-top:1px solid var(--border); padding-top:1rem; font-size:.95rem;
 }
+.foot__grid{ display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
+
+/* ================= DOCK (mobile) ================= */
+.dock{
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: var(--dock-bottom, calc(14px + env(safe-area-inset-bottom, 0px)));
+  bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px)));
+  z-index: 110;
+  pointer-events: none;
+  writing-mode: horizontal-tb;
+}
+.dock__shell{
+  position: relative;
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding: .4rem .5rem;
+  border-radius: 999px;
+  background: rgba(10,15,20,.66);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+  white-space: nowrap; overflow: visible; pointer-events: auto;
+  transform: translateZ(0); contain: layout paint;
+}
+.dock__btn{
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border-radius: 12px; background: rgba(255,255,255,.06);
+  color: #d9e9f2; border: 1px solid rgba(255,255,255,.08);
+}
+.dock__btn:active{ transform: translateY(1px) }
+.dock__btn--call { background: linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
+.dock__btn--wa   { background: linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
+.dock__btn--cart, .dock__btn--tools{ background: rgba(255,255,255,.10) }
+
+.dock__badge{
+  position: absolute; top: -8px; right: -4px;
+  background: #ff6b6b; color:#001018; font-weight: 800; font-size: .75rem; line-height: 1;
+  border-radius: 999px; padding: .35rem .45rem; border: 2px solid rgba(10,15,20,.85);
+  cursor: pointer;
+}
+
+/* ================= VUES / ROUTER ================= */
+.view{ width:min(1100px,92vw); margin:0 auto 1.2rem; }
+.view.hidden{ display:none !important; }
+
+/* ================= PDP ================= */
+.pdp{ padding: .5rem 0 1.2rem; }
+.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
+
+.pdp__grid{ display:grid; gap:1.2rem; grid-template-columns: 1.2fr 1fr; }
+.pdp__media{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:.8rem; display:grid; place-items:center; min-height:180px;
+}
+.pdp__media img{
+  width:100%; height:auto; display:block; max-height:56vh; object-fit:contain;
+  transform: translateZ(0); filter: drop-shadow(0 18px 36px rgba(0,0,0,.35));
+}
+.pdp__info{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem 1.1rem;
+}
+.pdp__title{ margin:.2rem 0 .2rem; }
+.pdp__tag{ margin:.2rem 0 .6rem; color:#cfeaf8 }
+.pdp__desc{ margin:0 0 1rem; color:#d8e6f1 }
+.pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
+.pdp__specs li{ margin:.25rem 0 }
+
+.pdp__specs table{
+  width:100%; border-collapse:collapse; font-size:.95rem; margin-top:.25rem;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+}
+.pdp__specs th, .pdp__specs td{
+  text-align:left; padding:.55rem .7rem; vertical-align:top;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.pdp__specs th{ width:38%; color:#cfeaf8; font-weight:700; }
+.pdp__specs tr:last-child th, .pdp__specs tr:last-child td{ border-bottom:0; }
+.pdp__specs .badge{
+  background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10));
+  border-color:rgba(25,211,255,.45); color:#e6f7ff;
+}
+
+.pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
+
+@media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr; } }
+
+/* ================= Catalogue (catégories) ================= */
+.cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 .cat-card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:1rem 1.1rem;
-  box-shadow:var(--shadow);
-  cursor:pointer;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem 1.1rem; box-shadow:var(--shadow); cursor:pointer;
   transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .cat-card:hover{
@@ -368,13 +307,11 @@ img,svg,video{ max-width:100%; height:auto; }
   border-color:rgba(25,211,255,.45);
   box-shadow:0 12px 28px rgba(0,0,0,.38);
 }
-.cat-card__title{ margin:0 0 .25rem; font-weight:800; }
-.cat-card__count{ color:var(--muted); font-size:.95rem; }
 
-/* ===== Devis (liste) ===== */
+/* ================= Devis ================= */
 #devisList .card .btn { padding:.45rem .7rem; }
 
-/* ===== Compte / Fidélité (une seule version) ===== */
+/* ================= Jauge fidélité ================= */
 .meter{ display:grid; gap:.4rem; }
 .meter__rail{
   position:relative; height:14px; border-radius:999px; overflow:hidden;
@@ -392,14 +329,12 @@ img,svg,video{ max-width:100%; height:auto; }
   position:absolute; top:50%; transform:translate(-50%,-50%);
   width:16px; height:16px; border-radius:50%;
   background:#fff; box-shadow:0 0 18px rgba(25,211,255,.8), 0 0 28px rgba(0,225,180,.6);
-  border:2px solid #0a0f14;
-  transition:left .25s ease;
+  border:2px solid #0a0f14; transition:left .25s ease;
 }
 .meter__scale{ display:flex; justify-content:space-between; font-size:.85rem; color:#9fb4c5; }
 
 #accSlider{
-  width:100%;
-  appearance:none; height:0; outline:none; background:transparent; margin-top:.2rem;
+  width:100%; appearance:none; height:0; outline:none; background:transparent; margin-top:.2rem;
 }
 #accSlider::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none; width:22px; height:22px; border-radius:50%;
@@ -413,30 +348,39 @@ img,svg,video{ max-width:100%; height:auto; }
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
 
-/* ==== Fix CTA topbar (mobile) ================================= */
-.cta .btn{
-  flex: 1 1 auto;  /* autorise la réduction */
-  min-width: 0;    /* évite l’overflow min-content */
+/* ================= Toasts (cohérent app.js) ================= */
+#toasts{
+  position:fixed; z-index:120;
+  right:12px;
+  bottom: calc(var(--dock-bottom, 14px) + env(safe-area-inset-bottom, 0px) + 62px);
+  display:grid; gap:.5rem; width:min(92vw, 420px);
+  pointer-events:none;
 }
-@media (max-width: 420px){
-  .topbar{ grid-template-columns: auto 1fr; row-gap:.4rem; }
-  .cta{
-    display:grid; grid-template-columns:1fr 1fr;
-    gap:.4rem; width:100%; max-width:340px; grid-column:1 / -1;
-  }
-  .cta .btn{ width:100%; padding:.46rem .6rem; font-size:.95rem; line-height:1.1; }
+.toast{
+  pointer-events:auto;
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  padding:.7rem .9rem; box-shadow:var(--shadow);
+  display:flex; align-items:flex-start; gap:.6rem;
+  animation: toast-in .18s ease-out both;
 }
-@media (max-width:360px){
-  .cta .btn{ font-size:.88rem; padding:.42rem .55rem; }
-  .topbar-logo{ height:22px; }
-}
+.toast__icon{ font-size:1.1rem; line-height:1; }
+.toast__body{ flex:1; color:#d8e6f1; }
+.toast__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:1.1rem; }
 
-/* =================== A11y utils =================== */
+.toast--success .toast__icon{ filter: drop-shadow(0 0 8px rgba(0,225,180,.45)); }
+.toast--error   .toast__icon{ filter: drop-shadow(0 0 8px rgba(255,80,80,.45)); }
+
+@keyframes toast-in { from{ transform:translateY(8px); opacity:0 } to{ transform:none; opacity:1 } }
+@keyframes toast-out{ to{ transform:translateY(8px); opacity:0 } }
+
+@media (max-width:480px){ #toasts{ right:8px; width:min(94vw, 420px); } }
+
+/* ================= A11y ================= */
 .sr-only{
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
-/* zone live utilisée par app.js → même style qu’un sr-only */
+/* zone live utilisée par app.js */
 #sr-live{
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -445,56 +389,36 @@ img,svg,video{ max-width:100%; height:auto; }
   position:fixed; left:8px; top:-42px; z-index:9999;
   padding:.5rem .7rem; border-radius:8px;
   background:#111a22; color:#e6edf5; border:1px solid var(--border);
-  box-shadow:var(--shadow);
-  transition:top .18s ease;
+  box-shadow:var(--shadow); transition:top .18s ease;
 }
 .skip-link:focus{ top:8px; outline:2px solid var(--brand); }
 
-/* =================== Toasts (cohérent app.js) =================== */
-#toasts{
-  position:fixed; z-index:120;
-  right:12px;
-  bottom: calc(var(--dock-bottom, 14px) + env(safe-area-inset-bottom, 0px) + 62px);
-  display:grid; gap:.5rem; width:min(92vw, 420px);
-  pointer-events:none; /* clics seulement sur les toasts */
-}
-.toast{
-  pointer-events:auto;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:.7rem .9rem;
-  box-shadow:var(--shadow);
-  display:flex; align-items:flex-start; gap:.6rem;
-  animation: toast-in .18s ease-out both;
-}
-.toast__icon{ font-size:1.1rem; line-height:1; }
-.toast__body{ flex:1; color:#d8e6f1; }
-.toast__close{
-  background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:1.1rem;
-}
-.toast--success .toast__icon{ filter: drop-shadow(0 0 8px rgba(0,225,180,.45)); }
-.toast--error   .toast__icon{ filter: drop-shadow(0 0 8px rgba(255,80,80,.45)); }
-@keyframes toast-in { from{ transform:translateY(8px); opacity:0 } to{ transform:none; opacity:1 } }
-@keyframes toast-out{ to{ transform:translateY(8px); opacity:0 } }
-@media (max-width:480px){
-  #toasts{ right:8px; width:min(94vw, 420px); }
-}
+/* ================= Badge “bump” (dock) ================= */
+@keyframes bump { 0%{transform:scale(1)} 30%{transform:scale(1.22)} 60%{transform:scale(0.94)} 100%{transform:scale(1)} }
+.dock__badge.bump{ animation:bump 380ms cubic-bezier(.22,.61,.36,1); will-change:transform }
 
-/* =================== Badge “bump” (dock) =================== */
-@keyframes bump {
-  0%   { transform: scale(1);   }
-  30%  { transform: scale(1.22);}
-  60%  { transform: scale(0.94);}
-  100% { transform: scale(1);   }
-}
-.dock__badge.bump{
-  animation: bump 380ms cubic-bezier(.22,.61,.36,1);
-  will-change: transform;
-}
-
-/* Option “réduction des animations” */
+/* ================= Réduction des animations ================= */
 @media (prefers-reduced-motion: reduce){
-  .toast{ animation: none; }
-  .dock__badge.bump{ animation: none; }
+  html{ scroll-behavior:auto; }
+  .hero-logo{ transition:none !important; transform:none !important; opacity:1 !important; }
+  .toast{ animation:none; }
+  .dock__badge.bump{ animation:none; }
+}
+
+/* ================= Responsif générique ================= */
+@media (max-width:768px){
+  .btn{ padding:.54rem .8rem }
+  .ratings{ margin:1.4rem auto .6rem }
+  .foot{ margin:1rem auto 4.8rem }
+  body{ padding-bottom: 96px; }                 /* pour ne pas que le dock masque le bas */
+  #list, #contact { scroll-margin-top: 84px; }  /* ancrage confortable */
+}
+
+/* ================= (Facultatif) Update banner ================= */
+#updateBanner{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom,0px));
+  background: rgba(10,15,20,.92); color: var(--fg);
+  border:1px solid var(--border); border-radius: 10px;
+  padding:.55rem .7rem; z-index:130; box-shadow:var(--shadow);
 }
