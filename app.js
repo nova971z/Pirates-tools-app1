@@ -769,9 +769,10 @@ function renderCartView(){
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
+// Ouvre WhatsApp même si le panier est vide (message générique)
 dockQuoteBtn?.addEventListener('click', ()=>{
-  if (!CART.length) return;
-  const msg = encodeURIComponent(cartToWhatsAppText());
+  const text = cartToWhatsAppText() || 'Bonjour, je souhaite des informations.';
+  const msg  = encodeURIComponent(text);
   window.open(`https://wa.me/${PHONE_E164.replace('+','')}?text=${msg}`, '_blank', 'noopener');
 });
 dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
