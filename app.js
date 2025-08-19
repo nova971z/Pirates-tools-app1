@@ -232,7 +232,10 @@ const homeLink    = $('#homeLink');
 
 
 /* =========================================================
-   5) HERO : zoom + fondu + anti-chevauchement (robuste iOS/Android)
+   5) HERO : zoom + fondu (robuste iOS/Android)
+   - transform appliqué directement (pas de var() CSS)
+   - --listGap conservée pour l’espace de la liste
+   - prefers-reduced-motion : anim adoucie (pas coupée)
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -244,32 +247,35 @@ const homeLink    = $('#homeLink');
 
   let vh = getVH();
   let ticking = false;
+  let reduce = mqr.matches; // animé mais plus doux si true
 
-  function applyTransform(tyVh, scale, opacity){
-    const t = `translate3d(0, ${tyVh}vh, 0) scale(${scale})`;
-    // Important = écrase d’éventuelles règles CSS résiduelles
-    heroLogo.style.setProperty('transform', t, 'important');
-    heroLogo.style.setProperty('-webkit-transform', t, 'important');
-    heroLogo.style.setProperty('opacity', String(opacity), 'important');
-  }
-
-  function compute(){
-    const y   = window.scrollY || document.documentElement.scrollTop || 0;
+  function render(y){
     const fin = vh * (mq.matches ? 0.70 : 0.85);
     const raw = clamp(y / fin, 0, 1);
     const p   = easeOutCubic(raw);
 
-    // Amplitude réduite en mode "réduction des animations"
-    const baseMax   = mq.matches ? 3.1 : 2.0;
-    const maxScale  = mqr.matches ? 1.12 : baseMax;
-    const scale     = +(1 + (maxScale - 1) * p).toFixed(3);
-    const tyVh      = +((mq.matches ? 12 : 7) * p).toFixed(2);
-    const fadeCoeff = mqr.matches ? (mq.matches ? 1.10 : 0.95) : (mq.matches ? 1.75 : 1.25);
-    const opacity   = +(Math.max(0, Math.min(1, 1 - fadeCoeff * raw))).toFixed(3);
+    // Amplitudes adoucies si prefers-reduced-motion
+    const scaleMax = mq.matches
+      ? (reduce ? 1.60 : 3.10)   // mobile
+      : (reduce ? 1.25 : 2.00);  // desktop
 
-    applyTransform(tyVh, scale, opacity);
+    const tyVhBase = mq.matches
+      ? (reduce ? 6 : 12)        // mobile
+      : (reduce ? 3.5 : 7);      // desktop
 
-    // Espace dynamique pour la liste
+    const scale = 1 + (scaleMax - 1) * p;
+    const tyPx  = (tyVhBase * (vh / 100)) * p;
+
+    const fadeFactor = mq.matches
+      ? (reduce ? 0.90 : 1.75)   // mobile
+      : (reduce ? 0.70 : 1.25);  // desktop
+    const opacity = Math.max(0, Math.min(1, 1 - fadeFactor * raw));
+
+    const t = `translate3d(0, ${tyPx.toFixed(2)}px, 0) scale(${scale.toFixed(3)})`;
+    heroLogo.style.transform = t;
+    heroLogo.style.webkitTransform = t;
+    heroLogo.style.opacity = opacity.toFixed(3);
+
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
@@ -280,20 +286,23 @@ const homeLink    = $('#homeLink');
   function onScroll(){
     if (!ticking){
       ticking = true;
-      requestAnimationFrame(() => { compute(); ticking = false; });
+      requestAnimationFrame(() => { render(window.scrollY || 0); ticking = false; });
     }
   }
 
-  // Toujours animé (amplitude adoucie si reduced-motion)
+  // Écoutes
   window.addEventListener('scroll', onScroll, { passive:true });
-  window.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
-  window.visualViewport?.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
-  window.addEventListener('orientationchange', () => { vh = getVH(); compute(); }, { passive:true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
-  window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); compute(); } }, { passive:true });
-  mqr.addEventListener?.('change', compute);
+  window.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  window.visualViewport?.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  window.addEventListener('orientationchange', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(window.scrollY || 0); }, { passive:true });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); render(window.scrollY || 0); } }, { passive:true });
 
-  compute();
+  // Si l’utilisateur change la préférence à chaud
+  mqr.addEventListener?.('change', (e) => { reduce = e.matches; render(window.scrollY || 0); });
+
+  // Première peinture
+  render(window.scrollY || 0);
 })();
 
 /* =========================================================
