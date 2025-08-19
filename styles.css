@@ -91,45 +91,55 @@ h3{ font-size: 1.05rem; }
 /* ================= HERO (zoom + fondu) ================= */
 .hero-full{
   position:relative;
-  height:100vh;               /* fallback */
-  height:100svh;              /* Android/iOS barre dynamique */
+  /* ordre = compat -> iOS/Android -> dynamique moderne */
+  height:100vh;      /* fallback */
+  height:100svh;     /* iOS/Android barres dynamiques */
+  height:100dvh;     /* viewport dynamique moderne */
   display:grid; place-items:center;
-  pointer-events:none;
+  pointer-events:none;        /* ne bloque pas scroll/tap */
   isolation:isolate;
-  z-index:30;
+  z-index:30;                 /* au-dessus au début */
 }
+
 .hero-logo{
-  --heroScale: 1; --heroY: 0vh; --heroAlpha: 1;
-  width:min(78vmin,900px); height:auto;
-  transform:translate3d(0, var(--heroY), 0) scale(var(--heroScale));
-  opacity:var(--heroAlpha);
+  /* valeurs par défaut (écrasées par app.js) */
+  --heroScale: 1;
+  --heroY: 0vh;
+  --heroAlpha: 1;
+
+  width:min(78vmin, 900px);
+  max-width:900px;
+  height:auto;
+  opacity: var(--heroAlpha, 1);
+
+  /* IMPORTANT: double déclaration pour WebKit/iOS */
+  transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
+  -webkit-transform: translate3d(0, var(--heroY, 0vh), 0) scale(var(--heroScale, 1));
+
   transform-origin:center;
-  will-change:transform, opacity;
-  filter:drop-shadow(0 22px 44px rgba(0,0,0,.45));
-  transition: transform .18s linear, opacity .18s linear;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  contain: paint;            /* isole la peinture du logo */
+
+  /* ⚠️ On ne met PAS de transition sur transform pour éviter les micro-lags
+     pendant le rAF ; on lisse seulement l’opacité. */
+  transition: opacity .18s linear;
+
+  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
 }
+
 .hero-fade{
   position:absolute; inset:auto 0 0 0; height:26vh;
   background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
   pointer-events:none;
   z-index:-1;
 }
-.hero-full.hero-out{ z-index:-1 }
 
-/* ================= TOOLBAR ================= */
-.toolbar{
-  position:relative; z-index:20;
-  width:min(1100px,92vw); margin:0 auto 1rem;
-  padding:.4rem 0;
-  display:grid; grid-template-columns:1fr 140px; gap:.6rem;
-  margin-top: calc(var(--listGap) * .55);
-}
-.search,.select{
-  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-  border:1px solid var(--border); border-radius:12px; color:var(--fg);
-  padding:.85rem .9rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-}
-.search::placeholder{ color:#7f94a5 }
+/* quand l’anim est “finie”, le hero passe sous la liste */
+.hero-full.hero-out{ z-index:-1 }
 
 /* ================= LISTE / CARTES ================= */
 .list{
