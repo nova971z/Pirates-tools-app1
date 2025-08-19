@@ -285,12 +285,20 @@ const homeLink    = $('#homeLink');
     heroLogo.style.opacity = opacity.toFixed(3);
 
     // espace sous le hero (fait descendre la barre outils/listes)
+        // ...
+    // Espace sous le hero (garde l’effet d’apparition de la liste)
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    if (raw > 0.985) { document.body.classList.add('after-hero'); hero.classList.add('hero-out'); }
-    else { document.body.classList.remove('after-hero'); hero.classList.remove('hero-out'); }
-  }
+    if (raw > 0.985) {
+      document.body.classList.add('after-hero');
+      hero.classList.add('hero-out');
+      showDock(true);      // ⬅️ AFFICHER le dock (fondu)
+    } else {
+      document.body.classList.remove('after-hero');
+      hero.classList.remove('hero-out');
+      showDock(false);     // ⬅️ CACHER le dock
+    }
 
   function tick(){
     const y = getScrollY();
