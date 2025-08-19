@@ -9,6 +9,7 @@
    - Compte & Fidélité (démo locale)
    - Anti-zoom Android + bannière offline
    - Focus après navigation + toasts (CSS injecté)
+   - A2HS unifié (tip iOS + bouton Android)
 ========================================================= */
 
 'use strict';
@@ -215,19 +216,36 @@ const tagEl    = document.getElementById('tag');
   window.addEventListener('online',  ()=> show('De nouveau en ligne', true));
 })();
 
-
 /* =========================================================
    3-bis) A2HS (Add To Home Screen) — iOS tip + Android prompt
-   - iOS Safari : bulle pédagogique (#a2hsTip) au-dessus du dock
+   - iOS Safari / iPadOS : bulle pédagogique (#a2hsTip) au-dessus du dock
    - Android/Chromium : bouton #installBtn déclenche la prompt native
 ========================================================= */
 (function a2hsHelper(){
   if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
 
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  // Détection iOS / iPadOS moderne (iPadOS 13+ se présente comme "Mac")
+  const ua = navigator.userAgent || '';
+  const isiOSLike = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true;
+
+  // CSS de la bulle (injecté)
+  if (!document.getElementById('pt-a2hs-css')){
+    const s = document.createElement('style');
+    s.id = 'pt-a2hs-css';
+    s.textContent = `
+      #a2hsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:125;
+        display:flex;gap:.6rem;align-items:center;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;
+        padding:.55rem .7rem;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}
+      #a2hsTip .a2hs-tip__icon{display:inline-block;padding:.12rem .4rem;border-radius:6px;border:1px solid #22303b;background:rgba(255,255,255,.06)}
+      #a2hsTip .a2hs-tip__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}
+      #a2hsTip.out{animation:pt-a2hs-out .18s ease-in both}
+      @keyframes pt-a2hs-out{to{opacity:0;transform:translateX(-50%) translateY(4px)}}
+    `;
+    document.head.appendChild(s);
+  }
 
   const DISMISS_KEY = 'pt_a2hs_tip_dismiss_v1';
   const dismissed = localStorage.getItem(DISMISS_KEY) === '1';
@@ -254,21 +272,20 @@ const tagEl    = document.getElementById('tag');
     document.body.appendChild(tip);
   }
 
-  // iOS Safari non installé → afficher la bulle (une seule fois)
-  if (isIOS && !isStandalone) {
-    const isSafari = /Safari/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
-    if (isSafari) setTimeout(showTip, 1400);
+  // iOS/iPadOS Safari non installé → afficher la bulle (une seule fois)
+  // (évite les navigateurs tiers iOS qui n’ont pas le même flux)
+  const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+  if (isiOSLike && isSafari && !isStandalone) {
+    setTimeout(showTip, 1400);
   }
 
-  // Android / Chromium : gestion de beforeinstallprompt
+  // Android / Chromium : gestion de beforeinstallprompt via #installBtn
   let deferredPrompt = null;
   const installBtn = document.getElementById('installBtn');
 
   window.addEventListener('beforeinstallprompt', (e)=>{
-    // Empêche la prompt auto, on gère via le bouton
     e.preventDefault();
     deferredPrompt = e;
-
     if (installBtn){
       installBtn.hidden = false;
       if (!installBtn.dataset.wired){
@@ -707,6 +724,13 @@ function buildCategories(){
   return [...map.values()].sort((a,b)=> b.count - a.count);
 }
 
+function findSelectMatch(select, keyLower){
+  if (!select) return null;
+  const opts = [...select.options];
+  const m = opts.find(o => (o.value||o.textContent||'').toLowerCase() === keyLower);
+  return m ? m.value || m.textContent : null;
+}
+
 function renderCatalogue(){
   const root = document.getElementById('catList');
   if (!root) return;
@@ -722,8 +746,16 @@ function renderCatalogue(){
       `).join('')
     : `<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>`;
 
-  const go = (key)=>{
-    if (tagEl) tagEl.value = key;
+  const go = (keyLower)=>{
+    // Si la catégorie correspond exactement à une option du select → on l’emploie
+    const matchVal = findSelectMatch(tagEl, keyLower);
+    if (tagEl){
+      tagEl.value = matchVal || ''; // si pas d’option correspondante, on remet "Tous"
+    }
+    if (searchEl){
+      // Si pas d’option correspondante, on utilise la recherche libre
+      searchEl.value = matchVal ? '' : keyLower;
+    }
     applyFilters();
     location.hash = '';
     setTimeout(()=> document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60);
@@ -862,11 +894,8 @@ dockCartBtn?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 dockCount?.addEventListener('click', ()=>{ location.hash = '#/devis'; });
 
 /* =========================================================
-   15) PWA (install + SW + update banner)
+   15) PWA (SW + update banner) — A2HS géré plus haut
 ========================================================= */
-let deferredPrompt;
-const installBtn = $('#installBtn');
-
 function showUpdateBanner(waitingSW){
   const bar = document.createElement('div');
   bar.id = 'updateBanner';
@@ -889,14 +918,6 @@ function showUpdateBanner(waitingSW){
 
   navigator.serviceWorker.addEventListener('controllerchange', ()=> location.reload());
 }
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; if (installBtn) installBtn.hidden = false;
-});
-installBtn?.addEventListener('click', async () => {
-  installBtn.hidden = true; if (!deferredPrompt) return;
-  deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch(_){} deferredPrompt = null;
-});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
@@ -994,7 +1015,6 @@ function renderAccount(){
     if (!dock) return;
     if (isHome){
       // la visibilité est gérée par l’animation du hero
-      // ne force rien ici
     }else{
       dock.classList.add('dock--visible');
     }
