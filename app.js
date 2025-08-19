@@ -230,13 +230,14 @@ const homeLink    = $('#homeLink');
   }, { passive:false });
 })();
 
+
 /* =========================================================
-   5) HERO : zoom + fondu + anti-chevauchement
+   5) HERO : zoom + fondu + anti-chevauchement (robuste iOS/Android)
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
 
-  const mq = window.matchMedia('(max-width: 768px)');
+  const mq  = window.matchMedia('(max-width: 768px)');
   const mqr = window.matchMedia('(prefers-reduced-motion: reduce)');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
   const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
@@ -244,21 +245,31 @@ const homeLink    = $('#homeLink');
   let vh = getVH();
   let ticking = false;
 
+  function applyTransform(tyVh, scale, opacity){
+    const t = `translate3d(0, ${tyVh}vh, 0) scale(${scale})`;
+    // Important = écrase d’éventuelles règles CSS résiduelles
+    heroLogo.style.setProperty('transform', t, 'important');
+    heroLogo.style.setProperty('-webkit-transform', t, 'important');
+    heroLogo.style.setProperty('opacity', String(opacity), 'important');
+  }
+
   function compute(){
-    const y   = window.scrollY || 0;
+    const y   = window.scrollY || document.documentElement.scrollTop || 0;
     const fin = vh * (mq.matches ? 0.70 : 0.85);
     const raw = clamp(y / fin, 0, 1);
     const p   = easeOutCubic(raw);
 
-    const maxScale = mq.matches ? 3.1 : 2.0;
-    const scale    = 1 + (maxScale - 1) * p;
-    const tyVh     = (mq.matches ? 12 : 7) * p;
-    const opacity  = clamp(1 - (mq.matches ? 1.75 : 1.25) * raw, 0, 1);
+    // Amplitude réduite en mode "réduction des animations"
+    const baseMax   = mq.matches ? 3.1 : 2.0;
+    const maxScale  = mqr.matches ? 1.12 : baseMax;
+    const scale     = +(1 + (maxScale - 1) * p).toFixed(3);
+    const tyVh      = +((mq.matches ? 12 : 7) * p).toFixed(2);
+    const fadeCoeff = mqr.matches ? (mq.matches ? 1.10 : 0.95) : (mq.matches ? 1.75 : 1.25);
+    const opacity   = +(Math.max(0, Math.min(1, 1 - fadeCoeff * raw))).toFixed(3);
 
-    heroLogo.style.setProperty('--heroScale', scale.toFixed(3));
-    heroLogo.style.setProperty('--heroY', `${tyVh.toFixed(2)}vh`);
-    heroLogo.style.setProperty('--heroAlpha', opacity.toFixed(3));
+    applyTransform(tyVh, scale, opacity);
 
+    // Espace dynamique pour la liste
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
@@ -273,27 +284,14 @@ const homeLink    = $('#homeLink');
     }
   }
 
-  // --- Mode “réduction des animations” : garder le hero visible, sans anim
-  if (mqr.matches){
-    heroLogo.style.setProperty('--heroScale', '1');
-    heroLogo.style.setProperty('--heroY', '0vh');
-    heroLogo.style.setProperty('--heroAlpha', '1');
-    // Conserver un espace pour ne pas recouvrir le logo par la liste
-    document.documentElement.style.setProperty('--listGap', '18vh');
-    document.body.classList.remove('after-hero');
-    hero.classList.remove('hero-out');
-    return;
-  }
-
+  // Toujours animé (amplitude adoucie si reduced-motion)
   window.addEventListener('scroll', onScroll, { passive:true });
   window.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
   window.visualViewport?.addEventListener('resize', () => { vh = getVH(); compute(); }, { passive:true });
   window.addEventListener('orientationchange', () => { vh = getVH(); compute(); }, { passive:true });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) compute(); });
-  // iOS bfcache / back-forward cache
   window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); compute(); } }, { passive:true });
-  // si l’utilisateur active/désactive la préférence à chaud
-  mqr.addEventListener?.('change', () => location.reload?.());
+  mqr.addEventListener?.('change', compute);
 
   compute();
 })();
