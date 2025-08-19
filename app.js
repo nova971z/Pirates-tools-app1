@@ -215,6 +215,89 @@ const tagEl    = document.getElementById('tag');
   window.addEventListener('online',  ()=> show('De nouveau en ligne', true));
 })();
 
+
+/* =========================================================
+   3-bis) A2HS (Add To Home Screen) — iOS tip + Android prompt
+   - iOS Safari : bulle pédagogique (#a2hsTip) au-dessus du dock
+   - Android/Chromium : bouton #installBtn déclenche la prompt native
+========================================================= */
+(function a2hsHelper(){
+  if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  const DISMISS_KEY = 'pt_a2hs_tip_dismiss_v1';
+  const dismissed = localStorage.getItem(DISMISS_KEY) === '1';
+
+  function showTip(){
+    if (document.getElementById('a2hsTip') || dismissed) return;
+    const tip = document.createElement('div');
+    tip.id = 'a2hsTip';
+    tip.setAttribute('role','dialog');
+    tip.setAttribute('aria-live','polite');
+    tip.innerHTML = `
+      <div class="a2hs-tip__text">
+        Pour installer l’app&nbsp;: touchez
+        <span class="a2hs-tip__icon">▵</span>
+        puis <strong>«&nbsp;Sur l’écran d’accueil&nbsp;»</strong>.
+      </div>
+      <button class="a2hs-tip__close" aria-label="Fermer">✖</button>
+    `;
+    tip.querySelector('.a2hs-tip__close')?.addEventListener('click', ()=>{
+      tip.classList.add('out');
+      setTimeout(()=> tip.remove(), 180);
+      try{ localStorage.setItem(DISMISS_KEY, '1'); }catch(_){}
+    });
+    document.body.appendChild(tip);
+  }
+
+  // iOS Safari non installé → afficher la bulle (une seule fois)
+  if (isIOS && !isStandalone) {
+    const isSafari = /Safari/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+    if (isSafari) setTimeout(showTip, 1400);
+  }
+
+  // Android / Chromium : gestion de beforeinstallprompt
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    // Empêche la prompt auto, on gère via le bouton
+    e.preventDefault();
+    deferredPrompt = e;
+
+    if (installBtn){
+      installBtn.hidden = false;
+      if (!installBtn.dataset.wired){
+        installBtn.dataset.wired = '1';
+        installBtn.addEventListener('click', async ()=>{
+          try{
+            installBtn.disabled = true;
+            await deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (typeof toast === 'function'){
+              toast(outcome === 'accepted' ? 'Installation en cours' : 'Installation annulée', outcome==='accepted'?'success':'info');
+            }
+          }catch(_){}
+          installBtn.hidden = true;
+          installBtn.disabled = false;
+          deferredPrompt = null;
+        });
+      }
+    }
+  });
+
+  // Masque le bouton si déjà en standalone
+  try{
+    if (installBtn && isStandalone) installBtn.hidden = true;
+    const dm = window.matchMedia('(display-mode: standalone)');
+    dm.addEventListener?.('change', (e)=>{ if (installBtn && e.matches) installBtn.hidden = true; });
+  }catch(_){}
+})();
+
 /* =========================================================
    4) Logo = retour accueil (SPA, iOS-safe)
 ========================================================= */
