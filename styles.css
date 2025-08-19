@@ -266,6 +266,18 @@ h3{ font-size: 1.05rem; }
   bottom: var(--dock-bottom, calc(14px + constant(safe-area-inset-bottom, 0px))); /* iOS < 11.2 */
   z-index: 110;
 
+/* Effet d'apparition du dock */
+.dock{
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px); /* tu as déjà translateX(-50%) pour le centrage */
+  transition: opacity .24s ease, transform .24s ease;
+  pointer-events: none; /* clics désactivés tant que caché */
+}
+.dock.dock--visible{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
   /* centrage + animation d’apparition */
   transform: translateX(-50%) translateY(12px);
   opacity: 0;
