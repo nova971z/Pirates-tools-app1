@@ -233,8 +233,9 @@ const homeLink    = $('#homeLink');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
-   - calcule le transform directement (pas via var() CSS)
-   - garde --listGap pour l’espace liste
+   - rAF ticker (ne dépend pas de l'évènement scroll)
+   - calcule transform/opacity directement
+   - met à jour --listGap pour l’espace sous le hero
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -244,17 +245,27 @@ const homeLink    = $('#homeLink');
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
   const getVH = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1;
 
+  // lecture de scroll ultra robuste
+  const getScrollY = () =>
+    (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
+    (document.scrollingElement && document.scrollingElement.scrollTop) ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0;
+
   let vh = getVH();
-  let ticking = false;
+  let prevY = -1;
+  let rafId = 0;
 
   function render(y){
-    const fin = vh * (mq.matches ? 0.70 : 0.85);
-    const raw = Math.max(0, Math.min(1, y / fin));
+    const fin = vh * (mq.matches ? 0.70 : 0.85);          // distance pour terminer l'anim
+    const raw = Math.max(0, Math.min(1, y / (fin || 1)));
     const p   = easeOutCubic(raw);
 
     const maxScale = mq.matches ? 3.1 : 2.0;
     const scale    = 1 + (maxScale - 1) * p;
 
+    // 12vh / 7vh convertis en px (plus stable sur WebKit)
     const tyPxBase = (mq.matches ? 12 : 7) * (vh / 100);
     const tyPx     = tyPxBase * p;
 
@@ -265,6 +276,7 @@ const homeLink    = $('#homeLink');
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = opacity.toFixed(3);
 
+    // espace sous le hero (fait descendre la barre outils/listes)
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
@@ -272,13 +284,16 @@ const homeLink    = $('#homeLink');
     else { document.body.classList.remove('after-hero'); hero.classList.remove('hero-out'); }
   }
 
-  function onScroll(){
-    if (!ticking){
-      ticking = true;
-      requestAnimationFrame(() => { render(window.scrollY || 0); ticking = false; });
+  function tick(){
+    const y = getScrollY();
+    if (y !== prevY) {
+      render(y);
+      prevY = y;
     }
+    rafId = requestAnimationFrame(tick);
   }
 
+  // Mode “réduction des animations” : on fige un état propre
   if (mqr.matches){
     const t0 = 'translate3d(0,0,0) scale(1)';
     heroLogo.style.transform = t0;
@@ -289,14 +304,22 @@ const homeLink    = $('#homeLink');
     return;
   }
 
-  window.addEventListener('scroll', onScroll, { passive:true });
-  window.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
-  window.visualViewport?.addEventListener('resize', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
-  window.addEventListener('orientationchange', () => { vh = getVH(); render(window.scrollY || 0); }, { passive:true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(window.scrollY || 0); }, { passive:true });
-  window.addEventListener('pageshow', (e) => { if (e.persisted) { vh = getVH(); render(window.scrollY || 0); } }, { passive:true });
+  // rAF loop = plus fiable que l'évènement scroll sur iOS/iPadOS
+  rafId = requestAnimationFrame(tick);
 
-  render(window.scrollY || 0);
+  // maj du viewport (rotation barre d’adresse, split-view, etc.)
+  const recalc = () => { vh = getVH(); render(getScrollY()); };
+  window.addEventListener('resize', recalc, { passive:true });
+  window.visualViewport?.addEventListener('resize', recalc, { passive:true });
+  window.addEventListener('orientationchange', recalc, { passive:true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recalc(); }, { passive:true });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) recalc(); }, { passive:true });
+
+  // nettoyage si jamais la page est déchargée
+  window.addEventListener('pagehide', () => cancelAnimationFrame(rafId), { passive:true });
+
+  // première peinture
+  render(getScrollY());
 })();
 
 /* =========================================================
