@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nova971z.github.io/Pirates-tools-app1/sitemap.xml
