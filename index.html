@@ -14,19 +14,16 @@
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <meta name="format-detection" content="telephone=no" />
 
-
   <!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest" />
-<link rel="apple-touch-icon" href="icons/icon-180.png" />
-<link rel="icon" href="favicon.ico" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" href="favicon.ico" />
 
-<!-- Perf -->
-<link rel="preconnect" href="https://wa.me" crossorigin />
-<link rel="dns-prefetch" href="https://wa.me" />
-<link rel="preload" as="image" href="./images/pirates-tools-logo.png" />
-<link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
-
-  
+  <!-- Perf -->
+  <link rel="preconnect" href="https://wa.me" crossorigin />
+  <link rel="dns-prefetch" href="https://wa.me" />
+  <!-- Préchargement logo (même URL que les <img>) -->
+  <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" />
   <!-- Pré-chargement léger des données produits -->
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
@@ -56,43 +53,43 @@
   <a href="#list" class="skip-link">Aller au contenu</a>
 
   <!-- Zones d’annonce SR + toasts (IDs exigés par app.js) -->
-  <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
- <!-- ========= TOPBAR (fixe) ========= -->
-<header class="topbar" role="banner" aria-label="Barre supérieure">
-  <!-- Logo cliquable (iOS ok) -->
-  <a id="homeLink" class="topbar-logo-link" href="#/">
-    <img class="topbar-logo"
+  <!-- ========= TOPBAR (fixe) ========= -->
+  <header class="topbar" role="banner" aria-label="Barre supérieure">
+    <!-- Logo cliquable (iOS ok) -->
+    <a id="homeLink" class="topbar-logo-link" href="#/">
+      <img class="topbar-logo"
+           src="./images/pirates-tools-logo.png?v=7"
+           alt="Pirates Tools"
+           width="180" height="32"
+           decoding="async" fetchpriority="high" />
+    </a>
+
+    <!-- Mini navigation -->
+    <nav class="nav" aria-label="Navigation principale">
+      <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+      <a class="chip" href="#list" data-scroll="#list">Produits</a>
+    </nav>
+
+    <!-- Appels rapides -->
+    <div class="cta">
+      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+      <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬 WhatsApp</a>
+    </div>
+  </header>
+
+  <!-- ========= HERO (logo animé) ========= -->
+  <section id="hero" class="hero-full" aria-label="Pirates Tools">
+    <img id="heroLogo" class="hero-logo"
          src="./images/pirates-tools-logo.png?v=7"
          alt="Pirates Tools"
-         width="180" height="32"
-         decoding="async" fetchpriority="high" />
-  </a>
+         width="900" height="900"
+         loading="eager" decoding="async" />
+    <div class="hero-fade" aria-hidden="true"></div>
+  </section>
 
-  <!-- Mini navigation -->
-  <nav class="nav" aria-label="Navigation principale">
-    <a class="chip" href="#/catalogue" data-route>Catalogue</a>
-    <a class="chip" href="#list" data-scroll="#list">Produits</a>
-  </nav>
-
-  <!-- Appels rapides -->
-  <div class="cta">
-    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-    <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬 WhatsApp</a>
-  </div>
-</header>
-
-<!-- ========= HERO (logo animé) ========= -->
-<section id="hero" class="hero-full" aria-label="Pirates Tools">
-  <img id="heroLogo" class="hero-logo"
-       src="./images/pirates-tools-logo.png?v=7"
-       alt="Pirates Tools"
-       width="900" height="900"
-       loading="eager" decoding="async" />
-  <div class="hero-fade" aria-hidden="true"></div>
-</section>
-  
   <!-- ======= BARRE OUTILS (recherche/filtre) ======= -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
