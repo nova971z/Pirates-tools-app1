@@ -1,10 +1,6 @@
 {
-  "id": "./",
   "name": "Pirates Tools",
   "short_name": "Pirates Tools",
-  "lang": "fr-FR",
-  "dir": "ltr",
-
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -20,6 +16,7 @@
   ],
 
   "categories": ["shopping", "tools", "productivity", "business"],
+  "dir": "ltr",
   "prefer_related_applications": false,
 
   "shortcuts": [
