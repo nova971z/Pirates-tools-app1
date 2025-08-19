@@ -24,6 +24,8 @@ const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
+
+
 /* ---------- UX CSS (toasts + badge bump) injecté ---------- */
 (function injectUXCSS(){
   if (document.getElementById('pt-ux-css')) return;
@@ -45,6 +47,12 @@ const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
   style.textContent = css;
   document.head.appendChild(style);
 })();
+
+// Dock: visibilité contrôlée par le scroll du hero
+function showDock(visible){
+  if (!dock) return;
+  dock.classList.toggle('dock--visible', !!visible);
+}
 
 /* ---------- A11y helpers ---------- */
 const live    = document.getElementById('sr-live') || document.getElementById('srLive');
