@@ -393,8 +393,9 @@ const ScrollExit = (function () {
 ========================================================= */
 function updateDock(){
   if (!dock || !dockCount) return;
-  // Toujours visible
-  dock.classList.remove('hidden');
+  dockCount.textContent = CART.length;   // met juste à jour le badge
+  // NE PAS masquer ici : la visibilité est gérée par showDock() via le hero
+}
 
   // Badge = quantité
   const n = CART.length;
