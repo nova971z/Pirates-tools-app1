@@ -124,11 +124,15 @@ h3{ font-size: 1.05rem; }
   -webkit-transform-style: preserve-3d;
   contain: paint;            /* isole la peinture du logo */
 
-  /* ⚠️ On ne met PAS de transition sur transform pour éviter les micro-lags
-     pendant le rAF ; on lisse seulement l’opacité. */
+  /* On ne transitionne pas transform (rAF déjà fluide) */
   transition: opacity .18s linear;
 
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
+}
+
+/* 🔧 Micro-optimisation mobile : alléger l’ombre (GPU moins sollicité) */
+@media (pointer:coarse), (max-width: 480px){
+  .hero-logo{ filter: drop-shadow(0 16px 32px rgba(0,0,0,.38)); }
 }
 
 .hero-fade{
@@ -140,6 +144,7 @@ h3{ font-size: 1.05rem; }
 
 /* quand l’anim est “finie”, le hero passe sous la liste */
 .hero-full.hero-out{ z-index:-1 }
+
 
 /* ================= LISTE / CARTES ================= */
 .list{
