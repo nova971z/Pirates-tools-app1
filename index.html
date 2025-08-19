@@ -16,9 +16,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <!-- iOS/iPadOS : préciser la taille -->
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
-  <!-- Favicon (laisse si ton .ico existe) -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" href="favicon.ico" />
 
   <!-- Perf -->
@@ -42,25 +40,46 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
 
+  <!-- JSON-LD: Organization -->
+  <script type="application/ld+json" id="jsonld-org">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Pirates Tools",
+    "url": "https://nova971z.github.io/Pirates-tools-app1/",
+    "logo": "https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7",
+    "sameAs": [
+      "https://wa.me/33774230195"
+    ],
+    "contactPoint": [{
+      "@type": "ContactPoint",
+      "telephone": "+33-7-74-23-01-95",
+      "contactType": "customer service",
+      "availableLanguage": ["fr"]
+    }]
+  }
+  </script>
+
+  <!-- JSON-LD: WebSite -->
+  <script type="application/ld+json" id="jsonld-site">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Pirates Tools",
+    "url": "https://nova971z.github.io/Pirates-tools-app1/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://nova971z.github.io/Pirates-tools-app1/#/catalogue?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
   <!-- A11y helpers (fallback minimal, doublonné par styles.css) -->
   <style>
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
     .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-
-    /* Bulle A2HS iOS (créée par app.js) */
-    #a2hsTip{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom: calc(96px + env(safe-area-inset-bottom,0px));
-      background: rgba(10,15,20,.92); color:#e6edf5;
-      border:1px solid #22303b; border-radius:12px; box-shadow:0 10px 24px rgba(0,0,0,.35);
-      padding:.6rem .8rem; z-index:130; display:flex; align-items:center; gap:.6rem;
-      max-width:min(92vw,560px); font:600 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
-    }
-    #a2hsTip .a2hs-tip__text{display:flex;align-items:center;gap:.35rem}
-    #a2hsTip .a2hs-tip__icon{display:inline-block;padding:.08rem .32rem;border:1px solid #2b3a46;border-radius:6px}
-    #a2hsTip .a2hs-tip__close{margin-left:auto;background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}
-    #a2hsTip.out{opacity:.0;transform:translateX(-50%) translateY(6px);transition:opacity .18s ease, transform .18s ease}
   </style>
 </head>
 <body>
