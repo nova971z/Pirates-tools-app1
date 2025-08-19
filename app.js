@@ -315,7 +315,7 @@ const homeLink    = $('#homeLink');
   document.addEventListener('visibilitychange', () => { if (!document.hidden) recalc(); }, { passive:true });
   window.addEventListener('pageshow', (e) => { if (e.persisted) recalc(); }, { passive:true });
 
-  // nettoyage si jamais la page est déchargée
+  // nettoyage si la page est déchargée
   window.addEventListener('pagehide', () => cancelAnimationFrame(rafId), { passive:true });
 
   // première peinture
