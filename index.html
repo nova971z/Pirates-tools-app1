@@ -175,8 +175,9 @@
       <div id="catList" class="cat-list" role="list"></div>
 
       <div style="margin-top:1rem">
+        <!-- FIX ES5-safe : pas d'arrow function ni optional chaining -->
         <a class="chip" href="#"
-           onclick="document.getElementById('tag').value=''; window.location.hash=''; setTimeout(()=>document.getElementById('list')?.scrollIntoView({behavior:'smooth'}), 60); return false;">
+           onclick="var t=document.getElementById('tag'); if(t){t.value='';} window.location.hash=''; setTimeout(function(){var l=document.getElementById('list'); if(l && l.scrollIntoView){ l.scrollIntoView({behavior:'smooth'}); }}, 60); return false;">
           Voir tous les produits
         </a>
       </div>
@@ -287,3 +288,4 @@
   <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
 </body>
 </html>
+```0
