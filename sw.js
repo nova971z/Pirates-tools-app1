@@ -3,8 +3,9 @@
    - App shell précache (+ index fallback) — safeAddAll (tolère fichiers manquants)
    - Navigations: network-first (+ preload si dispo)
    - products.json: network-first (retombe sur cache)
-   - Images: cache-first (ok opaque CORS) + fallback offline
-   - CSS/JS/Fonts/JSON: stale-while-revalidate (ignoreSearch ok)
+   - Images: cache-first (opaque CORS OK) + fallback offline
+     • interne: "loose" (accepte ?v=)   • externe: strict (évite conflit ?resize=)
+   - CSS/JS/Fonts/Manifest/JSON: stale-while-revalidate
    - Trim automatique des caches (anti-gonflement)
    - Warm-up products.json à l'install
    - Messages: SKIP_WAITING / CLEAR_CACHES / GET_VERSION
@@ -12,7 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v24'; // bump version pour forcer la MAJ
+const VERSION        = 'pt-v25'; // bump version pour diffuser la MAJ
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
@@ -40,7 +41,7 @@ const APP_SHELL = [
   './icons/icon-256.png',
   './icons/icon-384.png',
   './icons/icon-512.png',
-  // logo (sans ?v=, on matche en “loose” côté images)
+  // logo (sans ?v=, on matche en “loose” côté images internes)
   './images/pirates-tools-logo.png'
 ];
 
@@ -125,7 +126,7 @@ async function cacheFirst(event, request, cacheName, limit, { loose = false } = 
     })());
     return res.clone();
   } catch (_) {
-    if (request.destination === 'image') return offlineImageResponse();
+    if (request.destination === 'image' || request.url.endsWith('.ico')) return offlineImageResponse();
     return Response.error();
   }
 }
@@ -262,10 +263,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Externe (CDN) : images → cache-first (loose), sinon passthrough
+  // Externe (CDN) : images → cache-first **strict** (pas de loose pour éviter conflits ?resize=)
   if (url.origin !== location.origin) {
-    if (request.destination === 'image') {
-      event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: true }));
+    if (request.destination === 'image' || url.pathname.endsWith('.ico')) {
+      event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: false }));
     }
     return;
   }
@@ -277,19 +278,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // CSS / JS / Fonts / autres JSON → SWR (loose pour couvrir ?v=)
+  // CSS / JS / Fonts / Manifest / autres JSON → SWR
   if (
-    request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'font'  ||
+    request.destination === 'style'   ||
+    request.destination === 'script'  ||
+    request.destination === 'font'    ||
+    request.destination === 'manifest'||
     (request.destination === '' && url.pathname.endsWith('.json'))
   ) {
-    event.respondWith(staleWhileRevalidate(event, request, CACHE_STATIC, LIMIT_STATIC, { loose: true }));
+    // pour les assets du site: SWR "loose" afin de couvrir ?v= (ex: logo.png?v=7)
+    const isSameOrigin = url.origin === location.origin;
+    event.respondWith(staleWhileRevalidate(
+      event, request, CACHE_STATIC, LIMIT_STATIC, { loose: isSameOrigin }
+    ));
     return;
   }
 
-  // Images internes → cache-first (loose)
-  if (request.destination === 'image') {
+  // Images internes → cache-first (loose pour ?v=)
+  if (request.destination === 'image' || url.pathname.endsWith('.ico')) {
     event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: true }));
     return;
   }
