@@ -197,7 +197,26 @@ h3{ font-size: 1.05rem; }
   border:1px solid rgba(25,211,255,.35);
 }
 .specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem; color:var(--muted) }
-.actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem }
+
+/* === Fix mobile : éviter la coupe à droite des boutons dans .actions === */
+.actions{
+  display:flex;
+  gap:.6rem;
+  padding:0 1.1rem 1.1rem;
+  flex-wrap: wrap;           /* autorise le retour à la ligne si nécessaire */
+}
+.actions .btn{
+  min-width: 0;              /* permet de rétrécir dans un flex container */
+  flex: 0 1 auto;            /* comportement par défaut, ajusté en mobile plus bas */
+}
+/* Sur petits écrans, on empile les boutons et on évite tout dépassement */
+@media (max-width: 560px){
+  .actions .btn{
+    flex: 1 1 100%;          /* plein largeur, l’un sous l’autre */
+    white-space: nowrap;     /* texte en une ligne, plus de débord */
+  }
+}
+
 .btn.primary{
   background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
   color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px
@@ -329,7 +348,12 @@ h3{ font-size: 1.05rem; }
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); padding:1rem 1.1rem;
 }
-.pdp__title{ margin:.2rem 0 .2rem; }
+/* +++ patch titres longs +++ */
+.pdp__title{
+  margin:.2rem 0 .2rem;
+  overflow-wrap:anywhere;
+  hyphens:auto;
+}
 .pdp__tag{ margin:.2rem 0 .6rem; color:#cfeaf8 }
 .pdp__desc{ margin:0 0 1rem; color:#d8e6f1 }
 .pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
