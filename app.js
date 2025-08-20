@@ -10,7 +10,6 @@
    - Anti-zoom Android + bannière offline
    - Focus après navigation + toasts (CSS injecté)
    - A2HS unifié (tip iOS + bouton Android)
-   - SEO dynamique (JSON-LD + meta description)
 ========================================================= */
 
 'use strict';
@@ -274,7 +273,6 @@ const tagEl    = document.getElementById('tag');
   }
 
   // iOS/iPadOS Safari non installé → afficher la bulle (une seule fois)
-  // (évite les navigateurs tiers iOS qui n’ont pas le même flux)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   if (isiOSLike && isSafari && !isStandalone) {
     setTimeout(showTip, 1400);
@@ -369,7 +367,6 @@ const tagEl    = document.getElementById('tag');
     const maxScale = mq.matches ? 3.1 : 2.0;
     const scale    = 1 + (maxScale - 1) * p;
 
-    // 12vh / 7vh → px (stable WebKit)
     const tyPxBase = (mq.matches ? 12 : 7) * (vh / 100);
     const tyPx     = tyPxBase * p;
 
@@ -380,16 +377,13 @@ const tagEl    = document.getElementById('tag');
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = opacity.toFixed(3);
 
-    // espace sous le hero
     const gap = (1 - raw) * (mq.matches ? 18 : 22);
     document.documentElement.style.setProperty('--listGap', `${gap.toFixed(2)}vh`);
 
-    // fin d'anim
     const done = raw > 0.985;
     document.body.classList.toggle('after-hero', done);
     hero.classList.toggle('hero-out', done);
 
-    // Dock → visible quand l’anim est quasi terminée
     if (dock){
       if (raw > 0.97) dock.classList.add('dock--visible');
       else            dock.classList.remove('dock--visible');
@@ -534,14 +528,6 @@ function cartToWhatsAppText(){
   return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
 }
 
-/* ===== SEO helpers (meta) ===== */
-const DEFAULT_META_DESC = "Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).";
-function setMetaDescription(txt){
-  try{
-    const m = document.querySelector('meta[name="description"]');
-    if (m) m.setAttribute('content', (txt && String(txt).trim()) || DEFAULT_META_DESC);
-  }catch(_){}
-}
 
 /* ===== JSON-LD Product (SEO) ===== */
 function absoluteUrl(u){
@@ -732,10 +718,6 @@ function renderPDP(product){
 
   elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
 
-  /* --- SEO dynamique : JSON-LD + meta description --- */
-  injectProductJsonLD(product);
-  setMetaDescription(product.seo?.description || product.desc || '');
-
   btnQ.textContent = 'Ajouter au panier';
   btnQ.onclick = ()=>{
     CART.push(product);
@@ -787,6 +769,9 @@ function renderPDP(product){
       location.hash = `#/produit/${encodeURIComponent(id)}`;
     });
   });
+
+  // >>> Injection SEO JSON-LD pour le produit courant
+  injectProductJsonLD(product);
 }
 
 function renderList(data){
@@ -844,13 +829,11 @@ function renderCatalogue(){
     : `<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>`;
 
   const go = (keyLower)=>{
-    // Si la catégorie correspond exactement à une option du select → on l’emploie
     const matchVal = findSelectMatch(tagEl, keyLower);
     if (tagEl){
-      tagEl.value = matchVal || ''; // si pas d’option correspondante, on remet "Tous"
+      tagEl.value = matchVal || '';
     }
     if (searchEl){
-      // Si pas d’option correspondante, on utilise la recherche libre
       searchEl.value = matchVal ? '' : keyLower;
     }
     applyFilters();
@@ -1141,12 +1124,14 @@ function renderAccount(){
         showHome(false); showView('produit'); ensureDockVisibleOnViews(false);
         if (p){
           renderPDP(p);
+          // >>> inject JSON-LD quand on a un produit valide
+          injectProductJsonLD(p);
           document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
         }else{
           $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
           $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
+          // >>> on nettoie le JSON-LD si la fiche n’existe pas
           clearProductJsonLD();
-          setMetaDescription('');
         }
         wireBack(cameFrom);
         window.scrollTo({top:0, behavior:'auto'});
@@ -1166,8 +1151,8 @@ function renderAccount(){
     m = h.match(/^#\/catalogue\b/);
     if (m){
       showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
+      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
       document.title='Pirates Tools • Catalogue';
-      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
       prevHash=h; return;
@@ -1177,8 +1162,8 @@ function renderAccount(){
     m = h.match(/^#\/devis\b/);
     if (m){
       showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
+      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
       document.title='Pirates Tools • Devis';
-      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
       prevHash=h; return;
@@ -1188,8 +1173,8 @@ function renderAccount(){
     m = h.match(/^#\/compte\b/);
     if (m){
       showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
+      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
       document.title='Pirates Tools • Mon compte';
-      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
       prevHash=h; return;
@@ -1198,8 +1183,8 @@ function renderAccount(){
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
       showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
+      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
       document.title = 'Pirates Tools • Outillage pro (PWA)';
-      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
       prevHash = h; return;
@@ -1207,8 +1192,8 @@ function renderAccount(){
 
     // fallback : accueil
     showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
+    clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
     document.title = 'Pirates Tools • Outillage pro (PWA)';
-    clearProductJsonLD(); setMetaDescription('');
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
     prevHash = h;
@@ -1217,4 +1202,3 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
-```0
