@@ -531,6 +531,11 @@ function updateDock(){
 function saveCart(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
   updateDock();
+  // Si on est sur #/devis, on rafraîchit l’affichage immédiatement
+  var h = (location.hash || '').toLowerCase();
+  if (h.indexOf('#/devis') === 0){
+    try{ renderCartView(); }catch(_){}
+  }
 }
 function loadCart(){
   try{
