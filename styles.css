@@ -99,7 +99,6 @@ h3{ font-size: 1.05rem; }
   isolation: isolate;
   z-index: 30;             /* au-dessus au début ; passe dessous avec .hero-out */
 }
-
 .hero-logo{
   /* Aucun transform ici : il est entièrement piloté par app.js */
   width: min(78vmin, 900px);
@@ -120,7 +119,6 @@ h3{ font-size: 1.05rem; }
   /* Ombre douce sous le logo */
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
 }
-
 .hero-fade{
   position: absolute;
   inset: auto 0 0 0;
@@ -129,7 +127,6 @@ h3{ font-size: 1.05rem; }
   pointer-events: none;
   z-index: -1;
 }
-
 /* Quand l’anim est “terminée”, le hero passe sous la liste */
 .hero-full.hero-out{ z-index: -1; }
 
@@ -143,7 +140,6 @@ h3{ font-size: 1.05rem; }
   margin-top: calc(var(--listGap) * .55);
   align-items:center;
 }
-
 .search,
 .select{
   background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
@@ -159,8 +155,7 @@ h3{ font-size: 1.05rem; }
   -webkit-appearance:none;
 }
 .search::placeholder{ color:#7f94a5 }
-
-/* Select: flèche personnalisée */
+/* Select: flèche personnalisée (data-URI corrigé) */
 .select{
   padding-right:2.1rem;
   background-image:
@@ -174,7 +169,6 @@ h3{ font-size: 1.05rem; }
   box-shadow: 0 0 0 2px rgba(25,211,255,.25), inset 0 1px 0 rgba(255,255,255,.04);
   border-color: rgba(25,211,255,.55);
 }
-
 @media (max-width:680px){
   .toolbar{ grid-template-columns: 1fr; gap:.5rem; }
 }
@@ -187,7 +181,6 @@ h3{ font-size: 1.05rem; }
 .list::before{
   content:""; display:block; height:var(--listGap); transition:height .22s ease-out;
 }
-
 .card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
   box-shadow:var(--shadow); overflow:hidden; position:relative;
@@ -209,7 +202,6 @@ h3{ font-size: 1.05rem; }
   background:linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 100%);
   color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px
 }
-
 /* Perf: n’afficher que ce qui entre à l’écran */
 .card, .cat-card{
   content-visibility:auto;
@@ -262,9 +254,9 @@ h3{ font-size: 1.05rem; }
 .dock{
   position: fixed;
   left: 50%;
-  /* safe area iOS + fallback */
+  /* iOS < 11.2 puis iOS modernes */
+  bottom: calc(14px + constant(safe-area-inset-bottom, 0px));
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  bottom: calc(14px + constant(safe-area-inset-bottom, 0px)); /* iOS < 11.2 */
   z-index: 110;
 
   /* centrage + animation d’apparition (caché par défaut) */
@@ -279,7 +271,6 @@ h3{ font-size: 1.05rem; }
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
-
 .dock__shell{
   position: relative;
   display: inline-flex; align-items: center; gap: .6rem;
@@ -292,7 +283,6 @@ h3{ font-size: 1.05rem; }
   pointer-events: auto;              /* réactive les clics à l’intérieur */
   transform: translateZ(0); contain: layout paint;
 }
-
 .dock__btn{
   width: 40px; height: 40px; display: grid; place-items: center;
   border-radius: 12px; background: rgba(255,255,255,.06);
@@ -302,15 +292,18 @@ h3{ font-size: 1.05rem; }
 .dock__btn--call { background: linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa   { background: linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
 .dock__btn--cart, .dock__btn--tools{ background: rgba(255,255,255,.10) }
-
-.dock__badge{
+/* Badge (classe OU id #dockCount pour sûreté) */
+.dock__badge,
+#dockCount{
   position: absolute; top: -8px; right: -4px;
   background: #ff6b6b; color:#001018; font-weight: 800; font-size: .75rem; line-height: 1;
   border-radius: 999px; padding: .35rem .45rem; border: 2px solid rgba(10,15,20,.85);
   cursor: pointer;
 }
+/* Fallback animation bump si l’injection JS échoue */
+@keyframes pt-bump { 0%{transform:scale(1)} 35%{transform:scale(1.15)} 100%{transform:scale(1)} }
+#dockCount.bump{ animation: pt-bump .42s ease }
 
-/* (optionnel) réduire l’anim si l’utilisateur réduit les animations */
 @media (prefers-reduced-motion: reduce){
   .dock{ transition: none; transform: translateX(-50%) translateY(0); opacity:1; }
 }
@@ -341,7 +334,6 @@ h3{ font-size: 1.05rem; }
 .pdp__desc{ margin:0 0 1rem; color:#d8e6f1 }
 .pdp__specs{ margin:.8rem 0 0; padding-left:1.1rem; color:#b9d0e2 }
 .pdp__specs li{ margin:.25rem 0 }
-
 .pdp__specs table{
   width:100%; border-collapse:collapse; font-size:.95rem; margin-top:.25rem;
   border:1px solid rgba(255,255,255,.06);
@@ -357,9 +349,7 @@ h3{ font-size: 1.05rem; }
   background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10));
   border-color:rgba(25,211,255,.45); color:#e6f7ff;
 }
-
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
-
 @media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr; } }
 
 /* ================= Catalogue ================= */
@@ -386,13 +376,16 @@ h3{ font-size: 1.05rem; }
   border:1px solid var(--border);
   box-shadow: inset 0 0 8px rgba(0,0,0,.35);
 }
-.meter__fill{
+/* applique aux classes ET aux IDs utilisés par app.js */
+.meter__fill,
+#accFill{
   position:absolute; inset:0 auto 0 0; width:0%;
   background:linear-gradient(90deg, var(--brand), var(--brand-2));
   filter: drop-shadow(0 0 10px rgba(0,225,180,.45));
   transition:width .25s ease;
 }
-.meter__cursor{
+.meter__cursor,
+#accCursor{
   position:absolute; top:50%; transform:translate(-50%,-50%);
   width:16px; height:16px; border-radius:50%;
   background:#fff; box-shadow:0 0 18px rgba(25,211,255,.8), 0 0 28px rgba(0,225,180,.6);
@@ -419,6 +412,8 @@ h3{ font-size: 1.05rem; }
 #toasts{
   position:fixed; z-index:120;
   right:12px;
+  /* iOS < 11.2 puis modernes */
+  bottom: calc(var(--dock-bottom, 14px) + constant(safe-area-inset-bottom, 0px) + 62px);
   bottom: calc(var(--dock-bottom, 14px) + env(safe-area-inset-bottom, 0px) + 62px);
   display:grid; gap:.5rem; width:min(92vw, 420px);
   pointer-events:none;
@@ -433,7 +428,6 @@ h3{ font-size: 1.05rem; }
 .toast__icon{ font-size:1.1rem; line-height:1; }
 .toast__body{ flex:1; color:#d8e6f1; }
 .toast__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:1.1rem; }
-
 .toast--success .toast__icon{ filter: drop-shadow(0 0 8px rgba(0,225,180,.45)); }
 .toast--error   .toast__icon{ filter: drop-shadow(0 0 8px rgba(255,80,80,.45)); }
 
@@ -511,4 +505,20 @@ h3{ font-size: 1.05rem; }
 }
 .a2hs-tip__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px }
 @keyframes a2hs-in{ from{ transform:translateX(-50%) translateY(6px); opacity:0 } to{ transform:translateX(-50%) translateY(0); opacity:1 } }
-```0
+
+/* ===== Net banner (fallback visuel si styles inline absents) ===== */
+#netBanner{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  background:rgba(10,15,20,.88); border:1px solid var(--border);
+  padding:.5rem .8rem; border-radius:10px; z-index:120; box-shadow:var(--shadow);
+  font:600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
+  color:#e6edf5; display:none;
+}
+
+/* ===== Anim “exit” (résilience si l’injection JS saute) ===== */
+@keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }
+@keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }
+.tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
+.tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }
