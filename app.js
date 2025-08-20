@@ -628,6 +628,9 @@ var ScrollExit = (function () {
   return { observeWithin: observeWithin };
 })();
 
+
+
+
 /* =========================================================
    8) PANIER (persistant)
 ========================================================= */
@@ -637,51 +640,64 @@ function updateDock(){
   dockCount.textContent = n;
   dockCount.style.display = n ? '' : 'none';
 }
+
 function saveCart(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(CART)); } catch(_){}
   updateDock();
-  // Si on est sur #/devis, on rafraîchit l’affichage immédiatement
+  // Si on est sur #/devis, on rafraîchit immédiatement l’affichage
   var h = (location.hash || '').toLowerCase();
-  if (h.indexOf('#/devis') === 0){
-    try{ renderCartView(); }catch(_){}
+  if (h.indexOf('#/devis') === 0 && typeof renderCartView === 'function'){
+    try { renderCartView(); } catch(_){}
   }
+  // Signal optionnel pour d’autres composants
+  try { window.dispatchEvent(new CustomEvent('pt:cartChanged')); } catch(_){}
 }
+
 function loadCart(){
   try{
     var raw = localStorage.getItem(STORE_KEY);
     CART = raw ? JSON.parse(raw) : [];
-  }catch(_){ CART = []; }
+  }catch(_){
+    CART = [];
+  }
   updateDock();
 }
 loadCart();
 
-var keyOf = function(p){
+// Clé stable (id > sku > title)
+function keyOf(p){
   var v = firstDefined(p && p.id, p && p.sku, p && p.title, '');
-  return (v==null ? '' : String(v));
-};
+  return (v == null ? '' : String(v));
+}
 
+// Regroupement ES5-safe : [{ item, qty }]
 function groupCart(){
-  var map = new Map();
-  CART.forEach(function(p){
+  var map = {};                 // { key: { item, qty } }
+  for (var i=0;i<CART.length;i++){
+    var p = CART[i];
     var k = keyOf(p);
-    var g = map.get(k) || { item:p, qty:0 };
-    g.qty++;
-    map.set(k, g);
-  });
-  return Array.from(map.values());
+    if (!map[k]) map[k] = { item: p, qty: 0 }; // garde le 1er item comme "item" de référence
+    map[k].qty += 1;
+  }
+  var out = [];
+  for (var k in map){
+    if (Object.prototype.hasOwnProperty.call(map, k)) out.push(map[k]);
+  }
+  return out;
 }
 
 /* ===== WhatsApp (Devis + PDP) ===== */
 function cartToWhatsAppText(){
   var grouped = groupCart();
   if (!grouped.length) return '';
-  var lines = grouped.map(function(g){
+  var lines = [];
+  for (var i=0;i<grouped.length;i++){
+    var g = grouped[i];
     var item = g.item, qty = g.qty;
     var sku = item.sku || item.id || '';
-    var title = item.title || (item.brand||'')+' '+(item.sku||'');
-    title = title.trim();
-    return '• ' + sku + ' – ' + title + (qty>1 ? (' ×'+qty) : '');
-  });
+    var title = (item.title || ((item.brand||'')+' '+(item.sku||''))).trim();
+    lines.push('• ' + sku + ' – ' + title + (qty>1 ? (' ×'+qty) : ''));
+  }
 
   // Coordonnées (si présentes dans "Compte")
   var contact = '';
@@ -711,7 +727,9 @@ function schemaAvailability(p){
 function buildProductJsonLD(p){
   var images = [];
   if (p.img) images.push(absoluteUrl(p.img));
-  if (Array.isArray(p.gallery)) p.gallery.forEach(function(g){ images.push(absoluteUrl(g)); });
+  if (Array.isArray(p.gallery)) {
+    for (var i=0;i<p.gallery.length;i++){ images.push(absoluteUrl(p.gallery[i])); }
+  }
 
   var price = (typeof p.price === 'number')
     ? p.price
@@ -748,18 +766,27 @@ function buildProductJsonLD(p){
     };
   }
 
-  var prune = function(o){
-    if (Array.isArray(o)) return o.map(prune).filter(function(v){ return v != null; });
+  // Nettoyage récursif des champs vides
+  function prune(o){
+    if (Array.isArray(o)) {
+      var arr = [];
+      for (var i=0;i<o.length;i++){
+        var pv = prune(o[i]);
+        if (pv != null) arr.push(pv);
+      }
+      return arr.length ? arr : null;
+    }
     if (o && typeof o === 'object'){
       var r = {};
-      Object.keys(o).forEach(function(k){
+      for (var k in o){
+        if (!Object.prototype.hasOwnProperty.call(o,k)) continue;
         var pv = prune(o[k]);
         if (pv != null && !(Array.isArray(pv) && pv.length === 0)) r[k] = pv;
-      });
+      }
       return Object.keys(r).length ? r : null;
     }
     return (o === undefined || o === null) ? null : o;
-  };
+  }
   return prune(data);
 }
 function injectProductJsonLD(p){
@@ -778,6 +805,7 @@ function injectProductJsonLD(p){
 function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
+
 
 
 
