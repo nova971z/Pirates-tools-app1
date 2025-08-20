@@ -5,6 +5,8 @@
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "launch_handler": { "client_mode": "navigate-existing" },
   "orientation": "portrait",
   "background_color": "#0a0f14",
   "theme_color": "#0a0f14",
