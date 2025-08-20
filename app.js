@@ -1017,6 +1017,149 @@ function renderCartView(){
   }
 }
 
+
+
+/* =========================================================
+   13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
+========================================================= */
+
+/* Prix unitaire (en €) depuis le produit */
+function getUnitPrice(p){
+  if (!p) return null;
+  if (typeof p.price === 'number') return p.price;
+  if (typeof p.price_cents === 'number') return p.price_cents / 100;
+  var v = parseFloat(p.price);
+  return isFinite(v) ? v : null;
+}
+
+function formatMoney(v){
+  try{
+    return v.toLocaleString('fr-FR', { style:'currency', currency:CURRENCY });
+  }catch(_){
+    return (Math.round(v*100)/100).toFixed(2) + ' ' + CURRENCY;
+  }
+}
+
+/* Total panier + indicateur "au moins un prix présent ?" */
+function computeCartTotal(){
+  var grouped = groupCart();
+  var total = 0;
+  var counted = 0;
+  for (var i=0;i<grouped.length;i++){
+    var g = grouped[i];
+    var pr = getUnitPrice(g.item);
+    if (pr != null){
+      total += pr * g.qty;
+      counted++;
+    }
+  }
+  return { total: total, hasPrices: counted>0 };
+}
+
+/* Remplace {AMOUNT} / {AMOUNT_CENTS} dans une URL */
+function fillAmount(url, total){
+  if (!url) return '';
+  var euros = (Math.round(total*100)/100).toFixed(2);   // 129.90
+  var cents = Math.round(total*100);                    // 12990
+  var u = url.replace(/\{AMOUNT\}/g, euros).replace(/\{AMOUNT_CENTS\}/g, String(cents));
+  return u;
+}
+
+/* ===== PayPal : "cart upload" (multi-articles, statique) ===== */
+function buildPayPalCartUrl(){
+  if (!PAYPAL_BUSINESS || PAYPAL_BUSINESS.indexOf('@') === -1) return '';
+  var base = 'https://www.paypal.com/cgi-bin/webscr?cmd=_cart&upload=1';
+  base += '&business=' + encodeURIComponent(PAYPAL_BUSINESS);
+  base += '&currency_code=' + encodeURIComponent(CURRENCY);
+
+  var grouped = groupCart();
+  var idx = 1;
+  for (var i=0;i<grouped.length;i++){
+    var g = grouped[i];
+    var pr = getUnitPrice(g.item);
+    if (pr == null) continue;
+    var name = g.item.title || ((g.item.brand||'') + ' ' + (g.item.sku||'')).trim() || 'Article';
+    base += '&item_name_' + idx + '=' + encodeURIComponent(name);
+    base += '&amount_'    + idx + '=' + encodeURIComponent(pr.toFixed(2));
+    base += '&quantity_'  + idx + '=' + encodeURIComponent(g.qty);
+    idx++;
+  }
+  return base;
+}
+
+/* Fallback WhatsApp (si pas de prix ou config incomplète) */
+function fallbackWhatsAppForPayment(extraLine){
+  var msg = cartToWhatsAppText();
+  if (!msg) msg = 'Bonjour, je souhaite régler ma commande. Pouvez-vous m’envoyer un lien de paiement ?';
+  if (extraLine) msg += '\n\n' + extraLine;
+  window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+/* --- Ouverture paiements --- */
+function payWithPayPal(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  var url = buildPayPalCartUrl();
+  if (!url){
+    toast('PayPal non configuré (email manquant).', 'info');
+    return;
+  }
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers PayPal');
+}
+
+function payWithStripe(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  if (!STRIPE_PAY_LINK){
+    toast('Lien Carte/Apple Pay non configuré.', 'info');
+    return;
+  }
+  var url = fillAmount(STRIPE_PAY_LINK, info.total);
+  try{
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      navigator.clipboard.writeText(info.total.toFixed(2));
+      toast('Montant copié : ' + formatMoney(info.total), 'success');
+    }
+  }catch(_){}
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers Carte / Apple Pay');
+}
+
+function payWithCrypto(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  if (!CRYPTO_PAY_LINK){
+    toast('Lien Crypto non configuré.', 'info');
+    return;
+  }
+  var url = fillAmount(CRYPTO_PAY_LINK, info.total);
+  try{
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      navigator.clipboard.writeText(info.total.toFixed(2));
+      toast('Montant copié : ' + formatMoney(info.total), 'success');
+    }
+  }catch(_){}
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers Paiement Crypto');
+}
+
+
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
