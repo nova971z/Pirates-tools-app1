@@ -10,8 +10,8 @@
    - Anti-zoom Android + bannière offline
    - Focus après navigation + toasts (CSS injecté)
    - A2HS unifié (tip iOS + bouton Android)
-   - SEO+ : JSON-LD produit + metas dynamiques
-   - SW messages : READY / CACHES_CLEARED / VERSION
+   - SEO dynamique (titre + meta description) sur PDP
+   - PT utils + SelfTest (Section 18) activable via ?selftest=1
 ========================================================= */
 
 'use strict';
@@ -26,6 +26,24 @@ const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
+
+/* === SEO defaults (titre + meta description) === */
+const META_DESC_EL  = document.querySelector('meta[name="description"]');
+const DEFAULT_TITLE = document.title || 'Pirates Tools • Outillage pro (PWA)';
+const DEFAULT_DESC  = META_DESC_EL?.getAttribute('content') || 'Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).';
+
+function setPageMeta(title, description){
+  try{
+    if (title) document.title = title;
+    if (META_DESC_EL && description) META_DESC_EL.setAttribute('content', description);
+  }catch(_){}
+}
+function resetPageMeta(){
+  try{
+    document.title = DEFAULT_TITLE;
+    if (META_DESC_EL) META_DESC_EL.setAttribute('content', DEFAULT_DESC);
+  }catch(_){}
+}
 
 /* ---------- UX CSS (toasts + badge bump) injecté ---------- */
 (function injectUXCSS(){
@@ -220,10 +238,13 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    3-bis) A2HS (Add To Home Screen) — iOS tip + Android prompt
+   - iOS Safari / iPadOS : bulle pédagogique (#a2hsTip) au-dessus du dock
+   - Android/Chromium : bouton #installBtn déclenche la prompt native
 ========================================================= */
 (function a2hsHelper(){
   if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
 
+  // Détection iOS / iPadOS moderne (iPadOS 13+ se présente comme "Mac")
   const ua = navigator.userAgent || '';
   const isiOSLike = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone =
@@ -271,6 +292,7 @@ const tagEl    = document.getElementById('tag');
     document.body.appendChild(tip);
   }
 
+  // iOS/iPadOS Safari non installé → afficher la bulle (une seule fois)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   if (isiOSLike && isSafari && !isStandalone) {
     setTimeout(showTip, 1400);
@@ -304,6 +326,7 @@ const tagEl    = document.getElementById('tag');
     }
   });
 
+  // Masque le bouton si déjà en standalone
   try{
     if (installBtn && isStandalone) installBtn.hidden = true;
     const dm = window.matchMedia('(display-mode: standalone)');
@@ -332,6 +355,10 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
+   - rAF ticker (indépendant de l'événement scroll)
+   - calcule transform/opacity directement
+   - met à jour --listGap pour l’espace sous le hero
+   - déclenche l’apparition du dock en fin d’anim
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -605,40 +632,6 @@ function clearProductJsonLD(){
   document.getElementById('jsonld-product')?.remove();
 }
 
-/* ===== Metas dynamiques (SEO) ===== */
-const META_DEFAULT = {
-  title: document.title,
-  desc:  $('meta[name="description"]')?.getAttribute('content') || ''
-};
-function setMeta(selector, attr, value){
-  const el = document.querySelector(selector);
-  if (el && typeof value === 'string') el.setAttribute(attr, value);
-}
-function updateMetaForProduct(p){
-  const title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
-  const desc  = p.seo?.description || p.desc || p.description || 'Outillage pro — disponibilité Antilles.';
-  const img   = absoluteUrl(p.img || './images/pirates-tools-logo.png?v=7');
-
-  document.title = title;
-  setMeta('meta[name="description"]', 'content', desc);
-
-  // Si OG/Twitter sont présents dans l’HTML, on les met à jour (sinon on ignore)
-  setMeta('meta[property="og:title"]',       'content', title);
-  setMeta('meta[property="og:description"]', 'content', desc);
-  setMeta('meta[property="og:image"]',       'content', img);
-  setMeta('meta[name="twitter:card"]',       'content', 'summary_large_image');
-}
-function restoreDefaultMeta(){
-  document.title = META_DEFAULT.title;
-  setMeta('meta[name="description"]', 'content', META_DEFAULT.desc);
-
-  // On ne force pas le reset des OG si absents; on restaure sur la base des valeurs par défaut si elles existent:
-  const ogTitle = document.querySelector('meta[property="og:title"]')?.dataset?.default || META_DEFAULT.title;
-  const ogDesc  = document.querySelector('meta[property="og:description"]')?.dataset?.default || META_DEFAULT.desc;
-  if ($('meta[property="og:title"]'))       setMeta('meta[property="og:title"]', 'content', ogTitle);
-  if ($('meta[property="og:description"]')) setMeta('meta[property="og:description"]', 'content', ogDesc);
-}
-
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -797,9 +790,8 @@ function renderPDP(product){
     });
   });
 
-  // SEO : JSON-LD + metas dynamiques pour le produit courant
+  // >>> Injection SEO JSON-LD pour le produit courant
   injectProductJsonLD(product);
-  updateMetaForProduct(product);
 }
 
 function renderList(data){
@@ -1041,25 +1033,6 @@ if ('serviceWorker' in navigator) {
           }
         });
       });
-
-      // === Canal messages SW (READY / CACHES_CLEARED / VERSION)
-      navigator.serviceWorker.addEventListener('message', (event)=>{
-        const data = event.data || {};
-        if (data.type === 'SW_READY'){
-          toast('App prête hors ligne', 'success');
-        } else if (data.type === 'CACHES_CLEARED'){
-          toast('Caches vidés', 'success');
-        } else if (data.type === 'VERSION'){
-          console.log('[SW] Version:', data.version);
-        }
-      });
-
-      // Helpers debug optionnels accessibles en console
-      window.PT = Object.assign(window.PT || {}, {
-        clearCaches: ()=> navigator.serviceWorker.controller?.postMessage?.('CLEAR_CACHES'),
-        getSWVersion: ()=> navigator.serviceWorker.controller?.postMessage?.('GET_VERSION')
-      });
-
     } catch (err) {
       console.warn(err);
     }
@@ -1171,12 +1144,13 @@ function renderAccount(){
         showHome(false); showView('produit'); ensureDockVisibleOnViews(false);
         if (p){
           renderPDP(p);
-          document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
+          injectProductJsonLD(p);
+          setPageMeta(`Pirates Tools • ${p.title || p.sku || 'Produit'}`, p.seo?.description || p.desc || p.description || DEFAULT_DESC);
         }else{
           $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
           $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
           clearProductJsonLD();
-          restoreDefaultMeta();
+          resetPageMeta();
         }
         wireBack(cameFrom);
         window.scrollTo({top:0, behavior:'auto'});
@@ -1196,9 +1170,7 @@ function renderAccount(){
     m = h.match(/^#\/catalogue\b/);
     if (m){
       showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
-      clearProductJsonLD();
-      restoreDefaultMeta();
-      document.title='Pirates Tools • Catalogue';
+      clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
       prevHash=h; return;
@@ -1208,9 +1180,7 @@ function renderAccount(){
     m = h.match(/^#\/devis\b/);
     if (m){
       showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
-      clearProductJsonLD();
-      restoreDefaultMeta();
-      document.title='Pirates Tools • Devis';
+      clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
       prevHash=h; return;
@@ -1220,9 +1190,7 @@ function renderAccount(){
     m = h.match(/^#\/compte\b/);
     if (m){
       showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
-      clearProductJsonLD();
-      restoreDefaultMeta();
-      document.title='Pirates Tools • Mon compte';
+      clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
       prevHash=h; return;
@@ -1231,9 +1199,7 @@ function renderAccount(){
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
       showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
-      clearProductJsonLD();
-      restoreDefaultMeta();
-      document.title = 'Pirates Tools • Outillage pro (PWA)';
+      clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
       prevHash = h; return;
@@ -1241,9 +1207,7 @@ function renderAccount(){
 
     // fallback : accueil
     showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
-    clearProductJsonLD();
-    restoreDefaultMeta();
-    document.title = 'Pirates Tools • Outillage pro (PWA)';
+    clearProductJsonLD(); resetPageMeta();
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
     prevHash = h;
@@ -1251,4 +1215,182 @@ function renderAccount(){
 
   window.addEventListener('hashchange', onRoute);
   onRoute();
+})();
+
+/* =========================================================
+   18) PT utils + AUTO-TEST (facultatif, dev-only)
+   - Expose PT.getSWVersion() et PT.clearCaches()
+   - Auto-test visuel si URL contient ?selftest=1
+========================================================= */
+(function PTUtilsAndSelfTest(){
+  const PT = (window.PT = window.PT || {});
+
+  PT.getSWVersion = async function getSWVersion(timeoutMs=1500){
+    if (!('serviceWorker' in navigator)) return null;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !navigator.serviceWorker.controller) return null;
+    return await new Promise(resolve=>{
+      const t = setTimeout(()=> resolve(null), timeoutMs);
+      const onMsg = (e)=>{
+        const d = e.data;
+        if (d && d.type === 'VERSION') {
+          clearTimeout(t);
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          resolve(d.version || null);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', onMsg);
+      try{ reg.active?.postMessage?.('GET_VERSION'); }catch(_){ clearTimeout(t); resolve(null); }
+    });
+  };
+
+  PT.clearCaches = async function clearCaches(timeoutMs=1500){
+    if (!('serviceWorker' in navigator)) return false;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !navigator.serviceWorker.controller) return false;
+    return await new Promise(resolve=>{
+      const t = setTimeout(()=> resolve(false), timeoutMs);
+      const onMsg = (e)=>{
+        const d = e.data;
+        if (d && d.type === 'CACHES_CLEARED') {
+          clearTimeout(t);
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          toast('Caches vidés', 'success');
+          resolve(true);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', onMsg);
+      try{ reg.active?.postMessage?.('CLEAR_CACHES'); }catch(_){ clearTimeout(t); resolve(false); }
+    });
+  };
+
+  // ---- SelfTest visuel (à la demande via ?selftest=1) ----
+  function paramEnabled(){
+    try{
+      const p = new URL(location.href).searchParams;
+      return p.get('selftest') === '1';
+    }catch(_){ return false; }
+  }
+
+  function addStyleOnce(){
+    if (document.getElementById('pt-selftest-css')) return;
+    const s = document.createElement('style');
+    s.id = 'pt-selftest-css';
+    s.textContent = `
+      #ptSelfTest{position:fixed; right:12px; bottom: calc(12px + env(safe-area-inset-bottom,0px)); z-index:140;
+        background:rgba(10,15,20,.95); color:#e6edf5; border:1px solid #22303b; border-radius:12px;
+        min-width:260px; max-width:360px; box-shadow:0 16px 32px rgba(0,0,0,.4); font:600 14px/1.3 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif}
+      #ptSelfTest .head{padding:.6rem .8rem; border-bottom:1px solid #22303b; display:flex; align-items:center; justify-content:space-between}
+      #ptSelfTest .list{max-height:50vh; overflow:auto; padding:.4rem .8rem}
+      #ptSelfTest .row{display:grid; grid-template-columns:18px 1fr; gap:.6rem; padding:.35rem 0; align-items:center}
+      #ptSelfTest .dot{width:10px; height:10px; border-radius:50%}
+      #ptSelfTest .ok{background:#00e1b4} .warn{background:#ffb020} .ko{background:#ff6b6b}
+      #ptSelfTest .foot{padding:.5rem .8rem; border-top:1px solid #22303b; display:flex; gap:.5rem; justify-content:flex-end}
+      #ptSelfTest button{border:1px solid #22303b; background:rgba(255,255,255,.06); color:#e6edf5; padding:.35rem .6rem; border-radius:8px; cursor:pointer}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function panel(){
+    addStyleOnce();
+    const wrap = document.createElement('div');
+    wrap.id = 'ptSelfTest';
+    wrap.innerHTML = `
+      <div class="head"><div>Auto-test Pirates Tools</div><button id="ptClose">✖</button></div>
+      <div class="list" id="ptList"></div>
+      <div class="foot">
+        <button id="ptReload">Recharger</button>
+        <button id="ptClearCaches">Vider caches SW</button>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    $('#ptClose', wrap)?.addEventListener('click', ()=> wrap.remove());
+    $('#ptReload', wrap)?.addEventListener('click', ()=> location.reload());
+    $('#ptClearCaches', wrap)?.addEventListener('click', ()=> PT.clearCaches());
+    return { root: wrap, list: $('#ptList', wrap) };
+  }
+
+  function add(list, label, status){
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="dot ${status}"></span><span>${label}</span>`;
+    list.appendChild(row);
+  }
+
+  async function runSelfTest(){
+    const { list } = panel();
+
+    // 1) DOM + CSS injectés
+    add(list, 'UX CSS injecté', document.getElementById('pt-ux-css') ? 'ok' : 'ko');
+    add(list, 'A2HS CSS injecté', document.getElementById('pt-a2hs-css') ? 'ok' : 'warn');
+    add(list, 'Dock présent', document.getElementById('dock') ? 'ok' : 'ko');
+    add(list, 'Dock shell', document.querySelector('#dock .dock__shell') ? 'ok' : 'warn');
+    add(list, 'Toasts prêts', document.getElementById('toasts') ? 'ok' : 'ko');
+    add(list, 'Zone live (a11y)', (document.getElementById('sr-live') || document.getElementById('srLive')) ? 'ok' : 'ko');
+
+    // 2) CTA
+    const telOk = !!(callBtn && callBtn.href && callBtn.href.includes('tel:+33774230195'));
+    const waOk  = !!(waBtn && waBtn.href && /wa\.me\/33774230195/.test(waBtn.href));
+    add(list, 'CTA téléphone', telOk ? 'ok' : 'ko');
+    add(list, 'CTA WhatsApp',  waOk  ? 'ok' : 'ko');
+
+    // 3) Produits
+    add(list, 'products.json chargé', MODELS.length ? 'ok' : 'warn');
+
+    // 4) Router vues
+    const viewsOk = ['view-catalogue','view-devis','view-produit','view-compte'].every(id => document.getElementById(id));
+    add(list, 'Vues présentes', viewsOk ? 'ok' : 'ko');
+
+    // 5) JSON-LD (injection/clear)
+    try{
+      injectProductJsonLD({ title:'Test', sku:'TEST-1', desc:'Desc test' });
+      const jsonld = document.getElementById('jsonld-product');
+      const ok = !!(jsonld && jsonld.textContent && jsonld.textContent.includes('"@type":"Product"'));
+      add(list, 'JSON-LD injecté', ok ? 'ok' : 'ko');
+      clearProductJsonLD();
+      add(list, 'JSON-LD nettoyé', document.getElementById('jsonld-product') ? 'ko' : 'ok');
+    }catch(_){ add(list, 'JSON-LD', 'warn'); }
+
+    // 6) SW registration + version
+    let swStatus = 'warn';
+    try{
+      if ('serviceWorker' in navigator){
+        const reg = await navigator.serviceWorker.getRegistration();
+        swStatus = reg ? 'ok' : 'warn';
+      } else swStatus = 'warn';
+    }catch(_){ swStatus = 'warn'; }
+    add(list, 'Service Worker enregistré', swStatus);
+
+    try{
+      const ver = await PT.getSWVersion();
+      add(list, `SW version${ver?` (${ver})`:''}`, ver ? 'ok' : 'warn');
+    }catch(_){ add(list, 'SW version', 'warn'); }
+
+    // 7) SEO dyn (titre + meta)
+    try{
+      const beforeTitle = document.title;
+      const beforeDesc  = META_DESC_EL?.getAttribute('content') || '';
+      setPageMeta('PT • Test', 'Meta test');
+      const okSet = (document.title==='PT • Test') && ((META_DESC_EL?.getAttribute('content')||'')==='Meta test');
+      resetPageMeta();
+      const okReset = (document.title===DEFAULT_TITLE) && ((META_DESC_EL?.getAttribute('content')||'')===DEFAULT_DESC);
+      add(list, 'SEO dynamique (set/reset)', okSet && okReset ? 'ok' : 'ko');
+      // restore
+      document.title = beforeTitle;
+      if (META_DESC_EL) META_DESC_EL.setAttribute('content', beforeDesc);
+    }catch(_){ add(list, 'SEO dynamique', 'warn'); }
+
+    // 8) Filtres basiques : éléments présents
+    add(list, 'Recherche (#q) présente', searchEl ? 'ok' : 'warn');
+    add(list, 'Select tags (#tag) présent', tagEl ? 'ok' : 'warn');
+
+    toast('Auto-test terminé', 'success');
+  }
+
+  if (paramEnabled()){
+    // Laisse le temps au premier rendu
+    setTimeout(runSelfTest, 400);
+  }
+
+  PT.selfTest = runSelfTest;
 })();
