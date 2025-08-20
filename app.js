@@ -17,12 +17,84 @@
 
 'use strict';
 
-/* ---------- Helpers ---------- */
-var $  = function(sel, root){ return (root||document).querySelector(sel); };
-var $$ = function(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); };
-var clamp = function(v, min, max){ return Math.max(min, Math.min(max, v)); };
-var fallback = function(v, alt){ return (v===undefined || v===null) ? (alt||'') : v; };
-function firstDefined(){ for (var i=0;i<arguments.length;i++){ var v=arguments[i]; if (v!==undefined && v!==null) return v; } return undefined; }
+
+
+
+/* ---------- Helpers (ES5-safe) ---------- */
+var $  = function(sel, root){ return (root || document).querySelector(sel); };
+var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+var clamp = function(v, min, max){
+  v = typeof v === 'number' ? v : parseFloat(v);
+  if (!isFinite(v)) v = 0;
+  return Math.max(min, Math.min(max, v));
+};
+
+var fallback = function(v, alt){
+  return (v === undefined || v === null) ? (alt || '') : v;
+};
+
+function firstDefined(){
+  for (var i = 0; i < arguments.length; i++){
+    var v = arguments[i];
+    if (v !== undefined && v !== null) return v;
+  }
+  return undefined;
+}
+
+/* Nombres & monnaie sûrs (utiles un peu partout) */
+function toNumberSafe(v){
+  var n = (typeof v === 'number') ? v : parseFloat(v);
+  return isFinite(n) ? n : null;
+}
+
+function moneyFR(v, currency){
+  currency = currency || 'EUR';
+  try{
+    return Number(v).toLocaleString('fr-FR', { style:'currency', currency: currency });
+  }catch(_){
+    var n = Math.round(Number(v) * 100) / 100;
+    if (!isFinite(n)) n = 0;
+    return n.toFixed(2) + ' ' + currency;
+  }
+}
+
+/* Délégation d’événements (pratique pour les listes dynamiques) */
+function delegate(root, selector, type, handler){
+  (root || document).addEventListener(type, function(e){
+    var el = e.target && e.target.closest ? e.target.closest(selector) : null;
+    if (el && (root ? (root.contains ? root.contains(el) : true) : true)){
+      handler.call(el, e, el);
+    }
+  }, false);
+}
+
+/* Polyfills minimalistes pour très anciens navigateurs */
+(function(){
+  if (!Element.prototype.matches){
+    Element.prototype.matches =
+      Element.prototype.msMatchesSelector ||
+      Element.prototype.webkitMatchesSelector ||
+      function(s){
+        var m = (this.document || this.ownerDocument).querySelectorAll(s);
+        var i = m.length;
+        while (--i >= 0 && m.item(i) !== this) {}
+        return i > -1;
+      };
+  }
+  if (!Element.prototype.closest){
+    Element.prototype.closest = function(s){
+      var el = this;
+      while (el && el.nodeType === 1){
+        if (el.matches && el.matches(s)) return el;
+        el = el.parentElement || el.parentNode;
+      }
+      return null;
+    };
+  }
+})();
+
+
 
 /* === (NOUVEAU) Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
