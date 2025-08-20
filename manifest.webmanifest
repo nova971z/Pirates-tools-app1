@@ -1,11 +1,16 @@
 {
   "name": "Pirates Tools",
   "short_name": "Pirates Tools",
-  "start_url": "./",
+  "id": "./?pwa=1",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0f14",
   "theme_color": "#0a0f14",
+  "description": "Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).",
+  "lang": "fr-FR",
+  "dir": "ltr",
 
   "icons": [
     { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" },
@@ -16,7 +21,6 @@
   ],
 
   "categories": ["shopping", "tools", "productivity", "business"],
-  "dir": "ltr",
   "prefer_related_applications": false,
 
   "shortcuts": [
