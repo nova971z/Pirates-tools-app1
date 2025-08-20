@@ -1,15 +1,36 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0;url=/Pirates-tools-app1/">
-  <title>Redirection…</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Page introuvable — Pirates Tools</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body{min-height:100vh;display:grid;place-items:center;padding:2rem}
+    .box{max-width:720px;background:var(--panel);border:1px solid var(--border);
+         border-radius:var(--radius);box-shadow:var(--shadow);padding:1.1rem}
+    .row{display:flex;gap:.6rem;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.58rem .9rem;border-radius:12px;
+         font-weight:700;color:#001018;border:0;cursor:pointer;box-shadow:var(--shadow);white-space:nowrap}
+    .btn.primary{background:linear-gradient(90deg,var(--brand) 0%, var(--brand-2) 100%)}
+    .muted{color:var(--muted)}
+  </style>
   <script>
-    // Fallback JS si le meta refresh est bloqué
-    location.replace('/Pirates-tools-app1/');
+    // Après quelques secondes, on renvoie gentiment à l’accueil
+    setTimeout(function(){ location.href = "./"; }, 4000);
   </script>
 </head>
 <body>
-  <p>Redirection… <a href="/Pirates-tools-app1/">Retourner à l’accueil</a></p>
+  <main class="box">
+    <h1>🔎 Oups, page introuvable</h1>
+    <p class="muted">La page demandée n’existe pas (ou plus).<br>
+       Vous allez être redirigé vers l’accueil dans quelques secondes.</p>
+    <div class="row" style="margin-top:.8rem">
+      <a class="btn primary" href="./">⬅️ Retour à l’accueil</a>
+      <a class="btn" style="background:rgba(255,255,255,.06);color:#d9e3ec" href="https://wa.me/33774230195" target="_blank" rel="noopener">💬 Contacter sur WhatsApp</a>
+    </div>
+  </main>
 </body>
 </html>
