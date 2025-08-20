@@ -1094,51 +1094,59 @@ function renderCartView(){
 
 /* =========================================================
    13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
+   — calculs 100% en centimes (fiables)
 ========================================================= */
 
-/* Prix unitaire (en €) depuis le produit */
-function getUnitPrice(p){
+/* Devise (fallback si non définie ailleurs) */
+var CURRENCY = typeof CURRENCY !== 'undefined' ? CURRENCY : 'EUR';
+
+/* Prix unitaire → centimes (int) */
+function getUnitCents(p){
   if (!p) return null;
-  if (typeof p.price === 'number') return p.price;
-  if (typeof p.price_cents === 'number') return p.price_cents / 100;
-  var v = parseFloat(p.price);
-  return isFinite(v) ? v : null;
-}
-
-function formatMoney(v){
-  try{
-    return v.toLocaleString('fr-FR', { style:'currency', currency:CURRENCY });
-  }catch(_){
-    return (Math.round(v*100)/100).toFixed(2) + ' ' + CURRENCY;
+  if (typeof p.price_cents === 'number' && isFinite(p.price_cents)) return Math.round(p.price_cents);
+  if (typeof p.price === 'number' && isFinite(p.price)) return Math.round(p.price * 100);
+  if (typeof p.price === 'string'){
+    var s = p.price.replace(/\s/g,'').replace(',', '.');
+    var v = parseFloat(s);
+    if (isFinite(v)) return Math.round(v*100);
   }
+  return null;
 }
 
-/* Total panier + indicateur "au moins un prix présent ?" */
+/* Formatage depuis centimes */
+function formatMoneyFromCents(cents){
+  var v = (cents||0)/100;
+  try{ return v.toLocaleString('fr-FR', { style:'currency', currency:CURRENCY }); }
+  catch(_){ return (Math.round(v*100)/100).toFixed(2) + ' ' + CURRENCY; }
+}
+
+/* Compat : certains appels existants passent encore des euros */
+function formatMoney(euros){
+  var c = Math.round((euros||0)*100);
+  return formatMoneyFromCents(c);
+}
+
+/* Total panier en centimes */
 function computeCartTotal(){
   var grouped = groupCart();
-  var total = 0;
+  var totalCents = 0;
   var counted = 0;
   for (var i=0;i<grouped.length;i++){
-    var g = grouped[i];
-    var pr = getUnitPrice(g.item);
-    if (pr != null){
-      total += pr * g.qty;
-      counted++;
-    }
+    var u = getUnitCents(grouped[i].item);
+    if (u != null){ totalCents += u * grouped[i].qty; counted++; }
   }
-  return { total: total, hasPrices: counted>0 };
+  return { totalCents: totalCents, total: totalCents/100, hasPrices: counted>0 };
 }
 
-/* Remplace {AMOUNT} / {AMOUNT_CENTS} dans une URL */
-function fillAmount(url, total){
+/* Remplacement des tokens {AMOUNT} (euros.xx) / {AMOUNT_CENTS} (centimes) */
+function fillAmount(url, totalCents){
   if (!url) return '';
-  var euros = (Math.round(total*100)/100).toFixed(2);   // 129.90
-  var cents = Math.round(total*100);                    // 12990
-  var u = url.replace(/\{AMOUNT\}/g, euros).replace(/\{AMOUNT_CENTS\}/g, String(cents));
-  return u;
+  var euros = (totalCents/100).toFixed(2);
+  var cents = Math.round(totalCents);
+  return url.replace(/\{AMOUNT\}/g, euros).replace(/\{AMOUNT_CENTS\}/g, String(cents));
 }
 
-/* ===== PayPal : "cart upload" (multi-articles, statique) ===== */
+/* ===== PayPal : "cart upload" (multi-articles) ===== */
 function buildPayPalCartUrl(){
   if (!PAYPAL_BUSINESS || PAYPAL_BUSINESS.indexOf('@') === -1) return '';
   var base = 'https://www.paypal.com/cgi-bin/webscr?cmd=_cart&upload=1';
@@ -1149,11 +1157,12 @@ function buildPayPalCartUrl(){
   var idx = 1;
   for (var i=0;i<grouped.length;i++){
     var g = grouped[i];
-    var pr = getUnitPrice(g.item);
-    if (pr == null) continue;
+    var uc = getUnitCents(g.item);
+    if (uc == null) continue;
     var name = g.item.title || ((g.item.brand||'') + ' ' + (g.item.sku||'')).trim() || 'Article';
+    var amount = (uc/100).toFixed(2); // PayPal attend un décimal en euros
     base += '&item_name_' + idx + '=' + encodeURIComponent(name);
-    base += '&amount_'    + idx + '=' + encodeURIComponent(pr.toFixed(2));
+    base += '&amount_'    + idx + '=' + encodeURIComponent(amount);
     base += '&quantity_'  + idx + '=' + encodeURIComponent(g.qty);
     idx++;
   }
@@ -1198,11 +1207,11 @@ function payWithStripe(){
     toast('Lien Carte/Apple Pay non configuré.', 'info');
     return;
   }
-  var url = fillAmount(STRIPE_PAY_LINK, info.total);
+  var url = fillAmount(STRIPE_PAY_LINK, info.totalCents);
   try{
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
-      navigator.clipboard.writeText(info.total.toFixed(2));
-      toast('Montant copié : ' + formatMoney(info.total), 'success');
+      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
+      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
     }
   }catch(_){}
   window.open(url, '_blank', 'noopener');
@@ -1221,16 +1230,17 @@ function payWithCrypto(){
     toast('Lien Crypto non configuré.', 'info');
     return;
   }
-  var url = fillAmount(CRYPTO_PAY_LINK, info.total);
+  var url = fillAmount(CRYPTO_PAY_LINK, info.totalCents);
   try{
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
-      navigator.clipboard.writeText(info.total.toFixed(2));
-      toast('Montant copié : ' + formatMoney(info.total), 'success');
+      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
+      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
     }
   }catch(_){}
   window.open(url, '_blank', 'noopener');
   announce('Redirection vers Paiement Crypto');
 }
+
 
 
 /* =========================================================
