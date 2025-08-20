@@ -1,6 +1,6 @@
 /* =========================================================
-   Pirates Tools — sw.js (PWA cache/offline PRO)
-   - App shell précache (+ index fallback)
+   Pirates Tools — sw.js (PWA cache/offline PRO, SAFE)
+   - App shell précache (+ index fallback) — safeAddAll (tolère fichiers manquants)
    - Navigations: network-first (+ preload si dispo)
    - products.json: network-first (retombe sur cache)
    - Images: cache-first (ok opaque CORS) + fallback offline
@@ -12,7 +12,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v23'; // bump version pour forcer la MAJ
+const VERSION        = 'pt-v24'; // bump version pour forcer la MAJ
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
@@ -34,13 +34,13 @@ const APP_SHELL = [
   './app.js',
   './manifest.webmanifest',
   './favicon.ico',
-  // icônes PWA
+  // icônes PWA (si certaines n’existent pas, elles seront ignorées proprement)
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-256.png',
   './icons/icon-384.png',
   './icons/icon-512.png',
-  // logo (sans ?v=, on matche en loose côté cache images)
+  // logo (sans ?v=, on matche en “loose” côté images)
   './images/pirates-tools-logo.png'
 ];
 
@@ -99,6 +99,17 @@ function isHTMLResponse(res) {
     const ct = res.headers.get('Content-Type') || '';
     return ct.includes('text/html');
   } catch (_) { return false; }
+}
+
+// Pré-cache tolérant : n’échoue pas si un fichier manque (icône absente, etc.)
+async function safeAddAll(cache, urls) {
+  for (const u of urls) {
+    try {
+      const req = new Request(u, { cache: 'no-store' });
+      const res = await fetch(req);
+      if (isCachable(req, res)) await cache.put(req, res.clone());
+    } catch (_) { /* on ignore cet item */ }
+  }
 }
 
 /* ---------------- Strategies ---------------- */
@@ -169,8 +180,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(CACHE_STATIC);
-      // no-store pour forcer un vrai fetch réseau au precache
-      await cache.addAll(APP_SHELL.map(u => new Request(u, { cache: 'no-store' })));
+      await safeAddAll(cache, APP_SHELL); // tolérant aux fichiers manquants
       // Warm-up du catalogue (si présent)
       try {
         const req = new Request('./products.json', { cache: 'no-store' });
@@ -215,7 +225,6 @@ self.addEventListener('activate', (event) => {
 /* ---------------- Fetch router ---------------- */
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
