@@ -10,6 +10,7 @@
    - Anti-zoom Android + bannière offline
    - Focus après navigation + toasts (CSS injecté)
    - A2HS unifié (tip iOS + bouton Android)
+   - SEO dynamique (JSON-LD + meta description)
 ========================================================= */
 
 'use strict';
@@ -533,6 +534,14 @@ function cartToWhatsAppText(){
   return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
 }
 
+/* ===== SEO helpers (meta) ===== */
+const DEFAULT_META_DESC = "Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).";
+function setMetaDescription(txt){
+  try{
+    const m = document.querySelector('meta[name="description"]');
+    if (m) m.setAttribute('content', (txt && String(txt).trim()) || DEFAULT_META_DESC);
+  }catch(_){}
+}
 
 /* ===== JSON-LD Product (SEO) ===== */
 function absoluteUrl(u){
@@ -722,6 +731,10 @@ function renderPDP(product){
   }
 
   elSpecs.innerHTML = (featHtml || tableHtml) ? `${featHtml}${tableHtml}` : '';
+
+  /* --- SEO dynamique : JSON-LD + meta description --- */
+  injectProductJsonLD(product);
+  setMetaDescription(product.seo?.description || product.desc || '');
 
   btnQ.textContent = 'Ajouter au panier';
   btnQ.onclick = ()=>{
@@ -1132,6 +1145,8 @@ function renderAccount(){
         }else{
           $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
           $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
+          clearProductJsonLD();
+          setMetaDescription('');
         }
         wireBack(cameFrom);
         window.scrollTo({top:0, behavior:'auto'});
@@ -1152,6 +1167,7 @@ function renderAccount(){
     if (m){
       showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
       document.title='Pirates Tools • Catalogue';
+      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
       prevHash=h; return;
@@ -1162,6 +1178,7 @@ function renderAccount(){
     if (m){
       showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
       document.title='Pirates Tools • Devis';
+      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
       prevHash=h; return;
@@ -1172,6 +1189,7 @@ function renderAccount(){
     if (m){
       showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
       document.title='Pirates Tools • Mon compte';
+      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
       prevHash=h; return;
@@ -1181,6 +1199,7 @@ function renderAccount(){
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
       showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
       document.title = 'Pirates Tools • Outillage pro (PWA)';
+      clearProductJsonLD(); setMetaDescription('');
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
       prevHash = h; return;
@@ -1189,6 +1208,7 @@ function renderAccount(){
     // fallback : accueil
     showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
     document.title = 'Pirates Tools • Outillage pro (PWA)';
+    clearProductJsonLD(); setMetaDescription('');
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
     prevHash = h;
@@ -1197,3 +1217,4 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
+```0
