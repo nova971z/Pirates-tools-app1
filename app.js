@@ -462,26 +462,63 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
   render(getScrollY());
 })();
 
+
+
+
+
 /* =========================================================
    6) Smooth scroll (depuis une vue → retour home avant scroll)
+   — robustifié (fallback iOS/Safari + once manuel)
 ========================================================= */
-$$('[data-scroll]').forEach(function(a){
-  a.addEventListener('click', function(e){
-    e.preventDefault();
-    var targetSel = a.getAttribute('data-scroll') || a.getAttribute('href');
-    var doScroll = function(){
-      var el = targetSel ? document.querySelector(targetSel) : null;
-      if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-    };
-    if (location.hash.indexOf('#/') === 0) {
-      var once = function(){ requestAnimationFrame(doScroll); window.removeEventListener('hashchange', once); };
-      window.addEventListener('hashchange', once, { once:true });
-      location.hash = '';
-    } else {
-      doScroll();
+(function smoothScrollLinks(){
+  // Petite util pour éviter toute dépendance : NodeList -> Array
+  function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  // Scroll doux avec fallback si options non supportées
+  function smoothScrollTo(selector){
+    var el = selector ? document.querySelector(selector) : null;
+    if (!el) return;
+    try{
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }catch(_){
+      // Fallback anciens Safari
+      el.scrollIntoView(true);
     }
+  }
+
+  qsa('[data-scroll]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+
+      var targetSel = a.getAttribute('data-scroll') || a.getAttribute('href') || '';
+      var inView = (/^#\//i).test(location.hash);
+
+      if (inView){
+        // On revient d’abord à l’accueil (hash vide), PUIS on scroll sur la cible.
+        var fired = false;
+        var once = function(){
+          if (fired) return;
+          fired = true;
+          window.removeEventListener('hashchange', once);
+          // Laisse le DOM se réafficher, puis scroll
+          requestAnimationFrame(function(){ smoothScrollTo(targetSel); });
+        };
+
+        // Écoute 1x le retour home
+        window.addEventListener('hashchange', once, false);
+        // Déclenche le retour home
+        location.hash = '';
+
+        // Filet de sécurité : si 'hashchange' ne part pas (vieux Safari), on force après 150ms
+        setTimeout(function(){ if (!fired) once(); }, 150);
+      } else {
+        // On est déjà à l’accueil, on scroll direct
+        smoothScrollTo(targetSel);
+      }
+    }, false);
   });
-});
+})();
+
 
 /* =========================================================
    7) Anim “exit” (injection CSS + IntersectionObserver)
