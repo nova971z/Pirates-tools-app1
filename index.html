@@ -1,36 +1,34 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- Métadonnées -->
+  <!-- ===== Métadonnées de base ===== -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <meta name="theme-color" content="#0a0f14" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="application-name" content="Pirates Tools" />
-  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#0a0f14" />
 
-  <!-- PWA -->
+  <!-- ===== PWA / iOS ===== -->
+  <meta name="application-name" content="Pirates Tools" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="icon" href="favicon.ico" />
 
-  <!-- Perf -->
+  <!-- ===== Perf ===== -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
   <link rel="dns-prefetch" href="https://wa.me" />
-  <!-- Préchargement logo (même URL que les <img>) -->
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" />
-  <!-- Pré-chargement léger des données produits -->
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
-  <!-- Styles -->
+  <!-- ===== Styles ===== -->
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- OpenGraph / SEO -->
+  <!-- ===== Open Graph / SEO ===== -->
   <meta property="og:title" content="Pirates Tools — Outillage pro" />
   <meta property="og:description" content="Visseuses à chocs DeWALT, dispo Antilles. WhatsApp pour devis rapide." />
   <meta property="og:image" content="https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7" />
@@ -40,42 +38,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
 
-  <!-- JSON-LD: Organization -->
-  <script type="application/ld+json" id="jsonld-org">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Pirates Tools",
-    "url": "https://nova971z.github.io/Pirates-tools-app1/",
-    "logo": "https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7",
-    "sameAs": [
-      "https://wa.me/33774230195"
-    ],
-    "contactPoint": [{
-      "@type": "ContactPoint",
-      "telephone": "+33-7-74-23-01-95",
-      "contactType": "customer service",
-      "availableLanguage": ["fr"]
-    }]
-  }
-  </script>
-
-  <!-- JSON-LD: WebSite -->
-  <script type="application/ld+json" id="jsonld-site">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Pirates Tools",
-    "url": "https://nova971z.github.io/Pirates-tools-app1/",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://nova971z.github.io/Pirates-tools-app1/#/catalogue?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
-
-  <!-- A11y helpers (fallback minimal, doublonné par styles.css) -->
+  <!-- ===== A11y helpers (fallback minimal, doublonné par styles.css) ===== -->
   <style>
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
@@ -83,8 +46,7 @@
   </style>
 </head>
 <body>
-
-  <!-- Skip link -->
+  <!-- ===== Skip link ===== -->
   <a href="#list" class="skip-link">Aller au contenu</a>
 
   <!-- Zones d’annonce SR + toasts (IDs exigés par app.js) -->
@@ -93,7 +55,7 @@
 
   <!-- ========= TOPBAR (fixe) ========= -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
-    <!-- Logo cliquable (iOS ok) -->
+    <!-- Logo cliquable (retour Home hash) -->
     <a id="homeLink" class="topbar-logo-link" href="#/">
       <img class="topbar-logo"
            src="./images/pirates-tools-logo.png?v=7"
@@ -102,7 +64,7 @@
            decoding="async" fetchpriority="high" />
     </a>
 
-    <!-- Mini navigation -->
+    <!-- Mini navigation (facultatif, utile pour [data-scroll]) -->
     <nav class="nav" aria-label="Navigation principale">
       <a class="chip" href="#/catalogue" data-route>Catalogue</a>
       <a class="chip" href="#list" data-scroll="#list">Produits</a>
@@ -177,7 +139,10 @@
         </div>
       </div>
 
-      <div class="pdp__related" id="pdpRelated" aria-label="Produits liés"></div>
+      <div class="pdp__related">
+        <h2>Produits associés</h2>
+        <div class="pdp__related" id="pdpRelated" aria-label="Produits liés"></div>
+      </div>
     </div>
   </section>
 
@@ -296,8 +261,8 @@
     </div>
   </nav>
 
-  <!-- PWA install (stylé pour app.js) -->
-  <button id="installBtn" class="btn primary" hidden>Installer l’app</button>
+  <!-- PWA install (Android/Chromium) -->
+  <button id="installBtn" hidden>Installer l’app</button>
 
   <!-- Scripts -->
   <script src="app.js" defer></script>
