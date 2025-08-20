@@ -9,6 +9,8 @@
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="theme-color" content="#0a0f14" />
+  <!-- Important pour images distantes -->
+  <meta name="referrer" content="no-referrer" />
 
   <!-- ===== PWA / iOS / Android ===== -->
   <meta name="application-name" content="Pirates Tools" />
@@ -25,6 +27,11 @@
   <!-- ===== Perf ===== -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
   <link rel="dns-prefetch" href="https://wa.me" />
+  <!-- Préconnexion vers les hôtes d’images produits -->
+  <link rel="preconnect" href="https://pimstoragea.blob.core.windows.net" crossorigin />
+  <link rel="dns-prefetch" href="https://pimstoragea.blob.core.windows.net" />
+  <link rel="preconnect" href="https://dewalt.mediaroom.com" crossorigin />
+  <link rel="dns-prefetch" href="https://dewalt.mediaroom.com" />
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" />
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
@@ -40,34 +47,6 @@
   <meta property="og:locale" content="fr_FR" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
-
-  <!-- ===== JSON-LD permanents ===== -->
-  <!-- Organization -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"Organization",
-    "name":"Pirates Tools",
-    "url":"https://nova971z.github.io/Pirates-tools-app1/",
-    "logo":"https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7",
-    "sameAs":[ "https://wa.me/33774230195" ]
-  }
-  </script>
-
-  <!-- WebSite + SearchAction -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"WebSite",
-    "name":"Pirates Tools",
-    "url":"https://nova971z.github.io/Pirates-tools-app1/",
-    "potentialAction":{
-      "@type":"SearchAction",
-      "target":"https://nova971z.github.io/Pirates-tools-app1/#/?q={search_term_string}",
-      "query-input":"required name=search_term_string"
-    }
-  }
-  </script>
 
   <!-- ===== A11y helpers (fallback minimal, doublonné par styles.css) ===== -->
   <style>
@@ -153,7 +132,13 @@
 
       <div class="pdp__grid">
         <div class="pdp__media">
-          <img id="pdpImg" alt="" loading="lazy" />
+          <img id="pdpImg"
+               alt=""
+               loading="lazy"
+               decoding="async"
+               referrerpolicy="no-referrer"
+               crossorigin="anonymous"
+               onerror="this.onerror=null; this.src='./images/pirates-tools-logo.png?v=7';" />
         </div>
 
         <div class="pdp__info">
