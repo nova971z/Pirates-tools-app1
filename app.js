@@ -958,6 +958,10 @@ if (tagEl) tagEl.addEventListener('change', applyFilters);
 /* =========================================================
    13) DEVIS (#/devis) — rendu dynamique
 ========================================================= */
+
+
+
+
 function renderCartView(){
   var root = $('#devisList');
   if (!root) return;
@@ -971,10 +975,39 @@ function renderCartView(){
       var sku   = item.sku || item.id || '';
       var title = item.title || ((item.brand||'') + ' ' + (item.sku||'')).trim();
       var key   = keyOf(item);
-      return '\n        <div class="card" style="width:100%">\n          <div class="head">\n            <h3 class="title">'+title+'</h3>\n            <span class="badge">'+sku+'</span>\n          </div>\n          <div class="specs" style="display:flex;gap:.6rem;align-items:center">\n            <button class="btn" data-dec="'+key+'" aria-label="Diminuer">−</button>\n            <strong>'+qty+'</strong>\n            <button class="btn" data-inc="'+key+'" aria-label="Augmenter">+</button>\n            <button class="btn" data-del="'+key+'" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>\n          </div>\n        </div>\n      ';
+
+      var price = getUnitPrice(item);
+      var priceHtml = '';
+      if (price != null){
+        priceHtml = '<span style="margin-left:auto">' + formatMoney(price) + ' × ' + qty + '</span>';
+      }
+
+      return ''
+        + '<div class="card" style="width:100%">'
+        + '  <div class="head">'
+        + '    <h3 class="title">' + title + '</h3>'
+        + '    <span class="badge">' + sku + '</span>'
+        + '  </div>'
+        + '  <div class="specs" style="display:flex;gap:.6rem;align-items:center">'
+        + '    <button class="btn" data-dec="' + key + '" aria-label="Diminuer">−</button>'
+        + '    <strong>' + qty + '</strong>'
+        + '    <button class="btn" data-inc="' + key + '" aria-label="Augmenter">+</button>'
+        + '    <button class="btn" data-del="' + key + '" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>'
+        + '  </div>'
+        + (priceHtml ? ('<div class="specs" style="justify-content:flex-end">' + priceHtml + '</div>') : '')
+        + '</div>';
     }).join('');
   }
 
+  // --- Total estimé
+  var info = computeCartTotal();
+  var totalBlock = ''
+    + '<div class="specs" id="devisTotal" style="display:flex;justify-content:flex-end">'
+    + '  <div>Total estimé : <strong>' + (info.hasPrices ? formatMoney(info.total) : '—') + '</strong></div>'
+    + '</div>';
+  root.insertAdjacentHTML('beforeend', totalBlock);
+
+  // --- Gestion + / − / Supprimer
   root.onclick = function(e){
     var inc = e.target.closest ? e.target.closest('[data-inc]') : null;
     var dec = e.target.closest ? e.target.closest('[data-dec]') : null;
@@ -995,27 +1028,67 @@ function renderCartView(){
     renderCartView();
   };
 
-  // ===== WhatsApp DEVIS (message enrichi) =====
+  // --- Bouton WhatsApp existant
   var sendBtn = $('#devisSend');
-  if (sendBtn){
+  if (sendBtn && !sendBtn.__wired){
+    sendBtn.__wired = 1;
     sendBtn.addEventListener('click', function(){
       var msg = encodeURIComponent(cartToWhatsAppText());
       if (!msg) return;
       window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + msg, '_blank', 'noopener');
       toast('Devis ouvert dans WhatsApp', 'success'); announce('Devis ouvert dans WhatsApp');
-    }, { once:true });
+    });
   }
 
+  // --- Bouton Vider existant
   var clearBtn = $('#devisClear');
-  if (clearBtn){
+  if (clearBtn && !clearBtn.__wired){
+    clearBtn.__wired = 1;
     clearBtn.addEventListener('click', function(){
       CART = [];
       saveCart();
       renderCartView();
       toast('Devis vidé', 'success'); announce('Devis vidé');
-    }, { once:true });
+    });
   }
+
+  // --- Ajout des 3 boutons de paiement (si absents)
+  var actionsWrap = $('#view-devis .card .actions');
+  if (actionsWrap){
+    if (!document.getElementById('devisPayStripe')){
+      var b1 = document.createElement('button');
+      b1.id = 'devisPayStripe';
+      b1.className = 'btn primary';
+      b1.textContent = 'Carte / Apple Pay';
+      actionsWrap.insertBefore(b1, actionsWrap.firstChild);
+    }
+    if (!document.getElementById('devisPayPayPal')){
+      var b2 = document.createElement('button');
+      b2.id = 'devisPayPayPal';
+      b2.className = 'btn';
+      b2.textContent = 'PayPal';
+      actionsWrap.appendChild(b2);
+    }
+    if (!document.getElementById('devisPayCrypto')){
+      var b3 = document.createElement('button');
+      b3.id = 'devisPayCrypto';
+      b3.className = 'btn';
+      b3.textContent = 'Crypto';
+      actionsWrap.appendChild(b3);
+    }
+  }
+
+  // Wire des 3 boutons
+  var btnStripe = document.getElementById('devisPayStripe');
+  if (btnStripe && !btnStripe.__wired){ btnStripe.__wired = 1; btnStripe.addEventListener('click', payWithStripe); }
+
+  var btnPP = document.getElementById('devisPayPayPal');
+  if (btnPP && !btnPP.__wired){ btnPP.__wired = 1; btnPP.addEventListener('click', payWithPayPal); }
+
+  var btnCrypto = document.getElementById('devisPayCrypto');
+  if (btnCrypto && !btnCrypto.__wired){ btnCrypto.__wired = 1; btnCrypto.addEventListener('click', payWithCrypto); }
 }
+
 
 
 
