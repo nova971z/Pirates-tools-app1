@@ -33,7 +33,6 @@ const IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
 function sanitizeImgUrl(u){
   try{
     const url = new URL(u, location.href);
-    // force https si on nous donne une URL http (rare, mais safe)
     if (url.protocol === 'http:') url.protocol = 'https:';
     return url.toString();
   }catch(_){ return IMG_FALLBACK; }
@@ -265,14 +264,12 @@ const tagEl    = document.getElementById('tag');
 (function a2hsHelper(){
   if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
 
-  // Détection iOS / iPadOS moderne (iPadOS 13+ se présente comme "Mac")
   const ua = navigator.userAgent || '';
   const isiOSLike = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true;
 
-  // CSS de la bulle (injecté)
   if (!document.getElementById('pt-a2hs-css')){
     const s = document.createElement('style');
     s.id = 'pt-a2hs-css';
@@ -313,13 +310,11 @@ const tagEl    = document.getElementById('tag');
     document.body.appendChild(tip);
   }
 
-  // iOS/iPadOS Safari non installé → afficher la bulle (une seule fois)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   if (isiOSLike && isSafari && !isStandalone) {
     setTimeout(showTip, 1400);
   }
 
-  // Android / Chromium : gestion de beforeinstallprompt via #installBtn
   let deferredPrompt = null;
   const installBtn = document.getElementById('installBtn');
 
@@ -347,7 +342,6 @@ const tagEl    = document.getElementById('tag');
     }
   });
 
-  // Masque le bouton si déjà en standalone
   try{
     if (installBtn && isStandalone) installBtn.hidden = true;
     const dm = window.matchMedia('(display-mode: standalone)');
@@ -554,6 +548,7 @@ function groupCart(){
   return [...map.values()];
 }
 
+/* ===== WhatsApp (Devis + PDP) ===== */
 function cartToWhatsAppText(){
   const grouped = groupCart();
   if (!grouped.length) return '';
@@ -562,9 +557,21 @@ function cartToWhatsAppText(){
     const title = item.title || `${item.brand||''} ${item.sku||''}`.trim();
     return `• ${sku} – ${title}${qty>1?` ×${qty}`:''}`;
   });
-  return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nMerci.`;
-}
 
+  // Coordonnées (si présentes dans "Compte")
+  const contact = (() => {
+    try{
+      const u = (typeof loadUser === 'function') ? loadUser() : null;
+      const arr = [];
+      if (u?.name)  arr.push(`Nom: ${u.name}`);
+      if (u?.email) arr.push(`Email: ${u.email}`);
+      return arr.length ? `\n\nMes coordonnées:\n${arr.join('\n')}` : '';
+    }catch(_){ return ''; }
+  })();
+
+  const link = `${location.origin}${location.pathname}#/devis`;
+  return `Bonjour, je souhaite un devis pour:\n${lines.join('\n')}\n\nLien: ${link}${contact}\n\nMerci.`;
+}
 
 /* ===== JSON-LD Product (SEO) ===== */
 function absoluteUrl(u){
@@ -617,7 +624,6 @@ function buildProductJsonLD(p){
     };
   }
 
-  // Nettoyage des champs vides/undefined
   const prune = (o) => {
     if (Array.isArray(o)) return o.map(prune).filter(v => v != null);
     if (o && typeof o === 'object'){
@@ -706,6 +712,7 @@ function renderPDP(product){
   const elRel  = document.getElementById('pdpRelated');
   const btnQ   = document.getElementById('pdpQuote');
   const btnWa  = document.getElementById('pdpWa');
+  const btnShare = document.getElementById('pdpShare'); // (existe si ajouté dans le HTML)
 
   const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
   const tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
@@ -716,7 +723,6 @@ function renderPDP(product){
   elTag.textContent = tag ? `#${tag}` : '';
   elDesc.textContent = desc || 'Caractéristiques à venir.';
 
-  // (NOUVEAU) chargement d’image durci (no-referrer + CORS anonyme + fallback)
   if (elImg){
     setSafeImg(elImg, img, product.images_alt || title || '');
   }
@@ -763,10 +769,36 @@ function renderPDP(product){
     notifyCartAdded(product.title || product.sku || 'Article');
   };
 
+  // ===== WhatsApp PDP (message enrichi + lien + coordonnées si dispo) =====
   const sku = product.sku || product.id || title;
-  const msg = encodeURIComponent(`Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nMerci.`);
+  const productLink = `${location.origin}${location.pathname}#/produit/${encodeURIComponent(product.id || product.sku || title)}`;
+  const contactSuffix = (() => {
+    try{
+      const u = (typeof loadUser === 'function') ? loadUser() : null;
+      const arr = [];
+      if (u?.name)  arr.push(`Nom: ${u.name}`);
+      if (u?.email) arr.push(`Email: ${u.email}`);
+      return arr.length ? `\n\nMes coordonnées:\n${arr.join('\n')}` : '';
+    }catch(_){ return ''; }
+  })();
+  const textPDP = `Bonjour, je souhaite un devis pour:\n• ${sku} – ${title}\n\nLien: ${productLink}${contactSuffix}\n\nMerci.`;
   const phone = PHONE_E164.replace('+','');
-  btnWa.href = `https://wa.me/${phone}?text=${msg}`;
+  btnWa.href = `https://wa.me/${phone}?text=${encodeURIComponent(textPDP)}`;
+
+  // (optionnel) Partage natif si bouton présent
+  if (btnShare){
+    btnShare.onclick = async ()=>{
+      try{
+        const shareData = { title: `${title} • Pirates Tools`, text: title, url: productLink };
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard?.writeText(productLink);
+          toast('Lien copié dans le presse-papiers', 'success');
+        }
+      }catch(_){}
+    };
+  }
 
   const related = MODELS.filter(m => (m!==product) && (
     (product.category && m.category===product.category) ||
@@ -808,7 +840,6 @@ function renderPDP(product){
     });
   });
 
-  // >>> Injection SEO JSON-LD pour le produit courant
   injectProductJsonLD(product);
 }
 
@@ -985,6 +1016,7 @@ function renderCartView(){
     renderCartView();
   };
 
+  // ===== WhatsApp DEVIS (message enrichi) =====
   $('#devisSend')?.addEventListener('click', ()=>{
     const msg = encodeURIComponent(cartToWhatsAppText());
     if (!msg) return;
@@ -1132,7 +1164,7 @@ function renderAccount(){
   function ensureDockVisibleOnViews(isHome){
     if (!dock) return;
     if (isHome){
-      // la visibilité est gérée par l’animation du hero
+      // visibilité gérée par l’animation du hero
     }else{
       dock.classList.add('dock--visible');
     }
@@ -1280,7 +1312,6 @@ function renderAccount(){
     });
   };
 
-  // ---- SelfTest visuel (à la demande via ?selftest=1) ----
   function paramEnabled(){
     try{
       const p = new URL(location.href).searchParams;
@@ -1336,7 +1367,6 @@ function renderAccount(){
   async function runSelfTest(){
     const { list } = panel();
 
-    // 1) DOM + CSS injectés
     add(list, 'UX CSS injecté', document.getElementById('pt-ux-css') ? 'ok' : 'ko');
     add(list, 'A2HS CSS injecté', document.getElementById('pt-a2hs-css') ? 'ok' : 'warn');
     add(list, 'Dock présent', document.getElementById('dock') ? 'ok' : 'ko');
@@ -1344,20 +1374,16 @@ function renderAccount(){
     add(list, 'Toasts prêts', document.getElementById('toasts') ? 'ok' : 'ko');
     add(list, 'Zone live (a11y)', (document.getElementById('sr-live') || document.getElementById('srLive')) ? 'ok' : 'ko');
 
-    // 2) CTA
     const telOk = !!(callBtn && callBtn.href && callBtn.href.includes('tel:+33774230195'));
     const waOk  = !!(waBtn && waBtn.href && /wa\.me\/33774230195/.test(waBtn.href));
     add(list, 'CTA téléphone', telOk ? 'ok' : 'ko');
     add(list, 'CTA WhatsApp',  waOk  ? 'ok' : 'ko');
 
-    // 3) Produits
     add(list, 'products.json chargé', MODELS.length ? 'ok' : 'warn');
 
-    // 4) Router vues
     const viewsOk = ['view-catalogue','view-devis','view-produit','view-compte'].every(id => document.getElementById(id));
     add(list, 'Vues présentes', viewsOk ? 'ok' : 'ko');
 
-    // 5) JSON-LD (injection/clear)
     try{
       injectProductJsonLD({ title:'Test', sku:'TEST-1', desc:'Desc test' });
       const jsonld = document.getElementById('jsonld-product');
@@ -1367,7 +1393,6 @@ function renderAccount(){
       add(list, 'JSON-LD nettoyé', document.getElementById('jsonld-product') ? 'ko' : 'ok');
     }catch(_){ add(list, 'JSON-LD', 'warn'); }
 
-    // 6) SW registration + version
     let swStatus = 'warn';
     try{
       if ('serviceWorker' in navigator){
@@ -1382,7 +1407,6 @@ function renderAccount(){
       add(list, `SW version${ver?` (${ver})`:''}`, ver ? 'ok' : 'warn');
     }catch(_){ add(list, 'SW version', 'warn'); }
 
-    // 7) SEO dyn (titre + meta)
     try{
       const beforeTitle = document.title;
       const beforeDesc  = META_DESC_EL?.getAttribute('content') || '';
@@ -1391,12 +1415,10 @@ function renderAccount(){
       resetPageMeta();
       const okReset = (document.title===DEFAULT_TITLE) && ((META_DESC_EL?.getAttribute('content')||'')===DEFAULT_DESC);
       add(list, 'SEO dynamique (set/reset)', okSet && okReset ? 'ok' : 'ko');
-      // restore
       document.title = beforeTitle;
       if (META_DESC_EL) META_DESC_EL.setAttribute('content', beforeDesc);
     }catch(_){ add(list, 'SEO dynamique', 'warn'); }
 
-    // 8) Filtres basiques : éléments présents
     add(list, 'Recherche (#q) présente', searchEl ? 'ok' : 'warn');
     add(list, 'Select tags (#tag) présent', tagEl ? 'ok' : 'warn');
 
@@ -1404,9 +1426,9 @@ function renderAccount(){
   }
 
   if (paramEnabled()){
-    // Laisse le temps au premier rendu
     setTimeout(runSelfTest, 400);
   }
 
   PT.selfTest = runSelfTest;
 })();
+```0
