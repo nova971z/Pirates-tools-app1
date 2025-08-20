@@ -12,8 +12,9 @@
     "motor": "Brushless",
     "tag": "Brushless",
     "badge": "Top",
-    "new": false,
+    "new": true,
     "desc": "205 Nm, 3 vitesses, LED 3-anneaux, mandrin hex 1/4\".",
+    "description": "205 Nm, 3 vitesses, LED 3-anneaux, mandrin hex 1/4\".",
     "features": [
       "Moteur Brushless XR",
       "Couple max 205 Nm",
@@ -88,8 +89,9 @@
     "motor": "Brushless",
     "tag": "Promo",
     "badge": "Pack",
-    "new": false,
+    "new": true,
     "desc": "205 Nm, 3 vitesses. Kit complet 2×5Ah, chargeur, coffret TSTAK.",
+    "description": "205 Nm, 3 vitesses. Kit complet 2×5Ah, chargeur, coffret TSTAK.",
     "features": [
       "Moteur Brushless XR",
       "2 batteries 5Ah + chargeur",
@@ -164,6 +166,7 @@
     "badge": "Compact",
     "new": true,
     "desc": "Format ultra-court, accès confiné, puissance XR moderne.",
+    "description": "Format ultra-court, accès confiné, puissance XR moderne.",
     "features": [
       "Ultra-compacte 100 mm",
       "Moteur Brushless",
@@ -238,6 +241,7 @@
     "badge": "Pack",
     "new": true,
     "desc": "Ultra-compacte + autonomie XL (2×5Ah).",
+    "description": "Ultra-compacte + autonomie XL (2×5Ah).",
     "features": [
       "Ultra-compacte 100 mm",
       "2× batteries 5Ah + chargeur",
@@ -311,8 +315,9 @@
     "motor": "Brushless",
     "tag": "18V",
     "badge": "Conseil",
-    "new": false,
+    "new": true,
     "desc": "Excellent rapport compacité/puissance pour usage quotidien.",
+    "description": "Excellent rapport compacité/puissance pour usage quotidien.",
     "features": [
       "Rapport perf/poids optimal",
       "Couple 170 Nm",
@@ -386,6 +391,7 @@
     "badge": "Puissance",
     "new": true,
     "desc": "Couple élevé et cadence rapide pour vissage intensif.",
+    "description": "Couple élevé et cadence rapide pour vissage intensif.",
     "features": [
       "Couple 205 Nm",
       "Cadence jusqu’à 4000 ipm",
@@ -455,8 +461,9 @@
     "motor": "Brushless",
     "tag": "18V",
     "badge": "Atomic",
-    "new": false,
+    "new": true,
     "desc": "Série Atomic : compacité, agilité et couple suffisant pour la plupart des tâches.",
+    "description": "Série Atomic : compacité, agilité et couple suffisant pour la plupart des tâches.",
     "features": [
       "Série Atomic compacte",
       "Couple 170 Nm",
@@ -530,8 +537,9 @@
     "motor": "Brushless",
     "tag": "Brushless",
     "badge": "Léger",
-    "new": false,
+    "new": true,
     "desc": "Ultra maniable 12V pour second œuvre et montage.",
+    "description": "Ultra maniable 12V pour second œuvre et montage.",
     "features": [
       "Plateforme 12V Xtreme",
       "Couple 163 Nm",
