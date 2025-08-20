@@ -10,6 +10,8 @@
    - Anti-zoom Android + bannière offline
    - Focus après navigation + toasts (CSS injecté)
    - A2HS unifié (tip iOS + bouton Android)
+   - SEO+ : JSON-LD produit + metas dynamiques
+   - SW messages : READY / CACHES_CLEARED / VERSION
 ========================================================= */
 
 'use strict';
@@ -218,13 +220,10 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    3-bis) A2HS (Add To Home Screen) — iOS tip + Android prompt
-   - iOS Safari / iPadOS : bulle pédagogique (#a2hsTip) au-dessus du dock
-   - Android/Chromium : bouton #installBtn déclenche la prompt native
 ========================================================= */
 (function a2hsHelper(){
   if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
 
-  // Détection iOS / iPadOS moderne (iPadOS 13+ se présente comme "Mac")
   const ua = navigator.userAgent || '';
   const isiOSLike = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isStandalone =
@@ -272,7 +271,6 @@ const tagEl    = document.getElementById('tag');
     document.body.appendChild(tip);
   }
 
-  // iOS/iPadOS Safari non installé → afficher la bulle (une seule fois)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   if (isiOSLike && isSafari && !isStandalone) {
     setTimeout(showTip, 1400);
@@ -306,7 +304,6 @@ const tagEl    = document.getElementById('tag');
     }
   });
 
-  // Masque le bouton si déjà en standalone
   try{
     if (installBtn && isStandalone) installBtn.hidden = true;
     const dm = window.matchMedia('(display-mode: standalone)');
@@ -335,10 +332,6 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
-   - rAF ticker (indépendant de l'événement scroll)
-   - calcule transform/opacity directement
-   - met à jour --listGap pour l’espace sous le hero
-   - déclenche l’apparition du dock en fin d’anim
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -612,6 +605,40 @@ function clearProductJsonLD(){
   document.getElementById('jsonld-product')?.remove();
 }
 
+/* ===== Metas dynamiques (SEO) ===== */
+const META_DEFAULT = {
+  title: document.title,
+  desc:  $('meta[name="description"]')?.getAttribute('content') || ''
+};
+function setMeta(selector, attr, value){
+  const el = document.querySelector(selector);
+  if (el && typeof value === 'string') el.setAttribute(attr, value);
+}
+function updateMetaForProduct(p){
+  const title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
+  const desc  = p.seo?.description || p.desc || p.description || 'Outillage pro — disponibilité Antilles.';
+  const img   = absoluteUrl(p.img || './images/pirates-tools-logo.png?v=7');
+
+  document.title = title;
+  setMeta('meta[name="description"]', 'content', desc);
+
+  // Si OG/Twitter sont présents dans l’HTML, on les met à jour (sinon on ignore)
+  setMeta('meta[property="og:title"]',       'content', title);
+  setMeta('meta[property="og:description"]', 'content', desc);
+  setMeta('meta[property="og:image"]',       'content', img);
+  setMeta('meta[name="twitter:card"]',       'content', 'summary_large_image');
+}
+function restoreDefaultMeta(){
+  document.title = META_DEFAULT.title;
+  setMeta('meta[name="description"]', 'content', META_DEFAULT.desc);
+
+  // On ne force pas le reset des OG si absents; on restaure sur la base des valeurs par défaut si elles existent:
+  const ogTitle = document.querySelector('meta[property="og:title"]')?.dataset?.default || META_DEFAULT.title;
+  const ogDesc  = document.querySelector('meta[property="og:description"]')?.dataset?.default || META_DEFAULT.desc;
+  if ($('meta[property="og:title"]'))       setMeta('meta[property="og:title"]', 'content', ogTitle);
+  if ($('meta[property="og:description"]')) setMeta('meta[property="og:description"]', 'content', ogDesc);
+}
+
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -770,8 +797,9 @@ function renderPDP(product){
     });
   });
 
-  // >>> Injection SEO JSON-LD pour le produit courant
+  // SEO : JSON-LD + metas dynamiques pour le produit courant
   injectProductJsonLD(product);
+  updateMetaForProduct(product);
 }
 
 function renderList(data){
@@ -1013,6 +1041,25 @@ if ('serviceWorker' in navigator) {
           }
         });
       });
+
+      // === Canal messages SW (READY / CACHES_CLEARED / VERSION)
+      navigator.serviceWorker.addEventListener('message', (event)=>{
+        const data = event.data || {};
+        if (data.type === 'SW_READY'){
+          toast('App prête hors ligne', 'success');
+        } else if (data.type === 'CACHES_CLEARED'){
+          toast('Caches vidés', 'success');
+        } else if (data.type === 'VERSION'){
+          console.log('[SW] Version:', data.version);
+        }
+      });
+
+      // Helpers debug optionnels accessibles en console
+      window.PT = Object.assign(window.PT || {}, {
+        clearCaches: ()=> navigator.serviceWorker.controller?.postMessage?.('CLEAR_CACHES'),
+        getSWVersion: ()=> navigator.serviceWorker.controller?.postMessage?.('GET_VERSION')
+      });
+
     } catch (err) {
       console.warn(err);
     }
@@ -1124,14 +1171,12 @@ function renderAccount(){
         showHome(false); showView('produit'); ensureDockVisibleOnViews(false);
         if (p){
           renderPDP(p);
-          // >>> inject JSON-LD quand on a un produit valide
-          injectProductJsonLD(p);
           document.title = `Pirates Tools • ${p.title || p.sku || 'Produit'}`;
         }else{
           $('#pdpTitle') && ($('#pdpTitle').textContent = 'Produit introuvable');
           $('#pdpDesc')  && ($('#pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.');
-          // >>> on nettoie le JSON-LD si la fiche n’existe pas
           clearProductJsonLD();
+          restoreDefaultMeta();
         }
         wireBack(cameFrom);
         window.scrollTo({top:0, behavior:'auto'});
@@ -1151,7 +1196,8 @@ function renderAccount(){
     m = h.match(/^#\/catalogue\b/);
     if (m){
       showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
-      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
+      clearProductJsonLD();
+      restoreDefaultMeta();
       document.title='Pirates Tools • Catalogue';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
@@ -1162,7 +1208,8 @@ function renderAccount(){
     m = h.match(/^#\/devis\b/);
     if (m){
       showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
-      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
+      clearProductJsonLD();
+      restoreDefaultMeta();
       document.title='Pirates Tools • Devis';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
@@ -1173,7 +1220,8 @@ function renderAccount(){
     m = h.match(/^#\/compte\b/);
     if (m){
       showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
-      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
+      clearProductJsonLD();
+      restoreDefaultMeta();
       document.title='Pirates Tools • Mon compte';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
@@ -1183,7 +1231,8 @@ function renderAccount(){
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
       showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
-      clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
+      clearProductJsonLD();
+      restoreDefaultMeta();
       document.title = 'Pirates Tools • Outillage pro (PWA)';
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
@@ -1192,7 +1241,8 @@ function renderAccount(){
 
     // fallback : accueil
     showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
-    clearProductJsonLD(); // <<< nettoyage JSON-LD hors PDP
+    clearProductJsonLD();
+    restoreDefaultMeta();
     document.title = 'Pirates Tools • Outillage pro (PWA)';
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
