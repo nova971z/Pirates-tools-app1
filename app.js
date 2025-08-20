@@ -670,6 +670,8 @@ function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
 
+
+
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -679,7 +681,20 @@ function productToHTML(m){
   var desc  = fallback(m.desc, fallback(m.description,''));
   var id    = String(fallback(m.id, fallback(m.sku, title)));
 
-  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p></div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
+  // ----- Prix sur la carte (liste) -----
+  var currency   = m && m.currency ? m.currency : 'EUR';
+  var priceCents = (m && typeof m.price_cents === 'number' && isFinite(m.price_cents))
+      ? Math.round(m.price_cents)
+      : (m && typeof m.price === 'number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+  var priceHtml  = '';
+  if (priceCents != null){
+    var priceText = '';
+    try { priceText = (priceCents/100).toLocaleString('fr-FR', { style:'currency', currency: currency }); }
+    catch(_){ priceText = (priceCents/100).toFixed(2)+' '+currency; }
+    priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
+  }
+
+  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
 }
 
 function bindAddToCart(scopeData){
@@ -692,7 +707,7 @@ function bindAddToCart(scopeData){
       });
       if (!p) return;
       CART.push(p);
-      saveCart();
+      saveCart(); // rafraîchit le dock + la vue devis si ouverte
       notifyCartAdded(p.title || p.sku || 'Article');
     });
   });
@@ -702,9 +717,9 @@ function findProductByKey(key){
   if (!key) return null;
   var k = String(key).toLowerCase();
   return MODELS.find(function(m){
-    var id  = String(firstDefined(m.id, m.sku, '')).toLowerCase();
-    var sku = String(firstDefined(m.sku, '')).toLowerCase();
-    var ttl = String(firstDefined(m.title, '')).toLowerCase();
+    var id  = String((m && m.id!=null)  ? m.id  : ((m && m.sku!=null) ? m.sku : '')).toLowerCase();
+    var sku = String((m && m.sku!=null) ? m.sku : '').toLowerCase();
+    var ttl = String((m && m.title!=null)? m.title: '').toLowerCase();
     return id===k || sku===k || ttl===k;
   }) || null;
 }
@@ -732,10 +747,32 @@ function renderPDP(product){
   if (elTag) elTag.textContent = tag ? '#'+tag : '';
   if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
 
-  if (elImg){
-    setSafeImg(elImg, img, product.images_alt || title || '');
+  // Image sûre
+  if (elImg){ setSafeImg(elImg, img, product.images_alt || title || ''); }
+
+  // ----- PRIX sur la fiche produit -----
+  var currency   = product && product.currency ? product.currency : 'EUR';
+  var priceCents = (product && typeof product.price_cents === 'number' && isFinite(product.price_cents))
+      ? Math.round(product.price_cents)
+      : (product && typeof product.price === 'number' && isFinite(product.price)) ? Math.round(product.price*100) : null;
+
+  var priceEl = document.getElementById('pdpPrice');
+  if (!priceEl){
+    priceEl = document.createElement('p');
+    priceEl.id = 'pdpPrice';
+    priceEl.className = 'pdp__price';
+    priceEl.style.margin = '.35rem 0';
+    priceEl.style.fontWeight = '700';
+    if (elDesc && elDesc.parentNode){ elDesc.parentNode.insertBefore(priceEl, elDesc.nextSibling); }
+  }
+  if (priceCents != null){
+    try { priceEl.textContent = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
+    catch(_){ priceEl.textContent = (priceCents/100).toFixed(2)+' '+currency; }
+  } else {
+    priceEl.textContent = '';
   }
 
+  // Caractéristiques & tableau
   var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
   var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
 
@@ -763,6 +800,7 @@ function renderPDP(product){
 
   if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
 
+  // Boutons
   if (btnQ){
     btnQ.textContent = 'Ajouter au panier';
     btnQ.onclick = function(){
@@ -772,7 +810,7 @@ function renderPDP(product){
     };
   }
 
-  // ===== WhatsApp PDP (message enrichi + lien + coordonnées si dispo) =====
+  // WhatsApp PDP (message enrichi)
   var sku = product.sku || product.id || title;
   var productLink = location.origin + location.pathname + '#/produit/' + encodeURIComponent(product.id || product.sku || title);
   var contactSuffix = '';
@@ -803,7 +841,7 @@ function renderPDP(product){
     };
   }
 
-  // Produits associés
+  // Produits associés (avec prix)
   var related = MODELS.filter(function(m){
     return (m!==product) && (
       (product.category && m.category===product.category) ||
@@ -811,9 +849,24 @@ function renderPDP(product){
     );
   }).slice(0,3);
 
-  if (elRel) elRel.innerHTML = related.map(function(m){
-    return '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
-  }).join('');
+  if (elRel){
+    var relHTML = '';
+    for (var i=0;i<related.length;i++){
+      var m = related[i];
+      var cur = (m && m.currency) ? m.currency : 'EUR';
+      var pc  = (m && typeof m.price_cents==='number' && isFinite(m.price_cents)) ? Math.round(m.price_cents)
+              : (m && typeof m.price==='number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+      var priceLine = '';
+      if (pc!=null){
+        var ptxt='';
+        try { ptxt = (pc/100).toLocaleString('fr-FR',{style:'currency',currency:cur}); }
+        catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
+        priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
+      }
+      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+    }
+    elRel.innerHTML = relHTML;
+  }
 
   if (elRel){
     elRel.addEventListener('click', function(e){
@@ -839,6 +892,7 @@ function renderPDP(product){
     });
   });
 
+  // SEO JSON-LD
   injectProductJsonLD(product);
 }
 
@@ -859,6 +913,7 @@ function renderList(data){
 
   ScrollExit.observeWithin(listEl);
 }
+
 
 /* =========================================================
    10) CATALOGUE (catégories auto)
