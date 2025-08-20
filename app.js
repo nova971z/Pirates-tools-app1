@@ -164,6 +164,29 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
+
+
+
+/* ---------- Paiement : configuration ---------- */
+/* Provider PayPal (cart upload) */
+var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
+var CURRENCY = 'EUR';
+
+/* Carte + Apple Pay (Stripe Payment Link ou équivalent)
+   Mets ici un lien de paiement qui accepte Apple Pay (Stripe, Paddle, Lemon Squeezy…).
+   Astuce : si ton fournisseur accepte un montant en query, garde nos tokens :
+   - {AMOUNT}        → 129.90
+   - {AMOUNT_CENTS}  → 12990
+   Exemple Stripe (variable selon ton compte) : 'https://buy.stripe.com/abcd1234?prefilled_amount={AMOUNT}'
+*/
+var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
+
+/* Crypto (Coinbase Commerce / NOWPayments / CoinGate …)
+   Même principe : si ton lien accepte un montant en query, garde {AMOUNT} ou {AMOUNT_CENTS}.
+*/
+var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
+
+
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
   var FALLBACK = './images/pirates-tools-logo.png?v=7';
