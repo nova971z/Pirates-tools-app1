@@ -4,7 +4,7 @@
    - Navigations: network-first (+ preload si dispo)
    - products.json: network-first (retombe sur cache)
    - Images: cache-first (opaque CORS OK) + fallback offline
-     • interne: "loose" (accepte ?v=)   • externe: strict (évite conflit ?resize=)
+     • interne: "loose" (accepte ?v=)   • externe: SAFE (fallback no-cors)
    - CSS/JS/Fonts/Manifest/JSON: stale-while-revalidate
    - Trim automatique des caches (anti-gonflement)
    - Warm-up products.json à l'install
@@ -13,7 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v25'; // bump version pour diffuser la MAJ
+const VERSION        = 'pt-v26'; // bump version pour diffuser la MAJ
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
@@ -111,6 +111,41 @@ async function safeAddAll(cache, urls) {
       if (isCachable(req, res)) await cache.put(req, res.clone());
     } catch (_) { /* on ignore cet item */ }
   }
+}
+
+/* -------- Images externes : fetch “safe” avec fallback no-cors -------- */
+async function fetchImageSafe(request) {
+  try {
+    return await fetch(request); // essai standard
+  } catch (_) {
+    try {
+      const noCorsReq = new Request(request.url, {
+        mode: 'no-cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: request.cache || 'default',
+        referrer: '' // évite certains hotlinks
+      });
+      return await fetch(noCorsReq);
+    } catch (__){
+      return null;
+    }
+  }
+}
+
+async function cacheFirstImage(event, request, cacheName, limit, { loose = true } = {}) {
+  const cached = loose ? await fromCacheLoose(cacheName, request) : await fromCache(cacheName, request);
+  if (cached) return cached;
+
+  const res = await fetchImageSafe(request);
+  if (res) {
+    event.waitUntil((async () => {
+      await putInCache(cacheName, request, res);
+      await trimCache(cacheName, limit);
+    })());
+    return res.clone();
+  }
+  return offlineImageResponse();
 }
 
 /* ---------------- Strategies ---------------- */
@@ -263,10 +298,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Externe (CDN) : images → cache-first **strict** (pas de loose pour éviter conflits ?resize=)
+  // Externe (CDN) : images → cache-first SAFE (fallback no-cors)
   if (url.origin !== location.origin) {
     if (request.destination === 'image' || url.pathname.endsWith('.ico')) {
-      event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: false }));
+      event.respondWith(cacheFirstImage(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: false }));
     }
     return;
   }
