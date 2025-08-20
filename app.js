@@ -723,6 +723,7 @@ function renderPDP(product){
   elTag.textContent = tag ? `#${tag}` : '';
   elDesc.textContent = desc || 'Caractéristiques à venir.';
 
+  // image sûre (no-referrer + CORS anonyme + fallback)
   if (elImg){
     setSafeImg(elImg, img, product.images_alt || title || '');
   }
@@ -800,6 +801,7 @@ function renderPDP(product){
     };
   }
 
+  // Produits associés
   const related = MODELS.filter(m => (m!==product) && (
     (product.category && m.category===product.category) ||
     (tag && ((m.badge===tag) || (Array.isArray(m.tags) && m.tags.includes(tag))))
@@ -840,6 +842,7 @@ function renderPDP(product){
     });
   });
 
+  // SEO JSON-LD pour le produit courant
   injectProductJsonLD(product);
 }
 
