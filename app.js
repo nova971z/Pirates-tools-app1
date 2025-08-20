@@ -1274,154 +1274,144 @@ function renderCartView(){
 
 
 
-
 /* =========================================================
-   13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
-   — calculs 100% en centimes (fiables)
+   13) DEVIS (#/devis) — rendu dynamique (fiable, centimes)
 ========================================================= */
-
-/* Devise (fallback si non définie ailleurs) */
-var CURRENCY = typeof CURRENCY !== 'undefined' ? CURRENCY : 'EUR';
-
-/* Prix unitaire → centimes (int) */
-function getUnitCents(p){
-  if (!p) return null;
-  if (typeof p.price_cents === 'number' && isFinite(p.price_cents)) return Math.round(p.price_cents);
-  if (typeof p.price === 'number' && isFinite(p.price)) return Math.round(p.price * 100);
-  if (typeof p.price === 'string'){
-    var s = p.price.replace(/\s/g,'').replace(',', '.');
-    var v = parseFloat(s);
-    if (isFinite(v)) return Math.round(v*100);
-  }
-  return null;
-}
-
-/* Formatage depuis centimes */
-function formatMoneyFromCents(cents){
-  var v = (cents||0)/100;
-  try{ return v.toLocaleString('fr-FR', { style:'currency', currency:CURRENCY }); }
-  catch(_){ return (Math.round(v*100)/100).toFixed(2) + ' ' + CURRENCY; }
-}
-
-/* Compat : certains appels existants passent encore des euros */
-function formatMoney(euros){
-  var c = Math.round((euros||0)*100);
-  return formatMoneyFromCents(c);
-}
-
-/* Total panier en centimes */
-function computeCartTotal(){
-  var grouped = groupCart();
-  var totalCents = 0;
-  var counted = 0;
-  for (var i=0;i<grouped.length;i++){
-    var u = getUnitCents(grouped[i].item);
-    if (u != null){ totalCents += u * grouped[i].qty; counted++; }
-  }
-  return { totalCents: totalCents, total: totalCents/100, hasPrices: counted>0 };
-}
-
-/* Remplacement des tokens {AMOUNT} (euros.xx) / {AMOUNT_CENTS} (centimes) */
-function fillAmount(url, totalCents){
-  if (!url) return '';
-  var euros = (totalCents/100).toFixed(2);
-  var cents = Math.round(totalCents);
-  return url.replace(/\{AMOUNT\}/g, euros).replace(/\{AMOUNT_CENTS\}/g, String(cents));
-}
-
-/* ===== PayPal : "cart upload" (multi-articles) ===== */
-function buildPayPalCartUrl(){
-  if (!PAYPAL_BUSINESS || PAYPAL_BUSINESS.indexOf('@') === -1) return '';
-  var base = 'https://www.paypal.com/cgi-bin/webscr?cmd=_cart&upload=1';
-  base += '&business=' + encodeURIComponent(PAYPAL_BUSINESS);
-  base += '&currency_code=' + encodeURIComponent(CURRENCY);
+function renderCartView(){
+  var root = $('#devisList');
+  if (!root) return;
 
   var grouped = groupCart();
-  var idx = 1;
-  for (var i=0;i<grouped.length;i++){
-    var g = grouped[i];
-    var uc = getUnitCents(g.item);
-    if (uc == null) continue;
-    var name = g.item.title || ((g.item.brand||'') + ' ' + (g.item.sku||'')).trim() || 'Article';
-    var amount = (uc/100).toFixed(2); // PayPal attend un décimal en euros
-    base += '&item_name_' + idx + '=' + encodeURIComponent(name);
-    base += '&amount_'    + idx + '=' + encodeURIComponent(amount);
-    base += '&quantity_'  + idx + '=' + encodeURIComponent(g.qty);
-    idx++;
-  }
-  return base;
-}
+  if (!grouped.length){
+    root.innerHTML = '<p style="margin:0">Aucun article pour le moment.</p>';
+  } else {
+    root.innerHTML = grouped.map(function(g){
+      var item  = g.item || {};
+      var qty   = Number(g.qty || 0);
+      var sku   = item.sku || item.id || '';
+      var title = item.title || ((item.brand||'') + ' ' + (item.sku||'')).trim();
+      var key   = keyOf(item);
 
-/* Fallback WhatsApp (si pas de prix ou config incomplète) */
-function fallbackWhatsAppForPayment(extraLine){
-  var msg = cartToWhatsAppText();
-  if (!msg) msg = 'Bonjour, je souhaite régler ma commande. Pouvez-vous m’envoyer un lien de paiement ?';
-  if (extraLine) msg += '\n\n' + extraLine;
-  window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-}
+      // Prix unitaire en CENTIMES
+      var uc = (typeof getUnitCents === 'function') ? getUnitCents(item) : null;
+      var priceHtml = '';
+      if (uc != null){
+        priceHtml =
+          '<div class="specs" style="justify-content:flex-end">' +
+          '  <span style="margin-left:auto">' +
+               formatMoneyFromCents(uc) + ' × ' + qty + ' = ' +
+          '    <strong>' + formatMoneyFromCents(uc * qty) + '</strong>' +
+          '  </span>' +
+          '</div>';
+      }
 
-/* --- Ouverture paiements --- */
-function payWithPayPal(){
-  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
-  var info = computeCartTotal();
-  if (!info.hasPrices){
-    toast('Prix manquants — redirection WhatsApp.', 'info');
-    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
-    return;
+      return ''
+        + '<div class="card" style="width:100%">'
+        + '  <div class="head">'
+        + '    <h3 class="title">' + title + '</h3>'
+        + '    <span class="badge">' + sku + '</span>'
+        + '  </div>'
+        + '  <div class="specs" style="display:flex;gap:.6rem;align-items:center">'
+        + '    <button class="btn" data-dec="' + key + '" aria-label="Diminuer">−</button>'
+        + '    <strong>' + qty + '</strong>'
+        + '    <button class="btn" data-inc="' + key + '" aria-label="Augmenter">+</button>'
+        + '    <button class="btn" data-del="' + key + '" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>'
+        + '  </div>'
+        +      (priceHtml || '')
+        + '</div>';
+    }).join('');
   }
-  var url = buildPayPalCartUrl();
-  if (!url){
-    toast('PayPal non configuré (email manquant).', 'info');
-    return;
-  }
-  window.open(url, '_blank', 'noopener');
-  announce('Redirection vers PayPal');
-}
 
-function payWithStripe(){
-  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
-  var info = computeCartTotal();
-  if (!info.hasPrices){
-    toast('Prix manquants — redirection WhatsApp.', 'info');
-    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
-    return;
-  }
-  if (!STRIPE_PAY_LINK){
-    toast('Lien Carte/Apple Pay non configuré.', 'info');
-    return;
-  }
-  var url = fillAmount(STRIPE_PAY_LINK, info.totalCents);
-  try{
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
-      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
-      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
+  // --- Total estimé (CENTIMES)
+  var info = computeCartTotal(); // { totalCents, total, hasPrices }
+  var totalBlock =
+    '<div class="specs" id="devisTotal" style="display:flex;justify-content:flex-end">' +
+    '  <div>Total estimé : <strong>' +
+         (info.hasPrices ? formatMoneyFromCents(Math.round(info.totalCents || 0)) : '—') +
+    '  </strong></div>' +
+    '</div>';
+  root.insertAdjacentHTML('beforeend', totalBlock);
+
+  // --- Gestion + / − / Supprimer
+  root.onclick = function(e){
+    var inc = e.target.closest ? e.target.closest('[data-inc]') : null;
+    var dec = e.target.closest ? e.target.closest('[data-dec]') : null;
+    var del = e.target.closest ? e.target.closest('[data-del]') : null;
+    var key = (inc && inc.getAttribute('data-inc')) || (dec && dec.getAttribute('data-dec')) || (del && del.getAttribute('data-del'));
+    if (!key) return;
+
+    if (inc){
+      var p = MODELS.find(function(m){ return keyOf(m) === key; });
+      if (p) CART.push(p);
+    } else if (dec){
+      var i = CART.findIndex(function(p){ return keyOf(p) === key; });
+      if (i >= 0) CART.splice(i, 1);
+    } else if (del){
+      for (var j = CART.length - 1; j >= 0; j--) if (keyOf(CART[j]) === key) CART.splice(j, 1);
     }
-  }catch(_){}
-  window.open(url, '_blank', 'noopener');
-  announce('Redirection vers Carte / Apple Pay');
-}
+    saveCart();
+    renderCartView();
+  };
 
-function payWithCrypto(){
-  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
-  var info = computeCartTotal();
-  if (!info.hasPrices){
-    toast('Prix manquants — redirection WhatsApp.', 'info');
-    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
-    return;
+  // --- Bouton WhatsApp existant
+  var sendBtn = $('#devisSend');
+  if (sendBtn && !sendBtn.__wired){
+    sendBtn.__wired = 1;
+    sendBtn.addEventListener('click', function(){
+      var msg = encodeURIComponent(cartToWhatsAppText());
+      if (!msg) return;
+      window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + msg, '_blank', 'noopener');
+      toast('Devis ouvert dans WhatsApp', 'success'); announce('Devis ouvert dans WhatsApp');
+    });
   }
-  if (!CRYPTO_PAY_LINK){
-    toast('Lien Crypto non configuré.', 'info');
-    return;
+
+  // --- Bouton Vider existant
+  var clearBtn = $('#devisClear');
+  if (clearBtn && !clearBtn.__wired){
+    clearBtn.__wired = 1;
+    clearBtn.addEventListener('click', function(){
+      CART = [];
+      saveCart();
+      renderCartView();
+      toast('Devis vidé', 'success'); announce('Devis vidé');
+    });
   }
-  var url = fillAmount(CRYPTO_PAY_LINK, info.totalCents);
-  try{
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
-      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
-      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
+
+  // --- Ajout des 3 boutons de paiement (si absents)
+  var actionsWrap = $('#view-devis .card .actions');
+  if (actionsWrap){
+    if (!document.getElementById('devisPayStripe')){
+      var b1 = document.createElement('button');
+      b1.id = 'devisPayStripe';
+      b1.className = 'btn primary';
+      b1.textContent = 'Carte / Apple Pay';
+      actionsWrap.insertBefore(b1, actionsWrap.firstChild);
     }
-  }catch(_){}
-  window.open(url, '_blank', 'noopener');
-  announce('Redirection vers Paiement Crypto');
+    if (!document.getElementById('devisPayPayPal')){
+      var b2 = document.createElement('button');
+      b2.id = 'devisPayPayPal';
+      b2.className = 'btn';
+      b2.textContent = 'PayPal';
+      actionsWrap.appendChild(b2);
+    }
+    if (!document.getElementById('devisPayCrypto')){
+      var b3 = document.createElement('button');
+      b3.id = 'devisPayCrypto';
+      b3.className = 'btn';
+      b3.textContent = 'Crypto';
+      actionsWrap.appendChild(b3);
+    }
+  }
+
+  // Wire des 3 boutons (une seule fois)
+  var btnStripe = document.getElementById('devisPayStripe');
+  if (btnStripe && !btnStripe.__wired){ btnStripe.__wired = 1; btnStripe.addEventListener('click', payWithStripe); }
+
+  var btnPP = document.getElementById('devisPayPayPal');
+  if (btnPP && !btnPP.__wired){ btnPP.__wired = 1; btnPP.addEventListener('click', payWithPayPal); }
+
+  var btnCrypto = document.getElementById('devisPayCrypto');
+  if (btnCrypto && !btnCrypto.__wired){ btnCrypto.__wired = 1; btnCrypto.addEventListener('click', payWithCrypto); }
 }
 
 
