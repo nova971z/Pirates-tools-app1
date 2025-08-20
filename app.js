@@ -27,6 +27,29 @@ const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const fallback = (v, alt='') => (v===undefined || v===null) ? alt : v;
 
+/* === (NOUVEAU) Images sûres + fallback === */
+const IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
+
+function sanitizeImgUrl(u){
+  try{
+    const url = new URL(u, location.href);
+    // force https si on nous donne une URL http (rare, mais safe)
+    if (url.protocol === 'http:') url.protocol = 'https:';
+    return url.toString();
+  }catch(_){ return IMG_FALLBACK; }
+}
+
+function setSafeImg(el, src, alt=''){
+  if (!el) return;
+  el.loading = el.loading || 'lazy';
+  el.decoding = 'async';
+  el.referrerPolicy = 'no-referrer';
+  el.crossOrigin = 'anonymous';
+  el.alt = alt || '';
+  el.onerror = () => { el.onerror = null; el.src = IMG_FALLBACK; };
+  el.src = sanitizeImgUrl(src || IMG_FALLBACK);
+}
+
 /* === SEO defaults (titre + meta description) === */
 const META_DESC_EL  = document.querySelector('meta[name="description"]');
 const DEFAULT_TITLE = document.title || 'Pirates Tools • Outillage pro (PWA)';
@@ -238,8 +261,6 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    3-bis) A2HS (Add To Home Screen) — iOS tip + Android prompt
-   - iOS Safari / iPadOS : bulle pédagogique (#a2hsTip) au-dessus du dock
-   - Android/Chromium : bouton #installBtn déclenche la prompt native
 ========================================================= */
 (function a2hsHelper(){
   if (window.__pt_a2hs_done) return; window.__pt_a2hs_done = true;
@@ -355,10 +376,6 @@ const tagEl    = document.getElementById('tag');
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
-   - rAF ticker (indépendant de l'événement scroll)
-   - calcule transform/opacity directement
-   - met à jour --listGap pour l’espace sous le hero
-   - déclenche l’apparition du dock en fin d’anim
 ========================================================= */
 (function heroEffect(){
   if (!hero || !heroLogo) return;
@@ -693,14 +710,15 @@ function renderPDP(product){
   const title = product.title || `${product.brand||''} ${product.sku||''}`.trim();
   const tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
   const desc  = product.desc || product.description || '';
-  const img   = product.img  || './images/pirates-tools-logo.png?v=7';
+  const img   = product.img  || IMG_FALLBACK;
 
   elT.textContent = title;
   elTag.textContent = tag ? `#${tag}` : '';
   elDesc.textContent = desc || 'Caractéristiques à venir.';
+
+  // (NOUVEAU) chargement d’image durci (no-referrer + CORS anonyme + fallback)
   if (elImg){
-    elImg.src = img; elImg.alt = title;
-    elImg.onerror = ()=>{ elImg.onerror = null; elImg.src = './images/pirates-tools-logo.png?v=7'; };
+    setSafeImg(elImg, img, product.images_alt || title || '');
   }
 
   const features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
@@ -1219,8 +1237,6 @@ function renderAccount(){
 
 /* =========================================================
    18) PT utils + AUTO-TEST (facultatif, dev-only)
-   - Expose PT.getSWVersion() et PT.clearCaches()
-   - Auto-test visuel si URL contient ?selftest=1
 ========================================================= */
 (function PTUtilsAndSelfTest(){
   const PT = (window.PT = window.PT || {});
