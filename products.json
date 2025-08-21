@@ -524,80 +524,7 @@
       "description": "DCF809N : compacité Atomic, 170 Nm et 0–2800 tr/min. Agile et efficace."
     }
   },
-  {
-    "id": "dewalt-dcf801-n",
-    "slug": "dewalt-dcf801-n",
-    "sku": "DCF801N",
-    "title": "DeWALT DCF801 — 12V Xtreme (nu)",
-    "brand": "DeWALT",
-    "brand_key": "dewalt",
-    "category": "Visseuse à chocs",
-    "category_key": "visseuse-a-chocs",
-    "platform": "12V Xtreme",
-    "motor": "Brushless",
-    "tag": "Brushless",
-    "badge": "Léger",
-    "new": true,
-    "desc": "Ultra maniable 12V pour second œuvre et montage.",
-    "description": "Ultra maniable 12V pour second œuvre et montage.",
-    "features": [
-      "Plateforme 12V Xtreme",
-      "Couple 163 Nm",
-      "3 vitesses (jusqu’à 2850 tr/min)",
-      "Cadence 0–3600 ipm",
-      "Poids plume 0.8 kg"
-    ],
-    "tags": ["12V", "Xtreme", "Léger"],
-    "img": "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_1.jpg?resize=900,900",
-    "images_alt": "DeWALT DCF801 12V Xtreme visseuse à chocs (nu)",
-    "gallery": [
-      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_2.jpg?resize=1200,1200",
-      "https://pimstoragea.blob.core.windows.net/whytespace/AEMEAPROD/EMEA/PRODUCT/IMAGES/HIRES/DCF801N-XJ/DCF801N_XJ_3.jpg?resize=1200,1200"
-    ],
-    "image_bg": "transparent",
-    "price": 179.90,
-    "price_old": 139,
-    "price_cents": 17990,
-    "discount_percent": 14,
-    "currency": "EUR",
-    "price_unit": "€",
-    "unit": "pièce",
-    "stock_status": "in_stock",
-    "stock_label": "En stock",
-    "stock_qty": 10,
-    "torque_nm": 163,
-    "rpm": "0–950 / 0–1950 / 0–2850",
-    "ipm": "0–3600",
-    "chuck": "1/4\" Hex",
-    "weight_kg": 0.8,
-    "length_mm": 125,
-    "warranty_months": 24,
-    "specs": [
-      "Plateforme : 12V Xtreme",
-      "Moteur : Brushless",
-      "Couple max : 163 Nm",
-      "Vitesses : 0–950 / 0–1950 / 0–2850 tr/min",
-      "Cadence de chocs : 0–3600 ipm",
-      "Mandrin : 1/4\" Hex",
-      "Longueur : 125 mm",
-      "Poids : 0.8 kg",
-      "Garantie : 24 mois"
-    ],
-    "specs_kv": {
-      "Référence": "DCF801N",
-      "Tension": "12V"
-    },
-    "whatsapp_template": "Bonjour, infos sur DCF801 12V ?",
-    "rating": 4.6,
-    "reviews": 31,
-    "availability": ["GP", "MQ"],
-    "family": "DCF801",
-    "related_ids": ["dewalt-dcf809-n"],
-    "seo": {
-      "title": "DeWALT DCF801 — 12V Xtreme Brushless (nu)",
-      "description": "DCF801N : 12V Xtreme, 163 Nm, 3 vitesses. L’alliée ultra maniable pour le second œuvre."
-    }
-  }, 
+  [
   {
     "id": "dewalt-dcf801-n",
     "slug": "dewalt-dcf801-n",
@@ -626,9 +553,9 @@
     "images_alt": "DeWALT DCF801 12V visseuse à chocs (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 190.48,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 19048,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -668,7 +595,7 @@
       "title": "DeWALT DCF801 12V Xtreme — Visseuse à chocs (nu)",
       "description": "DCF801 12V Xtreme : compacte, 163 Nm, 3 vitesses, 1/4\" Hex. Idéale pour le montage précis."
     },
-    "source": "Amazon.fr",
+    "source": "Kaufland.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -699,9 +626,9 @@
     "images_alt": "Kit DeWALT DCF801 12V Xtreme",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 204.99,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 20499,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -741,7 +668,7 @@
       "title": "DeWALT DCF801D2 — Kit 12V Xtreme (2×2Ah)",
       "description": "DCF801D2 : 163 Nm, 3 vitesses, 2×2Ah + chargeur + coffret."
     },
-    "source": "Amazon.fr",
+    "source": "Screwfix.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -771,9 +698,9 @@
     "images_alt": "DeWALT DCF901 12V boulonneuse 1/2\" (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 212.99,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 21299,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -808,7 +735,7 @@
       "title": "DeWALT DCF901 12V — Clé à chocs 1/2\" (nu)",
       "description": "DCF901 12V : compacte, emmanchement 1/2\", brushless."
     },
-    "source": "Amazon.fr",
+    "source": "eBay.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -838,9 +765,9 @@
     "images_alt": "Kit DeWALT DCF901 12V 1/2\"",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 279.21,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 27921,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -867,7 +794,7 @@
       "Contenu du kit": "1×5Ah, chargeur, TSTAK"
     },
     "whatsapp_template": "Bonjour, offre pour DCF901P1 (1×5Ah) ?",
-    "rating": null,
+      "rating": null,
     "reviews": null,
     "availability": ["GP", "MQ"],
     "family": "DCF901",
@@ -876,7 +803,7 @@
       "title": "DeWALT DCF901P1 — Kit 12V Xtreme 1/2\" (1×5Ah)",
       "description": "Kit DCF901P1 : boulonneuse 1/2\", 12V Xtreme, 1×5Ah, chargeur, TSTAK."
     },
-    "source": "Amazon.fr",
+    "source": "Global-Audio-Store.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -906,9 +833,9 @@
     "images_alt": "DeWALT DCF902 12V 3/8\" (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 233.27,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 23327,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -916,18 +843,23 @@
     "stock_status": "in_stock",
     "stock_label": "En stock",
     "stock_qty": null,
-    "torque_nm": null,
-    "rpm": null,
-    "ipm": null,
+    "torque_nm": 168,
+    "rpm": "0–2850",
+    "ipm": "0–3600",
     "chuck": "3/8\" Square",
-    "weight_kg": null,
-    "length_mm": null,
+    "weight_kg": 0.8,
+    "length_mm": 130,
     "warranty_months": 24,
     "specs": [
       "Plateforme : 12V Xtreme",
       "Emmanchement : 3/8\" carré",
       "Moteur : Brushless",
-      "Éclairage : LED"
+      "Éclairage : LED",
+      "Vitesse à vide : 0–2850 tr/min",
+      "Cadence de chocs : 0–3600 ipm",
+      "Couple max : 168 Nm",
+      "Poids : 0.8 kg",
+      "Longueur : 130 mm"
     ],
     "specs_kv": {
       "Référence": "DCF902N",
@@ -943,7 +875,7 @@
       "title": "DeWALT DCF902 12V — Clé à chocs 3/8\" (nu)",
       "description": "DCF902 12V : compacte, emmanchement 3/8\", brushless."
     },
-    "source": "Amazon.fr",
+    "source": "Cash&Repair / DeWALT FR (specs)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -973,9 +905,9 @@
     "images_alt": "Kit DeWALT DCF902 12V 3/8\"",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 342.37,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 34237,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1011,7 +943,7 @@
       "title": "DeWALT DCF902P1 — Kit 12V Xtreme 3/8\" (1×5Ah)",
       "description": "Kit DCF902P1 : boulonneuse 3/8\", 12V Xtreme, 1×5Ah, chargeur, TSTAK."
     },
-    "source": "Amazon.fr",
+    "source": "Rexel.fr (prix HT → TTC)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1041,9 +973,9 @@
     "images_alt": "DeWALT DCD701 12V perceuse-visseuse (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 96.35,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 9635,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1078,7 +1010,7 @@
       "title": "DeWALT DCD701 12V — Perceuse-visseuse (nu)",
       "description": "DCD701 12V Xtreme, 3/8\", 2 vitesses, compacte, brushless."
     },
-    "source": "Amazon.fr",
+    "source": "E.Leclerc",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1147,7 +1079,7 @@
       "title": "DeWALT DCD701D2 — Kit 12V Xtreme (2×2Ah)",
       "description": "Kit DCD701D2 : 12V Xtreme, 3/8\", 2 vitesses, 2×2Ah, chargeur, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "DeWALT FR (fiche produit, sans prix)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1215,7 +1147,7 @@
       "title": "DeWALT DCD706 12V — Perceuse à percussion (nu)",
       "description": "DCD706 12V : compacte avec percussion, 2 vitesses, brushless."
     },
-    "source": "Amazon.fr",
+    "source": "DeWALT FR (fiche produit, sans prix)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1284,7 +1216,7 @@
       "title": "DeWALT DCD706D2 — Kit 12V Xtreme percussion (2×2Ah)",
       "description": "Kit DCD706D2 : percussion 12V, 2×2Ah, chargeur, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "—",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1314,9 +1246,9 @@
     "images_alt": "DeWALT DCD703 12V multi-têtes (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 262.08,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 26208,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1350,7 +1282,7 @@
       "title": "DeWALT DCD703 12V — Perceuse à têtes multiples (nu)",
       "description": "DCD703 : 4 têtes interchangeables 12V Xtreme, compacte pour espaces serrés."
     },
-    "source": "Amazon.fr",
+    "source": "Guedo-outillage.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1380,9 +1312,9 @@
     "images_alt": "Kit DeWALT DCD703 12V multi-têtes",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 449.87,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 44987,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1417,7 +1349,7 @@
       "title": "DeWALT DCD703 12V — Kit multi-têtes (2×3Ah)",
       "description": "DCD703L2T : 12V Xtreme, 4 têtes, 2×3Ah, chargeur, TSTAK."
     },
-    "source": "Amazon.fr",
+    "source": "Legallais.com (prix HT → TTC)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1447,9 +1379,9 @@
     "images_alt": "DeWALT DCS353 12V multifonction (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 139.84,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 13984,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1484,7 +1416,7 @@
       "title": "DeWALT DCS353 12V — Outil multifonction (nu)",
       "description": "DCS353 12V Xtreme, brushless, changement sans outil, LED."
     },
-    "source": "Amazon.fr",
+    "source": "OutilMax.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1514,9 +1446,9 @@
     "images_alt": "Kit DeWALT DCS353 12V multifonction",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 263.99,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 26399,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1552,7 +1484,7 @@
       "title": "DeWALT DCS353D2 — Kit multifonction 12V (2×2Ah)",
       "description": "DCS353D2 : 12V Xtreme, 35 accessoires, 2×2Ah, chargeur, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "Debonix.fr",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1582,9 +1514,9 @@
     "images_alt": "DeWALT DCS312 12V scie sabre (nu)",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 180.59,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 18059,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1619,7 +1551,7 @@
       "title": "DeWALT DCS312 12V — Scie sabre compacte (nu)",
       "description": "DCS312 12V : compacte, course 16 mm, LED, variateur, changement sans outil."
     },
-    "source": "Amazon.fr",
+    "source": "RS Components (fr.rs-online.com)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1649,9 +1581,9 @@
     "images_alt": "Kit DeWALT DCS312 12V scie sabre",
     "gallery": [],
     "image_bg": "transparent",
-    "price": null,
+    "price": 240.22,
     "price_old": null,
-    "price_cents": null,
+    "price_cents": 24022,
     "discount_percent": null,
     "currency": "EUR",
     "price_unit": "€",
@@ -1686,9 +1618,10 @@
       "title": "DeWALT DCS312D2 — Kit scie sabre 12V (2×2Ah)",
       "description": "DCS312D2 : 12V Xtreme, compacte, 2×2Ah, chargeur, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "LeroyMerlin.fr (marketplace)",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
+
   {
     "id": "dewalt-dcd710-d2",
     "slug": "dewalt-dcd710-d2",
@@ -1754,7 +1687,7 @@
       "title": "DeWALT DCD710 10,8V — Perceuse-visseuse (2×2Ah)",
       "description": "DCD710D2 : 10,8V XR compacte, 2 vitesses, 2×2Ah, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "—",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1822,7 +1755,7 @@
       "title": "DeWALT DCD716 10,8V — Perceuse à percussion (2×2Ah)",
       "description": "DCD716D2 : 10,8V XR, percussion, 2 vitesses, 2×2Ah, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "—",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1889,7 +1822,7 @@
       "title": "DeWALT DCF610 10,8V — Tournevis (2×2Ah)",
       "description": "DCF610D2 : tournevis 10,8V XR, 1/4\" Hex, 2×2Ah, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "—",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   },
   {
@@ -1956,7 +1889,7 @@
       "title": "DeWALT DCF815 10,8V — Visseuse à chocs (2×2Ah)",
       "description": "DCF815D2 : 10,8V XR, 1/4\" Hex, compacte, 2×2Ah, coffret."
     },
-    "source": "Amazon.fr",
+    "source": "—",
     "scrape_timestamp": "2025-08-21T00:00:00Z"
   }
 ]
