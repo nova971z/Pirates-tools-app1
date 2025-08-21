@@ -180,14 +180,13 @@ h3{ font-size: 1.05rem; }
   transform: translateX(-50%) translateY(12px); opacity: 0;
   transition: opacity .28s ease-out, transform .28s ease-out;
   pointer-events: none; writing-mode: horizontal-tb;
-  overflow: visible; /* autorise les débords de la pastille */
+  overflow: visible;
 }
 .dock.dock--visible{ opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .dock__shell{
   position: relative; display: inline-flex; align-items: center; gap: .6rem;
   padding: .4rem .5rem;
-  /* marge symétrique pour laisser respirer à gauche ET à droite */
   padding-left: 24px; padding-right: 24px;
   border-radius: 999px; background: rgba(10,15,20,.66);
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
@@ -200,34 +199,35 @@ h3{ font-size: 1.05rem; }
   width: 40px; height: 40px; display: grid; place-items: center;
   border-radius: 12px; background: rgba(255,255,255,.06);
   color: #d9e9f2; border: 1px solid rgba(255,255,255,.08);
-  position: relative; overflow: visible; /* évite de couper la pastille */
+  position: relative; overflow: visible;
 }
 .dock__btn:active{ transform: translateY(1px) }
 .dock__btn--call { background: linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa   { background: linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
 .dock__btn--cart, .dock__btn--tools{ background: rgba(255,255,255,.10) }
 
-/* Badge (classe OU id #dockCount pour sûreté) — valeurs “anti-coupe” */
-.dock__badge,
-#dockCount{
-  position: absolute; top: -6px; right: -6px;
-  min-width: 20px; height: 20px; padding: 0 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 999px; background: #ff4d5a; color:#fff;
-  font: 800 12px/1 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
-  border: 2px solid rgba(10,15,20,.95);
-  box-shadow: 0 6px 14px rgba(0,0,0,.35);
-  cursor: pointer; pointer-events: auto; z-index: 3;
-}
-/* Spécifique : si la pastille est dans le bouton panier */
-#dockCartBtn #dockCount,
-.dock__btn--cart #dockCount{ top:-6px; right:-6px; }
+/* === Pas de pastille + vibration douce du caddie ======================= */
+#dockCount, .dock__badge{ display:none !important; }   /* on neutralise totalement la bulle */
 
-@keyframes pt-bump { 0%{transform:scale(1)} 35%{transform:scale(1.15)} 100%{transform:scale(1)} }
-#dockCount.bump{ animation: pt-bump .42s ease }
+.dock__btn--cart{
+  transform: translateZ(0);
+  animation: cart-idle 8s cubic-bezier(.22,.61,.36,1) infinite;
+  animation-delay: .8s;  /* laisse apparaître le dock avant la première vibration */
+}
+
+@keyframes cart-idle{
+  0%, 76%   { transform: translateZ(0) scale(1) rotate(0) }
+  78%       { transform: translateZ(0) scale(1.02) rotate(-8deg) }
+  80%       { transform: translateZ(0) scale(1.02) rotate(6deg) }
+  82%       { transform: translateZ(0) scale(1.01) rotate(-4deg) }
+  84%       { transform: translateZ(0) scale(1.01) rotate(3deg) }
+  86%       { transform: translateZ(0) scale(1.005) rotate(-2deg) }
+  90%,100%  { transform: translateZ(0) scale(1) rotate(0) }
+}
 
 @media (prefers-reduced-motion: reduce){
   .dock{ transition: none; transform: translateX(-50%) translateY(0); opacity:1; }
+  .dock__btn--cart{ animation: none; }
 }
 
 /* ================= VUES / ROUTER ================= */
@@ -341,11 +341,11 @@ h3{ font-size: 1.05rem; }
 /* ================= Réduction des animations ================= */
 @media (prefers-reduced-motion: reduce){
   html{ scroll-behavior:auto; }
-  /* On laisse le transform géré par JS (amplitude réduite), on adoucit l’opacité */
   .hero-logo{ transition: opacity .12s linear; }
   .toast{ animation:none; }
   .dock__badge.bump{ animation:none; }
   .dock{ transition: none; transform: translateX(-50%) translateY(0); opacity:1; }
+  .dock__btn--cart{ animation:none; }
 }
 
 /* ================= Responsif générique ================= */
