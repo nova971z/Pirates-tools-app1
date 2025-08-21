@@ -68,30 +68,28 @@
 
 
 <!-- ========= TOPBAR (corrigée) ========= -->
+
 <header class="topbar" role="banner" aria-label="Barre supérieure">
-  <!-- Bouton menu (3 traits) -->
-  <button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
-    <span class="bar"></span>
-    <span class="bar"></span>
-    <span class="bar"></span>
-  </button>
+  <div class="topbar-left">
+    <button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
+      <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </button>
 
-  <!-- Logo (centré à gauche du contenu) -->
-  <a id="homeLink" class="topbar-logo-link" href="#/">
-    <img class="topbar-logo"
-         src="./images/pirates-tools-logo.png?v=7"
-         alt="Pirates Tools"
-         decoding="async" fetchpriority="high" />
-  </a>
+    <a id="homeLink" class="topbar-logo-link" href="#/">
+      <img class="topbar-logo"
+           src="./images/pirates-tools-logo.png?v=7"
+           alt="Pirates Tools" width="256" height="64"
+           decoding="async" fetchpriority="high" />
+    </a>
+  </div>
 
-  <!-- Appels rapides (droite) -->
   <div class="cta">
-    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">
+      📞 <strong>07 74 23 01 95</strong>
+    </a>
     <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬</a>
   </div>
 </header>
-
-
 
 
 
