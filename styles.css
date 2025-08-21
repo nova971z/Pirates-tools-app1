@@ -564,3 +564,85 @@ h3{ font-size: 1.05rem; }
   font-size: 0.75rem;
   opacity: 0.9;
 }
+
+
+
+
+/* === Topbar layout & anti-chevauchement === */
+.topbar {
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #0b0f12; /* même fond que le reste */
+}
+
+/* Groupe gauche : menu + logo */
+.topbar-left {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0;           /* évite que ça pousse hors écran */
+  flex: 1 1 auto;         /* prend l'espace dispo, mais peut rétrécir */
+}
+
+/* Bouton menu (plus de position absolute) */
+#menu-toggle {
+  position: static;
+  background: transparent; border: none; cursor: pointer;
+  display: flex; flex-direction: column; justify-content: space-between;
+  width: 30px; height: 22px; padding: 4px 2px;
+  flex: 0 0 auto;
+}
+#menu-toggle .bar {
+  width: 100%; height: 3px; border-radius: 2px;
+  background: #fff; opacity: 0.9; transition: all .25s ease;
+}
+
+/* Logo – grossi en conservant les proportions (largeur & hauteur ensemble) */
+.topbar-logo {
+  display: block;
+  height: clamp(44px, 6.5vw, 64px); /* agrandit automatiquement mais reste raisonnable */
+  width: auto;                      /* garde le ratio */
+  max-width: none;                  /* pas de limite bloquante */
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
+
+/* Groupe droite (à droite de l'écran) */
+.cta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 10px;
+  flex: 0 0 auto;                    /* ne se compresse pas */
+  white-space: nowrap;
+}
+
+/* Bouton Appel : pilule */
+.btn.btn-call {
+  font-size: clamp(14px, 3.6vw, 18px);
+  padding: .45rem .9rem;
+  border-radius: 22px;
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: linear-gradient(90deg,#42c9ff,#00aaff);
+  color: #001;
+  box-shadow: 0 3px 10px rgba(0,0,0,.35);
+}
+
+/* Bouton WhatsApp : ROND */
+.btn.btn-wa {
+  width: 44px; height: 44px; padding: 0;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.25rem; line-height: 1;
+  background: linear-gradient(90deg,#25d366,#128c7e);
+  color: #001;
+  box-shadow: 0 3px 10px rgba(0,0,0,.35);
+}
+
+/* Empêche les éléments de sortir de l'écran sur petits mobiles */
+@media (max-width: 380px) {
+  .btn.btn-call { font-size: 13px; padding: .38rem .75rem; }
+  .btn.btn-wa   { width: 40px; height: 40px; font-size: 1.1rem; }
+  .topbar-logo  { height: 48px; } /* logo toujours bien visible */
+}
+
+/* (Rappel menu latéral) – si tu avais un #menu-toggle en absolute, ce patch l'annule */
