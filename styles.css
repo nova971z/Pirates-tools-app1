@@ -473,141 +473,68 @@ h3{ font-size: 1.05rem; }
 .tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 @media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; }} 
 
-/* ===================== TOPBAR – layout & anti-chevauchement ===================== */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #0b0f12; /* fond de la barre */
+/* ====== TOPBAR : layout & anti-chevauchement ====== */
+.topbar{
+  position:sticky; top:0; z-index:1000;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:8px 12px;
+  background:#0b0f12; box-sizing:border-box; width:100%;
 }
 
-/* Groupe gauche : menu + logo */
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;     /* évite de pousser les CTA hors écran */
-  flex: 1 1 auto;   /* peut s’étirer/rétrécir */
+/* Groupe gauche : burger + logo (empêche le chevauchement) */
+.topbar-left{display:flex; align-items:center; gap:10px; min-width:0; flex:1 1 auto;}
+#menu-toggle{background:transparent; border:0; cursor:pointer; display:flex; flex-direction:column;
+  justify-content:space-between; width:30px; height:22px; padding:4px 2px; flex:0 0 auto;}
+#menu-toggle .bar{width:100%; height:3px; border-radius:2px; background:#fff; opacity:.95; transition:.25s;}
+
+.topbar-logo{
+  display:block;
+  height:clamp(52px, 7vw, 68px);   /* ✅ logo plus grand et responsive */
+  width:auto;                      /* garde le ratio */
+  object-fit:contain;
+  margin-left:4px;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
 }
 
-/* Bouton menu (3 traits) – plus d'absolu, intégré au flux */
-#menu-toggle {
-  position: static;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 22px;
-  padding: 4px 2px;
-  flex: 0 0 auto;
+/* Groupe droite : CTA */
+.cta{margin-left:auto; display:flex; align-items:center; gap:10px; flex:0 1 auto;}
+
+/* Bouton Appel : peut rétrécir pour laisser la place à WhatsApp */
+.btn.btn-call{
+  display:inline-flex; align-items:center; gap:.45rem;
+  font-size:clamp(14px, 3.6vw, 18px);
+  padding:.45rem .85rem;
+  border-radius:22px;
+  background:linear-gradient(90deg,#42c9ff,#00aaff);
+  color:#001; box-shadow:0 3px 10px rgba(0,0,0,.35);
+  white-space:nowrap;
+  min-width:0;
+  max-width:62vw;       /* ✅ limite la largeur pour ne pas pousser WhatsApp dehors */
+  overflow:hidden; text-overflow:ellipsis;
 }
-#menu-toggle .bar {
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: #fff;
-  opacity: 0.9;
-  transition: all .25s ease;
+.btn.btn-call strong{font-weight:800;}
+
+/* WhatsApp : rond et toujours visible */
+.btn.btn-wa{
+  width:44px; height:44px; padding:0;
+  border-radius:999px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.25rem; line-height:1;
+  background:linear-gradient(90deg,#25d366,#128c7e);
+  color:#001; box-shadow:0 3px 10px rgba(0,0,0,.35);
+  flex:0 0 auto;        /* ✅ ne rétrécit pas, reste dans l’écran */
 }
 
-/* Logo – taille responsive (largeur & hauteur ensemble, ratio conservé) */
-.topbar-logo {
-  display: block;
-  height: clamp(44px, 6.5vw, 64px);
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+/* Très petits écrans Android */
+@media (max-width:420px){
+  .btn.btn-call{font-size:13.5px; padding:.38rem .7rem; max-width:58vw;}
+}
+@media (max-width:360px){
+  .btn.btn-call{font-size:12.5px; padding:.34rem .6rem; max-width:54vw;}
+  .btn.btn-wa{width:40px; height:40px; font-size:1.1rem;}
 }
 
-/* Groupe droite : CTA (Appel + WhatsApp) */
-.cta {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-/* Styles communs aux boutons */
-.btn.btn-call,
-.btn.btn-wa {
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  box-shadow: 0 3px 10px rgba(0,0,0,.35);
-  border-radius: 22px;
-}
-
-/* Appel : pilule */
-.btn.btn-call {
-  font-size: clamp(14px, 3.6vw, 18px);
-  padding: .45rem .9rem;
-  background: linear-gradient(90deg,#42c9ff,#00aaff);
-  color: #001;
-}
-
-/* WhatsApp : rond */
-.btn.btn-wa {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 999px;
-  justify-content: center;
-  font-size: 1.25rem;
-  line-height: 1;
-  background: linear-gradient(90deg,#25d366,#128c7e);
-  color: #001; /* contraste avec l’emoji */
-}
-
-/* Petits écrans : empêcher tout débordement */
-@media (max-width: 380px) {
-  .btn.btn-call { font-size: 13px; padding: .38rem .75rem; }
-  .btn.btn-wa   { width: 40px; height: 40px; font-size: 1.1rem; }
-  .topbar-logo  { height: 48px; }
-}
-
-/* ===================== MENU LATÉRAL (icônes style application) ===================== */
-#side-menu {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-  padding: 60px 20px;
-  justify-items: start;
-  align-items: center;
-}
-
-.menu-app {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 80px;
-  padding: 15px;
-  text-align: center;
-  color: #fff;
-  text-decoration: none;
-  background: rgba(255,255,255,0.05);
-  border-radius: 16px;
-  transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.menu-app:hover {
-  transform: scale(1.05);
-  background: rgba(255,255,255,0.10);
-}
-.menu-app span {
-  font-size: 1.6rem;
-  margin-bottom: 6px;
-}
-.menu-app small {
-  font-size: 0.75rem;
-  opacity: 0.9;
+/* (option) réduis légèrement le numéro en paysage très étroit */
+@media (max-height:360px) and (orientation:landscape){
+  .btn.btn-call{font-size:12.5px;}
 }
