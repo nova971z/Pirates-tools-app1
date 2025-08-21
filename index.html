@@ -94,14 +94,39 @@
 
 
 <!-- Menu déroulant (mis à jour avec styles de la toolbar du bas) --><div id="menu-overlay" onclick="toggleMenu()"></div>
+
+
 <nav id="side-menu">
-  <a href="#/" class="menu-icon"><span class="icon">🏠</span> Accueil</a>
-  <a href="#/catalogue" class="menu-icon"><span class="icon">📘</span> Catalogue</a>
-  <a href="#list" class="menu-icon"><span class="icon">🛠️</span> Produits</a>
-  <a href="#/devis" class="menu-icon"><span class="icon">🧾</span> Devis</a>
-  <a href="#/compte" class="menu-icon"><span class="icon">👤</span> Compte</a>
-  <a href="#contact" class="menu-icon"><span class="icon">✉️</span> Contact</a>
-</nav><style>
+  <a href="#/" class="menu-app">
+    <i class="fa-solid fa-house"></i>
+    <small>Accueil</small>
+  </a>
+  <a href="#/catalogue" class="menu-app">
+    <i class="fa-solid fa-book"></i>
+    <small>Catalogue</small>
+  </a>
+  <a href="#list" class="menu-app" data-scroll="#list">
+    <i class="fa-solid fa-screwdriver-wrench"></i>
+    <small>Produits</small>
+  </a>
+  <a href="#/devis" class="menu-app">
+    <i class="fa-solid fa-file-invoice-dollar"></i>
+    <small>Devis</small>
+  </a>
+  <a href="#/compte" class="menu-app">
+    <i class="fa-solid fa-user"></i>
+    <small>Compte</small>
+  </a>
+  <a href="#contact" class="menu-app" data-scroll="#contact">
+    <i class="fa-solid fa-envelope"></i>
+    <small>Contact</small>
+  </a>
+</nav>
+
+
+
+
+<style>
   .topbar {
     display: flex;
     align-items: center;
