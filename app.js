@@ -635,10 +635,22 @@ var ScrollExit = (function () {
    8) PANIER (persistant)
 ========================================================= */
 function updateDock(){
-  if (!dock || !dockCount) return;
+  // Compteur (même s’il est masqué en CSS, on garde la logique)
   var n = CART.length;
-  dockCount.textContent = n;
-  dockCount.style.display = n ? '' : 'none';
+  if (dockCount){
+    dockCount.textContent = n;
+    dockCount.style.display = n ? '' : 'none';
+  }
+
+  // Vibration douce du caddie UNIQUEMENT si n > 0
+  if (dock){
+    var cartBtn = document.getElementById('dockCartBtn') || dock.querySelector('.dock__btn--cart');
+    if (cartBtn){
+      // L’animation CSS existe déjà (.dock__btn--cart { animation: cart-idle ... })
+      // On la met en pause si panier vide, on la lance sinon.
+      cartBtn.style.animationPlayState = n ? 'running' : 'paused';
+    }
+  }
 }
 
 function saveCart(){
