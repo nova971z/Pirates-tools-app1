@@ -394,4 +394,43 @@ h3{ font-size: 1.05rem; }
 @keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }
 .tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 .tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
-@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; }} 
+
+.topbar-logo {
+  height: auto;
+  max-height: 48px;
+  width: auto;
+  max-width: 220px;
+  margin-right: 1rem;
+}
+
+.cta {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.btn.btn-call,
+.btn.btn-wa {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.btn-call {
+  background: linear-gradient(to right, #42c9ff, #00aaff);
+  color: #001;
+}
+
+.btn-wa {
+  background: linear-gradient(to right, #25d366, #128c7e);
+  color: #001;
+     }
+
+
+
