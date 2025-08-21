@@ -63,30 +63,34 @@
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
-  <!-- ========= TOPBAR (fixe) ========= -->
-  <header class="topbar" role="banner" aria-label="Barre supérieure">
-    <!-- Logo cliquable (retour Home hash) -->
-    <a id="homeLink" class="topbar-logo-link" href="#/">
-      <img class="topbar-logo"
-           src="./images/pirates-tools-logo.png?v=7"
-           alt="Pirates Tools"
-           width="180" height="32"
-           decoding="async" fetchpriority="high" />
+ <!-- ========= TOPBAR (fixe) ========= -->
+<header class="topbar" role="banner" aria-label="Barre supérieure">
+  
+  <!-- Logo cliquable (retour Home hash) -->
+  <a id="homeLink" class="topbar-logo-link" href="#/">
+    <img class="topbar-logo"
+         src="./images/pirates-tools-logo.png?v=7"
+         alt="Pirates Tools"
+         width="220" height="45"
+         decoding="async" fetchpriority="high" />
+  </a>
+
+  <!-- Mini navigation (facultatif, utile pour [data-scroll]) -->
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+    <a class="chip" href="#list" data-scroll="#list">Produits</a>
+  </nav>
+
+  <!-- Appels rapides -->
+  <div class="cta">
+    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">
+      📞 <strong style="font-size: 1rem;">07 74 23 01 95</strong>
     </a>
-
-    <!-- Mini navigation (facultatif, utile pour [data-scroll]) -->
-    <nav class="nav" aria-label="Navigation principale">
-      <a class="chip" href="#/catalogue" data-route>Catalogue</a>
-      <a class="chip" href="#list" data-scroll="#list">Produits</a>
-    </nav>
-
-    <!-- Appels rapides -->
-    <div class="cta">
-      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬 WhatsApp</a>
-    </div>
-  </header>
-
+    <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">
+      💬 <span style="font-size: 1rem;">WhatsApp</span>
+    </a>
+  </div>
+</header>
 
 
 <!-- 1. BOUTON MENU (3 traits) --><!-- À placer dans ton fichier HTML principal (ex : index.html) dans la barre du haut, juste avant les icônes d'appel/WhatsApp --><button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
