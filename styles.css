@@ -433,4 +433,41 @@ h3{ font-size: 1.05rem; }
      }
 
 
+#side-menu {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  padding: 60px 20px;
+  justify-items: start;
+  align-items: center;
+}
 
+.menu-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 16px;
+  width: 80px;
+  text-align: center;
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.menu-app:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-app span {
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+}
+
+.menu-app small {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
