@@ -541,50 +541,54 @@ h3{ font-size: 1.05rem; }
 
 
 
-
-/* === Side Menu style "apps" === */
+/* === Side Menu "apps modernes" === */
 #side-menu {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-  padding: 60px 20px;
-  justify-items: center;
-  align-items: start;
-  background: rgba(15, 15, 15, 0.85); /* ✅ léger transparent */
-  backdrop-filter: blur(6px);         /* ✅ effet flou type iOS */
-  -webkit-backdrop-filter: blur(6px); /* compatibilité iPhone */
+  position: fixed;
+  top: 0; left: -260px;
+  width: 240px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 80px 20px;
+  background: rgba(15, 15, 15, 0.0); /* ✅ transparent total */
+  backdrop-filter: blur(6px);         /* ✅ effet vitre */
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: none;                   /* ❌ plus de bande opaque */
+  transition: left 0.3s ease;
+  z-index: 1100;
 }
 
-/* Chaque entrée du menu → style "app icon" */
+/* App style */
 .menu-app {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 20px; /* coins arrondis style app */
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   text-decoration: none;
-  transition: transform 0.25s, background 0.3s;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35); /* ombre subtile */
+  transition: transform 0.25s, background 0.3s, color 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
 }
 
 .menu-app:hover {
-  transform: scale(1.07);
-  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.15);
+  color: #42c9ff;
 }
 
-/* Emoji ou icône centrée */
-.menu-app span {
-  font-size: 1.8rem;
+/* Icônes modernes (FontAwesome) */
+.menu-app i {
+  font-size: 1.6rem;
   margin-bottom: 6px;
 }
 
-/* Label sous l’icône */
+/* Label sous icône */
 .menu-app small {
   font-size: 0.75rem;
-  opacity: 0.9;
-  margin-top: 2px;
+  opacity: 0.95;
 }
