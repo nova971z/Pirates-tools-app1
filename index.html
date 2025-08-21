@@ -64,26 +64,19 @@
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
 
-<!-- ========= TOPBAR (fixe) ========= -->
-<header class="topbar" role="banner" aria-label="Barre supérieure">
+<!-- ========= TOPBAR (fixe) ========= --><header class="topbar" role="banner" aria-label="Barre supérieure">
   <!-- Bouton Menu (burger) -->
   <button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
     <span class="bar"></span>
     <span class="bar"></span>
     <span class="bar"></span>
-  </button>
-
-  <!-- Logo (agrandi) -->
-  <a id="homeLink" class="topbar-logo-link" href="#/">
+  </button>  <!-- Logo (décalé à droite du menu) -->  <a id="homeLink" class="topbar-logo-link" href="#/">
     <img class="topbar-logo"
          src="./images/pirates-tools-logo.png?v=7"
          alt="Pirates Tools"
          width="200" height="36"
          decoding="async" fetchpriority="high" />
-  </a>
-
-  <!-- Appels rapides -->
-  <div class="cta">
+  </a>  <!-- Appels rapides -->  <div class="cta">
     <a id="callBtn" class="btn btn-call" href="tel:+33774230195">
       📞 <strong>07 74 23 01 95</strong>
     </a>
@@ -91,7 +84,161 @@
       💬
     </a>
   </div>
-</header>
+</header><!-- Menu déroulant (mis à jour avec styles de la toolbar du bas) --><div id="menu-overlay" onclick="toggleMenu()"></div>
+<nav id="side-menu">
+  <a href="#/" class="menu-icon"><span class="icon">🏠</span> Accueil</a>
+  <a href="#/catalogue" class="menu-icon"><span class="icon">📘</span> Catalogue</a>
+  <a href="#list" class="menu-icon"><span class="icon">🛠️</span> Produits</a>
+  <a href="#/devis" class="menu-icon"><span class="icon">🧾</span> Devis</a>
+  <a href="#/compte" class="menu-icon"><span class="icon">👤</span> Compte</a>
+  <a href="#contact" class="menu-icon"><span class="icon">✉️</span> Contact</a>
+</nav><style>
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    padding: 12px 16px;
+    background-color: #000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+    gap: 10px;
+  }
+
+  #menu-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    padding: 0;
+    z-index: 1001;
+  }
+  .bar {
+    width: 100%;
+    height: 3px;
+    background-color: white;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .topbar-logo-link {
+    margin-left: 10px;
+  }
+
+  .topbar-logo {
+    height: 40px;
+    width: auto;
+    max-width: 200px;
+  }
+
+  .cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    margin-right: 10px;
+  }
+
+  .btn-call {
+    background-color: #3EC6FF;
+    color: #000;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .btn-wa {
+    background: linear-gradient(to right, #25D366, #128C7E);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    transition: transform 0.2s ease;
+  }
+  .btn-wa:hover {
+    transform: scale(1.1);
+  }
+
+  #menu-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    display: none;
+  }
+
+  #side-menu {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 220px;
+    height: 100vh;
+    background-color: #1a1a1a;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    padding: 60px 20px;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #side-menu a.menu-icon {
+    color: white;
+    text-decoration: none;
+    background: #222;
+    padding: 12px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  #side-menu a.menu-icon:hover {
+    background: #333;
+    transform: scale(1.05);
+  }
+
+  .menu-open #menu-overlay {
+    display: block;
+  }
+  .menu-open #side-menu {
+    left: 0;
+  }
+
+  @media (max-width: 400px) {
+    .topbar-logo {
+      width: 160px;
+    }
+    .btn-call {
+      font-size: 13px;
+      padding: 6px 10px;
+    }
+    .btn-wa {
+      width: 40px;
+      height: 40px;
+    }
+  }
+</style><script>
+  function toggleMenu() {
+    document.body.classList.toggle('menu-open');
+  }
+</script>
 
 <!-- 1. BOUTON MENU (3 traits) --><!-- À placer dans ton fichier HTML principal (ex : index.html) dans la barre du haut, juste avant les icônes d'appel/WhatsApp --><button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
   <span class="bar"></span>
