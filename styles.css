@@ -546,3 +546,36 @@ h3{ font-size: 1.05rem; }
 .tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 .tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }
 @media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }
+
+
+
+/* === Fix pastille du dock (éviter la coupe) ============================= */
+#dock { overflow: visible; } /* autorise la bulle à dépasser si besoin */
+
+#dock .dock__shell{
+  position: relative;
+  overflow: visible;         /* le conteneur ne coupe plus la bulle */
+  padding-right: 24px;       /* petite marge à droite pour la pastille */
+}
+
+/* Style/position de la pastille compteur */
+#dock .dock__badge{
+  position: absolute;
+  top: -6px;                 /* remonte légèrement au-dessus du dock */
+  right: -6px;               /* décale légèrement vers l'extérieur */
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ff4d5a;       /* rouge lisible */
+  color: #fff;
+  font: 700 12px/1 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif;
+  box-shadow:
+    0 0 0 2px rgba(10,15,20,.95),  /* “ring” pour éviter la fusion avec le fond */
+    0 6px 14px rgba(0,0,0,.35);    /* petite ombre douce */
+  z-index: 3;
+  pointer-events: none;      /* clics passent au travers */
+}
