@@ -538,3 +538,53 @@ h3{ font-size: 1.05rem; }
 @media (max-height:360px) and (orientation:landscape){
   .btn.btn-call{font-size:12.5px;}
 }
+
+
+
+
+/* === Side Menu style "apps" === */
+#side-menu {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 60px 20px;
+  justify-items: center;
+  align-items: start;
+  background: rgba(15, 15, 15, 0.85); /* ✅ léger transparent */
+  backdrop-filter: blur(6px);         /* ✅ effet flou type iOS */
+  -webkit-backdrop-filter: blur(6px); /* compatibilité iPhone */
+}
+
+/* Chaque entrée du menu → style "app icon" */
+.menu-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px; /* coins arrondis style app */
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.25s, background 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35); /* ombre subtile */
+}
+
+.menu-app:hover {
+  transform: scale(1.07);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Emoji ou icône centrée */
+.menu-app span {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+/* Label sous l’icône */
+.menu-app small {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-top: 2px;
+}
