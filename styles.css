@@ -541,54 +541,51 @@ h3{ font-size: 1.05rem; }
 
 
 
-/* === Side Menu "apps modernes" === */
+/* === Menu latéral style "iOS apps" === */
 #side-menu {
-  position: fixed;
-  top: 0; left: -260px;
-  width: 240px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 80px 20px;
-  background: rgba(15, 15, 15, 0.0); /* ✅ transparent total */
-  backdrop-filter: blur(6px);         /* ✅ effet vitre */
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: none;                   /* ❌ plus de bande opaque */
-  transition: left 0.3s ease;
-  z-index: 1100;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  padding: 60px 20px;
+  justify-items: center; /* centrage horizontal */
+  align-items: start;
 }
 
-/* App style */
+/* Chaque app = bulle style Apple */
 .menu-app {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 70px;
-  height: 70px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.08); /* semi-transparent */
+  backdrop-filter: blur(10px);        /* effet verre dépoli */
   text-decoration: none;
-  transition: transform 0.25s, background 0.3s, color 0.3s;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: transform 0.25s ease, background 0.25s ease;
 }
 
+/* Effet hover */
 .menu-app:hover {
-  transform: scale(1.1);
-  background: rgba(255, 255, 255, 0.15);
-  color: #42c9ff;
+  transform: scale(1.08);
+  background: rgba(255,255,255,0.15);
 }
 
-/* Icônes modernes (FontAwesome) */
+/* Icône (Font Awesome) */
 .menu-app i {
-  font-size: 1.6rem;
-  margin-bottom: 6px;
+  font-size: 1.8rem;   /* taille icône */
+  margin-bottom: 6px;  /* espace avec le texte */
+  color: #fff;
+  opacity: 0.95;
 }
 
-/* Label sous icône */
+/* Texte sous l’icône */
 .menu-app small {
-  font-size: 0.75rem;
-  opacity: 0.95;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+  color: rgba(255,255,255,0.85);
 }
