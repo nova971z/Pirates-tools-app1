@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -28,7 +27,6 @@
   <!-- ===== Perf ===== -->
   <link rel="preconnect" href="https://wa.me" crossorigin />
   <link rel="dns-prefetch" href="https://wa.me" />
-  <!-- Préconnexion vers les hôtes d’images produits -->
   <link rel="preconnect" href="https://pimstoragea.blob.core.windows.net" crossorigin />
   <link rel="dns-prefetch" href="https://pimstoragea.blob.core.windows.net" />
   <link rel="preconnect" href="https://dewalt.mediaroom.com" crossorigin />
@@ -36,8 +34,7 @@
   <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" />
   <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
 
-  <!-- ===== Icônes modernes (Font Awesome) ===== -->
-  <!-- ⚠️ Lien placé AVANT styles.css -->
+  <!-- ===== Icônes modernes (Font Awesome) — AVANT styles.css ===== -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -55,7 +52,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
 
-  <!-- ===== A11y helpers (fallback minimal, doublonné par styles.css) ===== -->
+  <!-- ===== A11y helpers (fallback minimal) ===== -->
   <style>
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
@@ -63,10 +60,6 @@
   </style>
 </head>
 <body>
-
-
-
-
   <!-- ===== Skip link ===== -->
   <a href="#list" class="skip-link">Aller au contenu</a>
 
@@ -74,332 +67,75 @@
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
+  <!-- ========= TOPBAR (clean & responsive) ========= -->
+  <header class="topbar" role="banner" aria-label="Barre supérieure">
+    <!-- Groupe gauche : burger + logo -->
+    <div class="topbar-left">
+      <button id="menu-toggle" class="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </button>
 
-
-
-
-<!-- ========= TOPBAR (corrigée) ========= -->
-
-<header class="topbar" role="banner" aria-label="Barre supérieure">
-  <div class="topbar-left">
-    <button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
-      <span class="bar"></span><span class="bar"></span><span class="bar"></span>
-    </button>
-
-    <a id="homeLink" class="topbar-logo-link" href="#/">
-      <img class="topbar-logo"
-           src="./images/pirates-tools-logo.png?v=7"
-           alt="Pirates Tools" width="256" height="64"
-           decoding="async" fetchpriority="high" />
-    </a>
-  </div>
-
-  <div class="cta">
-    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">
-      📞 <strong>07 74 23 01 95</strong>
-    </a>
-    <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195">💬</a>
-  </div>
-</header>
-
-
-
-<!-- ===== MENU LATÉRAL (bulles, pas de fond) ===== -->
-<nav id="side-menu" aria-label="Navigation latérale">
-  <!-- Accueil : icône = TON LOGO -->
-  <a href="#/" class="app-link">
-    <div class="app-bubble">
-      <img src="./images/pirates-tools-logo.png?v=7" alt="Accueil Pirates Tools" class="app-icon-img">
+      <a id="homeLink" class="topbar-logo-link" href="#/">
+        <img class="topbar-logo"
+             src="./images/pirates-tools-logo.png?v=7"
+             alt="Pirates Tools"
+             width="256" height="64"
+             decoding="async" fetchpriority="high" />
+      </a>
     </div>
-    <span class="app-label">Accueil</span>
-  </a>
 
-  <!-- Icônes modernes (Font Awesome) -->
-  <a href="#/catalogue" class="app-link">
-    <div class="app-bubble"><i class="fa-solid fa-grid-2"></i></div>
-    <span class="app-label">Catalogue</span>
-  </a>
+    <!-- (Nav compacte optionnelle)
+    <nav class="nav" aria-label="Navigation principale">
+      <a class="chip" href="#/catalogue" data-route>Catalogue</a>
+      <a class="chip" href="#list" data-scroll="#list">Produits</a>
+    </nav>
+    -->
 
-  <a href="#list" class="app-link" data-scroll="#list">
-    <div class="app-bubble"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-    <span class="app-label">Produits</span>
-  </a>
+    <!-- Appels rapides -->
+    <div class="cta">
+      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+      <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195" aria-label="WhatsApp">💬</a>
+    </div>
+  </header>
 
-  <a href="#/devis" class="app-link">
-    <div class="app-bubble"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-    <span class="app-label">Devis</span>
-  </a>
+  <!-- ===== VOILE NOIR + MENU LATERAL EN BULLES (aucun panneau gris) ===== -->
+  <div id="menu-overlay" hidden></div>
 
-  <a href="#/compte" class="app-link">
-    <div class="app-bubble"><i class="fa-solid fa-user-gear"></i></div>
-    <span class="app-label">Compte</span>
-  </a>
+  <nav id="side-menu" class="app-grid" aria-label="Menu latéral">
+    <!-- Accueil (TON logo) -->
+    <a href="#/" class="app-link" data-route>
+      <span class="app-bubble">
+        <img src="./images/pirates-tools-logo.png?v=7" alt="" class="app-icon-img" />
+      </span>
+      <span class="app-label">Accueil</span>
+    </a>
 
-  <a href="#contact" class="app-link" data-scroll="#contact">
-    <div class="app-bubble"><i class="fa-solid fa-paper-plane"></i></div>
-    <span class="app-label">Contact</span>
-  </a>
-</nav>
+    <!-- Icônes modernes FA -->
+    <a href="#/catalogue" class="app-link" data-route>
+      <span class="app-bubble"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+      <span class="app-label">Catalogue</span>
+    </a>
 
+    <a href="#list" class="app-link" data-scroll="#list">
+      <span class="app-bubble"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
+      <span class="app-label">Produits</span>
+    </a>
 
-<style>
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    padding: 12px 16px;
-    background-color: #000;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 999;
-    gap: 10px;
-  }
+    <a href="#/devis" class="app-link" data-route>
+      <span class="app-bubble"><i class="fa-solid fa-file-signature" aria-hidden="true"></i></span>
+      <span class="app-label">Devis</span>
+    </a>
 
-  #menu-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    width: 30px;
-    height: 24px;
-    padding: 0;
-    z-index: 1001;
-  }
-  .bar {
-    width: 100%;
-    height: 3px;
-    background-color: white;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
+    <a href="#/compte" class="app-link" data-route>
+      <span class="app-bubble"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></span>
+      <span class="app-label">Compte</span>
+    </a>
 
-  .topbar-logo-link {
-    margin-left: 10px;
-  }
-
-  .topbar-logo {
-    height: 40px;
-    width: auto;
-    max-width: 200px;
-  }
-
-  .cta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: auto;
-    margin-right: 10px;
-  }
-
-  .btn-call {
-    background-color: #3EC6FF;
-    color: #000;
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-weight: bold;
-    white-space: nowrap;
-  }
-
-  .btn-wa {
-    background: linear-gradient(to right, #25D366, #128C7E);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: white;
-    transition: transform 0.2s ease;
-  }
-  .btn-wa:hover {
-    transform: scale(1.1);
-  }
-
-  #menu-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(2px);
-    z-index: 1000;
-    display: none;
-  }
-
-  #side-menu {
-    position: fixed;
-    top: 0;
-    left: -260px;
-    width: 220px;
-    height: 100vh;
-    background-color: #1a1a1a;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-    padding: 60px 20px;
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  #side-menu a.menu-icon {
-    color: white;
-    text-decoration: none;
-    background: #222;
-    padding: 12px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: background 0.3s, transform 0.2s;
-  }
-
-  #side-menu a.menu-icon:hover {
-    background: #333;
-    transform: scale(1.05);
-  }
-
-  .menu-open #menu-overlay {
-    display: block;
-  }
-  .menu-open #side-menu {
-    left: 0;
-  }
-
-  @media (max-width: 400px) {
-    .topbar-logo {
-      width: 160px;
-    }
-    .btn-call {
-      font-size: 13px;
-      padding: 6px 10px;
-    }
-    .btn-wa {
-      width: 40px;
-      height: 40px;
-    }
-  }
-</style><script>
-  function toggleMenu() {
-    document.body.classList.toggle('menu-open');
-  }
-</script>
-
-<!-- 1. BOUTON MENU (3 traits) --><!-- À placer dans ton fichier HTML principal (ex : index.html) dans la barre du haut, juste avant les icônes d'appel/WhatsApp --><button id="menu-toggle" aria-label="Ouvrir le menu" onclick="toggleMenu()">
-  <span class="bar"></span>
-  <span class="bar"></span>
-  <span class="bar"></span>
-</button><!-- 2. VOILE NOIR + MENU DÉROULANT (structure HTML) --><!-- À placer en bas du body HTML (avant </body>) --><div id="menu-overlay" onclick="toggleMenu()"></div>
-<nav id="side-menu">
-  <a href="/" class="menu-app">
-    <span>🏠</span>
-    <small>Accueil</small>
-  </a>
-  <a href="/catalogue" class="menu-app">
-    <span>📘</span>
-    <small>Catalogue</small>
-  </a>
-  <a href="/produits" class="menu-app">
-    <span>🛠️</span>
-    <small>Produits</small>
-  </a>
-  <a href="/devis" class="menu-app">
-    <span>🧾</span>
-    <small>Devis</small>
-  </a>
-  <a href="/compte" class="menu-app">
-    <span>👤</span>
-    <small>Compte</small>
-  </a>
-  <a href="/contact" class="menu-app">
-    <span>✉️</span>
-    <small>Contact</small>
-  </a>
-</nav> class="menu-icon">Catalogue</a>
-  <a href="/produits" class="menu-icon">Produits</a>
-  <a href="/devis" class="menu-icon">Devis</a>
-  <a href="/compte" class="menu-icon">Compte</a>
-  <a href="/contact" class="menu-icon">Contact</a>
-</nav><!-- 3. STYLES CSS (menu, bouton, animation) --><!-- À placer dans ton fichier CSS global (ex : styles.css), ou dans un <style> dans le <head> --><style>
-  #menu-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    width: 30px;
-    height: 24px;
-    padding: 0;
-    z-index: 1001;
-    position: absolute;
-    top: 20px;
-    left: 20px;
-  }
-  .bar {
-    width: 100%;
-    height: 3px;
-    background-color: white;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  #menu-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(2px);
-    z-index: 1000;
-    display: none;
-  }
-
-  #side-menu {
-    position: fixed;
-    top: 0;
-    left: -250px;
-    width: 200px;
-    height: 100vh;
-    background-color: #1a1a1a;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-    padding: 60px 20px;
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  #side-menu a.menu-icon {
-    color: white;
-    font-weight: bold;
-    text-decoration: none;
-    background: #222;
-    padding: 10px 15px;
-    border-radius: 12px;
-    transition: background 0.3s, transform 0.2s;
-  }
-  #side-menu a.menu-icon:hover {
-    background: #333;
-    transform: scale(1.05);
-  }
-
-  .menu-open #menu-overlay {
-    display: block;
-  }
-  .menu-open #side-menu {
-    left: 0;
-  }
-</style><!-- 4. SCRIPT JS (ouvrir/fermer menu) --><!-- À placer tout en bas du fichier HTML, avant </body> --><script>
-  function toggleMenu() {
-    document.body.classList.toggle('menu-open');
-  }
-</script>
-
+    <a href="#contact" class="app-link" data-scroll="#contact">
+      <span class="app-bubble"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></span>
+      <span class="app-label">Contact</span>
+    </a>
+  </nav>
 
   <!-- ========= HERO (logo animé) ========= -->
   <section id="hero" class="hero-full" aria-label="Pirates Tools">
@@ -462,7 +198,6 @@
 
           <div class="actions">
             <button class="btn primary" id="pdpQuote">Ajouter au panier</button>
-            <!-- NOUVEAU : bouton Partager -->
             <button class="btn" id="pdpShare" type="button">Partager</button>
             <a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>
           </div>
@@ -489,7 +224,6 @@
       <div id="catList" class="cat-list" role="list"></div>
 
       <div style="margin-top:1rem">
-        <!-- FIX ES5-safe : pas d'arrow function ni optional chaining -->
         <a class="chip" href="#"
            onclick="var t=document.getElementById('tag'); if(t){t.value='';} window.location.hash=''; setTimeout(function(){var l=document.getElementById('list'); if(l && l.scrollIntoView){ l.scrollIntoView({behavior:'smooth'}); }}, 60); return false;">
           Voir tous les produits
@@ -597,9 +331,42 @@
   <!-- PWA install (Android/Chromium) -->
   <button id="installBtn" hidden aria-label="Installer l’application">Installer l’app</button>
 
-  <!-- Scripts -->
+  <!-- ===== Menu JS (ouverture/fermeture fluide + A11y) ===== -->
+  <script>
+    (function () {
+      const body    = document.body;
+      const toggle  = document.getElementById('menu-toggle');
+      const overlay = document.getElementById('menu-overlay');
+      const side    = document.getElementById('side-menu');
+
+      function openMenu() {
+        body.classList.add('menu-open');
+        toggle.setAttribute('aria-expanded', 'true');
+        overlay.removeAttribute('hidden');
+        body.style.overflow = 'hidden';  // pas de scroll dessous
+      }
+      function closeMenu() {
+        body.classList.remove('menu-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        overlay.setAttribute('hidden', '');
+        body.style.overflow = '';
+      }
+      function toggleMenu() {
+        body.classList.contains('menu-open') ? closeMenu() : openMenu();
+      }
+
+      // Triggers
+      toggle.addEventListener('click', toggleMenu);
+      overlay.addEventListener('click', closeMenu);
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+      side.addEventListener('click', (e) => {
+        const link = e.target.closest('a'); if (link) closeMenu();
+      });
+    })();
+  </script>
+
+  <!-- Scripts app -->
   <script src="app.js" defer></script>
   <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
 </body>
 </html>
-```0
