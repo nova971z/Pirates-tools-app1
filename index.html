@@ -104,36 +104,38 @@
 
 
 
-<!-- Menu déroulant (mis à jour avec styles de la toolbar du bas) --><div id="menu-overlay" onclick="toggleMenu()"></div>
+<!-- ===== MENU LATÉRAL (style bulle ChatGPT) ===== -->
+<nav id="side-menu" aria-label="Navigation latérale">
+  <a href="#/" class="app-link">
+    <div class="app-bubble"><i class="fa-solid fa-house"></i></div>
+    <span class="app-label">Accueil</span>
+  </a>
 
+  <a href="#/catalogue" class="app-link">
+    <div class="app-bubble"><i class="fa-solid fa-book"></i></div>
+    <span class="app-label">Catalogue</span>
+  </a>
 
-<nav id="side-menu">
-  <a href="#/" class="menu-app">
-    <i class="fa-solid fa-house"></i>
-    <small>Accueil</small>
+  <a href="#list" class="app-link" data-scroll="#list">
+    <div class="app-bubble"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+    <span class="app-label">Produits</span>
   </a>
-  <a href="#/catalogue" class="menu-app">
-    <i class="fa-solid fa-book"></i>
-    <small>Catalogue</small>
+
+  <a href="#/devis" class="app-link">
+    <div class="app-bubble"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+    <span class="app-label">Devis</span>
   </a>
-  <a href="#list" class="menu-app" data-scroll="#list">
-    <i class="fa-solid fa-screwdriver-wrench"></i>
-    <small>Produits</small>
+
+  <a href="#/compte" class="app-link">
+    <div class="app-bubble"><i class="fa-solid fa-user"></i></div>
+    <span class="app-label">Compte</span>
   </a>
-  <a href="#/devis" class="menu-app">
-    <i class="fa-solid fa-file-invoice-dollar"></i>
-    <small>Devis</small>
-  </a>
-  <a href="#/compte" class="menu-app">
-    <i class="fa-solid fa-user"></i>
-    <small>Compte</small>
-  </a>
-  <a href="#contact" class="menu-app" data-scroll="#contact">
-    <i class="fa-solid fa-envelope"></i>
-    <small>Contact</small>
+
+  <a href="#contact" class="app-link" data-scroll="#contact">
+    <div class="app-bubble"><i class="fa-solid fa-envelope"></i></div>
+    <span class="app-label">Contact</span>
   </a>
 </nav>
-
 
 
 <style>
