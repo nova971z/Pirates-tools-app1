@@ -540,97 +540,90 @@ h3{ font-size: 1.05rem; }
 }
 
 
+/* ===== Overlay global (voile noir) – tu l'as déjà, on confirme l'opacité ===== */
+#menu-overlay{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,0.68); /* voile noir opaque mais légèrement transparent */
+  backdrop-filter: blur(2px);
+  display:none; z-index:1000;
+}
+.menu-open #menu-overlay{ display:block; }
 
-/* ===== Overlay (déjà présent) : on le laisse gérer le voile noir global ===== */
-.menu-open #menu-overlay { display: block; }
-
-/* ===== MENU LATÉRAL – bulle type ChatGPT, sans bande grise ===== */
-#side-menu {
+/* ===== MENU LATÉRAL SANS PANNEAU – uniquement des bulles alignées à gauche ===== */
+#side-menu{
   position: fixed;
-  inset: 0;                 /* occupe tout l’écran pour placer librement les bulles */
-  padding: 84px 0 28px 18px;
+  inset: 0;                       /* occupe l'écran pour placer les bulles */
+  padding: 90px 0 28px 18px;      /* marge du bord gauche + sous la topbar */
   display: grid;
   grid-auto-rows: min-content;
-  gap: 26px;                /* espacement vertical entre applis */
+  gap: 28px;
   align-content: start;
-  justify-items: start;     /* bulles alignées à gauche */
-  background: transparent;  /* << plus aucune bande grise */
-  pointer-events: none;     /* clics bloqués sauf sur les liens ci-dessous */
+  justify-items: start;
+  background: transparent;        /* <<< PAS DE FOND, fini le panneau gris */
+  pointer-events: none;           /* bloque les clics hors des liens */
   z-index: 1001;
 }
-
-/* Un lien = bulle + label (colonne) */
-#side-menu .app-link {
+#side-menu .app-link{
+  pointer-events: auto;           /* liens cliquables */
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  pointer-events: auto;     /* cliquable */
 }
 
-/* BULLE CIRCULAIRE avec halo doux (style ChatGPT) */
-#side-menu .app-bubble {
+/* BULLE type ChatGPT (rond + halo) */
+#side-menu .app-bubble{
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 64px; height: 64px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.10);  /* léger verre dépoli */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  display:flex; align-items:center; justify-content:center;
   box-shadow:
-    0 8px 22px rgba(0,0,0,0.45),   /* ombre portée */
-    inset 0 1px 0 rgba(255,255,255,0.18); /* léger highlight interne */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    0 8px 22px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.22);
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-
-/* Halo externe doux */
-#side-menu .app-bubble::before {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255,255,255,0.35), rgba(255,255,255,0) 60%);
-  filter: blur(10px);
-  opacity: .55;
-  z-index: -1;
+/* halo doux autour */
+#side-menu .app-bubble::before{
+  content:""; position:absolute; inset:-8px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  filter: blur(10px); opacity:.55; z-index:-1;
 }
 
-/* Icône centrée */
-#side-menu .app-bubble i {
-  font-size: 1.55rem;
-  color: #fff;
-  opacity: 0.96;
+/* Icônes (FA) OU image logo */
+#side-menu .app-bubble i{
+  font-size: 1.55rem; color:#fff; opacity:.96;
+}
+#side-menu .app-bubble .app-icon-img{
+  width: 65%; height: 65%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
 }
 
-/* Label SOUS la bulle */
-#side-menu .app-label {
-  font-size: 0.86rem;
-  line-height: 1.1;
-  font-weight: 600;
-  color: rgba(255,255,255,0.94);
+/* Label sous la bulle */
+#side-menu .app-label{
+  font-size:.88rem; font-weight:600; line-height:1.1;
+  color: rgba(255,255,255,0.96);
   text-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
 
-/* Effets : survol / appui */
-#side-menu .app-link:hover .app-bubble {
+/* hover / active */
+#side-menu .app-link:hover .app-bubble{
   transform: translateY(-2px) scale(1.06);
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.14);
   box-shadow:
     0 12px 26px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.22);
+    inset 0 1px 0 rgba(255,255,255,0.26);
 }
-#side-menu .app-link:active .app-bubble {
-  transform: scale(0.96);
-}
+#side-menu .app-link:active .app-bubble{ transform: scale(0.96); }
 
-/* Petits écrans : bulle & typo un peu plus compactes */
-@media (max-width: 360px) {
-  #side-menu { padding-left: 14px; gap: 22px; }
-  #side-menu .app-bubble { width: 60px; height: 60px; }
-  #side-menu .app-bubble i { font-size: 1.42rem; }
-  #side-menu .app-label { font-size: 0.8rem; }
+/* Petits mobiles */
+@media (max-width: 360px){
+  #side-menu{ padding-left:14px; gap:24px; }
+  #side-menu .app-bubble{ width:60px; height:60px; }
+  #side-menu .app-bubble i{ font-size:1.42rem; }
+  #side-menu .app-label{ font-size:.82rem; }
 }
