@@ -13,7 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v53
+const VERSION        = 'pt-v54
 '; // bump version pour diffuser la MAJ
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
