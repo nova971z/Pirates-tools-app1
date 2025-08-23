@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- ===== Métadonnées de base ===== -->
+  <!-- ===== Métadonnées ===== -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
@@ -51,10 +51,18 @@
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
     .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    /* Correctif haut de page coupé: espace sous topbar fixe (cohérent avec styles.css) */
+    :root{--topbar-h:64px}
+    @media(min-width:480px){:root{--topbar-h:68px}}
+    body{padding-top:var(--topbar-h)} /* évite le chevauchement du hero sous la topbar */
+    /* Bouton triangle + hints (fallback léger si styles.css n'est pas chargé) */
+    #a2hsTriangle{position:fixed;left:50%;bottom:62px;transform:translateX(-50%);z-index:130;background:#0b0f12;border:1px solid #22303b;color:#e6edf5;border-radius:999px;padding:.4rem .6rem;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none}
+    #installHint,#iosTip{position:fixed;left:50%;transform:translateX(-50%);z-index:125;background:rgba(10,15,20,.92);color:#e6edf5;border:1px solid #22303b;border-radius:12px;padding:.5rem .7rem;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none}
+    #installHint{bottom:96px} #iosTip{bottom:128px}
   </style>
 </head>
 <body>
-  <!-- ===== Sprite SVG minimal (icônes modernes, réutilisables) ===== -->
+  <!-- ===== Sprite SVG (icônes modernes, réutilisables) ===== -->
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
     <defs>
       <symbol id="ico-grid" viewBox="0 0 24 24">
@@ -90,7 +98,7 @@
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
-  <!-- ========= TOPBAR (clean & responsive) ========= -->
+  <!-- ========= TOPBAR ========= -->
   <header class="topbar" role="banner" aria-label="Barre supérieure">
     <div class="topbar-left">
       <button id="menu-toggle" class="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
@@ -112,7 +120,7 @@
     </div>
   </header>
 
-  <!-- ===== VOILE NOIR + MENU LATERAL EN BULLES (aucun panneau gris) ===== -->
+  <!-- ===== Overlay + Menu latéral bulles ===== -->
   <div id="menu-overlay" hidden></div>
 
   <nav id="side-menu" class="app-grid" aria-label="Menu latéral">
@@ -124,42 +132,32 @@
     </a>
 
     <a href="#/catalogue" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-grid"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><use href="#ico-grid"/></svg></span>
       <span class="app-label">Catalogue</span>
     </a>
 
     <a href="#list" class="app-link" data-scroll="#list">
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tools"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><use href="#ico-tools"/></svg></span>
       <span class="app-label">Produits</span>
     </a>
 
     <a href="#/devis" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-quote"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><use href="#ico-quote"/></svg></span>
       <span class="app-label">Devis</span>
     </a>
 
     <a href="#/compte" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-user-shield"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><use href="#ico-user-shield"/></svg></span>
       <span class="app-label">Compte</span>
     </a>
 
     <a href="#contact" class="app-link" data-scroll="#contact">
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-plane"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true" width="22" height="22"><use href="#ico-plane"/></svg></span>
       <span class="app-label">Contact</span>
     </a>
   </nav>
 
-  <!-- ========= HERO (logo animé) ========= -->
+  <!-- ========= HERO ========= -->
   <section id="hero" class="hero-full" aria-label="Pirates Tools">
     <img id="heroLogo" class="hero-logo"
          src="./images/pirates-tools-logo.png?v=7"
@@ -169,7 +167,7 @@
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
-  <!-- ======= BARRE OUTILS (recherche/filtre) ======= -->
+  <!-- ======= BARRE OUTILS ======= -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
     <select id="tag" class="select" aria-label="Filtrer par tag">
@@ -180,7 +178,7 @@
     </select>
   </section>
 
-  <!-- ======= LISTE PRODUITS (injectée en JS) ======= -->
+  <!-- ======= LISTE PRODUITS ======= -->
   <main id="main" class="container" role="main">
     <section id="list" class="list" role="list" aria-label="Produits"></section>
   </main>
@@ -203,12 +201,8 @@
 
       <div class="pdp__grid">
         <div class="pdp__media">
-          <img id="pdpImg"
-               alt=""
-               loading="lazy"
-               decoding="async"
-               referrerpolicy="no-referrer"
-               crossorigin="anonymous"
+          <img id="pdpImg" alt="" loading="lazy" decoding="async"
+               referrerpolicy="no-referrer" crossorigin="anonymous"
                onerror="this.onerror=null; this.src='./images/pirates-tools-logo.png?v=7';" />
         </div>
 
@@ -257,9 +251,7 @@
   <section id="view-devis" class="view hidden" aria-label="Devis express">
     <div class="container">
       <h1 style="margin:1rem 0 .5rem" tabindex="-1">Devis express</h1>
-      <p style="margin:0 0 1rem; color:#9fb4c5">
-        Récapitulatif des articles sélectionnés + envoi WhatsApp.
-      </p>
+      <p style="margin:0 0 1rem; color:#9fb4c5">Récapitulatif des articles sélectionnés + envoi WhatsApp.</p>
 
       <div class="card">
         <div class="head"><h3 class="title">Votre sélection</h3></div>
@@ -311,7 +303,7 @@
     </div>
   </section>
 
-  <!-- ====== Barre de liens (doublon pratique) ====== -->
+  <!-- ====== Barre de liens ====== -->
   <nav class="site-links" aria-label="Liens rapides">
     <a class="chip" href="#/" data-route>Accueil</a>
     <a class="chip" href="#/catalogue" data-route>Catalogue</a>
@@ -321,24 +313,19 @@
     <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
   </nav>
 
-  <!-- ====== FOOTER / CONTACT ====== -->
+  <!-- ====== FOOTER ====== -->
   <footer id="contact" class="foot" role="contentinfo">
     <div class="foot__grid">
-      <div>
-        <strong>Pirates Tools</strong><br />
-        Antilles — Guadeloupe
-      </div>
+      <div><strong>Pirates Tools</strong><br />Antilles — Guadeloupe</div>
       <div>
         Tél : <a href="tel:+33774230195">07 74 23 01 95</a><br />
         WhatsApp : <a href="https://wa.me/33774230195" target="_blank" rel="noopener">ouvrir</a>
       </div>
-      <div>
-        © Pirates Tools — PWA rapide, hors-ligne, contact immédiat.
-      </div>
+      <div>© Pirates Tools — PWA rapide, hors-ligne, contact immédiat.</div>
     </div>
   </footer>
 
-  <!-- ====== DOCK MOBILE (actions rapides) ====== -->
+  <!-- ====== DOCK MOBILE ====== -->
   <nav class="dock" id="dock" aria-label="Actions rapides">
     <div class="dock__shell">
       <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
@@ -349,15 +336,15 @@
     </div>
   </nav>
 
-  <!-- ===== Bouton triangle + barres d’aide A2HS ===== -->
-  <button id="a2hsTriangle" class="a2hs-tri" aria-label="Installer l’app" hidden>▲</button>
-  <div id="installHint" class="install-hint" hidden>Appuie sur ▲ pour installer</div>
-  <div id="iosTip" class="ios-tip" hidden>Dans la fenêtre, choisis « Sur l’écran d’accueil ».</div>
+  <!-- ===== Bouton triangle + aides A2HS ===== -->
+  <button id="a2hsTriangle" aria-label="Installer l’app" hidden>▲</button>
+  <div id="installHint" hidden>Appuie sur ▲ pour installer</div>
+  <div id="iosTip" hidden>Dans le menu, choisis « Sur l’écran d’accueil ».</div>
 
-  <!-- PWA install (Android/Chromium) -->
+  <!-- ===== PWA install (Android/Chromium) ===== -->
   <button id="installBtn" hidden aria-label="Installer l’application">Installer l’app</button>
 
-  <!-- ===== JS : menu + A2HS iOS/Android ===== -->
+  <!-- ===== JS : menu + A2HS ===== -->
   <script>
     (function () {
       /* ===== Menu latéral ===== */
@@ -382,8 +369,8 @@
         body.classList.contains('menu-open') ? closeMenu() : openMenu();
       }
 
-      if (toggle)  toggle.addEventListener('click', toggleMenu);
-      if (overlay) overlay.addEventListener('click', closeMenu);
+      if (toggle)  toggle.addEventListener('click', toggleMenu, {passive:true});
+      if (overlay) overlay.addEventListener('click', closeMenu, {passive:true});
       window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
       if (side) side.addEventListener('click', (e) => {
