@@ -347,7 +347,7 @@
        role="dialog" aria-live="polite" aria-label="Installation de l’app">
     <span class="a2hs-tip__icon">▴</span>
     <span>Appuie sur <strong>▴</strong> pour installer</span>
-    <button class="a2hs-tip__close" id="a2hsTipClose" aria-label="Fermer">×</button>
+    <button class="a2hs-tip__close" id="a2hsClose" aria-label="Fermer">×</button>
   </div>
 
   <!-- ===== PWA install (Android/Chromium) ===== -->
@@ -386,11 +386,72 @@
     })();
   </script>
 
-  <!-- ===== JS minimal : fermer le coachmark (fallback si app.js pas à jour) ===== -->
+  <!-- ===== iOS A2HS + anti-blocage scroll + SW refresh ===== -->
+  <script>
+  (function () {
+    const TIP_KEY = 'pt_a2hs_dismissed_v2';
+    const tip      = document.getElementById('a2hsTip');
+    const triangle = document.getElementById('a2hsTriangle');
+    const isIOS    = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    function showTip(){
+      if (!tip || localStorage.getItem(TIP_KEY) || isStandalone) return;
+      tip.hidden = false;
+    }
+    function hideTip(persist){
+      if (tip){ tip.classList.add('out'); setTimeout(()=> tip.remove(),180); }
+      if (triangle){ triangle.remove(); }
+      if (persist) { try { localStorage.setItem(TIP_KEY,'1'); } catch(e){} }
+    }
+
+    // Délégation: la croix marche même si le DOM bouge
+    document.addEventListener('click', (e)=>{
+      if (e.target.closest('#a2hsClose'))    hideTip(true);
+      if (e.target.closest('#a2hsTriangle')) showTip();
+    }, {passive:true});
+
+    // Masquer au scroll prolongé
+    window.addEventListener('scroll', ()=>{ if (window.scrollY > 400) hideTip(false); }, {passive:true});
+
+    // Affichage iOS uniquement
+    if (isIOS && !isStandalone) {
+      if (triangle) triangle.hidden = false;
+      showTip();
+    }
+
+    // Anti "scroll bloqué" si un overflow:hidden traîne
+    const releaseScroll = ()=>{ document.body.classList.remove('menu-open'); document.body.style.overflow=''; };
+    window.addEventListener('hashchange', releaseScroll);
+    window.addEventListener('pageshow', releaseScroll);
+
+    // SW: hard refresh via query param
+    if ('serviceWorker' in navigator) {
+      const SW_VER = 'v61';
+      window.addEventListener('load', ()=>{
+        navigator.serviceWorker.register(`sw.js?${SW_VER}`).then(reg=>{
+          reg.addEventListener('updatefound', ()=>{
+            const nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', ()=>{
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                // Option: forcer un reload automatique :
+                // location.reload();
+              }
+            });
+          });
+        }).catch(console.warn);
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* prêt */ });
+    }
+  })();
+  </script>
+
+  <!-- ===== JS minimal (fallback) : fermer le coachmark si le bloc ci-dessus est indispo ===== -->
   <script>
     (function(){
       const tip = document.getElementById('a2hsTip');
-      const closeBtn = document.getElementById('a2hsTipClose');
+      const closeBtn = document.getElementById('a2hsClose');
       if (closeBtn && tip) {
         closeBtn.addEventListener('click', () => {
           tip.setAttribute('hidden','');
