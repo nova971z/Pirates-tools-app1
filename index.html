@@ -54,13 +54,13 @@
   </style>
 </head>
 <body>
-  <!-- ===== Sprite SVG (icônes modernes réutilisables) ===== -->
+  <!-- ===== Sprite SVG minimal (icônes modernes) ===== -->
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
     <defs>
       <symbol id="ico-grid" viewBox="0 0 24 24">
-        <rect x="3"  y="3"  width="7" height="7" rx="2" />
-        <rect x="14" y="3"  width="7" height="7" rx="2" />
-        <rect x="3"  y="14" width="7" height="7" rx="2" />
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
         <rect x="14" y="14" width="7" height="7" rx="2" />
       </symbol>
       <symbol id="ico-tools" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@
   <!-- ===== Skip link ===== -->
   <a href="#list" class="skip-link">Aller au contenu</a>
 
-  <!-- Zones d’annonce SR + toasts (IDs exigés par app.js) -->
+  <!-- Zones d’annonce SR + toasts -->
   <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
 
@@ -112,7 +112,7 @@
     </div>
   </header>
 
-  <!-- ===== VOILE NOIR + MENU LATERAL EN BULLES ===== -->
+  <!-- ===== VOILE + MENU LATERAL ===== -->
   <div id="menu-overlay" hidden></div>
 
   <nav id="side-menu" class="app-grid" aria-label="Menu latéral">
@@ -124,37 +124,27 @@
     </a>
 
     <a href="#/catalogue" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-grid"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-grid"/></svg></span>
       <span class="app-label">Catalogue</span>
     </a>
 
     <a href="#list" class="app-link" data-scroll="#list">
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tools"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tools"/></svg></span>
       <span class="app-label">Produits</span>
     </a>
 
     <a href="#/devis" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-quote"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-quote"/></svg></span>
       <span class="app-label">Devis</span>
     </a>
 
     <a href="#/compte" class="app-link" data-route>
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-user-shield"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-user-shield"/></svg></span>
       <span class="app-label">Compte</span>
     </a>
 
     <a href="#contact" class="app-link" data-scroll="#contact">
-      <span class="app-bubble">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-plane"/></svg>
-      </span>
+      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-plane"/></svg></span>
       <span class="app-label">Contact</span>
     </a>
   </nav>
@@ -169,7 +159,7 @@
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
 
-  <!-- ======= BARRE OUTILS ======= -->
+  <!-- ===== Toolbar ===== -->
   <section class="toolbar" aria-label="Recherche et filtres">
     <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
     <select id="tag" class="select" aria-label="Filtrer par tag">
@@ -180,12 +170,12 @@
     </select>
   </section>
 
-  <!-- ======= LISTE PRODUITS ======= -->
+  <!-- ===== Liste produits ===== -->
   <main id="main" class="container" role="main">
     <section id="list" class="list" role="list" aria-label="Produits"></section>
   </main>
 
-  <!-- ======= AVIS ======= -->
+  <!-- ===== Avis ===== -->
   <section class="ratings" aria-label="Avis clients">
     <h2 tabindex="-1" id="h-ratings">Ils nous font confiance</h2>
     <ul class="ratings__list">
@@ -195,7 +185,7 @@
     </ul>
   </section>
 
-  <!-- ======= VUES (router hash) ======= -->
+  <!-- ===== VUES (hash-router) ===== -->
 
   <!-- [VIEW] Produit -->
   <section id="view-produit" class="view hidden" aria-label="Fiche produit">
@@ -273,7 +263,7 @@
     </div>
   </section>
 
-  <!-- [VIEW] Compte + Fidélité -->
+  <!-- [VIEW] Compte -->
   <section id="view-compte" class="view hidden" aria-label="Espace client">
     <div class="container">
       <h1 style="margin:1rem 0 .5rem" tabindex="-1">Mon compte</h1>
@@ -312,7 +302,7 @@
     </div>
   </section>
 
-  <!-- ====== Barre de liens ====== -->
+  <!-- ===== Barre de liens ===== -->
   <nav class="site-links" aria-label="Liens rapides">
     <a class="chip" href="#/" data-route>Accueil</a>
     <a class="chip" href="#/catalogue" data-route>Catalogue</a>
@@ -322,7 +312,7 @@
     <a class="chip" href="#contact" data-scroll="#contact">Contact</a>
   </nav>
 
-  <!-- ====== FOOTER / CONTACT ====== -->
+  <!-- ===== Footer ===== -->
   <footer id="contact" class="foot" role="contentinfo">
     <div class="foot__grid">
       <div>
@@ -339,7 +329,7 @@
     </div>
   </footer>
 
-  <!-- ====== DOCK MOBILE ====== -->
+  <!-- ===== Dock mobile ===== -->
   <nav class="dock" id="dock" aria-label="Actions rapides">
     <div class="dock__shell">
       <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
@@ -350,21 +340,23 @@
     </div>
   </nav>
 
-  <!-- PWA install (Android/Chromium) -->
+  <!-- ===== Coachmark iOS A2HS (caché par défaut) ===== -->
+  <button id="a2hsTriangle" hidden aria-label="Installer l’application">▲</button>
+
+  <div id="a2hsTip" hidden
+       role="dialog" aria-live="polite" aria-label="Installation de l’app">
+    <span class="a2hs-tip__icon">▴</span>
+    <span>Appuie sur <strong>▴</strong> pour installer</span>
+    <button class="a2hs-tip__close" id="a2hsTipClose" aria-label="Fermer">×</button>
+  </div>
+
+  <!-- ===== PWA install (Android/Chromium) ===== -->
   <button id="installBtn" hidden aria-label="Installer l’application">Installer l’app</button>
 
-  <!-- ===== Coachmark iOS Add to Home Screen (bulle + bouton ▲) ===== -->
-  <div id="a2hsTip" hidden role="dialog" aria-live="polite" aria-label="Installation de l’app">
-    <span class="a2hs-tip__icon">📌</span>
-    <span class="a2hs-tip__text">Appuie sur <strong>▲</strong> pour installer</span>
-    <button type="button" class="a2hs-tip__close" aria-label="Fermer">✕</button>
-  </div>
-  <button id="a2hsTriangle" hidden aria-label="Ouvrir l’aide d’installation">▲</button>
-
-  <!-- ===== Menu JS (ouverture/fermeture + A11y) ===== -->
+  <!-- ===== JS Menu ===== -->
   <script>
     (function () {
-      const body    = document.body;
+      const body = document.body;
       const toggle  = document.getElementById('menu-toggle');
       const overlay = document.getElementById('menu-overlay');
       const side    = document.getElementById('side-menu');
@@ -385,66 +377,30 @@
         body.classList.contains('menu-open') ? closeMenu() : openMenu();
       }
 
-      if (toggle) toggle.addEventListener('click', toggleMenu);
+      if (toggle)  toggle.addEventListener('click', toggleMenu);
       if (overlay) overlay.addEventListener('click', closeMenu);
       window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-
       if (side) side.addEventListener('click', (e) => {
-        const link = e.target.closest('a');
-        if (link) closeMenu();
+        const link = e.target.closest('a'); if (link) closeMenu();
       });
     })();
   </script>
 
-  <!-- ===== A2HS iOS coachmark — ferme + mémorise ===== -->
+  <!-- ===== JS minimal : fermer le coachmark (fallback si app.js pas à jour) ===== -->
   <script>
-    (function () {
+    (function(){
       const tip = document.getElementById('a2hsTip');
-      const tri = document.getElementById('a2hsTriangle');
-      if (!tip || !tri) return;
-
-      const ua = navigator.userAgent || '';
-      const isIOS = /iphone|ipad|ipod/i.test(ua);
-      const isStandalone = !!(window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
-      const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
-
-      const STORAGE_KEY = 'a2hsTipClosedAt';
-      const SILENCE_HOURS = 72;
-      const now = Date.now();
-      const closedAt = Number(localStorage.getItem(STORAGE_KEY) || 0);
-      const recentlyClosed = closedAt && (now - closedAt) < SILENCE_HOURS * 3600 * 1000;
-
-      function showTip() { tip.hidden = false; tip.style.pointerEvents = 'auto'; }
-      function hideTip(persist = true) { tip.hidden = true; if (persist) localStorage.setItem(STORAGE_KEY, String(Date.now())); }
-      function showTriangle() { tri.hidden = false; }
-      function hideTriangle() { tri.hidden = true; }
-
-      if (isIOS && isSafari && !isStandalone && !recentlyClosed) {
-        showTriangle();
-        setTimeout(showTip, 900);
-        let auto = setTimeout(() => hideTip(false), 12000);
-        tip.addEventListener('mouseenter', () => clearTimeout(auto));
-        tip.addEventListener('touchstart', () => clearTimeout(auto), { passive: true });
-      } else {
-        hideTip(false); hideTriangle();
+      const closeBtn = document.getElementById('a2hsTipClose');
+      if (closeBtn && tip) {
+        closeBtn.addEventListener('click', () => {
+          tip.setAttribute('hidden','');
+          try { localStorage.setItem('hideA2HSTip','1'); } catch(e){}
+        }, { once:true });
       }
-
-      tri.addEventListener('click', () => showTip());
-      tip.querySelector('.a2hs-tip__close')?.addEventListener('click', () => hideTip(true));
-
-      tip.addEventListener('click', (e) => { if (e.target === tip) hideTip(true); }, { passive: true });
-
-      window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
-            hideTip(true); hideTriangle();
-          }
-        }
-      });
     })();
   </script>
 
-  <!-- Scripts app -->
+  <!-- App -->
   <script src="app.js" defer></script>
   <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
 </body>
