@@ -497,3 +497,41 @@ h3{ font-size: 1.05rem }
 /* 4) Toujours pouvoir « accrocher » le haut sous la topbar fixe */
 html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 #list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top: 84px }
+
+/* ====== PATCH WHATSAPP (pilule partout, rond seulement dans la topbar) ====== */
+
+/* Par défaut : même forme que les autres boutons */
+.btn.btn-wa{
+  width:auto;
+  height:auto;
+  padding:.7rem .95rem;
+  border-radius:12px;
+  background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
+  color:#042016;
+  font-size:1rem;
+  line-height:1.1;
+  box-shadow:var(--shadow);
+  flex:0 0 auto;
+}
+
+/* Évite la compression lorsqu’il y a plusieurs actions côte à côte */
+.actions .btn{ min-width:auto; flex:0 0 auto }
+@media (max-width:560px){ .actions .btn{ flex:1 1 100% } }
+
+/* Exception topbar : bouton rond, icône seule */
+.topbar .btn.btn-wa{
+  width:44px;
+  height:44px;
+  padding:0;
+  border-radius:999px;
+  font-size:1.25rem;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Ajustement mobile pour la topbar uniquement */
+@media (max-width:360px){
+  .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem }
+}
