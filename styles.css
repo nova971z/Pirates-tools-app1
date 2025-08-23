@@ -466,3 +466,34 @@ h3{ font-size: 1.05rem }
   #side-menu .app-bubble{ width:60px; height:60px }
   #side-menu .app-label{ font-size:.82rem }
 }
+
+/* ====== PATCH ARRONDIS & SCROLL SAFE ====== */
+
+/* 1) Chips toujours en pilule (Safari compris) */
+.chip{ 
+  border-radius:9999px !important; 
+  overflow:hidden;
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* force le rendu arrondi WebKit */
+}
+.site-links .chip{ border-radius:9999px !important }
+
+/* 2) Bouton retour (puce + contour) */
+.chip--back{
+  border:1px solid var(--border);
+  border-radius:9999px;
+  background:rgba(255,255,255,.05);
+  padding:.36rem .7rem;
+}
+
+/* 3) Bulle iOS (fermeture cliquable + position au-dessus du dock) */
+#a2hsTip{ pointer-events:auto; z-index:125 }
+#a2hsTip .a2hs-tip__close{
+  padding:.25rem; border-radius:6px; cursor:pointer;
+}
+#a2hsTip, #a2hsTriangle{
+  bottom: calc(96px + env(safe-area-inset-bottom,0px)); /* net au-dessus du dock */
+}
+
+/* 4) Toujours pouvoir « accrocher » le haut sous la topbar fixe */
+html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
+#list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top: 84px }
