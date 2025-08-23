@@ -156,6 +156,24 @@ h3{ font-size: 1.05rem }
 .ratings h2{ margin:0 0 .5rem; font-size:1.05rem }
 .ratings__list{ margin:0; padding-left:1.1rem }
 
+/* ================= CHIPS (arrondis, partout) ================= */
+.chip{
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.42rem .9rem;
+  border-radius:999px;                       /* <-- arrondi global */
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  color:#d9e3ec;
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
+}
+.chip:hover{ background:rgba(255,255,255,.07) }
+.chip--back{
+  border:1px solid var(--border);            /* <-- contour rétabli */
+  border-radius:999px;
+  background:rgba(255,255,255,.05);
+  padding:.36rem .7rem;
+}
+
 /* ================= SITE LINKS ================= */
 .site-links{
   width:min(1100px,92vw); margin:1rem auto 1.25rem;
@@ -164,7 +182,7 @@ h3{ font-size: 1.05rem }
   background:rgba(255,255,255,.03); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   box-shadow:var(--shadow); z-index:15;
 }
-.site-links .chip{ background:rgba(255,255,255,.05); padding:.30rem .58rem; font-size:.92rem; line-height:1.1; max-width:100%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap }
+.site-links .chip{ font-size:.92rem; line-height:1.1; max-width:100%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 @media (max-width: 420px){ .site-links{ gap:.28rem; padding:.44rem .55rem } .site-links .chip{ font-size:.88rem; padding:.28rem .54rem } }
 
@@ -226,7 +244,6 @@ h3{ font-size: 1.05rem }
 
 /* ================= PDP ================= */
 .pdp{ padding: .5rem 0 1.2rem }
-.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 .pdp__grid{ display:grid; gap:1.2rem; grid-template-columns: 1.2fr 1fr }
 .pdp__media{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.8rem; display:grid; place-items:center; min-height:180px }
 .pdp__media img{ width:100%; height:auto; display:block; max-height:56vh; object-fit:contain; transform: translateZ(0); filter: drop-shadow(0 18px 36px rgba(0,0,0,.35)) }
@@ -243,6 +260,9 @@ h3{ font-size: 1.05rem }
 .pdp__specs .badge{ background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10)); border-color:rgba(25,211,255,.45); color:#e6f7ff }
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 @media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr } }
+
+/* Bouton retour (pille + contour) */
+.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 
 /* ================= Catalogue ================= */
 .cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
@@ -346,6 +366,17 @@ h3{ font-size: 1.05rem }
 .a2hs-tip__icon{ display:inline-block; padding:.18rem .38rem; border-radius:8px; background:rgba(255,255,255,.06); border:1px solid var(--border); margin:0 .2rem }
 #a2hsTip .a2hs-tip__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px }
 @keyframes a2hs-in{ from{ transform:translateX(-50%) translateY(6px); opacity:0 } to{ transform:translateX(-50%) translateY(0); opacity:1 } }
+
+/* Bouton ▲ flottant (déclencheur install) */
+#a2hsTriangle{
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom,0px)); z-index:126;
+  border:1px solid var(--border);
+  background:rgba(10,15,20,.92);
+  color:#e6edf5; font-weight:900; line-height:1;
+  border-radius:999px; padding:.2rem .5rem; cursor:pointer;
+  box-shadow:var(--shadow);
+}
 
 /* ===== Net banner (fallback) ===== */
 #netBanner{
