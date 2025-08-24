@@ -17,9 +17,6 @@
 
 'use strict';
 
-
-
-
 /* ---------- Helpers (ES5-safe) ---------- */
 var $  = function(sel, root){ return (root || document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -93,8 +90,6 @@ function delegate(root, selector, type, handler){
     };
   }
 })();
-
-
 
 /* === (NOUVEAU) Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
@@ -237,9 +232,6 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
-
-
-
 /* ---------- Paiement : configuration ---------- */
 /* Provider PayPal (cart upload) */
 var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
@@ -258,7 +250,6 @@ var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
    Même principe : si ton lien accepte un montant en query, garde {AMOUNT} ou {AMOUNT_CENTS}.
 */
 var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
-
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -536,99 +527,7 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 })();
 
 /* =========================================================
-   5-bis) Accueil — bulles marques (vue dédiée)
-   - Accueil = hero + #view-home (bulles)
-   - Produits = route #/catalogue (toolbar + liste + ratings)
-========================================================= */
-
-/* slugify simple (ES5-safe) */
-function slugify(str){
-  try{
-    return String(str||'')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-      .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')
-      .toLowerCase();
-  }catch(_){
-    return String(str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-  }
-}
-
-/* Marques à afficher en home */
-var PT_BRANDS = [
-  'DeWalt',
-  'Milwaukee',
-  'Maffle',
-  'Makita',
-  'feston',
-  'flex',
-  'stanley',
-  'wera',
-  'facom'
-].map(function(name){ return { name: name, slug: slugify(name) }; });
-
-/* Injection (une seule fois) de la section #view-home sous le HERO */
-function ensureHomeView(){
-  var home = document.getElementById('view-home');
-  if (home) return home;
-  home = document.createElement('section');
-  home.id = 'view-home';
-  home.className = 'view home';
-  home.setAttribute('aria-label', 'Accueil');
-  home.innerHTML =
-    '<div class="container">' +
-      '<h1 style="margin:1rem 0 .5rem" tabindex="-1">Bienvenue</h1>' +
-      '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque pour afficher les produits associés.</p>' +
-      '<div id="brandGrid" class="brand-grid" role="list"></div>' +
-    '</div>';
-  if (hero && hero.parentNode) hero.parentNode.insertBefore(home, hero.nextSibling);
-  return home;
-}
-
-/* Rendu des bulles marques */
-function renderHomeBrands(){
-  var home = ensureHomeView();
-  var grid = $('#brandGrid', home);
-  if (!grid) return;
-  grid.innerHTML = PT_BRANDS.map(function(b){
-    return '' +
-      '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
-        '<span class="brand__bubble">' +
-          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" />' +
-          '<span class="brand__glass" aria-hidden="true"></span>' +
-        '</span>' +
-        '<span class="brand__label">'+b.name+'</span>' +
-      '</a>';
-  }).join('');
-}
-
-/* Clic bulles → filtre & route catalogue */
-(function bindBrandBubbles(){
-  document.addEventListener('click', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('[data-brand][data-brand-name]') : null;
-    if (!el) return;
-    e.preventDefault();
-    var label = el.getAttribute('data-brand-name') || '';
-    // On filtre par marque via la recherche (robuste)
-    if (tagEl) tagEl.value = '';
-    if (searchEl) searchEl.value = label;
-    // Applique le filtre et va sur la route Produits
-    if (typeof applyFilters === 'function') applyFilters();
-    location.hash = '#/catalogue';
-    // Scroll vers la liste après montée de la vue
-    setTimeout(function(){
-      var listNode = document.getElementById('list');
-      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
-    }, 120);
-  }, false);
-})();
-
-
-
-/* =========================================================
    6) Smooth scroll (depuis une vue → retour home avant scroll)
-   — robustifié (fallback iOS/Safari + once manuel)
-   — + redirection spéciale : si on est en Accueil et on clique « Produits » (#list),
-     on bascule d’abord sur #/catalogue puis on scrolle vers #list
 ========================================================= */
 (function smoothScrollLinks(){
   function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
@@ -646,7 +545,6 @@ function renderHomeBrands(){
       var targetIsList = (targetSel && targetSel.toLowerCase) ? (targetSel.toLowerCase() === '#list') : (targetSel === '#list');
       var h = (location.hash || '').toLowerCase();
 
-      // Cas spécial : depuis l’accueil (hash vide) vers #list => route catalogue
       if ((!h || h === '#' || h === '#/' || h === '#/home') && targetIsList){
         var fired = false;
         var once = function(){
@@ -662,8 +560,6 @@ function renderHomeBrands(){
 
       var inView = (/^#\//i).test(h);
       if (inView){
-        // Nouveau : si on est déjà dans une vue et qu’on cible #list,
-        // on route vers #/catalogue (où #list est visible), sinon on revient à l’accueil.
         var done = false;
         var once2 = function(){
           if (done) return; done = true;
@@ -679,9 +575,6 @@ function renderHomeBrands(){
     }, false);
   });
 })();
-
-
-
 
 /* =========================================================
    7) Anim “exit” (injection CSS + IntersectionObserver)
@@ -719,21 +612,15 @@ var ScrollExit = (function () {
   return { observeWithin: observeWithin };
 })();
 
-
-
-
 /* =========================================================
    8) PANIER (persistant)
 ========================================================= */
 function updateDock(){
-  // Compteur (même s’il est masqué en CSS, on garde la logique)
   var n = CART.length;
   if (dockCount){
     dockCount.textContent = n;
     dockCount.style.display = n ? '' : 'none';
   }
-
-  // Vibration douce du caddie UNIQUEMENT si n > 0
   if (dock){
     var cartBtn = document.getElementById('dockCartBtn') || dock.querySelector('.dock__btn--cart');
     if (cartBtn){
@@ -890,8 +777,6 @@ function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
 
-
-
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -952,7 +837,6 @@ function renderPDP(product){
   var elTag  = document.getElementById('pdpTag');
   var elDesc = document.getElementById('pdpDesc');
   var elSpecs= document.getElementById('pdpSpecs');
-  var elRel  = document.getElementById('pdpRelated');
   var btnQ   = document.getElementById('pdpQuote');
   var btnWa  = document.getElementById('pdpWa');
   var btnShare = document.getElementById('pdpShare');
@@ -1077,7 +961,7 @@ function renderPDP(product){
         catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
         priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
       }
-      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0)">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
     }
     elRelWrap.innerHTML = relHTML;
   }
@@ -1127,27 +1011,38 @@ function renderList(data){
   ScrollExit.observeWithin(listEl);
 }
 
-
 /* =========================================================
-   10) CATALOGUE (catégories auto)
+   10) CATALOGUE (catégories auto) — ES5 safe (sans Map)
 ========================================================= */
 function buildCategories(){
-  var map = new Map();
+  var bucket = {};
   for (var i=0;i<MODELS.length;i++){
     var m = MODELS[i];
     var raw = (m.category || m.badge || m.brand || '').toString().trim();
     if (!raw) continue;
     var key = raw.toLowerCase();
-    var prev = map.get(key);
-    map.set(key, { key: key, label: raw, count: (prev ? prev.count : 0) + 1 });
+    if (!Object.prototype.hasOwnProperty.call(bucket, key)){
+      bucket[key] = { key: key, label: raw, count: 0 };
+    }
+    bucket[key].count += 1;
   }
-  return Array.from(map.values()).sort(function(a,b){ return b.count - a.count; });
+  var out = [];
+  for (var k in bucket) if (Object.prototype.hasOwnProperty.call(bucket,k)) out.push(bucket[k]);
+  out.sort(function(a,b){ return b.count - a.count; });
+  return out;
 }
 
 function findSelectMatch(select, keyLower){
   if (!select) return null;
   var opts = Array.prototype.slice.call(select.options || []);
-  var m = opts.find(function(o){ return ((o.value||o.textContent||'').toLowerCase() === keyLower); });
+  var m = opts.find ? opts.find(function(o){ return ((o.value||o.textContent||'').toLowerCase() === keyLower); })
+                    : (function(){
+                        for (var i=0;i<opts.length;i++){
+                          var t = (opts[i].value||opts[i].textContent||'').toLowerCase();
+                          if (t === keyLower) return opts[i];
+                        }
+                        return null;
+                      })();
   return m ? (m.value || m.textContent) : null;
 }
 
@@ -1167,7 +1062,6 @@ function renderCatalogue(){
     if (tagEl){ tagEl.value = matchVal || ''; }
     if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
     if (typeof applyFilters === 'function') applyFilters();
-    // IMPORTANT : aller vers la vue Produits (et plus l’accueil)
     location.hash = '#/catalogue';
     setTimeout(function(){
       var listNode = document.getElementById('list');
@@ -1175,12 +1069,15 @@ function renderCatalogue(){
     }, 80);
   };
 
-  root.addEventListener('click', function(e){
-    var btn = e.target.closest ? e.target.closest('[data-cat-go]') : null;
-    var card = e.target.closest ? e.target.closest('.cat-card') : null;
-    if (btn) return go(btn.getAttribute('data-cat-go'));
-    if (card) return go(card.getAttribute('data-cat'));
-  });
+  if (!root.__wired){
+    root.__wired = 1;
+    root.addEventListener('click', function(e){
+      var btn = e.target.closest ? e.target.closest('[data-cat-go]') : null;
+      var card = e.target.closest ? e.target.closest('.cat-card') : null;
+      if (btn) return go(btn.getAttribute('data-cat-go'));
+      if (card) return go(card.getAttribute('data-cat'));
+    });
+  }
 }
 
 /* =========================================================
@@ -1193,8 +1090,7 @@ async function loadProducts(){
     MODELS = Array.isArray(json) ? json : (json.products || []);
     renderList(MODELS);
     renderCatalogue();
-    // Rendu home (bulles) à chaud
-    renderHomeBrands();
+    // (bulles marques rendues par le router au chargement)
     window.dispatchEvent(new CustomEvent('pt:productsLoaded'));
   }catch(e){
     console.error('Erreur chargement produits:', e);
@@ -1228,9 +1124,6 @@ var applyFilters = debounce(function(){
 
 if (searchEl) searchEl.addEventListener('input', applyFilters, true);
 if (tagEl) tagEl.addEventListener('change', applyFilters);
-
-
-
 
 /* =========================================================
    13) DEVIS (#/devis) — rendu dynamique (centimes + rangée paiement dédiée)
@@ -1358,9 +1251,6 @@ function renderCartView(){
   }
 }
 
-
-
-
 /* =========================================================
    13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
    — calculs 100% en centimes (fiables)
@@ -1476,8 +1366,6 @@ function payWithCrypto(){
   window.open(url, '_blank', 'noopener'); announce('Redirection vers Paiement Crypto');
 }
 
-
-
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
@@ -1558,8 +1446,8 @@ function gradeFromSpent(spent){
 }
 function renderAccount(){
   var u = loadUser();
-  var nameEl = $('#accName'); if (nameEl) nameEl.setAttribute('value', u.name || '');
-  var mailEl = $('#accEmail'); if (mailEl) mailEl.setAttribute('value', u.email || '');
+  var nameEl = $('#accName'); if (nameEl) nameEl.value = u.name || '';
+  var mailEl = $('#accEmail'); if (mailEl) mailEl.value = u.email || '';
   var spentEl= $('#accSpent'); if (spentEl) spentEl.textContent = (u.spent.toLocaleString('fr-FR') + ' €');
 
   var g = gradeFromSpent(u.spent);
@@ -1571,27 +1459,36 @@ function renderAccount(){
   var slider = $('#accSlider'); if (slider) slider.value = Math.min(u.spent, 5000);
 
   var saveBtn = $('#accSave');
-  if (saveBtn) saveBtn.addEventListener('click', function(){
-    var nu = { name: ($('#accName') && $('#accName').value) || '', email: ($('#accEmail') && $('#accEmail').value) || '', spent: u.spent };
-    saveUser(nu);
-  }, { once:true });
+  if (saveBtn && !saveBtn.__wired){
+    saveBtn.__wired = 1;
+    saveBtn.addEventListener('click', function(){
+      var nu = { name: ($('#accName') && $('#accName').value) || '', email: ($('#accEmail') && $('#accEmail').value) || '', spent: u.spent };
+      saveUser(nu);
+      toast('Compte enregistré', 'success');
+    });
+  }
 
   var resetBtn = $('#accReset');
-  if (resetBtn) resetBtn.addEventListener('click', function(){
-    saveUser({ name:u.name, email:u.email, spent:0 });
-    renderAccount();
-  }, { once:true });
+  if (resetBtn && !resetBtn.__wired){
+    resetBtn.__wired = 1;
+    resetBtn.addEventListener('click', function(){
+      saveUser({ name:u.name, email:u.email, spent:0 });
+      renderAccount();
+      toast('Compteur fidélité remis à zéro', 'success');
+    });
+  }
 
   var sliderEl = $('#accSlider');
-  if (sliderEl) sliderEl.addEventListener('input', function(e){
-    var spent = Number(e.target.value || 0);
-    var nu = { name: u.name, email: u.email, spent: spent };
-    saveUser(nu);
-    renderAccount();
-  });
+  if (sliderEl && !sliderEl.__wired){
+    sliderEl.__wired = 1;
+    sliderEl.addEventListener('input', function(e){
+      var spent = Number(e.target.value || 0);
+      var nu = { name: ($('#accName') && $('#accName').value) || u.name, email: ($('#accEmail') && $('#accEmail').value) || u.email, spent: spent };
+      saveUser(nu);
+      renderAccount();
+    });
+  }
 }
-
-
 
 /* =========================================================
    17) ROUTER (#/…)
@@ -1600,7 +1497,7 @@ function renderAccount(){
    - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
-  // ——— Petites utilitaires locales pour la vue Home ———
+  // ——— BULLes marques (définition unique, ici) ———
   function ensureHomeView(){
     if (document.getElementById('view-home')) return;
     var sec = document.createElement('section');
@@ -1611,7 +1508,6 @@ function renderAccount(){
       '<div class="container home" id="home">' +
         '<div class="brand-grid" id="brandGrid"></div>' +
       '</div>';
-    // On place la vue home juste après le HERO (si présent), sinon avant le catalogue
     var hero = document.getElementById('hero');
     var cat  = document.getElementById('view-catalogue');
     if (hero && hero.parentNode) hero.parentNode.insertBefore(sec, hero.nextSibling);
@@ -1622,7 +1518,7 @@ function renderAccount(){
   function renderHomeBrands(){
     var root = document.getElementById('brandGrid');
     if (!root) return;
-    if (root.__rendered) return; // évite les doublons
+    if (root.__rendered) return;
     root.__rendered = 1;
 
     var BRANDS = [
@@ -1638,7 +1534,6 @@ function renderAccount(){
     ];
 
     var html = BRANDS.map(function(b){
-      // Sécurité si le fichier logo n’existe pas : fallback sur le logo principal
       var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
       return '' +
         '<a href="#/catalogue" class="brand" data-brand="'+b.key+'">' +
@@ -1651,14 +1546,12 @@ function renderAccount(){
     }).join('');
     root.innerHTML = html;
 
-    // Clic d’une bulle => filtre & route vers catalogue
     root.addEventListener('click', function(e){
       var a = e.target && e.target.closest ? e.target.closest('.brand') : null;
       if (!a) return;
       e.preventDefault();
       var key = (a.getAttribute('data-brand') || '').toLowerCase();
 
-      // Si la marque existe dans #tag on la sélectionne, sinon on passe par la recherche
       if (typeof tagEl !== 'undefined' && tagEl){
         var val = null, i, opts = Array.prototype.slice.call(tagEl.options || []);
         for (i=0;i<opts.length;i++){
@@ -1675,9 +1568,8 @@ function renderAccount(){
       location.hash = '#/catalogue';
     }, false);
   }
-  // ——— fin utilitaires home ———
+  // ——— fin bulles ———
 
-  // S’assure que la vue home existe, puis rend les bulles (une seule fois)
   ensureHomeView();
   renderHomeBrands();
 
@@ -1814,8 +1706,6 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
-
-
 
 /* =========================================================
    18) PT utils + AUTO-TEST (facultatif, dev-only)
