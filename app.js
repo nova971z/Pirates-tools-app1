@@ -643,10 +643,11 @@ function renderHomeBrands(){
     a.addEventListener('click', function(e){
       e.preventDefault();
       var targetSel = a.getAttribute('data-scroll') || a.getAttribute('href') || '';
+      var targetIsList = (targetSel && targetSel.toLowerCase) ? (targetSel.toLowerCase() === '#list') : (targetSel === '#list');
       var h = (location.hash || '').toLowerCase();
 
       // Cas spécial : depuis l’accueil (hash vide) vers #list => route catalogue
-      if ((!h || h === '#' || h === '#/' || h === '#/home') && targetSel === '#list'){
+      if ((!h || h === '#' || h === '#/' || h === '#/home') && targetIsList){
         var fired = false;
         var once = function(){
           if (fired) return; fired = true;
@@ -659,8 +660,10 @@ function renderHomeBrands(){
         return;
       }
 
-      var inView = (/^#\//i).test(location.hash);
+      var inView = (/^#\//i).test(h);
       if (inView){
+        // Nouveau : si on est déjà dans une vue et qu’on cible #list,
+        // on route vers #/catalogue (où #list est visible), sinon on revient à l’accueil.
         var done = false;
         var once2 = function(){
           if (done) return; done = true;
@@ -668,7 +671,7 @@ function renderHomeBrands(){
           requestAnimationFrame(function(){ smoothScrollTo(targetSel); });
         };
         window.addEventListener('hashchange', once2, false);
-        location.hash = '';
+        location.hash = targetIsList ? '#/catalogue' : '';
         setTimeout(function(){ if (!done) once2(); }, 150);
       } else {
         smoothScrollTo(targetSel);
