@@ -17,9 +17,6 @@
 
 'use strict';
 
-
-
-
 /* ---------- Helpers (ES5-safe) ---------- */
 var $  = function(sel, root){ return (root || document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -94,8 +91,6 @@ function delegate(root, selector, type, handler){
   }
 })();
 
-
-
 /* === (NOUVEAU) Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
 
@@ -147,6 +142,17 @@ function resetPageMeta(){
   document.head.appendChild(style);
 })();
 
+/* Conteneur de toasts auto-créé au besoin */
+function ensureToastsContainer(){
+  var el = document.getElementById('toasts');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'toasts';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
 // Dock: visibilité contrôlée par le scroll du hero (et via le router)
 function showDock(visible){
   if (!dock) return;
@@ -167,7 +173,7 @@ function announce(msg){
 
 function toast(msg, kind){
   if (kind === void 0) kind = 'success';
-  if (!toastsC) return;
+  var host = ensureToastsContainer();
   var el = document.createElement('div');
   el.className = 'toast toast--' + kind;
   el.innerHTML = '\n    <div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div>\n    <div class="toast__body">'+msg+'</div>\n    <button class="toast__close" aria-label="Fermer">✖</button>\n  ';
@@ -177,7 +183,7 @@ function toast(msg, kind){
   };
   var btn = el.querySelector('.toast__close');
   if (btn) btn.addEventListener('click', close);
-  toastsC.appendChild(el);
+  host.appendChild(el);
   setTimeout(close, 3200);
 }
 
@@ -237,28 +243,11 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
-
-
-
 /* ---------- Paiement : configuration ---------- */
-/* Provider PayPal (cart upload) */
-var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
+var PAYPAL_BUSINESS = 'votre-email-paypal@example.com';
 var CURRENCY = 'EUR';
-
-/* Carte + Apple Pay (Stripe Payment Link ou équivalent)
-   Mets ici un lien de paiement qui accepte Apple Pay (Stripe, Paddle, Lemon Squeezy…).
-   Astuce : si ton fournisseur accepte un montant en query, garde nos tokens :
-   - {AMOUNT}        → 129.90
-   - {AMOUNT_CENTS}  → 12990
-   Exemple Stripe (variable selon ton compte) : 'https://buy.stripe.com/abcd1234?prefilled_amount={AMOUNT}'
-*/
-var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
-
-/* Crypto (Coinbase Commerce / NOWPayments / CoinGate …)
-   Même principe : si ton lien accepte un montant en query, garde {AMOUNT} ou {AMOUNT_CENTS}.
-*/
-var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
-
+var STRIPE_PAY_LINK = '';
+var CRYPTO_PAY_LINK = '';
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -537,11 +526,7 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 
 /* =========================================================
    5-bis) Accueil — bulles marques (vue dédiée)
-   - Accueil = hero + #view-home (bulles)
-   - Produits = route #/catalogue (toolbar + liste + ratings)
 ========================================================= */
-
-/* slugify simple (ES5-safe) */
 function slugify(str){
   try{
     return String(str||'')
@@ -553,7 +538,6 @@ function slugify(str){
   }
 }
 
-/* Marques à afficher en home */
 var PT_BRANDS = [
   'DeWalt',
   'Milwaukee',
@@ -566,7 +550,6 @@ var PT_BRANDS = [
   'facom'
 ].map(function(name){ return { name: name, slug: slugify(name) }; });
 
-/* Injection (une seule fois) de la section #view-home sous le HERO */
 function ensureHomeView(){
   var home = document.getElementById('view-home');
   if (home) return home;
@@ -584,16 +567,16 @@ function ensureHomeView(){
   return home;
 }
 
-/* Rendu des bulles marques */
 function renderHomeBrands(){
   var home = ensureHomeView();
   var grid = $('#brandGrid', home);
   if (!grid) return;
   grid.innerHTML = PT_BRANDS.map(function(b){
+    var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
     return '' +
       '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
         '<span class="brand__bubble">' +
-          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" />' +
+          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" onerror="'+onerr+'"/>' +
           '<span class="brand__glass" aria-hidden="true"></span>' +
         '</span>' +
         '<span class="brand__label">'+b.name+'</span>' +
@@ -638,13 +621,10 @@ function ensureCatalogueBrands(){
     if (!el) return;
     e.preventDefault();
     var label = el.getAttribute('data-brand-name') || '';
-    // On filtre par marque via la recherche (robuste)
     if (tagEl) tagEl.value = '';
     if (searchEl) searchEl.value = label;
-    // Applique le filtre et va sur la route Produits
     if (typeof applyFilters === 'function') applyFilters();
     location.hash = '#/catalogue';
-    // Scroll vers la liste après montée de la vue
     setTimeout(function(){
       var listNode = document.getElementById('list');
       if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
@@ -652,13 +632,8 @@ function ensureCatalogueBrands(){
   }, false);
 })();
 
-
-
 /* =========================================================
-   6) Smooth scroll (depuis une vue → retour home avant scroll)
-   — robustifié (fallback iOS/Safari + once manuel)
-   — + redirection spéciale : si on est en Accueil et on clique « Produits » (#list),
-     on bascule d’abord sur #/catalogue puis on scrolle vers #list
+   6) Smooth scroll + redirections (#list)
 ========================================================= */
 (function smoothScrollLinks(){
   function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
@@ -676,7 +651,6 @@ function ensureCatalogueBrands(){
       var targetIsList = (targetSel && targetSel.toLowerCase) ? (targetSel.toLowerCase() === '#list') : (targetSel === '#list');
       var h = (location.hash || '').toLowerCase();
 
-      // Cas spécial : depuis l’accueil (hash vide) vers #list => route catalogue
       if ((!h || h === '#' || h === '#/' || h === '#/home') && targetIsList){
         var fired = false;
         var once = function(){
@@ -692,8 +666,6 @@ function ensureCatalogueBrands(){
 
       var inView = (/^#\//i).test(h);
       if (inView){
-        // Nouveau : si on est déjà dans une vue et qu’on cible #list,
-        // on route vers #/catalogue (où #list est visible), sinon on revient à l’accueil.
         var done = false;
         var once2 = function(){
           if (done) return; done = true;
@@ -709,9 +681,6 @@ function ensureCatalogueBrands(){
     }, false);
   });
 })();
-
-
-
 
 /* =========================================================
    7) Anim “exit” (injection CSS + IntersectionObserver)
@@ -749,21 +718,15 @@ var ScrollExit = (function () {
   return { observeWithin: observeWithin };
 })();
 
-
-
-
 /* =========================================================
    8) PANIER (persistant)
 ========================================================= */
 function updateDock(){
-  // Compteur (même s’il est masqué en CSS, on garde la logique)
   var n = CART.length;
   if (dockCount){
     dockCount.textContent = n;
     dockCount.style.display = n ? '' : 'none';
   }
-
-  // Vibration douce du caddie UNIQUEMENT si n > 0
   if (dock){
     var cartBtn = document.getElementById('dockCartBtn') || dock.querySelector('.dock__btn--cart');
     if (cartBtn){
@@ -844,10 +807,10 @@ function absoluteUrl(u){
 }
 function schemaAvailability(p){
   var s = (p.stock_status || '').toLowerCase();
-  if (s === 'in_stock')     return 'http://schema.org/InStock';
-  if (s === 'low_stock')    return 'http://schema.org/LimitedAvailability';
-  if (s === 'out_of_stock') return 'http://schema.org/OutOfStock';
-  return (p.stock_qty > 0) ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock';
+  if (s === 'in_stock')     return 'https://schema.org/InStock';
+  if (s === 'low_stock')    return 'https://schema.org/LimitedAvailability';
+  if (s === 'out_of_stock') return 'https://schema.org/OutOfStock';
+  return (p.stock_qty > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
 }
 function buildProductJsonLD(p){
   var images = [];
@@ -859,6 +822,9 @@ function buildProductJsonLD(p){
     : (typeof p.price_cents === 'number' ? p.price_cents/100 : undefined);
 
   var url = location.origin + location.pathname + '#/produit/' + encodeURIComponent(p.id || p.sku || (p.title || ''));
+
+  var condition = 'https://schema.org/NewCondition';
+  if (p && (p.used === true || p.condition === 'used')) condition = 'https://schema.org/UsedCondition';
 
   var data = {
     "@context": "https://schema.org",
@@ -876,7 +842,7 @@ function buildProductJsonLD(p){
       "priceCurrency": (p.currency || "EUR"),
       "price": price != null ? String(price) : undefined,
       "availability": schemaAvailability(p),
-      "itemCondition": p.new ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+      "itemCondition": condition,
       "url": url
     }
   };
@@ -920,342 +886,48 @@ function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
 
-
-
-/* =========================================================
-   9) PRODUITS : rendu liste / PDP
-========================================================= */
-function productToHTML(m){
-  var title = fallback(m.title, (fallback(m.brand,'') + (m.brand?' ':'') + fallback(m.sku,''))).trim();
-  var tag   = fallback(m.badge, (Array.isArray(m.tags)&&m.tags[0]) || fallback(m.tag,'')).trim();
-  var desc  = fallback(m.desc, fallback(m.description,''));
-  var id    = String(fallback(m.id, fallback(m.sku, title)));
-
-  var currency   = m && m.currency ? m.currency : 'EUR';
-  var priceCents = (m && typeof m.price_cents === 'number' && isFinite(m.price_cents))
-      ? Math.round(m.price_cents)
-      : (m && typeof m.price === 'number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
-  var priceHtml  = '';
-  if (priceCents != null){
-    var priceText = '';
-    try { priceText = (priceCents/100).toLocaleString('fr-FR', { style:'currency', currency: currency }); }
-    catch(_){ priceText = (priceCents/100).toFixed(2)+' '+currency; }
-    priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
-  }
-
-  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
-}
-
-function bindAddToCart(scopeData){
-  $$('[data-add]', listEl).forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      var id = btn.getAttribute('data-add');
-      var p  = scopeData.find(function(x){
-        return (x.id && String(x.id)===id) || (x.sku && String(x.sku)===id) || (x.title===id);
-      });
-      if (!p) return;
-      CART.push(p);
-      saveCart();
-      notifyCartAdded(p.title || p.sku || 'Article');
-    });
-  });
-}
-
-function findProductByKey(key){
-  if (!key) return null;
-  var k = String(key).toLowerCase();
-  return MODELS.find(function(m){
-    var id  = String((m && m.id!=null)  ? m.id  : ((m && m.sku!=null) ? m.sku : '')).toLowerCase();
-    var sku = String((m && m.sku!=null) ? m.sku : '').toLowerCase();
-    var ttl = String((m && m.title!=null)? m.title: '').toLowerCase();
-    return id===k || sku===k || ttl===k;
-  }) || null;
-}
-
-function renderPDP(product){
-  var wrap   = document.getElementById('pdp');
-  if (!wrap) return;
-
-  var elImg  = document.getElementById('pdpImg');
-  var elT    = document.getElementById('pdpTitle');
-  var elTag  = document.getElementById('pdpTag');
-  var elDesc = document.getElementById('pdpDesc');
-  var elSpecs= document.getElementById('pdpSpecs');
-  var elRel  = document.getElementById('pdpRelated');
-  var btnQ   = document.getElementById('pdpQuote');
-  var btnWa  = document.getElementById('pdpWa');
-  var btnShare = document.getElementById('pdpShare');
-
-  var title = product.title || ((product.brand||'') + ' ' + (product.sku||'')).trim();
-  var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
-  var desc  = product.desc || product.description || '';
-  var img   = product.img  || IMG_FALLBACK;
-
-  if (elT) elT.textContent = title;
-  if (elTag) elTag.textContent = tag ? '#'+tag : '';
-  if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
-
-  if (elImg){ setSafeImg(elImg, img, product.images_alt || title || ''); }
-
-  var currency   = product && product.currency ? product.currency : 'EUR';
-  var priceCents = (product && typeof product.price_cents === 'number' && isFinite(product.price_cents))
-      ? Math.round(product.price_cents)
-      : (product && typeof product.price === 'number' && isFinite(product.price)) ? Math.round(product.price*100) : null;
-
-  var priceEl = document.getElementById('pdpPrice');
-  if (!priceEl){
-    priceEl = document.createElement('p');
-    priceEl.id = 'pdpPrice';
-    priceEl.className = 'pdp__price';
-    priceEl.style.margin = '.35rem 0';
-    priceEl.style.fontWeight = '700';
-    if (elDesc && elDesc.parentNode){ elDesc.parentNode.insertBefore(priceEl, elDesc.nextSibling); }
-  }
-  if (priceCents != null){
-    try { priceEl.textContent = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
-    catch(_){ priceEl.textContent = (priceCents/100).toFixed(2)+' '+currency; }
-  } else {
-    priceEl.textContent = '';
-  }
-
-  var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
-  var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
-
-  var kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
-  var kvDerived = {
-    'Plateforme': product.platform || undefined,
-    'Moteur': product.motor || undefined,
-    'Couple max': (product.torque_nm!=null) ? (product.torque_nm+' Nm') : undefined,
-    'Vitesses': product.rpm || undefined,
-    'Cadence de chocs': product.ipm || undefined,
-    'Mandrin': product.chuck || undefined,
-    'Longueur': (product.length_mm!=null) ? (product.length_mm+' mm') : undefined,
-    'Poids': (product.weight_kg!=null) ? (product.weight_kg+' kg') : undefined,
-    'Garantie': (product.warranty_months!=null) ? (product.warranty_months+' mois') : undefined
-  };
-  var merged = {};
-  if (kvFromJson) Object.keys(kvFromJson).forEach(function(k){ if (kvFromJson[k]!=null && kvFromJson[k]!=='') merged[k]=kvFromJson[k]; });
-  Object.keys(kvDerived).forEach(function(k){ var v = kvDerived[k]; if (v!=null && v!=='') merged[k]=v; });
-
-  var tableHtml = '';
-  if (Object.keys(merged).length){
-    var rows = Object.keys(merged).map(function(k){ return '<tr><th>'+k+'</th><td>'+merged[k]+'</td></tr>'; }).join('');
-    tableHtml = '\n      <li style="list-style:none; padding:0; margin:.6rem 0 0">\n        <div class="badge" style="margin:0 0 .4rem; display:inline-flex; align-items:center; gap:.4rem">⚙️ Caractéristiques techniques</div>\n        <div style="overflow:auto">\n          <table style="width:100%; border-collapse:collapse; font-size:.95rem">\n            <tbody>'+rows+'</tbody>\n          </table>\n        </div>\n      </li>';
-  }
-
-  if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
-
-  if (btnQ){
-    btnQ.textContent = 'Ajouter au panier';
-    btnQ.onclick = function(){
-      CART.push(product);
-      saveCart();
-      notifyCartAdded(product.title || product.sku || 'Article');
-    };
-  }
-
-  var sku = product.sku || product.id || title;
-  var productLink = location.origin + location.pathname + '#/produit/' + encodeURIComponent(product.id || product.sku || title);
-  var contactSuffix = '';
-  try{
-    var u = (typeof loadUser === 'function') ? loadUser() : null;
-    var arr = [];
-    if (u && u.name)  arr.push('Nom: ' + u.name);
-    if (u && u.email) arr.push('Email: ' + u.email);
-    contactSuffix = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
-  }catch(_){}
-  var textPDP = 'Bonjour, je souhaite un devis pour:\n• ' + sku + ' – ' + title + '\n\nLien: ' + productLink + contactSuffix + '\n\nMerci.';
-  var phone = PHONE_E164.replace('+','');
-  if (btnWa) btnWa.href = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(textPDP);
-
-  if (btnShare){
-    btnShare.onclick = function(){
-      (async function(){
-        try{
-          var shareData = { title: title+' • Pirates Tools', text: title, url: productLink };
-          if (navigator.share) {
-            await navigator.share(shareData);
-          } else if (navigator.clipboard && navigator.clipboard.writeText){
-            await navigator.clipboard.writeText(productLink);
-            toast('Lien copié dans le presse-papiers', 'success');
-          }
-        }catch(_){}
-      })();
-    };
-  }
-
-  var related = MODELS.filter(function(m){
-    return (m!==product) && (
-      (product.category && m.category===product.category) ||
-      (tag && ((m.badge===tag) || (Array.isArray(m.tags) && m.tags.indexOf(tag)!==-1)))
-    );
-  }).slice(0,3);
-
-  var elRelWrap = document.getElementById('pdpRelated');
-  if (elRelWrap){
-    var relHTML = '';
-    for (var i=0;i<related.length;i++){
-      var m = related[i];
-      var cur = (m && m.currency) ? m.currency : 'EUR';
-      var pc  = (m && typeof m.price_cents==='number' && isFinite(m.price_cents)) ? Math.round(m.price_cents)
-              : (m && typeof m.price==='number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
-      var priceLine = '';
-      if (pc!=null){
-        var ptxt='';
-        try { ptxt = (pc/100).toLocaleString('fr-FR',{style:'currency',currency:cur}); }
-        catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
-        priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
-      }
-      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0)">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
-    }
-    elRelWrap.innerHTML = relHTML;
-  }
-
-  if (elRelWrap){
-    elRelWrap.addEventListener('click', function(e){
-      var btn = e.target.closest ? e.target.closest('[data-add]') : null;
-      if (!btn) return;
-      var id = btn.getAttribute('data-add');
-      var p  = MODELS.find(function(x){ return ((x.id||x.sku||x.title)+'') === id; });
-      if (p){
-        CART.push(p);
-        saveCart();
-        notifyCartAdded(p.title || p.sku || 'Article');
-      }
-      e.stopPropagation();
-    });
-  }
-
-  $$('.pdp__related .card').forEach(function(card){
-    card.addEventListener('click', function(e){
-      if (e.target.closest && e.target.closest('[data-add]')) return;
-      var id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = '#/produit/' + encodeURIComponent(id);
-    });
-  });
-
-  injectProductJsonLD(product);
-}
-
-function renderList(data){
-  if (!Array.isArray(data)) return;
-  if (listEl) listEl.innerHTML = data.map(productToHTML).join('\n');
-
-  bindAddToCart(data);
-
-  $$('.card', listEl).forEach(function(card){
-    card.addEventListener('click', function(e){
-      if (e.target.closest && e.target.closest('[data-add]')) return;
-      var id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = '#/produit/' + encodeURIComponent(id);
-    });
-  });
-
-  ScrollExit.observeWithin(listEl);
-}
-
-/* ===== Rendu liste dans un conteneur arbitraire (pour la page catégorie) ===== */
-function renderListInto(root, data){
-  if (!root) return;
-  root.innerHTML = (Array.isArray(data) ? data.map(productToHTML).join('\n') : '');
-
-  // Bind add-to-cart sur ce conteneur
-  $$('[data-add]', root).forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      var id = btn.getAttribute('data-add');
-      var p  = (Array.isArray(data)? data : MODELS).find(function(x){
-        return (x.id && String(x.id)===id) || (x.sku && String(x.sku)===id) || (x.title===id);
-      });
-      if (!p) return;
-      CART.push(p);
-      saveCart();
-      notifyCartAdded(p.title || p.sku || 'Article');
-    });
-  });
-
-  // Navigation vers PDP
-  $$('.card', root).forEach(function(card){
-    card.addEventListener('click', function(e){
-      if (e.target.closest && e.target.closest('[data-add]')) return;
-      var id = card.getAttribute('data-id');
-      if (!id) return;
-      location.hash = '#/produit/' + encodeURIComponent(id);
-    });
-  });
-
-  ScrollExit.observeWithin(root);
-}
-
-/* ===== Vue Catégorie (création à la volée) ===== */
-function ensureCategoryView(){
-  var sec = document.getElementById('view-category');
-  if (sec) return sec;
-
-  sec = document.createElement('section');
-  sec.id = 'view-category';
-  sec.className = 'view hidden';
-  sec.setAttribute('aria-label','Catégorie');
-  sec.innerHTML =
-    '<div class="container">'+
-      '<h1 id="catTitle" tabindex="-1">Catégorie</h1>'+
-      '<div id="categoryList"></div>'+
-    '</div>';
-
-  // On place la vue près du catalogue
-  var heroEl = document.getElementById('hero');
-  var cat = document.getElementById('view-catalogue');
-  if (heroEl && heroEl.parentNode) heroEl.parentNode.insertBefore(sec, cat || heroEl.nextSibling);
-  else document.body.appendChild(sec);
-
-  return sec;
-}
-
-/* ===== Rendu d’une catégorie ===== */
-function renderCategoryPage(slugLower){
-  var view = ensureCategoryView();
-  var titleEl = document.getElementById('catTitle');
-  var list = document.getElementById('categoryList');
-
-  var cats = buildCategories();
-  var found = cats.find(function(c){ return c.key === slugLower; });
-  var label = found ? found.label : slugLower;
-
-  if (titleEl){ titleEl.textContent = label; }
-
-  var items = MODELS.filter(function(m){
-    var raw = (m.category || m.badge || m.brand || '').toString().trim().toLowerCase();
-    return raw === slugLower;
-  });
-
-  renderListInto(list, items);
-}
-
-
 /* =========================================================
    10) CATALOGUE (catégories auto)
 ========================================================= */
+
+/* Polyfill CustomEvent (iOS/Safari anciens) */
+(function(){
+  if (typeof window.CustomEvent !== 'function') {
+    function CustomEvent (event, params) {
+      params = params || { bubbles:false, cancelable:false, detail:null };
+      var evt = document.createEvent('CustomEvent');
+      evt.initCustomEvent(event, !!params.bubbles, !!params.cancelable, params.detail);
+      return evt;
+    }
+    CustomEvent.prototype = window.Event ? window.Event.prototype : {};
+    window.CustomEvent = CustomEvent;
+  }
+})();
+
 function buildCategories(){
-  var map = new Map();
+  var map = {}; // ES5-safe (pas de Map)
   for (var i=0;i<MODELS.length;i++){
     var m = MODELS[i];
     var raw = (m.category || m.badge || m.brand || '').toString().trim();
     if (!raw) continue;
     var key = raw.toLowerCase();
-    var prev = map.get(key);
-    map.set(key, { key: key, label: raw, count: (prev ? prev.count : 0) + 1 });
+    if (!map[key]) map[key] = { key:key, label:raw, count:0 };
+    map[key].count += 1;
   }
-  return Array.from(map.values()).sort(function(a,b){ return b.count - a.count; });
+  var out = [];
+  for (var k in map) if (Object.prototype.hasOwnProperty.call(map,k)) out.push(map[k]);
+  out.sort(function(a,b){ return b.count - a.count; });
+  return out;
 }
 
 function findSelectMatch(select, keyLower){
   if (!select) return null;
   var opts = Array.prototype.slice.call(select.options || []);
-  var m = opts.find(function(o){ return ((o.value||o.textContent||'').toLowerCase() === keyLower); });
-  return m ? (m.value || m.textContent) : null;
+  for (var i=0;i<opts.length;i++){
+    var val = (opts[i].value || opts[i].textContent || '');
+    if (val.toLowerCase() === keyLower) return (opts[i].value || opts[i].textContent);
+  }
+  return null;
 }
 
 function renderCatalogue(){
@@ -1269,7 +941,7 @@ function renderCatalogue(){
       }).join('')
     : '<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>';
 
-  var go = function(keyLower){
+  function go(keyLower){
     var matchVal = findSelectMatch(tagEl, keyLower);
     if (tagEl){ tagEl.value = matchVal || ''; }
     if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
@@ -1286,32 +958,43 @@ function renderCatalogue(){
     window.addEventListener('hashchange', once, false);
     location.hash = '#/categorie/' + encodeURIComponent(keyLower);
     setTimeout(function(){ if (!fired) once(); }, 150);
-  };
+  }
 
-  root.addEventListener('click', function(e){
-    var btn = e.target.closest ? e.target.closest('[data-cat-go]') : null;
-    var card = e.target.closest ? e.target.closest('.cat-card') : null;
-    if (btn) return go(btn.getAttribute('data-cat-go'));
-    if (card) return go(card.getAttribute('data-cat'));
-  });
+  // Lier une seule fois
+  if (!root.__wired){
+    root.__wired = 1;
+    root.addEventListener('click', function(e){
+      var btn  = e.target && e.target.closest ? e.target.closest('[data-cat-go]') : null;
+      var card = e.target && e.target.closest ? e.target.closest('.cat-card') : null;
+      if (btn) { go(btn.getAttribute('data-cat-go')); return; }
+      if (card){ go(card.getAttribute('data-cat'));   return; }
+    });
+  }
 }
 
 /* =========================================================
    11) CHARGEMENT PRODUITS
+   (version ES5-safe : Promises, pas d'async/await)
 ========================================================= */
-async function loadProducts(){
+function loadProducts(){
   try{
-    var r = await fetch('products.json', { cache:'no-store' });
-    var json = await r.json();
-    MODELS = Array.isArray(json) ? json : (json.products || []);
-    renderList(MODELS);
-    renderCatalogue();
-    // Rendu home (bulles) à chaud
-    renderHomeBrands();
-    window.dispatchEvent(new CustomEvent('pt:productsLoaded'));
+    return fetch('products.json', { cache:'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(json){
+        MODELS = Array.isArray(json) ? json : (json && json.products ? json.products : []);
+        renderList(MODELS);
+        renderCatalogue();
+        // Rendu home (bulles) à chaud
+        if (typeof renderHomeBrands === 'function') renderHomeBrands();
+        try { window.dispatchEvent(new CustomEvent('pt:productsLoaded')); } catch(_){}
+      })
+      .catch(function(e){
+        console.error('Erreur chargement produits:', e);
+        if (listEl) listEl.innerHTML =
+          '\n      <div class="card">\n        <div class="head"><h3 class="title">Produits indisponibles</h3></div>\n        <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div>\n      </div>';
+      });
   }catch(e){
-    console.error('Erreur chargement produits:', e);
-    if (listEl) listEl.innerHTML = '\n      <div class="card">\n        <div class="head"><h3 class="title">Produits indisponibles</h3></div>\n        <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div>\n      </div>';
+    console.error('Erreur fetch products.json:', e);
   }
 }
 loadProducts();
@@ -1340,7 +1023,7 @@ var applyFilters = debounce(function(){
 }, 120);
 
 if (searchEl) searchEl.addEventListener('input', applyFilters, true);
-if (tagEl) tagEl.addEventListener('change', applyFilters);
+if (tagEl)    tagEl.addEventListener('change', applyFilters);
 
 // #tag => route catégorie dédiée (affiche sa page propre)
 (function wireTagToRoute(){
@@ -1352,8 +1035,6 @@ if (tagEl) tagEl.addEventListener('change', applyFilters);
     else   location.hash = '#/catalogue';
   });
 })();
-
-
 
 /* =========================================================
    13) DEVIS (#/devis) — rendu dynamique (centimes + rangée paiement dédiée)
@@ -1481,9 +1162,6 @@ function renderCartView(){
   }
 }
 
-
-
-
 /* =========================================================
    13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
    — calculs 100% en centimes (fiables)
@@ -1599,8 +1277,6 @@ function payWithCrypto(){
   window.open(url, '_blank', 'noopener'); announce('Redirection vers Paiement Crypto');
 }
 
-
-
 /* =========================================================
    14) DOCK (bas d’écran) — actions
 ========================================================= */
@@ -1681,8 +1357,9 @@ function gradeFromSpent(spent){
 }
 function renderAccount(){
   var u = loadUser();
-  var nameEl = $('#accName'); if (nameEl) nameEl.setAttribute('value', u.name || '');
-  var mailEl = $('#accEmail'); if (mailEl) mailEl.setAttribute('value', u.email || '');
+
+  var nameEl = $('#accName');  if (nameEl) nameEl.value = u.name || '';
+  var mailEl = $('#accEmail'); if (mailEl) mailEl.value = u.email || '';
   var spentEl= $('#accSpent'); if (spentEl) spentEl.textContent = (u.spent.toLocaleString('fr-FR') + ' €');
 
   var g = gradeFromSpent(u.spent);
@@ -1694,27 +1371,45 @@ function renderAccount(){
   var slider = $('#accSlider'); if (slider) slider.value = Math.min(u.spent, 5000);
 
   var saveBtn = $('#accSave');
-  if (saveBtn) saveBtn.addEventListener('click', function(){
-    var nu = { name: ($('#accName') && $('#accName').value) || '', email: ($('#accEmail') && $('#accEmail').value) || '', spent: u.spent };
-    saveUser(nu);
-  }, { once:true });
+  if (saveBtn && !saveBtn.__wired){
+    saveBtn.__wired = 1;
+    saveBtn.addEventListener('click', function(){
+      var nu = {
+        name: ($('#accName')  && $('#accName').value)  || '',
+        email:($('#accEmail') && $('#accEmail').value) || '',
+        spent: u.spent
+      };
+      saveUser(nu);
+      toast('Compte enregistré', 'success');
+    });
+  }
 
   var resetBtn = $('#accReset');
-  if (resetBtn) resetBtn.addEventListener('click', function(){
-    saveUser({ name:u.name, email:u.email, spent:0 });
-    renderAccount();
-  }, { once:true });
+  if (resetBtn && !resetBtn.__wired){
+    resetBtn.__wired = 1;
+    resetBtn.addEventListener('click', function(){
+      saveUser({ name:u.name, email:u.email, spent:0 });
+      renderAccount();
+      toast('Fidélité remise à zéro', 'success');
+    });
+  }
 
   var sliderEl = $('#accSlider');
-  if (sliderEl) sliderEl.addEventListener('input', function(e){
-    var spent = Number(e.target.value || 0);
-    var nu = { name: u.name, email: u.email, spent: spent };
-    saveUser(nu);
-    renderAccount();
-  });
+  if (sliderEl && !sliderEl.__wired){
+    sliderEl.__wired = 1;
+    sliderEl.addEventListener('input', function(e){
+      var spent = Number(e.target.value || 0);
+      var nu = { name: ($('#accName') && $('#accName').value) || '', email: ($('#accEmail') && $('#accEmail').value) || '', spent: spent };
+      saveUser(nu);
+      // Mise à jour non destructive (évite multi-écoutes)
+      var g2 = gradeFromSpent(spent);
+      if (spentEl)  spentEl.textContent = spent.toLocaleString('fr-FR') + ' €';
+      if (fill)     fill.style.width = clamp((spent/5000)*100, 0, 100) + '%';
+      if (cur)      cur.style.left  = clamp((spent/5000)*100, 0, 100) + '%';
+      if (gradeEl){ gradeEl.textContent = g2.label; gradeEl.style.borderColor = g2.color; }
+    });
+  }
 }
-
-
 
 /* =========================================================
    17) ROUTER (#/…)
@@ -1723,86 +1418,9 @@ function renderAccount(){
    - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
-  // ——— Petites utilitaires locales pour la vue Home ———
-  function ensureHomeView(){
-    if (document.getElementById('view-home')) return;
-    var sec = document.createElement('section');
-    sec.id = 'view-home';
-    sec.className = 'view';
-    sec.setAttribute('aria-label','Accueil marques');
-    sec.innerHTML =
-      '<div class="container home" id="home">' +
-        '<div class="brand-grid" id="brandGrid"></div>' +
-      '</div>';
-    // On place la vue home juste après le HERO (si présent), sinon avant le catalogue
-    var hero = document.getElementById('hero');
-    var cat  = document.getElementById('view-catalogue');
-    if (hero && hero.parentNode) hero.parentNode.insertBefore(sec, hero.nextSibling);
-    else if (cat && cat.parentNode) cat.parentNode.insertBefore(sec, cat);
-    else document.body.insertBefore(sec, document.body.firstChild);
-  }
-
-  function renderHomeBrands(){
-    var root = document.getElementById('brandGrid');
-    if (!root) return;
-    if (root.__rendered) return; // évite les doublons
-    root.__rendered = 1;
-
-    var BRANDS = [
-      { key:'dewalt',   label:'DeWalt',   logo:'./images/brands/dewalt.svg'   },
-      { key:'milwaukee',label:'Milwaukee',logo:'./images/brands/milwaukee.svg'},
-      { key:'maffle',   label:'Maffle',   logo:'./images/brands/maffle.svg'   },
-      { key:'makita',   label:'Makita',   logo:'./images/brands/makita.svg'   },
-      { key:'feston',   label:'feston',   logo:'./images/brands/feston.svg'   },
-      { key:'flex',     label:'flex',     logo:'./images/brands/flex.svg'     },
-      { key:'stanley',  label:'stanley',  logo:'./images/brands/stanley.svg'  },
-      { key:'wera',     label:'wera',     logo:'./images/brands/wera.svg'     },
-      { key:'facom',    label:'facom',    logo:'./images/brands/facom.svg'    }
-    ];
-
-    var html = BRANDS.map(function(b){
-      // Sécurité si le fichier logo n’existe pas : fallback sur le logo principal
-      var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
-      return '' +
-        '<a href="#/catalogue" class="brand" data-brand="'+b.key+'">' +
-          '<span class="brand__bubble">' +
-            '<img src="'+b.logo+'" alt="'+b.label+'" loading="lazy" decoding="async" onerror="'+onerr+'">' +
-            '<span class="brand__glass" aria-hidden="true"></span>' +
-          '</span>' +
-          '<span class="brand__label">'+b.label+'</span>' +
-        '</a>';
-    }).join('');
-    root.innerHTML = html;
-
-    // Clic d’une bulle => filtre & route vers catalogue
-    root.addEventListener('click', function(e){
-      var a = e.target && e.target.closest ? e.target.closest('.brand') : null;
-      if (!a) return;
-      e.preventDefault();
-      var key = (a.getAttribute('data-brand') || '').toLowerCase();
-
-      // Si la marque existe dans #tag on la sélectionne, sinon on passe par la recherche
-      if (typeof tagEl !== 'undefined' && tagEl){
-        var val = null, i, opts = Array.prototype.slice.call(tagEl.options || []);
-        for (i=0;i<opts.length;i++){
-          var t = (opts[i].value || opts[i].textContent || '').toLowerCase();
-          if (t === key){ val = opts[i].value || opts[i].textContent; break; }
-        }
-        tagEl.value = val || '';
-      }
-      if (typeof searchEl !== 'undefined' && searchEl){
-        searchEl.value = (tagEl && tagEl.value) ? '' : key;
-      }
-
-      if (typeof applyFilters === 'function') applyFilters();
-      location.hash = '#/catalogue';
-    }, false);
-  }
-  // ——— fin utilitaires home ———
-
-  // S’assure que la vue home existe, puis rend les bulles (une seule fois)
-  ensureHomeView();
-  renderHomeBrands();
+  // S’assure que la vue home existe et que les bulles sont rendues (fonctions globales de la 1ère partie)
+  if (typeof ensureHomeView === 'function') ensureHomeView();
+  if (typeof renderHomeBrands === 'function') renderHomeBrands();
 
   var elToolbar  = document.querySelector('.toolbar');
   var elMain     = document.querySelector('main.container');
@@ -1822,8 +1440,7 @@ function renderAccount(){
 
   var showHero     = function(yes){ HOME_PARTS.forEach(function(el){ el.classList.toggle('hidden', !yes); }); };
   var hideAllViews = function(){
-    Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); });
-    // Masquer aussi la vue catégorie si elle existe
+    for (var k in VIEWS){ if (VIEWS[k]) VIEWS[k].classList.add('hidden'); }
     var vcat = document.getElementById('view-category'); if (vcat) vcat.classList.add('hidden');
   };
   var showView     = function(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); };
@@ -1917,7 +1534,7 @@ function renderAccount(){
 
       showHero(false);
       hideAllViews();
-      toggleIndexParts(true);     // on veut garder la toolbar, mais pas la liste globale
+      toggleIndexParts(true);
       ensureDockVisibleOnViews(false);
 
       if (elMain) elMain.classList.add('hidden'); // masquer la liste globale (#list)
@@ -1928,7 +1545,6 @@ function renderAccount(){
       renderCategoryPage(slug);
       window.scrollTo({top:0,behavior:'auto'});
 
-      // Focus a11y sur le titre de la catégorie
       var t = document.getElementById('catTitle');
       if (t){
         t.setAttribute('tabindex','-1');
@@ -1979,8 +1595,6 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
-
-
 
 /* =========================================================
    18) PT utils + AUTO-TEST (facultatif, dev-only)
