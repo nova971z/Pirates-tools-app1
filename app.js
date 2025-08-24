@@ -202,7 +202,8 @@ function focusView(key){
   else if (key === 'catalogue') target = $('#view-catalogue h1');
   else if (key === 'devis')     target = $('#view-devis h1');
   else if (key === 'compte')    target = $('#view-compte h1');
-  else                          target = $('#list'); // accueil
+  else if (key === 'home')      target = $('#view-home h1');
+  else                          target = $('#list'); // fallback
 
   if (target){
     target.setAttribute('tabindex','-1');
@@ -534,6 +535,93 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
   render(getScrollY());
 })();
 
+/* =========================================================
+   5-bis) Accueil — bulles marques (vue dédiée)
+   - Accueil = hero + #view-home (bulles)
+   - Produits = route #/catalogue (toolbar + liste + ratings)
+========================================================= */
+
+/* slugify simple (ES5-safe) */
+function slugify(str){
+  try{
+    return String(str||'')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')
+      .toLowerCase();
+  }catch(_){
+    return String(str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+}
+
+/* Marques à afficher en home */
+var PT_BRANDS = [
+  'DeWalt',
+  'Milwaukee',
+  'Maffle',
+  'Makita',
+  'feston',
+  'flex',
+  'stanley',
+  'wera',
+  'facom'
+].map(function(name){ return { name: name, slug: slugify(name) }; });
+
+/* Injection (une seule fois) de la section #view-home sous le HERO */
+function ensureHomeView(){
+  var home = document.getElementById('view-home');
+  if (home) return home;
+  home = document.createElement('section');
+  home.id = 'view-home';
+  home.className = 'view home';
+  home.setAttribute('aria-label', 'Accueil');
+  home.innerHTML =
+    '<div class="container">' +
+      '<h1 style="margin:1rem 0 .5rem" tabindex="-1">Bienvenue</h1>' +
+      '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque pour afficher les produits associés.</p>' +
+      '<div id="brandGrid" class="brand-grid" role="list"></div>' +
+    '</div>';
+  if (hero && hero.parentNode) hero.parentNode.insertBefore(home, hero.nextSibling);
+  return home;
+}
+
+/* Rendu des bulles marques */
+function renderHomeBrands(){
+  var home = ensureHomeView();
+  var grid = $('#brandGrid', home);
+  if (!grid) return;
+  grid.innerHTML = PT_BRANDS.map(function(b){
+    return '' +
+      '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
+        '<span class="brand__bubble">' +
+          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" />' +
+          '<span class="brand__glass" aria-hidden="true"></span>' +
+        '</span>' +
+        '<span class="brand__label">'+b.name+'</span>' +
+      '</a>';
+  }).join('');
+}
+
+/* Clic bulles → filtre & route catalogue */
+(function bindBrandBubbles(){
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('[data-brand][data-brand-name]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var label = el.getAttribute('data-brand-name') || '';
+    // On filtre par marque via la recherche (robuste)
+    if (tagEl) tagEl.value = '';
+    if (searchEl) searchEl.value = label;
+    // Applique le filtre et va sur la route Produits
+    if (typeof applyFilters === 'function') applyFilters();
+    location.hash = '#/catalogue';
+    // Scroll vers la liste après montée de la vue
+    setTimeout(function(){
+      var listNode = document.getElementById('list');
+      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 120);
+  }, false);
+})();
+
 
 
 
@@ -541,50 +629,50 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 /* =========================================================
    6) Smooth scroll (depuis une vue → retour home avant scroll)
    — robustifié (fallback iOS/Safari + once manuel)
+   — + redirection spéciale : si on est en Accueil et on clique « Produits » (#list),
+     on bascule d’abord sur #/catalogue puis on scrolle vers #list
 ========================================================= */
 (function smoothScrollLinks(){
-  // Petite util pour éviter toute dépendance : NodeList -> Array
   function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
-
-  // Scroll doux avec fallback si options non supportées
   function smoothScrollTo(selector){
     var el = selector ? document.querySelector(selector) : null;
     if (!el) return;
-    try{
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }catch(_){
-      // Fallback anciens Safari
-      el.scrollIntoView(true);
-    }
+    try{ el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch(_){ el.scrollIntoView(true); }
   }
 
   qsa('[data-scroll]').forEach(function(a){
     a.addEventListener('click', function(e){
       e.preventDefault();
-
       var targetSel = a.getAttribute('data-scroll') || a.getAttribute('href') || '';
-      var inView = (/^#\//i).test(location.hash);
+      var h = (location.hash || '').toLowerCase();
 
-      if (inView){
-        // On revient d’abord à l’accueil (hash vide), PUIS on scroll sur la cible.
+      // Cas spécial : depuis l’accueil (hash vide) vers #list => route catalogue
+      if ((!h || h === '#' || h === '#/' || h === '#/home') && targetSel === '#list'){
         var fired = false;
         var once = function(){
-          if (fired) return;
-          fired = true;
+          if (fired) return; fired = true;
           window.removeEventListener('hashchange', once);
-          // Laisse le DOM se réafficher, puis scroll
+          requestAnimationFrame(function(){ smoothScrollTo('#list'); });
+        };
+        window.addEventListener('hashchange', once, false);
+        location.hash = '#/catalogue';
+        setTimeout(function(){ if (!fired) once(); }, 150);
+        return;
+      }
+
+      var inView = (/^#\//i).test(location.hash);
+      if (inView){
+        var done = false;
+        var once2 = function(){
+          if (done) return; done = true;
+          window.removeEventListener('hashchange', once2);
           requestAnimationFrame(function(){ smoothScrollTo(targetSel); });
         };
-
-        // Écoute 1x le retour home
-        window.addEventListener('hashchange', once, false);
-        // Déclenche le retour home
+        window.addEventListener('hashchange', once2, false);
         location.hash = '';
-
-        // Filet de sécurité : si 'hashchange' ne part pas (vieux Safari), on force après 150ms
-        setTimeout(function(){ if (!fired) once(); }, 150);
+        setTimeout(function(){ if (!done) once2(); }, 150);
       } else {
-        // On est déjà à l’accueil, on scroll direct
         smoothScrollTo(targetSel);
       }
     }, false);
@@ -646,8 +734,6 @@ function updateDock(){
   if (dock){
     var cartBtn = document.getElementById('dockCartBtn') || dock.querySelector('.dock__btn--cart');
     if (cartBtn){
-      // L’animation CSS existe déjà (.dock__btn--cart { animation: cart-idle ... })
-      // On la met en pause si panier vide, on la lance sinon.
       cartBtn.style.animationPlayState = n ? 'running' : 'paused';
     }
   }
@@ -657,13 +743,11 @@ function saveCart(){
   try { localStorage.setItem(STORE_KEY, JSON.stringify(CART)); } catch(_){}
   updateDock();
 
-  // Si on est sur #/devis, on rafraîchit l’affichage immédiatement
   var h = (location.hash || '').toLowerCase();
   if (h.indexOf('#/devis') === 0 && typeof renderCartView === 'function'){
     try { renderCartView(); } catch(_){}
   }
 
-  // Signal optionnel pour d’autres composants (inoffensif)
   try { window.dispatchEvent(new CustomEvent('pt:cartChanged')); } catch(_){}
 }
 
@@ -681,13 +765,12 @@ function keyOf(p){
   return (v==null ? '' : String(v));
 }
 
-// Regroupement ES5-safe (évite Map pour compatibilité maximale)
 function groupCart(){
-  var map = {}; // { key: { item, qty } }
+  var map = {};
   for (var i=0;i<CART.length;i++){
     var p = CART[i];
     var k = keyOf(p);
-    if (!map[k]) map[k] = { item: p, qty: 0 }; // conserve le 1er objet comme référence
+    if (!map[k]) map[k] = { item: p, qty: 0 };
     map[k].qty += 1;
   }
   var out = [];
@@ -709,7 +792,6 @@ function cartToWhatsAppText(){
     return '• ' + sku + ' – ' + title + (qty>1 ? (' ×'+qty) : '');
   });
 
-  // Coordonnées (si présentes dans "Compte")
   var contact = '';
   try{
     var u = (typeof loadUser === 'function') ? loadUser() : null;
@@ -816,7 +898,6 @@ function productToHTML(m){
   var desc  = fallback(m.desc, fallback(m.description,''));
   var id    = String(fallback(m.id, fallback(m.sku, title)));
 
-  // ----- Prix sur la carte (liste) -----
   var currency   = m && m.currency ? m.currency : 'EUR';
   var priceCents = (m && typeof m.price_cents === 'number' && isFinite(m.price_cents))
       ? Math.round(m.price_cents)
@@ -842,7 +923,7 @@ function bindAddToCart(scopeData){
       });
       if (!p) return;
       CART.push(p);
-      saveCart(); // rafraîchit le dock + la vue devis si ouverte
+      saveCart();
       notifyCartAdded(p.title || p.sku || 'Article');
     });
   });
@@ -882,10 +963,8 @@ function renderPDP(product){
   if (elTag) elTag.textContent = tag ? '#'+tag : '';
   if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
 
-  // Image sûre
   if (elImg){ setSafeImg(elImg, img, product.images_alt || title || ''); }
 
-  // ----- PRIX sur la fiche produit -----
   var currency   = product && product.currency ? product.currency : 'EUR';
   var priceCents = (product && typeof product.price_cents === 'number' && isFinite(product.price_cents))
       ? Math.round(product.price_cents)
@@ -907,7 +986,6 @@ function renderPDP(product){
     priceEl.textContent = '';
   }
 
-  // Caractéristiques & tableau
   var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
   var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
 
@@ -935,7 +1013,6 @@ function renderPDP(product){
 
   if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
 
-  // Boutons
   if (btnQ){
     btnQ.textContent = 'Ajouter au panier';
     btnQ.onclick = function(){
@@ -945,7 +1022,6 @@ function renderPDP(product){
     };
   }
 
-  // WhatsApp PDP (message enrichi)
   var sku = product.sku || product.id || title;
   var productLink = location.origin + location.pathname + '#/produit/' + encodeURIComponent(product.id || product.sku || title);
   var contactSuffix = '';
@@ -976,7 +1052,6 @@ function renderPDP(product){
     };
   }
 
-  // Produits associés (avec prix)
   var related = MODELS.filter(function(m){
     return (m!==product) && (
       (product.category && m.category===product.category) ||
@@ -984,7 +1059,8 @@ function renderPDP(product){
     );
   }).slice(0,3);
 
-  if (elRel){
+  var elRelWrap = document.getElementById('pdpRelated');
+  if (elRelWrap){
     var relHTML = '';
     for (var i=0;i<related.length;i++){
       var m = related[i];
@@ -1000,11 +1076,11 @@ function renderPDP(product){
       }
       relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
     }
-    elRel.innerHTML = relHTML;
+    elRelWrap.innerHTML = relHTML;
   }
 
-  if (elRel){
-    elRel.addEventListener('click', function(e){
+  if (elRelWrap){
+    elRelWrap.addEventListener('click', function(e){
       var btn = e.target.closest ? e.target.closest('[data-add]') : null;
       if (!btn) return;
       var id = btn.getAttribute('data-add');
@@ -1027,7 +1103,6 @@ function renderPDP(product){
     });
   });
 
-  // SEO JSON-LD
   injectProductJsonLD(product);
 }
 
@@ -1086,16 +1161,15 @@ function renderCatalogue(){
 
   var go = function(keyLower){
     var matchVal = findSelectMatch(tagEl, keyLower);
-    if (tagEl){
-      tagEl.value = matchVal || '';
-    }
-    if (searchEl){
-      searchEl.value = matchVal ? '' : keyLower;
-    }
-    applyFilters();
-    location.hash = '';
-    var listNode = document.getElementById('list');
-    setTimeout(function(){ if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth'}); }, 60);
+    if (tagEl){ tagEl.value = matchVal || ''; }
+    if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
+    if (typeof applyFilters === 'function') applyFilters();
+    // IMPORTANT : aller vers la vue Produits (et plus l’accueil)
+    location.hash = '#/catalogue';
+    setTimeout(function(){
+      var listNode = document.getElementById('list');
+      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth'});
+    }, 80);
   };
 
   root.addEventListener('click', function(e){
@@ -1116,6 +1190,8 @@ async function loadProducts(){
     MODELS = Array.isArray(json) ? json : (json.products || []);
     renderList(MODELS);
     renderCatalogue();
+    // Rendu home (bulles) à chaud
+    renderHomeBrands();
     window.dispatchEvent(new CustomEvent('pt:productsLoaded'));
   }catch(e){
     console.error('Erreur chargement produits:', e);
@@ -1200,8 +1276,7 @@ function renderCartView(){
     }).join('');
   }
 
-  // --- Total estimé (CENTIMES)
-  var info = computeCartTotal(); // { totalCents, total, hasPrices }
+  var info = computeCartTotal();
   var totalBlock =
     '<div class="specs" id="devisTotal" style="display:flex;justify-content:flex-end">' +
     '  <div>Total estimé : <strong>' +
@@ -1210,11 +1285,9 @@ function renderCartView(){
     '</div>';
   root.insertAdjacentHTML('beforeend', totalBlock);
 
-  /* ------ Délégation d’événements (attachée 1x) ------ */
   if (!root.__wired){
     root.__wired = 1;
 
-    // +1
     delegate(root, '[data-inc]', 'click', function(_e, el){
       var key = el.getAttribute('data-inc');
       var p = MODELS.find(function(m){ return keyOf(m) === key; });
@@ -1222,7 +1295,6 @@ function renderCartView(){
       saveCart(); renderCartView();
     });
 
-    // −1
     delegate(root, '[data-dec]', 'click', function(_e, el){
       var key = el.getAttribute('data-dec');
       var i = CART.findIndex(function(p){ return keyOf(p) === key; });
@@ -1230,7 +1302,6 @@ function renderCartView(){
       saveCart(); renderCartView();
     });
 
-    // supprimer tout l’article
     delegate(root, '[data-del]', 'click', function(_e, el){
       var key = el.getAttribute('data-del');
       for (var j = CART.length - 1; j >= 0; j--) if (keyOf(CART[j]) === key) CART.splice(j, 1);
@@ -1238,7 +1309,6 @@ function renderCartView(){
     });
   }
 
-  // --- WhatsApp
   var sendBtn = $('#devisSend');
   if (sendBtn && !sendBtn.__wired){
     sendBtn.__wired = 1;
@@ -1250,7 +1320,6 @@ function renderCartView(){
     });
   }
 
-  // --- Vider
   var clearBtn = $('#devisClear');
   if (clearBtn && !clearBtn.__wired){
     clearBtn.__wired = 1;
@@ -1262,7 +1331,6 @@ function renderCartView(){
     });
   }
 
-  /* ------- Rangée de paiement DÉDIÉE (toujours visible) ------- */
   var cardEl = $('#view-devis .card');
   if (cardEl){
     var payRow = document.getElementById('devisPayRow');
@@ -1270,7 +1338,7 @@ function renderCartView(){
       payRow = document.createElement('div');
       payRow.className = 'actions';
       payRow.id = 'devisPayRow';
-      cardEl.appendChild(payRow); // rangée sous "Envoyer / Vider"
+      cardEl.appendChild(payRow);
     }
     function ensureBtn(id, cls, label, onClick){
       var b = document.getElementById(id);
@@ -1358,7 +1426,7 @@ function buildPayPalCartUrl(){
     var uc = getUnitCents(g.item);
     if (uc == null) continue;
     var name = g.item.title || ((g.item.brand||'') + ' ' + (g.item.sku||'')).trim() || 'Article';
-    var amount = (uc/100).toFixed(2); // PayPal veut des euros décimaux
+    var amount = (uc/100).toFixed(2);
     base += '&item_name_' + idx + '=' + encodeURIComponent(name);
     base += '&amount_'    + idx + '=' + encodeURIComponent(amount);
     base += '&quantity_'  + idx + '=' + encodeURIComponent(g.qty);
@@ -1522,25 +1590,40 @@ function renderAccount(){
 
 /* =========================================================
    17) ROUTER (#/…)
+   - Accueil = hero + #view-home (bulles)
+   - Autres vues = sections dédiées
+   - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
+  // S’assure que la vue home existe
+  ensureHomeView();
+  renderHomeBrands();
+
+  var elToolbar  = document.querySelector('.toolbar');
+  var elMain     = document.querySelector('main.container');
+  var elRatings  = document.querySelector('.ratings');
+
   var HOME_PARTS = [
-    document.getElementById('hero'),
-    document.querySelector('.toolbar'),
-    document.querySelector('main.container'),
-    document.querySelector('.ratings')
+    document.getElementById('hero')
   ].filter(function(x){ return !!x; });
 
   var VIEWS = {
+    home:     document.getElementById('view-home'),
     catalogue: document.getElementById('view-catalogue'),
     devis:     document.getElementById('view-devis'),
     produit:   document.getElementById('view-produit'),
     compte:    document.getElementById('view-compte')
   };
 
-  var showHome      = function(yes){ HOME_PARTS.forEach(function(el){ el.classList.toggle('hidden', !yes); }); };
-  var hideAllViews  = function(){ Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); }); };
-  var showView      = function(key){ hideAllViews(); if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); };
+  var showHero     = function(yes){ HOME_PARTS.forEach(function(el){ el.classList.toggle('hidden', !yes); }); };
+  var hideAllViews = function(){ Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); }); };
+  var showView     = function(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); };
+
+  function toggleIndexParts(visible){
+    if (elToolbar) elToolbar.classList.toggle('hidden', !visible);
+    if (elMain)    elMain.classList.toggle('hidden', !visible);
+    if (elRatings) elRatings.classList.toggle('hidden', !visible);
+  }
 
   var prevHash = '';
 
@@ -1568,13 +1651,12 @@ function renderAccount(){
     var h = (location.hash || '').toLowerCase();
     var cameFrom = prevHash;
 
-    // #/produit/:id
     var m = h.match(/^#\/produit\/([^/?#]+)/);
     if (m){
       var key = decodeURIComponent(m[1]);
       var tryRender = function(){
         var p = findProductByKey(key);
-        showHome(false); showView('produit'); ensureDockVisibleOnViews(false);
+        showHero(false); hideAllViews(); showView('produit'); toggleIndexParts(true); ensureDockVisibleOnViews(false);
         if (p){
           renderPDP(p);
           injectProductJsonLD(p);
@@ -1599,30 +1681,27 @@ function renderAccount(){
       return;
     }
 
-    // #/catalogue
     m = h.match(/^#\/catalogue\b/);
     if (m){
-      showHome(false); showView('catalogue'); ensureDockVisibleOnViews(false); renderCatalogue();
+      showHero(false); hideAllViews(); showView('catalogue'); toggleIndexParts(true); ensureDockVisibleOnViews(false); renderCatalogue();
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
       prevHash=h; return;
     }
 
-    // #/devis
     m = h.match(/^#\/devis\b/);
     if (m){
-      showHome(false); showView('devis'); ensureDockVisibleOnViews(false); renderCartView();
+      showHero(false); hideAllViews(); showView('devis'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderCartView();
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('devis');
       prevHash=h; return;
     }
 
-    // #/compte
     m = h.match(/^#\/compte\b/);
     if (m){
-      showHome(false); showView('compte'); ensureDockVisibleOnViews(false); renderAccount();
+      showHero(false); hideAllViews(); showView('compte'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderAccount();
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('compte');
@@ -1631,7 +1710,7 @@ function renderAccount(){
 
     // Accueil
     if (h === '' || h === '#' || h === '#/' || h === '#/home'){
-      showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
+      showHero(true); hideAllViews(); showView('home'); toggleIndexParts(false); ensureDockVisibleOnViews(true);
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('home');
@@ -1639,7 +1718,7 @@ function renderAccount(){
     }
 
     // fallback : accueil
-    showHome(true); hideAllViews(); ensureDockVisibleOnViews(true);
+    showHero(true); hideAllViews(); showView('home'); toggleIndexParts(false); ensureDockVisibleOnViews(true);
     clearProductJsonLD(); resetPageMeta();
     window.scrollTo({top:0,behavior:'auto'});
     focusView('home');
@@ -1749,7 +1828,7 @@ function renderAccount(){
 
     add(list, 'products.json chargé', MODELS.length ? 'ok' : 'warn');
 
-    var viewsOk = ['view-catalogue','view-devis','view-produit','view-compte'].every(function(id){ return document.getElementById(id); });
+    var viewsOk = ['view-home','view-catalogue','view-devis','view-produit','view-compte'].every(function(id){ return document.getElementById(id); });
     add(list, 'Vues présentes', viewsOk ? 'ok' : 'ko');
 
     try{
