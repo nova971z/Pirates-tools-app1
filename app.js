@@ -624,8 +624,6 @@ function renderHomeBrands(){
 
 
 
-
-
 /* =========================================================
    6) Smooth scroll (depuis une vue → retour home avant scroll)
    — robustifié (fallback iOS/Safari + once manuel)
@@ -678,6 +676,8 @@ function renderHomeBrands(){
     }, false);
   });
 })();
+
+
 
 
 /* =========================================================
@@ -1588,6 +1588,8 @@ function renderAccount(){
   });
 }
 
+
+
 /* =========================================================
    17) ROUTER (#/…)
    - Accueil = hero + #view-home (bulles)
@@ -1595,7 +1597,84 @@ function renderAccount(){
    - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
-  // S’assure que la vue home existe
+  // ——— Petites utilitaires locales pour la vue Home ———
+  function ensureHomeView(){
+    if (document.getElementById('view-home')) return;
+    var sec = document.createElement('section');
+    sec.id = 'view-home';
+    sec.className = 'view';
+    sec.setAttribute('aria-label','Accueil marques');
+    sec.innerHTML =
+      '<div class="container home" id="home">' +
+        '<div class="brand-grid" id="brandGrid"></div>' +
+      '</div>';
+    // On place la vue home juste après le HERO (si présent), sinon avant le catalogue
+    var hero = document.getElementById('hero');
+    var cat  = document.getElementById('view-catalogue');
+    if (hero && hero.parentNode) hero.parentNode.insertBefore(sec, hero.nextSibling);
+    else if (cat && cat.parentNode) cat.parentNode.insertBefore(sec, cat);
+    else document.body.insertBefore(sec, document.body.firstChild);
+  }
+
+  function renderHomeBrands(){
+    var root = document.getElementById('brandGrid');
+    if (!root) return;
+    if (root.__rendered) return; // évite les doublons
+    root.__rendered = 1;
+
+    var BRANDS = [
+      { key:'dewalt',   label:'DeWalt',   logo:'./images/brands/dewalt.svg'   },
+      { key:'milwaukee',label:'Milwaukee',logo:'./images/brands/milwaukee.svg'},
+      { key:'maffle',   label:'Maffle',   logo:'./images/brands/maffle.svg'   },
+      { key:'makita',   label:'Makita',   logo:'./images/brands/makita.svg'   },
+      { key:'feston',   label:'feston',   logo:'./images/brands/feston.svg'   },
+      { key:'flex',     label:'flex',     logo:'./images/brands/flex.svg'     },
+      { key:'stanley',  label:'stanley',  logo:'./images/brands/stanley.svg'  },
+      { key:'wera',     label:'wera',     logo:'./images/brands/wera.svg'     },
+      { key:'facom',    label:'facom',    logo:'./images/brands/facom.svg'    }
+    ];
+
+    var html = BRANDS.map(function(b){
+      // Sécurité si le fichier logo n’existe pas : fallback sur le logo principal
+      var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
+      return '' +
+        '<a href="#/catalogue" class="brand" data-brand="'+b.key+'">' +
+          '<span class="brand__bubble">' +
+            '<img src="'+b.logo+'" alt="'+b.label+'" loading="lazy" decoding="async" onerror="'+onerr+'">' +
+            '<span class="brand__glass" aria-hidden="true"></span>' +
+          '</span>' +
+          '<span class="brand__label">'+b.label+'</span>' +
+        '</a>';
+    }).join('');
+    root.innerHTML = html;
+
+    // Clic d’une bulle => filtre & route vers catalogue
+    root.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('.brand') : null;
+      if (!a) return;
+      e.preventDefault();
+      var key = (a.getAttribute('data-brand') || '').toLowerCase();
+
+      // Si la marque existe dans #tag on la sélectionne, sinon on passe par la recherche
+      if (typeof tagEl !== 'undefined' && tagEl){
+        var val = null, i, opts = Array.prototype.slice.call(tagEl.options || []);
+        for (i=0;i<opts.length;i++){
+          var t = (opts[i].value || opts[i].textContent || '').toLowerCase();
+          if (t === key){ val = opts[i].value || opts[i].textContent; break; }
+        }
+        tagEl.value = val || '';
+      }
+      if (typeof searchEl !== 'undefined' && searchEl){
+        searchEl.value = (tagEl && tagEl.value) ? '' : key;
+      }
+
+      if (typeof applyFilters === 'function') applyFilters();
+      location.hash = '#/catalogue';
+    }, false);
+  }
+  // ——— fin utilitaires home ———
+
+  // S’assure que la vue home existe, puis rend les bulles (une seule fois)
   ensureHomeView();
   renderHomeBrands();
 
@@ -1608,7 +1687,7 @@ function renderAccount(){
   ].filter(function(x){ return !!x; });
 
   var VIEWS = {
-    home:     document.getElementById('view-home'),
+    home:      document.getElementById('view-home'),
     catalogue: document.getElementById('view-catalogue'),
     devis:     document.getElementById('view-devis'),
     produit:   document.getElementById('view-produit'),
@@ -1651,6 +1730,7 @@ function renderAccount(){
     var h = (location.hash || '').toLowerCase();
     var cameFrom = prevHash;
 
+    // #/produit/:id
     var m = h.match(/^#\/produit\/([^/?#]+)/);
     if (m){
       var key = decodeURIComponent(m[1]);
@@ -1681,6 +1761,7 @@ function renderAccount(){
       return;
     }
 
+    // #/catalogue
     m = h.match(/^#\/catalogue\b/);
     if (m){
       showHero(false); hideAllViews(); showView('catalogue'); toggleIndexParts(true); ensureDockVisibleOnViews(false); renderCatalogue();
@@ -1690,6 +1771,7 @@ function renderAccount(){
       prevHash=h; return;
     }
 
+    // #/devis
     m = h.match(/^#\/devis\b/);
     if (m){
       showHero(false); hideAllViews(); showView('devis'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderCartView();
@@ -1699,6 +1781,7 @@ function renderAccount(){
       prevHash=h; return;
     }
 
+    // #/compte
     m = h.match(/^#\/compte\b/);
     if (m){
       showHero(false); hideAllViews(); showView('compte'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderAccount();
@@ -1728,6 +1811,8 @@ function renderAccount(){
   window.addEventListener('hashchange', onRoute);
   onRoute();
 })();
+
+
 
 /* =========================================================
    18) PT utils + AUTO-TEST (facultatif, dev-only)
