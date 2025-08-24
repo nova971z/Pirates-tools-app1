@@ -14,7 +14,14 @@
 
 /* ---------- Reset & base ---------- */
 *{ box-sizing:border-box }
-html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; text-size-adjust:100%; width:100%; max-width:100%; overflow-x:hidden; }
+html{
+  scroll-behavior:smooth;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  width:100%; max-width:100%;
+  overflow-x:hidden;
+  scroll-padding-top:70px; /* accroche sous topbar fixe */
+}
 body{
   margin:0;
   background:
@@ -71,17 +78,24 @@ h3{ font-size: 1.05rem }
   min-width:0; max-width:62vw; overflow:hidden; text-overflow:ellipsis
 }
 .btn.btn-call strong{font-weight:800}
+
+/* ===== PATCH WHATSAPP : pilule partout, rond uniquement dans la topbar ===== */
 .btn.btn-wa{
-  width:44px; height:44px; padding:0; border-radius:999px;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; line-height:1;
+  width:auto; height:auto; padding:.58rem .9rem;
+  border-radius:12px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  font-size:clamp(14px, 3.6vw, 18px); line-height:1;
   background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
-  color:#001; box-shadow:0 3px 10px rgba(0,0,0,.35); flex:0 0 auto
+  color:#001; box-shadow:0 3px 10px rgba(0,0,0,.35); flex:0 0 auto;
+}
+.topbar .btn.btn-wa{
+  width:44px; height:44px; padding:0; border-radius:999px;
+  font-size:1.25rem; line-height:1; gap:0;
 }
 @media (max-width:420px){ .btn.btn-call{font-size:13.5px; padding:.38rem .7rem; max-width:58vw} }
 @media (max-width:360px){
   .btn.btn-call{font-size:12.5px; padding:.34rem .6rem; max-width:54vw}
-  .btn.btn-wa{width:40px; height:40px; font-size:1.1rem}
+  .topbar .btn.btn-wa{width:40px; height:40px; font-size:1.1rem}
 }
 
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
@@ -160,16 +174,18 @@ h3{ font-size: 1.05rem }
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
   padding:.42rem .9rem;
-  border-radius:999px;                       /* <-- arrondi global */
+  border-radius:9999px;                       /* pilule forcée */
   background:rgba(255,255,255,.04);
   border:1px solid var(--border);
   color:#d9e3ec;
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
+  overflow:hidden;
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* WebKit fix */
 }
 .chip:hover{ background:rgba(255,255,255,.07) }
 .chip--back{
-  border:1px solid var(--border);            /* <-- contour rétabli */
-  border-radius:999px;
+  border:1px solid var(--border);            /* contour visible */
+  border-radius:9999px;
   background:rgba(255,255,255,.05);
   padding:.36rem .7rem;
 }
@@ -178,7 +194,7 @@ h3{ font-size: 1.05rem }
 .site-links{
   width:min(1100px,92vw); margin:1rem auto 1.25rem;
   display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center;
-  padding:.48rem .6rem; border:1px solid var(--border); border-radius:999px;
+  padding:.48rem .6rem; border:1px solid var(--border); border-radius:9999px;
   background:rgba(255,255,255,.03); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   box-shadow:var(--shadow); z-index:15;
 }
@@ -261,7 +277,7 @@ h3{ font-size: 1.05rem }
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 @media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr } }
 
-/* Bouton retour (pille + contour) */
+/* Bouton retour (pilule + contour) */
 .chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 
 /* ================= Catalogue ================= */
@@ -357,10 +373,11 @@ h3{ font-size: 1.05rem }
 #a2hsTip{
   position:fixed; left:50%; transform:translateX(-50%);
   bottom: calc(96px + env(safe-area-inset-bottom,0px)); z-index:125;
-  background:rgba(10,15,20,.92); color:var(--fg); border:1px solid var(--border);
+  background:rgba(10,15,20,.92); color: var(--fg); border:1px solid var(--border);
   border-radius:12px; padding:.55rem .75rem; box-shadow:var(--shadow);
   display:flex; align-items:center; gap:.6rem; max-width:min(92vw,520px);
   animation:a2hs-in .18s ease-out both;
+  pointer-events:auto; /* fermeture cliquable */
 }
 #a2hsTip.out{ animation: toast-out .18s ease-in both }
 .a2hs-tip__icon{ display:inline-block; padding:.18rem .38rem; border-radius:8px; background:rgba(255,255,255,.06); border:1px solid var(--border); margin:0 .2rem }
@@ -467,140 +484,8 @@ h3{ font-size: 1.05rem }
   #side-menu .app-label{ font-size:.82rem }
 }
 
-/* ====== PATCH ARRONDIS & SCROLL SAFE ====== */
-
-/* 1) Chips toujours en pilule (Safari compris) */
-.chip{ 
-  border-radius:9999px !important; 
-  overflow:hidden;
-  -webkit-mask-image: -webkit-radial-gradient(white, black); /* force le rendu arrondi WebKit */
-}
-.site-links .chip{ border-radius:9999px !important }
-
-/* 2) Bouton retour (puce + contour) */
-.chip--back{
-  border:1px solid var(--border);
-  border-radius:9999px;
-  background:rgba(255,255,255,.05);
-  padding:.36rem .7rem;
-}
-
-/* 3) Bulle iOS (fermeture cliquable + position au-dessus du dock) */
-#a2hsTip{ pointer-events:auto; z-index:125 }
-#a2hsTip .a2hs-tip__close{
-  padding:.25rem; border-radius:6px; cursor:pointer;
-}
-#a2hsTip, #a2hsTriangle{
-  bottom: calc(96px + env(safe-area-inset-bottom,0px)); /* net au-dessus du dock */
-}
-
-/* 4) Toujours pouvoir « accrocher » le haut sous la topbar fixe */
-html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
-#list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top: 84px }
-
-/* ====== PATCH WHATSAPP (pilule partout, rond seulement dans la topbar) ====== */
-
-/* Par défaut : même forme que les autres boutons */
-.btn.btn-wa{
-  width:auto;
-  height:auto;
-  padding:.7rem .95rem;
-  border-radius:12px;
-  background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
-  color:#042016;
-  font-size:1rem;
-  line-height:1.1;
-  box-shadow:var(--shadow);
-  flex:0 0 auto;
-}
-
-/* Évite la compression lorsqu’il y a plusieurs actions côte à côte */
-.actions .btn{ min-width:auto; flex:0 0 auto }
-@media (max-width:560px){ .actions .btn{ flex:1 1 100% } }
-
-/* Exception topbar : bouton rond, icône seule */
-.topbar .btn.btn-wa{
-  width:44px;
-  height:44px;
-  padding:0;
-  border-radius:999px;
-  font-size:1.25rem;
-  line-height:1;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-
-/* Ajustement mobile pour la topbar uniquement */
-@media (max-width:360px){
-  .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem }
-}
-
-
-
-/* ===== ACCUEIL : bulles marques ===== */
-.home{ margin: 1rem auto 1.2rem }
-.brand-grid{
-  display:grid; gap:1rem;
-  grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
-  align-items:start;
-}
-.brand{
-  display:flex; flex-direction:column; align-items:center; gap:.55rem;
-  text-decoration:none; -webkit-tap-highlight-color:transparent;
-}
-.brand__label{
-  font-weight:800; letter-spacing:.2px;
-  color:#e6edf5; text-align:center;
-  max-width: 140px;
-}
-
-/* Bulle : verre dépoli + halo lumineux + survol doux */
-.brand__bubble{
-  position:relative; width:96px; height:96px; border-radius:50%;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.14);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  box-shadow: 0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.18);
-  display:grid; place-items:center; overflow:hidden;
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-  isolation:isolate;
-}
-.brand__bubble::before{
-  content:""; position:absolute; inset:-14px; border-radius:50%;
-  background: radial-gradient(closest-side, rgba(25,211,255,.32), rgba(0,225,180,.24) 40%, rgba(0,0,0,0) 70%);
-  filter: blur(18px); opacity:.65; z-index:-1; pointer-events:none;
-}
-/* Effet "verre" par reflet haut */
-.brand__glass{
-  position:absolute; inset:2px; border-radius:50%;
-  background: radial-gradient(100% 60% at 50% 0%, rgba(255,255,255,.42), rgba(255,255,255,0) 58%);
-  mix-blend-mode:screen; pointer-events:none;
-}
-
-/* Logo dans la bulle */
-.brand__bubble img{
-  width:62%; height:62%; object-fit:contain;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
-}
-
-/* Interactions */
-.brand:focus-visible .brand__bubble,
-.brand:hover .brand__bubble{
-  transform: translateY(-2px) scale(1.04);
-  border-color: rgba(25,211,255,.45);
-  background: rgba(255,255,255,.10);
-  box-shadow: 0 14px 30px rgba(0,0,0,.45), 0 0 28px rgba(25,211,255,.25);
-}
-.brand:active .brand__bubble{ transform: scale(.97) }
-
-/* Petits mobiles */
-@media (max-width:420px){
-  .brand__bubble{ width:86px; height:86px }
-  .brand__label{ font-size:.95rem }
-}
-
-
+/* ====== PATCH SCROLL SAFE (ancrages sous topbar) ====== */
+#pdp, #view-catalogue, #view-devis, #view-compte, #home { scroll-margin-top:84px }
 
 /* ===== ACCUEIL : bulles marques ===== */
 .home{ margin: 1rem auto 1.2rem }
@@ -664,5 +549,3 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
   .brand__bubble{ width:86px; height:86px }
   .brand__label{ font-size:.95rem }
 }
-
-
