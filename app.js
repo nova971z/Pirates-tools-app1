@@ -601,6 +601,36 @@ function renderHomeBrands(){
   }).join('');
 }
 
+/* === Bulles marques dans le CATALOGUE uniquement === */
+function ensureCatalogueBrands(){
+  var view = document.getElementById('view-catalogue');
+  if (!view) return;
+
+  var host = document.getElementById('catalogBrandGrid');
+  if (!host){
+    host = document.createElement('div');
+    host.id = 'catalogBrandGrid';
+    host.className = 'brand-grid';
+    var ref = document.getElementById('list');
+    if (ref && ref.parentNode) ref.parentNode.insertBefore(host, ref);
+    else view.appendChild(host);
+  }
+  if (!host.__rendered){
+    host.__rendered = 1;
+    host.innerHTML = PT_BRANDS.map(function(b){
+      var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
+      return '' +
+        '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
+          '<span class="brand__bubble">' +
+            '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" onerror="'+onerr+'"/>' +
+            '<span class="brand__glass" aria-hidden="true"></span>' +
+          '</span>' +
+          '<span class="brand__label">'+b.name+'</span>' +
+        '</a>';
+    }).join('');
+  }
+}
+
 /* Clic bulles → filtre & route catalogue */
 (function bindBrandBubbles(){
   document.addEventListener('click', function(e){
@@ -1077,7 +1107,7 @@ function renderPDP(product){
         catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
         priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
       }
-      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0)">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
     }
     elRelWrap.innerHTML = relHTML;
   }
@@ -1127,6 +1157,83 @@ function renderList(data){
   ScrollExit.observeWithin(listEl);
 }
 
+/* ===== Rendu liste dans un conteneur arbitraire (pour la page catégorie) ===== */
+function renderListInto(root, data){
+  if (!root) return;
+  root.innerHTML = (Array.isArray(data) ? data.map(productToHTML).join('\n') : '');
+
+  // Bind add-to-cart sur ce conteneur
+  $$('[data-add]', root).forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id = btn.getAttribute('data-add');
+      var p  = (Array.isArray(data)? data : MODELS).find(function(x){
+        return (x.id && String(x.id)===id) || (x.sku && String(x.sku)===id) || (x.title===id);
+      });
+      if (!p) return;
+      CART.push(p);
+      saveCart();
+      notifyCartAdded(p.title || p.sku || 'Article');
+    });
+  });
+
+  // Navigation vers PDP
+  $$('.card', root).forEach(function(card){
+    card.addEventListener('click', function(e){
+      if (e.target.closest && e.target.closest('[data-add]')) return;
+      var id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = '#/produit/' + encodeURIComponent(id);
+    });
+  });
+
+  ScrollExit.observeWithin(root);
+}
+
+/* ===== Vue Catégorie (création à la volée) ===== */
+function ensureCategoryView(){
+  var sec = document.getElementById('view-category');
+  if (sec) return sec;
+
+  sec = document.createElement('section');
+  sec.id = 'view-category';
+  sec.className = 'view hidden';
+  sec.setAttribute('aria-label','Catégorie');
+  sec.innerHTML =
+    '<div class="container">'+
+      '<h1 id="catTitle" tabindex="-1">Catégorie</h1>'+
+      '<div id="categoryList"></div>'+
+    '</div>';
+
+  // On place la vue près du catalogue
+  var heroEl = document.getElementById('hero');
+  var cat = document.getElementById('view-catalogue');
+  if (heroEl && heroEl.parentNode) heroEl.parentNode.insertBefore(sec, cat || heroEl.nextSibling);
+  else document.body.appendChild(sec);
+
+  return sec;
+}
+
+/* ===== Rendu d’une catégorie ===== */
+function renderCategoryPage(slugLower){
+  var view = ensureCategoryView();
+  var titleEl = document.getElementById('catTitle');
+  var list = document.getElementById('categoryList');
+
+  var cats = buildCategories();
+  var found = cats.find(function(c){ return c.key === slugLower; });
+  var label = found ? found.label : slugLower;
+
+  if (titleEl){ titleEl.textContent = label; }
+
+  var items = MODELS.filter(function(m){
+    var raw = (m.category || m.badge || m.brand || '').toString().trim().toLowerCase();
+    return raw === slugLower;
+  });
+
+  renderListInto(list, items);
+}
+
 
 /* =========================================================
    10) CATALOGUE (catégories auto)
@@ -1167,12 +1274,18 @@ function renderCatalogue(){
     if (tagEl){ tagEl.value = matchVal || ''; }
     if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
     if (typeof applyFilters === 'function') applyFilters();
-    // IMPORTANT : aller vers la vue Produits (et plus l’accueil)
-    location.hash = '#/catalogue';
-    setTimeout(function(){
-      var listNode = document.getElementById('list');
-      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth'});
-    }, 80);
+
+    // Route vers la page dédiée de la catégorie
+    var fired = false;
+    var once = function(){
+      if (fired) return; fired = true;
+      window.removeEventListener('hashchange', once);
+      var el = document.getElementById('categoryList');
+      if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+    };
+    window.addEventListener('hashchange', once, false);
+    location.hash = '#/categorie/' + encodeURIComponent(keyLower);
+    setTimeout(function(){ if (!fired) once(); }, 150);
   };
 
   root.addEventListener('click', function(e){
@@ -1229,6 +1342,16 @@ var applyFilters = debounce(function(){
 if (searchEl) searchEl.addEventListener('input', applyFilters, true);
 if (tagEl) tagEl.addEventListener('change', applyFilters);
 
+// #tag => route catégorie dédiée (affiche sa page propre)
+(function wireTagToRoute(){
+  if (!tagEl || tagEl.__routeWired) return;
+  tagEl.__routeWired = 1;
+  tagEl.addEventListener('change', function(){
+    var v = (tagEl.value || '').trim();
+    if (v) location.hash = '#/categorie/' + encodeURIComponent(slugify(v));
+    else   location.hash = '#/catalogue';
+  });
+})();
 
 
 
@@ -1698,7 +1821,11 @@ function renderAccount(){
   };
 
   var showHero     = function(yes){ HOME_PARTS.forEach(function(el){ el.classList.toggle('hidden', !yes); }); };
-  var hideAllViews = function(){ Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); }); };
+  var hideAllViews = function(){
+    Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); });
+    // Masquer aussi la vue catégorie si elle existe
+    var vcat = document.getElementById('view-category'); if (vcat) vcat.classList.add('hidden');
+  };
   var showView     = function(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); };
 
   function toggleIndexParts(visible){
@@ -1767,10 +1894,48 @@ function renderAccount(){
     // #/catalogue
     m = h.match(/^#\/catalogue\b/);
     if (m){
-      showHero(false); hideAllViews(); showView('catalogue'); toggleIndexParts(true); ensureDockVisibleOnViews(false); renderCatalogue();
+      showHero(false);
+      hideAllViews();
+      showView('catalogue');
+      toggleIndexParts(true);
+      ensureDockVisibleOnViews(false);
+
+      renderCatalogue();        // catégories auto
+      ensureCatalogueBrands();  // bulles marques visibles uniquement sur CATALOGUE
+
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
       focusView('catalogue');
+      prevHash=h; return;
+    }
+
+    // #/categorie/:slug
+    m = h.match(/^#\/categorie\/([^\/?#]+)/);
+    if (m){
+      var slug = decodeURIComponent(m[1] || '').toLowerCase();
+      var sec = ensureCategoryView();
+
+      showHero(false);
+      hideAllViews();
+      toggleIndexParts(true);     // on veut garder la toolbar, mais pas la liste globale
+      ensureDockVisibleOnViews(false);
+
+      if (elMain) elMain.classList.add('hidden'); // masquer la liste globale (#list)
+      sec.classList.remove('hidden');
+
+      clearProductJsonLD();
+      resetPageMeta();
+      renderCategoryPage(slug);
+      window.scrollTo({top:0,behavior:'auto'});
+
+      // Focus a11y sur le titre de la catégorie
+      var t = document.getElementById('catTitle');
+      if (t){
+        t.setAttribute('tabindex','-1');
+        if (typeof t.focus === 'function') t.focus({ preventScroll: true });
+        setTimeout(function(){ t.removeAttribute('tabindex'); }, 300);
+      }
+
       prevHash=h; return;
     }
 
