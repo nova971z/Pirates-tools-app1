@@ -51,6 +51,8 @@
     .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
     .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    /* Views: ne masquer que celles marquées .hidden */
+    .view.hidden{display:none}
   </style>
 
   <!-- ===== Safe offset pour topbar fixed (empêche le haut "coupé") ===== -->
@@ -454,111 +456,120 @@
   <!-- ===== PWA install (Android/Chromium) ===== -->
   <button id="installBtn" hidden aria-label="Installer l’application">Installer l’app</button>
 
-  <!-- ===== JS Menu ===== -->
-  <script>
-    (function () {
-      const body = document.body;
-      const toggle  = document.getElementById('menu-toggle');
-      const overlay = document.getElementById('menu-overlay');
-      const side    = document.getElementById('side-menu');
-
-      function openMenu() {
-        body.classList.add('menu-open');
-        toggle.setAttribute('aria-expanded', 'true');
-        overlay.removeAttribute('hidden');
-        body.style.overflow = 'hidden';
-      }
-      function closeMenu() {
-        body.classList.remove('menu-open');
-        toggle.setAttribute('aria-expanded', 'false');
-        overlay.setAttribute('hidden', '');
-        body.style.overflow = '';
-      }
-      function toggleMenu() {
-        body.classList.contains('menu-open') ? closeMenu() : openMenu();
-      }
-
-      if (toggle)  toggle.addEventListener('click', toggleMenu);
-      if (overlay) overlay.addEventListener('click', closeMenu);
-      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-      if (side) side.addEventListener('click', (e) => {
-        const link = e.target.closest('a'); if (link) closeMenu();
-      });
-    })();
-  </script>
-
-  <!-- ===== iOS A2HS + anti-blocage scroll + SW refresh ===== -->
+  <!-- ===== JS Menu (ES5-safe) ===== -->
   <script>
   (function () {
-    const TIP_KEY = 'pt_a2hs_dismissed_v2';
-    const tip      = document.getElementById('a2hsTip');
-    const triangle = document.getElementById('a2hsTriangle');
-    const isIOS    = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    var body    = document.body;
+    var toggle  = document.getElementById('menu-toggle');
+    var overlay = document.getElementById('menu-overlay');
+    var side    = document.getElementById('side-menu');
+
+    function openMenu() {
+      body.classList.add('menu-open');
+      if (toggle)  toggle.setAttribute('aria-expanded', 'true');
+      if (overlay) overlay.removeAttribute('hidden');
+      body.style.overflow = 'hidden';
+    }
+    function closeMenu() {
+      body.classList.remove('menu-open');
+      if (toggle)  toggle.setAttribute('aria-expanded', 'false');
+      if (overlay) overlay.setAttribute('hidden', '');
+      body.style.overflow = '';
+    }
+    function toggleMenu() {
+      if (body.classList.contains('menu-open')) closeMenu(); else openMenu();
+    }
+
+    if (toggle)  toggle.addEventListener('click', toggleMenu, false);
+    if (overlay) overlay.addEventListener('click', closeMenu, false);
+    window.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); }, false);
+
+    if (side) side.addEventListener('click', function(e){
+      var node = e.target;
+      while (node && node !== side) {
+        if (node.tagName && node.tagName.toLowerCase() === 'a') { closeMenu(); break; }
+        node = node.parentNode;
+      }
+    }, false);
+  })();
+  </script>
+
+  <!-- ===== iOS A2HS + anti-blocage scroll (ES5-safe) ===== -->
+  <script>
+  (function () {
+    var TIP_KEY  = 'pt_a2hs_dismissed_v2';
+    var tip      = document.getElementById('a2hsTip');
+    var triangle = document.getElementById('a2hsTriangle');
+    var ua       = navigator.userAgent || '';
+    var isIOS    = /iphone|ipad|ipod/i.test(ua);
+    var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
 
     function showTip(){
-      if (!tip || localStorage.getItem(TIP_KEY) || isStandalone) return;
-      tip.hidden = false;
+      try {
+        if (!tip) return;
+        if (localStorage.getItem(TIP_KEY)) return;
+        if (isStandalone) return;
+        tip.hidden = false;
+      } catch(e){}
     }
     function hideTip(persist){
-      if (tip){ tip.classList.add('out'); setTimeout(()=> tip.remove(),180); }
-      if (triangle){ triangle.remove(); }
-      if (persist) { try { localStorage.setItem(TIP_KEY,'1'); } catch(e){} }
+      try{
+        if (tip){
+          tip.classList.add('out');
+          setTimeout(function(){ if (tip && tip.parentNode) tip.parentNode.removeChild(tip); }, 180);
+        }
+        if (triangle && triangle.parentNode) triangle.parentNode.removeChild(triangle);
+        if (persist){ try { localStorage.setItem(TIP_KEY, '1'); } catch(e){} }
+      }catch(_){}
     }
 
-    // Délégation: la croix marche même si le DOM bouge
-    document.addEventListener('click', (e)=>{
-      if (e.target.closest('#a2hsClose'))    hideTip(true);
-      if (e.target.closest('#a2hsTriangle')) showTip();
-    }, {passive:true});
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      var closeHit = false, triHit = false;
+      while (t){
+        if (t.id === 'a2hsClose') { closeHit = true; break; }
+        if (t.id === 'a2hsTriangle') { triHit = true; break; }
+        t = t.parentNode;
+      }
+      if (closeHit) hideTip(true);
+      if (triHit)   showTip();
+    }, true);
 
-    // Masquer au scroll prolongé
-    window.addEventListener('scroll', ()=>{ if (window.scrollY > 400) hideTip(false); }, {passive:true});
+    window.addEventListener('scroll', function(){
+      if (window.scrollY > 400) hideTip(false);
+    }, { passive:true });
 
-    // Affichage iOS uniquement
     if (isIOS && !isStandalone) {
       if (triangle) triangle.hidden = false;
       showTip();
     }
 
-    // Anti "scroll bloqué" si un overflow:hidden traîne
-    const releaseScroll = ()=>{ document.body.classList.remove('menu-open'); document.body.style.overflow=''; };
-    window.addEventListener('hashchange', releaseScroll);
-    window.addEventListener('pageshow', releaseScroll);
-
-    // SW: hard refresh via query param
-    if ('serviceWorker' in navigator) {
-      const SW_VER = 'v61';
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register(`sw.js?${SW_VER}`).then(reg=>{
-          reg.addEventListener('updatefound', ()=>{
-            const nw = reg.installing;
-            if (!nw) return;
-            nw.addEventListener('statechange', ()=>{
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                // location.reload();
-              }
-            });
-          });
-        }).catch(console.warn);
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* prêt */ });
+    // Anti "scroll bloqué" si overflow:hidden reste collé
+    function releaseScroll(){
+      document.body.classList.remove('menu-open');
+      document.body.style.overflow = '';
     }
+    window.addEventListener('hashchange', releaseScroll, false);
+    window.addEventListener('pageshow', releaseScroll, false);
+
+    // ⚠️ AUCUN enregistrement Service Worker ici (géré dans app.js)
   })();
   </script>
 
-  <!-- ===== JS minimal (fallback) : fermer le coachmark si le bloc ci-dessus est indispo ===== -->
+  <!-- ===== JS minimal (fallback) : fermer le coachmark si le bloc ci-dessus est indispo (ES5-safe) ===== -->
   <script>
-    (function(){
-      const tip = document.getElementById('a2hsTip');
-      const closeBtn = document.getElementById('a2hsClose');
-      if (closeBtn && tip) {
-        closeBtn.addEventListener('click', () => {
-          tip.setAttribute('hidden','');
-          try { localStorage.setItem('hideA2HSTip','1'); } catch(e){}
-        }, { once:true });
-      }
-    })();
+  (function(){
+    var tip = document.getElementById('a2hsTip');
+    var closeBtn = document.getElementById('a2hsClose');
+    if (closeBtn && tip) {
+      var once = function(){
+        tip.setAttribute('hidden','');
+        try { localStorage.setItem('hideA2HSTip','1'); } catch(e){}
+        closeBtn.removeEventListener('click', once);
+      };
+      closeBtn.addEventListener('click', once, false);
+    }
+  })();
   </script>
 
   <!-- App -->
