@@ -2148,3 +2148,45 @@ function renderAccount(){
 
   PT.selfTest = runSelfTest;
 })();
+
+
+
+
+/* =========================================================
+   FILET DE SÉCURITÉ ANTI "PAGE BLANCHE"
+   À coller tout en bas, APRÈS la section 18.
+========================================================= */
+(function(){
+  function say(msg,type){
+    try{ (typeof toast==='function'? toast : console.log)(msg, type||'info'); }
+    catch(_){ console.log(msg); }
+  }
+
+  // Log doux au lieu de planter silencieusement
+  window.addEventListener('error', function(e){
+    say('Erreur JavaScript : ' + (e && e.message ? e.message : 'inconnue'));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var r = e && e.reason;
+    say('Erreur asynchrone : ' + (r && (r.message || r) || 'inconnue'));
+  });
+
+  // S’assurer qu’au moins UNE vue existe
+  var any = document.querySelector('#view-home,#view-catalogue,#view-devis,#view-produit,#view-compte,#view-category');
+  if (!any){
+    var sec = document.createElement('section');
+    sec.id = 'view-home';
+    sec.className = 'view';
+    sec.innerHTML =
+      '<div class="card"><div class="head"><h3 class="title">Pirates Tools</h3></div>' +
+      '<div class="specs"><p>Interface initialisée (vue de secours).</p></div></div>';
+    document.body.appendChild(sec);
+  }
+
+  // Si toutes les vues sont masquées, afficher la home
+  var shown = document.querySelector('.view:not(.hidden)');
+  if (!shown){
+    var home = document.getElementById('view-home');
+    if (home) home.classList.remove('hidden');
+  }
+})();
