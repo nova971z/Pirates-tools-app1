@@ -1,69 +1,156 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <!-- ===== Métadonnées de base ===== -->
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Pirates Tools • Outillage pro (PWA)</title>
-  <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <meta name="robots" content="index,follow,max-image-preview:large" />
-  <meta name="format-detection" content="telephone=no" />
-  <meta name="theme-color" content="#0a0f14" />
-  <meta name="referrer" content="no-referrer" />
-
-  <!-- ===== PWA / iOS / Android ===== -->
-  <meta name="application-name" content="Pirates Tools" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <link rel="icon" href="favicon.ico" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
-
-  <!-- ===== Perf hints ===== -->
-  <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="dns-prefetch" href="https://wa.me" />
-  <link rel="preconnect" href="https://pimstoragea.blob.core.windows.net" crossorigin />
-  <link rel="dns-prefetch" href="https://pimstoragea.blob.core.windows.net" />
-  <link rel="preconnect" href="https://dewalt.mediaroom.com" crossorigin />
-  <link rel="dns-prefetch" href="https://dewalt.mediaroom.com" />
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" fetchpriority="high" />
-  <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
-
-  <!-- ===== Styles ===== -->
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- ===== Open Graph / SEO ===== -->
-  <meta property="og:title" content="Pirates Tools — Outillage pro" />
-  <meta property="og:description" content="Visseuses à chocs DeWALT, dispo Antilles. WhatsApp pour devis rapide." />
-  <meta property="og:image" content="https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://nova971z.github.io/Pirates-tools-app1/" />
-  <meta property="og:locale" content="fr_FR" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
-
-  <!-- ===== A11y helpers (fallback minimal) ===== -->
-  <style>
-    .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
-    .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
-    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    /* Views: ne masquer que celles marquées .hidden */
-    .view.hidden{display:none}
-  </style>
-
-  <!-- ===== Safe offset pour topbar fixed (empêche le haut "coupé") ===== -->
-  <style>
-    :root { --topbar-safe: calc(72px + env(safe-area-inset-top, 0px)); }
-    .topbar-spacer{height:var(--topbar-safe); pointer-events:none}
-    /* quand on navigue vers des ancres ou qu’une vue devient visible */
-    #list, #contact, .view, .toolbar { scroll-margin-top: var(--topbar-safe); }
-  </style>
-</head>
 <body>
+  <!-- A11y -->
+  <a href="#main" class="skip-link">Aller au contenu</a>
+  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <a id="homeLink" class="topbar-logo-link" href="#/home" aria-label="Accueil">
+        <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" width="40" height="40" loading="lazy" decoding="async" />
+      </a>
+
+      <nav class="topbar-actions" aria-label="Contact">
+        <a id="callBtn" class="chip chip--call" href="tel:+33774230195" rel="nofollow">
+          📞 <strong>07 74 23 01 95</strong>
+        </a>
+        <a id="waBtn" class="chip chip--wa" href="https://wa.me/33774230195" rel="nofollow" aria-label="WhatsApp">💬</a>
+        <button id="installBtn" class="chip chip--install" hidden>Installer l’app</button>
+      </nav>
+    </div>
+  </header>
+  <div class="topbar-spacer" aria-hidden="true"></div>
+
+  <!-- Hero (logo animé + déclenche la visibilité du dock) -->
+  <section id="hero" class="hero" aria-label="Pirates Tools">
+    <div class="container hero__inner">
+      <img id="heroLogo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" decoding="async" />
+    </div>
+  </section>
+
+  <!-- Vue Accueil (présente par défaut mais masquée si tu veux que le hero fasse l’accueil) -->
+  <section id="view-home" class="view home hidden" aria-label="Accueil">
+    <div class="container">
+      <h1 tabindex="-1">Bienvenue</h1>
+      <p class="muted">Choisissez une marque pour afficher les produits associés.</p>
+      <div id="brandGrid" class="brand-grid" role="list"></div>
+    </div>
+  </section>
+
+  <!-- Contenu principal -->
+  <main id="main" class="container">
+    <!-- Toolbar de recherche / filtre -->
+    <div class="toolbar">
+      <label for="q" class="sr-only">Rechercher</label>
+      <input id="q" type="search" placeholder="Rechercher (référence, marque, mots-clés…)" inputmode="search" autocomplete="off" />
+
+      <label for="tag" class="sr-only">Catégorie</label>
+      <select id="tag">
+        <option value="">Toutes les catégories</option>
+        <!-- Les catégories peuvent rester vides : elles seront gérées par le JS -->
+      </select>
+    </div>
+
+    <!-- Catalogue -->
+    <section id="view-catalogue" class="view" aria-label="Catalogue">
+      <h1 tabindex="-1">Catalogue</h1>
+      <div id="catList" class="cat-grid" role="list"></div>
+      <!-- Grille des marques spécifique au catalogue (injectée par JS) -->
+      <div id="list" class="card-grid" role="list"></div>
+    </section>
+
+    <!-- Devis -->
+    <section id="view-devis" class="view hidden" aria-label="Devis">
+      <h1 tabindex="-1">Votre devis</h1>
+      <div class="card">
+        <div id="devisList"></div>
+        <div class="actions">
+          <button id="devisSend" class="btn primary">Envoyer le devis WhatsApp</button>
+          <button id="devisClear" class="btn">Vider</button>
+        </div>
+        <!-- La rangée de paiement (Stripe/PayPal/Crypto) est ajoutée dynamiquement ici -->
+      </div>
+    </section>
+
+    <!-- Fiche produit -->
+    <section id="view-produit" class="view hidden" aria-label="Fiche produit">
+      <a href="#" id="pdpBack" class="chip chip--back" aria-label="Retour">← Retour</a>
+      <article id="pdp" class="pdp">
+        <div class="pdp__media">
+          <img id="pdpImg" src="./images/pirates-tools-logo.png?v=7" alt="" loading="lazy" decoding="async" />
+        </div>
+        <div class="pdp__body">
+          <h1 id="pdpTitle" tabindex="-1">Produit</h1>
+          <p id="pdpTag" class="muted"></p>
+          <p id="pdpDesc"></p>
+          <ul id="pdpSpecs" class="pdp__specs"></ul>
+          <div class="actions">
+            <button id="pdpQuote" class="btn primary">Ajouter au panier</button>
+            <a id="pdpWa" class="btn" href="#" target="_blank" rel="noopener">WhatsApp</a>
+            <button id="pdpShare" class="btn">Partager</button>
+          </div>
+        </div>
+      </article>
+
+      <div class="pdp__related">
+        <h2 class="h3">Articles liés</h2>
+        <div id="pdpRelated" class="card-grid"></div>
+      </div>
+    </section>
+
+    <!-- Compte / Fidélité -->
+    <section id="view-compte" class="view hidden" aria-label="Mon compte">
+      <h1 tabindex="-1">Mon compte</h1>
+      <div class="card">
+        <div class="field">
+          <label for="accName">Nom</label>
+          <input id="accName" type="text" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="accEmail">Email</label>
+          <input id="accEmail" type="email" autocomplete="email" />
+        </div>
+
+        <div class="field">
+          <span>Montant cumulé :</span> <strong id="accSpent">0 €</strong>
+        </div>
+
+        <div class="loyalty">
+          <div class="loyalty__bar">
+            <span id="accFill" class="loyalty__fill" style="width:0%"></span>
+            <span id="accCursor" class="loyalty__cursor" style="left:0%"></span>
+          </div>
+          <output id="accGrade" class="badge">Moussaillon</output>
+          <input id="accSlider" type="range" min="0" max="5000" step="50" value="0" />
+        </div>
+
+        <div class="actions">
+          <button id="accSave" class="btn primary">Enregistrer</button>
+          <button id="accReset" class="btn">Réinitialiser fidélité</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- (facultatif) bloc d’avis / notes si tu en as -->
+    <section class="ratings"></section>
+  </main>
+
+  <!-- Dock (affiché/masqué par le JS + animation hero) -->
+  <footer id="dock" class="dock hidden" aria-label="Barre d’action">
+    <div class="dock__shell">
+      <button id="dockCartBtn" class="dock__btn dock__btn--cart" aria-label="Voir le devis">
+        🧾 <span id="dockCount" class="badge" aria-live="polite" aria-atomic="true">0</span>
+      </button>
+      <button id="dockQuoteBtn" class="dock__btn dock__btn--quote" aria-label="Demander un devis WhatsApp">💬</button>
+    </div>
+  </footer>
+
+  <!-- Toasts (le JS sait aussi le créer si absent, mais on le met pour éviter toute course) -->
+  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- IMPORTANT : script principal, différé -->
+  <script src="app.js" defer></script>
+</body>
   <!-- ===== Sprite SVG minimal (icônes modernes) ===== -->
   <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
     <defs>
