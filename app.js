@@ -1,6 +1,7 @@
 /* =========================================================
-   Pirates Tools — app.js (FULL, stable, clean)
-   (Première partie corrigée)
+   Pirates Tools — app.js (PART 1/2)
+   Sections 0 → 9 (helpers, hero, home, panier, PDP, etc.)
+   ES5-safe + cohérent avec le HTML fourni
 ========================================================= */
 
 'use strict';
@@ -37,7 +38,7 @@ function originPath(){
 
 /* Polyfill CustomEvent (iOS/Android anciens) */
 (function(){
-  try { new CustomEvent('test'); }
+  try { new CustomEvent('x'); }
   catch(e){
     function CE(event, params){
       params = params || { bubbles:false, cancelable:false, detail:null };
@@ -55,7 +56,6 @@ function toNumberSafe(v){
   var n = (typeof v === 'number') ? v : parseFloat(v);
   return isFinite(n) ? n : null;
 }
-
 function moneyFR(v, currency){
   currency = currency || 'EUR';
   try{
@@ -67,7 +67,7 @@ function moneyFR(v, currency){
   }
 }
 
-/* Délégation d’événements (pratique pour les listes dynamiques) */
+/* Délégation d’événements */
 function delegate(root, selector, type, handler){
   (root || document).addEventListener(type, function(e){
     var el = e.target && e.target.closest ? e.target.closest(selector) : null;
@@ -146,7 +146,13 @@ function resetPageMeta(){
 /* ---------- UX CSS (toasts + badge bump) injecté ---------- */
 (function injectUXCSS(){
   if (document.getElementById('pt-ux-css')) return;
-  var css = '\n  @keyframes pt-bump { 0%{transform:scale(1)} 35%{transform:scale(1.15)} 100%{transform:scale(1)} }\n  #dockCount.bump{ animation: pt-bump .42s ease }\n\n  #toasts{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:130; display:grid; gap:.5rem; }\n  .toast{ display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; padding:.6rem .75rem; border-radius:12px;\n          background:rgba(10,15,20,.92); border:1px solid #22303b; color:#e6edf5; box-shadow:0 12px 24px rgba(0,0,0,.35);\n          font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,\"Inter\",\"Segoe UI\",Roboto,Arial,sans-serif; }\n  .toast__icon{ align-self:center }\n  .toast__body{ align-self:center }\n  .toast__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px; }\n  @keyframes toast-out { to { opacity:0; transform:translateY(6px) } }\n  ';
+  var css = '\
+@keyframes pt-bump{0%{transform:scale(1)}35%{transform:scale(1.15)}100%{transform:scale(1)}}\
+#dockCount.bump{animation:pt-bump .42s ease}\
+#toasts{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:130;display:grid;gap:.5rem}\
+.toast{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;padding:.6rem .75rem;border-radius:12px;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;box-shadow:0 12px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}\
+.toast__icon{align-self:center}.toast__body{align-self:center}.toast__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}\
+@keyframes toast-out{to{opacity:0;transform:translateY(6px)}}';
   var style = document.createElement('style');
   style.id = 'pt-ux-css';
   style.textContent = css;
@@ -161,8 +167,8 @@ function showDock(visible){
 }
 
 /* ---------- A11y helpers ---------- */
-var live    = document.getElementById('sr-live') || document.getElementById('srLive');
-var toastsC = $('#toasts'); // peut être nul (créé à la volée dans toast())
+var live      = document.getElementById('sr-live') || document.getElementById('srLive');
+var toastsC   = $('#toasts'); // peut être nul (créé à la volée)
 var dockBadge = $('#dockCount');
 
 function announce(msg){
@@ -185,7 +191,10 @@ function toast(msg, kind){
   }
   var el = document.createElement('div');
   el.className = 'toast toast--' + kind;
-  el.innerHTML = '\n    <div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div>\n    <div class="toast__body">'+msg+'</div>\n    <button class="toast__close" aria-label="Fermer">✖</button>\n  ';
+  el.innerHTML = '\
+    <div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div>\
+    <div class="toast__body">'+msg+'</div>\
+    <button class="toast__close" aria-label="Fermer">✖</button>';
   var close = function(){
     el.style.animation = 'toast-out .18s ease-in both';
     setTimeout(function(){ el.remove(); }, 180);
@@ -202,7 +211,6 @@ function bumpBadge(){
   void dockBadge.offsetWidth; // reflow
   dockBadge.classList.add('bump');
 }
-
 function notifyCartAdded(title){
   if (title === void 0) title = 'Article';
   toast('« ' + title + ' » ajouté au devis');
@@ -218,7 +226,7 @@ function focusView(key){
   else if (key === 'devis')     target = $('#view-devis h1');
   else if (key === 'compte')    target = $('#view-compte h1');
   else if (key === 'home')      target = $('#view-home h1');
-  else                          target = $('#list'); // fallback
+  else                          target = $('#list');
 
   if (target){
     target.setAttribute('tabindex','-1');
@@ -236,16 +244,16 @@ var CART   = [];                 // panier (tableau d’objets produit)
 var STORE_KEY = 'pt_cart_v1';    // clé localStorage
 var USER_KEY  = 'pt_user_v1';    // compte (démo)
 
-// === DOM refs (NÉCESSAIRES à l'anim du logo & au dock) ===
+// === DOM refs nécessaires ===
 var hero      = document.getElementById('hero');
 var heroLogo  = document.getElementById('heroLogo');
 
 var dock          = document.getElementById('dock');
-var dockCount     = document.getElementById('dockCount');    // optionnel
-var dockQuoteBtn  = document.getElementById('dockQuoteBtn'); // optionnel
-var dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
+var dockCount     = document.getElementById('dockCount');
+var dockQuoteBtn  = document.getElementById('dockQuoteBtn');
+var dockCartBtn   = document.getElementById('dockCartBtn');
 
-// === DOM refs (CTA + toolbar + liste) ===
+// CTA + toolbar + liste
 var callBtn  = document.getElementById('callBtn');
 var waBtn    = document.getElementById('waBtn');
 var listEl   = document.getElementById('list');
@@ -255,8 +263,8 @@ var tagEl    = document.getElementById('tag');
 /* ---------- Paiement : configuration ---------- */
 var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
 var CURRENCY = 'EUR';
-var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
-var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
+var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe (peut contenir {AMOUNT}/{AMOUNT_CENTS})
+var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -313,7 +321,6 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 
 /* =========================================================
    3) Bannière Offline / Online
-   (sans Object.assign pour ES5)
 ========================================================= */
 (function netBanner(){
   var bar = document.createElement('div');
@@ -364,7 +371,12 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
   if (!document.getElementById('pt-a2hs-css')){
     var s = document.createElement('style');
     s.id = 'pt-a2hs-css';
-    s.textContent = '\n      #a2hsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:125;\n        display:flex;gap:.6rem;align-items:center;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;\n        padding:.55rem .7rem;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}\n      #a2hsTip .a2hs-tip__icon{display:inline-block;padding:.12rem .4rem;border-radius:6px;border:1px solid #22303b;background:rgba(255,255,255,.06)}\n      #a2hsTip .a2hs-tip__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}\n      #a2hsTip.out{animation:pt-a2hs-out .18s ease-in both}\n      @keyframes pt-a2hs-out{to{opacity:0;transform:translateX(-50%) translateY(4px)}}\n    ';
+    s.textContent = '\
+#a2hsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:125;display:flex;gap:.6rem;align-items:center;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;padding:.55rem .7rem;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}\
+#a2hsTip .a2hs-tip__icon{display:inline-block;padding:.12rem .4rem;border-radius:6px;border:1px solid #22303b;background:rgba(255,255,255,.06)}\
+#a2hsTip .a2hs-tip__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}\
+#a2hsTip.out{animation:pt-a2hs-out .18s ease-in both}\
+@keyframes pt-a2hs-out{to{opacity:0;transform:translateX(-50%) translateY(4px)}}';
     document.head.appendChild(s);
   }
 
@@ -378,7 +390,9 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
     tip.id = 'a2hsTip';
     tip.setAttribute('role','dialog');
     tip.setAttribute('aria-live','polite');
-    tip.innerHTML = '\n      <div class="a2hs-tip__text">\n        Pour installer l’app&nbsp;: touchez\n        <span class="a2hs-tip__icon">▵</span>\n        puis <strong>«&nbsp;Sur l’écran d’accueil&nbsp;»</strong>.\n      </div>\n      <button class="a2hs-tip__close" aria-label="Fermer">✖</button>\n    ';
+    tip.innerHTML = '\
+      <div class="a2hs-tip__text">Pour installer l’app&nbsp;: touchez <span class="a2hs-tip__icon">▵</span> puis <strong>«&nbsp;Sur l’écran d’accueil&nbsp;»</strong>.</div>\
+      <button class="a2hs-tip__close" aria-label="Fermer">✖</button>';
     var closeBtn = tip.querySelector('.a2hs-tip__close');
     if (closeBtn) closeBtn.addEventListener('click', function(){
       tip.classList.add('out');
@@ -404,18 +418,20 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
       if (!installBtn.getAttribute('data-wired')){
         installBtn.setAttribute('data-wired','1');
         installBtn.addEventListener('click', function(){
-          (async function(){
+          (function(){
             try{
               installBtn.disabled = true;
-              await deferredPrompt.prompt();
-              var choice = await deferredPrompt.userChoice;
-              if (typeof toast === 'function'){
-                toast(choice && choice.outcome === 'accepted' ? 'Installation en cours' : 'Installation annulée', (choice && choice.outcome === 'accepted')?'success':'info');
-              }
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.then(function(choice){
+                if (typeof toast === 'function'){
+                  toast(choice && choice.outcome === 'accepted' ? 'Installation en cours' : 'Installation annulée', (choice && choice.outcome === 'accepted')?'success':'info');
+                }
+              }).finally(function(){
+                installBtn.hidden = true;
+                installBtn.disabled = false;
+                deferredPrompt = null;
+              });
             }catch(_){}
-            installBtn.hidden = true;
-            installBtn.disabled = false;
-            deferredPrompt = null;
           })();
         });
       }
@@ -557,7 +573,7 @@ function slugify(str){
 }
 
 var PT_BRANDS = [
-  'DeWalt','Milwaukee','Maffle','Makita','feston','flex','stanley','wera','facom'
+  'DeWalt','Milwaukee','Maffle','Makita','Festool','Flex','Stanley','Wera','Facom'
 ].map(function(name){ return { name: name, slug: slugify(name) }; });
 
 function ensureHomeView(){
@@ -691,14 +707,19 @@ function ensureCatalogueBrands(){
 })();
 
 /* =========================================================
-   7) Anim “exit” (injection CSS + IntersectionObserver)
+   7) Anim “exit” (IntersectionObserver)
 ========================================================= */
 var ScrollExit = (function () {
   function injectExitCSS(){
     if (document.getElementById('exit-anim-css')) return;
     var style = document.createElement('style');
     style.id = 'exit-anim-css';
-    style.textContent = '\n@keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }\n@keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }\n.tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\n.tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\n@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }';
+    style.textContent = '\
+@keyframes exitLeft{to{transform:translateX(-60px);opacity:0;filter:blur(2px)}}\
+@keyframes exitRight{to{transform:translateX(60px);opacity:0;filter:blur(2px)}}\
+.tool--exit-left{animation:exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards;will-change:transform,opacity}\
+.tool--exit-right{animation:exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards;will-change:transform,opacity}\
+@media (prefers-reduced-motion:reduce){.tool--exit-left,.tool--exit-right{animation:none;opacity:0}}';
     document.head.appendChild(style);
   }
   injectExitCSS();
@@ -852,7 +873,8 @@ function buildProductJsonLD(p){
     }
   };
 
-  if (typeof p.rating === 'number' && typeof p.reviews === 'number' && p.reviews > 0){
+  var hasRating = (typeof p.rating === 'number' && typeof p.reviews === 'number' && p.reviews > 0);
+  if (hasRating){
     data.aggregateRating = {
       "@type": "AggregateRating",
       "ratingValue": String(p.rating),
@@ -869,7 +891,8 @@ function buildProductJsonLD(p){
         var pv = prune(o[k]);
         if (pv != null && !(Array.isArray(pv) && pv.length === 0)) r[k] = pv;
       }
-      return (function(obj){ for (var kk in obj){ if (Object.prototype.hasOwnProperty.call(obj, kk)) return obj; } return null; })(r);
+      for (var kk in r){ if (Object.prototype.hasOwnProperty.call(r, kk)) return r; }
+      return null;
     }
     return (o === undefined || o === null) ? null : o;
   };
@@ -913,7 +936,15 @@ function productToHTML(m){
     priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
   }
 
-  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
+  return '\
+  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\
+    <div class="head">\
+      <h3 class="title">'+title+'</h3>\
+      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\
+    </div>\
+    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\
+    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\
+  </article>';
 }
 
 /* Limite le bind au conteneur passé */
@@ -1012,7 +1043,15 @@ function renderPDP(product){
   var tableHtml = '';
   if (Object.keys(merged).length){
     var rows = Object.keys(merged).map(function(k){ return '<tr><th>'+k+'</th><td>'+merged[k]+'</td></tr>'; }).join('');
-    tableHtml = '\n      <li style="list-style:none; padding:0; margin:.6rem 0 0">\n        <div class="badge" style="margin:0 0 .4rem; display:inline-flex; align-items:center; gap:.4rem">⚙️ Caractéristiques techniques</div>\n        <div style="overflow:auto">\n          <table style="width:100%; border-collapse:collapse; font-size:.95rem">\n            <tbody>'+rows+'</tbody>\n          </table>\n        </div>\n      </li>';
+    tableHtml = '\
+      <li style="list-style:none; padding:0; margin:.6rem 0 0">\
+        <div class="badge" style="margin:0 0 .4rem; display:inline-flex; align-items:center; gap:.4rem">⚙️ Caractéristiques techniques</div>\
+        <div style="overflow:auto">\
+          <table style="width:100%; border-collapse:collapse; font-size:.95rem">\
+            <tbody>'+rows+'</tbody>\
+          </table>\
+        </div>\
+      </li>';
   }
 
   if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
@@ -1042,17 +1081,15 @@ function renderPDP(product){
 
   if (btnShare){
     btnShare.onclick = function(){
-      (async function(){
-        try{
-          var shareData = { title: title+' • Pirates Tools', text: title, url: productLink };
-          if (navigator.share) {
-            await navigator.share(shareData);
-          } else if (navigator.clipboard && navigator.clipboard.writeText){
-            await navigator.clipboard.writeText(productLink);
-            toast('Lien copié dans le presse-papiers', 'success');
-          }
-        }catch(_){}
-      })();
+      try{
+        var shareData = { title: title+' • Pirates Tools', text: title, url: productLink };
+        if (navigator.share) {
+          navigator.share(shareData);
+        } else if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(productLink);
+          toast('Lien copié dans le presse-papiers', 'success');
+        }
+      }catch(_){}
     };
   }
 
@@ -1078,8 +1115,18 @@ function renderPDP(product){
         catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
         priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
       }
-      // correction style="margin:0)" -> "margin:0"
-      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+      relHTML += '\
+    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\
+      <div class="head">\
+        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\
+        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\
+      </div>\
+      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\
+      '+priceLine+'\
+      <div class="actions">\
+        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\
+      </div>\
+    </article>';
     }
     elRelWrap.innerHTML = relHTML;
   }
@@ -1186,7 +1233,6 @@ function renderCategoryPage(slugLower){
   var titleEl = document.getElementById('catTitle');
   var list = document.getElementById('categoryList');
 
-  // Fallback deriveur local si buildCategories n’est pas dispo
   function deriveCategories(){
     var set = {}, arr = [];
     for (var i=0;i<MODELS.length;i++){
@@ -1217,17 +1263,12 @@ function renderCategoryPage(slugLower){
   renderListInto(list, items);
 }
 
-Voici la partie “10 → 18” corrigée, prête à coller. J’ai surtout:
-	•	harmonisé les catégories avec slugify (clé de cat + route + select) pour éviter les décalages entre “milwaukee tools” et “milwaukee-tools”,
-	•	retiré Object.assign (ES5) dans la bannière d’update PWA,
-	•	remplacé les async/await (section 15 et 18) par des Promises pour rester ES5-safe,
-	•	conservé le polyfill CustomEvent avec garde (aucun conflit si déjà défini dans la 1ère partie).
 
 /* =========================================================
-   10) CATALOGUE (catégories auto) — corrigé (ES5-safe)
+   10) CATALOGUE (catégories auto) — ES5-safe
 ========================================================= */
 
-/* Polyfill CustomEvent (iOS/Safari anciens) — garde si déjà présent */
+/* Polyfill CustomEvent (iOS/Safari anciens) — inoffensif si déjà défini */
 (function(){
   if (typeof window.CustomEvent !== 'function') {
     function CustomEvent (event, params) {
@@ -1283,9 +1324,13 @@ function renderCatalogue(){
     : '<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>';
 
   function go(slugKey){
+    // 🔧 NOUVEAU : si le select n’a pas l’option, on met le libellé humain dans la recherche
     var matchVal = findSelectMatch(tagEl, slugKey);
+    var label = slugKey;
+    for (var i=0;i<cats.length;i++){ if (cats[i].key===slugKey){ label = cats[i].label; break; } }
+
     if (tagEl){ tagEl.value = matchVal || ''; }
-    if (searchEl){ searchEl.value = matchVal ? '' : slugKey; }
+    if (searchEl){ searchEl.value = matchVal ? '' : label; }
     if (typeof applyFilters === 'function') applyFilters();
 
     // Route vers la page dédiée de la catégorie
@@ -1324,7 +1369,6 @@ function loadProducts(){
         MODELS = Array.isArray(json) ? json : (json && json.products ? json.products : []);
         renderList(MODELS);
         renderCatalogue();
-        // Rendu home (bulles) à chaud
         if (typeof renderHomeBrands === 'function') renderHomeBrands();
         try { window.dispatchEvent(new CustomEvent('pt:productsLoaded')); } catch(_){}
       })
@@ -1635,9 +1679,15 @@ if (dockCount)    dockCount.addEventListener('click',    function(){ location.ha
    15) PWA (SW + update banner) — A2HS géré plus haut
 ========================================================= */
 function showUpdateBanner(waitingSW){
+  // Évite les doublons
+  if (document.getElementById('updateBanner')) return;
+
   var bar = document.createElement('div');
   bar.id = 'updateBanner';
+  bar.setAttribute('role','status');
+  bar.setAttribute('aria-live','polite');
   bar.innerHTML = '\n    <div style="display:flex;gap:.6rem;align-items:center">\n      <span>Nouvelle version disponible.</span>\n      <button class="btn primary" id="btnReload">Mettre à jour</button>\n    </div>';
+
   // ES5: sans Object.assign
   var s = bar.style;
   s.position='fixed'; s.left='50%'; s.transform='translateX(-50%)';
@@ -1647,12 +1697,26 @@ function showUpdateBanner(waitingSW){
   document.body.appendChild(bar);
 
   var btn = $('#btnReload', bar);
-  if (btn) btn.addEventListener('click', function(){
-    try{ waitingSW.postMessage('SKIP_WAITING'); }catch(_){}
-  });
+  if (btn && !btn.__wired){
+    btn.__wired = 1;
+    btn.addEventListener('click', function(){
+      try{
+        btn.disabled = true;
+        btn.textContent = 'Mise à jour…';
+        waitingSW && waitingSW.postMessage && waitingSW.postMessage('SKIP_WAITING');
+      }catch(_){}
+    });
+  }
 
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener('controllerchange', function(){ location.reload(); });
+  if (navigator.serviceWorker){
+    // Déclenche un unique reload quand le contrôleur change
+    var reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (reloading) return;
+      reloading = true;
+      // Petite latence pour laisser l’onglet prendre le nouveau SW
+      setTimeout(function(){ location.reload(); }, 120);
+    });
   }
 }
 
@@ -1662,6 +1726,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
       .then(function(reg){
         if (reg.waiting) showUpdateBanner(reg.waiting);
+
         reg.addEventListener('updatefound', function () {
           var sw = reg.installing;
           if (!sw) return;
@@ -1699,15 +1764,15 @@ function renderAccount(){
 
   var nameEl = $('#accName');  if (nameEl) nameEl.value = u.name || '';
   var mailEl = $('#accEmail'); if (mailEl) mailEl.value = u.email || '';
-  var spentEl= $('#accSpent'); if (spentEl) spentEl.textContent = (u.spent.toLocaleString('fr-FR') + ' €');
+  var spentEl= $('#accSpent'); if (spentEl) spentEl.textContent = (Number(u.spent).toLocaleString('fr-FR') + ' €');
 
-  var g = gradeFromSpent(u.spent);
+  var g = gradeFromSpent(Number(u.spent) || 0);
   var gradeEl = $('#accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
 
-  var pct = clamp((u.spent/5000)*100, 0, 100);
+  var pct = clamp(((Number(u.spent)||0)/5000)*100, 0, 100);
   var fill = $('#accFill');   if (fill)   fill.style.width = pct + '%';
   var cur  = $('#accCursor'); if (cur)    cur.style.left  = pct + '%';
-  var slider = $('#accSlider'); if (slider) slider.value = Math.min(u.spent, 5000);
+  var slider = $('#accSlider'); if (slider) slider.value = Math.min(Math.max(Number(u.spent)||0,0), 5000);
 
   var saveBtn = $('#accSave');
   if (saveBtn && !saveBtn.__wired){
@@ -1716,7 +1781,7 @@ function renderAccount(){
       var nu = {
         name: ($('#accName')  && $('#accName').value)  || '',
         email:($('#accEmail') && $('#accEmail').value) || '',
-        spent: u.spent
+        spent: Number((u && u.spent) || 0)
       };
       saveUser(nu);
       toast('Compte enregistré', 'success');
@@ -2045,7 +2110,6 @@ function renderAccount(){
       add(list, 'JSON-LD nettoyé', document.getElementById('jsonld-product') ? 'ko' : 'ok');
     }catch(_){ add(list, 'JSON-LD', 'warn'); }
 
-    var swStatus = 'warn';
     try{
       if ('serviceWorker' in navigator){
         navigator.serviceWorker.getRegistration().then(function(reg){
