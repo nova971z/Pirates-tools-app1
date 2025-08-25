@@ -1,18 +1,6 @@
 /* =========================================================
    Pirates Tools — app.js (FULL, stable, clean)
-   - Compat Android/iOS (sans ?. et ??)
-   - Dock fixe (CSS-only) : aucun JS de reposition
-   - Hero fluide Android/iOS
-   - Smooth scroll (depuis une vue → retour Home)
-   - Panier persistant (localStorage) + dock (🛒/badge)
-   - PDP riche : description + points clés + tableau specs
-   - Devis (#/devis) : quantités + envoi WhatsApp
-   - Compte & Fidélité (démo locale)
-   - Anti-zoom Android + bannière offline
-   - Focus après navigation + toasts (CSS injecté)
-   - A2HS unifié (tip iOS + bouton Android)
-   - SEO dynamique (titre + meta description) sur PDP
-   - PT utils + SelfTest (Section 18) activable via ?selftest=1
+   (Première partie corrigée)
 ========================================================= */
 
 'use strict';
@@ -38,6 +26,29 @@ function firstDefined(){
   }
   return undefined;
 }
+
+/* Fallback location.origin + pathname */
+function originPath(){
+  try{
+    var o = (location.origin || (location.protocol + '//' + location.host));
+    return o + location.pathname;
+  }catch(_){ return (location.pathname || '/'); }
+}
+
+/* Polyfill CustomEvent (iOS/Android anciens) */
+(function(){
+  try { new CustomEvent('test'); }
+  catch(e){
+    function CE(event, params){
+      params = params || { bubbles:false, cancelable:false, detail:null };
+      var evt = document.createEvent('CustomEvent');
+      evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+      return evt;
+    }
+    CE.prototype = (window.Event && window.Event.prototype) || {};
+    window.CustomEvent = CE;
+  }
+})();
 
 /* Nombres & monnaie sûrs (utiles un peu partout) */
 function toNumberSafe(v){
@@ -142,17 +153,6 @@ function resetPageMeta(){
   document.head.appendChild(style);
 })();
 
-/* Conteneur de toasts auto-créé au besoin */
-function ensureToastsContainer(){
-  var el = document.getElementById('toasts');
-  if (!el){
-    el = document.createElement('div');
-    el.id = 'toasts';
-    document.body.appendChild(el);
-  }
-  return el;
-}
-
 // Dock: visibilité contrôlée par le scroll du hero (et via le router)
 function showDock(visible){
   if (!dock) return;
@@ -162,7 +162,7 @@ function showDock(visible){
 
 /* ---------- A11y helpers ---------- */
 var live    = document.getElementById('sr-live') || document.getElementById('srLive');
-var toastsC = $('#toasts');
+var toastsC = $('#toasts'); // peut être nul (créé à la volée dans toast())
 var dockBadge = $('#dockCount');
 
 function announce(msg){
@@ -173,7 +173,16 @@ function announce(msg){
 
 function toast(msg, kind){
   if (kind === void 0) kind = 'success';
-  var host = ensureToastsContainer();
+  // Assure l’existence du conteneur
+  if (!toastsC){
+    var host = document.getElementById('toasts');
+    if (!host){
+      host = document.createElement('div');
+      host.id = 'toasts';
+      document.body.appendChild(host);
+    }
+    toastsC = host;
+  }
   var el = document.createElement('div');
   el.className = 'toast toast--' + kind;
   el.innerHTML = '\n    <div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div>\n    <div class="toast__body">'+msg+'</div>\n    <button class="toast__close" aria-label="Fermer">✖</button>\n  ';
@@ -183,7 +192,7 @@ function toast(msg, kind){
   };
   var btn = el.querySelector('.toast__close');
   if (btn) btn.addEventListener('click', close);
-  host.appendChild(el);
+  toastsC.appendChild(el);
   setTimeout(close, 3200);
 }
 
@@ -244,10 +253,10 @@ var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
 /* ---------- Paiement : configuration ---------- */
-var PAYPAL_BUSINESS = 'votre-email-paypal@example.com';
+var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
 var CURRENCY = 'EUR';
-var STRIPE_PAY_LINK = '';
-var CRYPTO_PAY_LINK = '';
+var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
+var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -304,28 +313,37 @@ var CRYPTO_PAY_LINK = '';
 
 /* =========================================================
    3) Bannière Offline / Online
+   (sans Object.assign pour ES5)
 ========================================================= */
 (function netBanner(){
   var bar = document.createElement('div');
   bar.id = 'netBanner';
   bar.setAttribute('aria-live','polite');
-  Object.assign(bar.style, {
-    position:'fixed', left:'50%', transform:'translateX(-50%)',
-    bottom:'calc(72px + env(safe-area-inset-bottom, 0px))',
-    background:'rgba(10,15,20,.88)', border:'1px solid #22303b',
-    padding:'.5rem .8rem', borderRadius:'10px', zIndex:'120', boxShadow:'0 10px 24px rgba(0,0,0,.35)',
-    font:'600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif',
-    color:'#e6edf5', display:'none'
-  });
+
+  var s = bar.style;
+  s.position = 'fixed';
+  s.left = '50%';
+  s.transform = 'translateX(-50%)';
+  s.bottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
+  s.background = 'rgba(10,15,20,.88)';
+  s.border = '1px solid #22303b';
+  s.padding = '.5rem .8rem';
+  s.borderRadius = '10px';
+  s.zIndex = '120';
+  s.boxShadow = '0 10px 24px rgba(0,0,0,.35)';
+  s.font = '600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif';
+  s.color = '#e6edf5';
+  s.display = 'none';
+
   document.body.appendChild(bar);
 
   var hideT = 0;
   var show = function(txt, ok){
     bar.textContent = txt;
-    bar.style.display = 'block';
-    bar.style.borderColor = ok ? '#00e1b4' : '#ff6b6b';
+    s.display = 'block';
+    s.borderColor = ok ? '#00e1b4' : '#ff6b6b';
     clearTimeout(hideT);
-    hideT = setTimeout(function(){ bar.style.display='none'; }, 2400);
+    hideT = setTimeout(function(){ s.display='none'; }, 2400);
   };
   window.addEventListener('offline', function(){ show('Hors ligne — contenu en cache', false); });
   window.addEventListener('online',  function(){ show('De nouveau en ligne', true); });
@@ -539,15 +557,7 @@ function slugify(str){
 }
 
 var PT_BRANDS = [
-  'DeWalt',
-  'Milwaukee',
-  'Maffle',
-  'Makita',
-  'feston',
-  'flex',
-  'stanley',
-  'wera',
-  'facom'
+  'DeWalt','Milwaukee','Maffle','Makita','feston','flex','stanley','wera','facom'
 ].map(function(name){ return { name: name, slug: slugify(name) }; });
 
 function ensureHomeView(){
@@ -572,11 +582,10 @@ function renderHomeBrands(){
   var grid = $('#brandGrid', home);
   if (!grid) return;
   grid.innerHTML = PT_BRANDS.map(function(b){
-    var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
     return '' +
       '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
         '<span class="brand__bubble">' +
-          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" onerror="'+onerr+'"/>' +
+          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" />' +
           '<span class="brand__glass" aria-hidden="true"></span>' +
         '</span>' +
         '<span class="brand__label">'+b.name+'</span>' +
@@ -584,7 +593,6 @@ function renderHomeBrands(){
   }).join('');
 }
 
-/* === Bulles marques dans le CATALOGUE uniquement === */
 function ensureCatalogueBrands(){
   var view = document.getElementById('view-catalogue');
   if (!view) return;
@@ -633,7 +641,7 @@ function ensureCatalogueBrands(){
 })();
 
 /* =========================================================
-   6) Smooth scroll + redirections (#list)
+   6) Smooth scroll (+ redirection catalogue/#list)
 ========================================================= */
 (function smoothScrollLinks(){
   function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
@@ -797,7 +805,7 @@ function cartToWhatsAppText(){
     contact = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
   }catch(_){}
 
-  var link = location.origin + location.pathname + '#/devis';
+  var link = originPath() + '#/devis';
   return 'Bonjour, je souhaite un devis pour:\n' + lines.join('\n') + '\n\nLien: ' + link + contact + '\n\nMerci.';
 }
 
@@ -807,10 +815,10 @@ function absoluteUrl(u){
 }
 function schemaAvailability(p){
   var s = (p.stock_status || '').toLowerCase();
-  if (s === 'in_stock')     return 'https://schema.org/InStock';
-  if (s === 'low_stock')    return 'https://schema.org/LimitedAvailability';
-  if (s === 'out_of_stock') return 'https://schema.org/OutOfStock';
-  return (p.stock_qty > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+  if (s === 'in_stock')     return 'http://schema.org/InStock';
+  if (s === 'low_stock')    return 'http://schema.org/LimitedAvailability';
+  if (s === 'out_of_stock') return 'http://schema.org/OutOfStock';
+  return (p.stock_qty > 0) ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock';
 }
 function buildProductJsonLD(p){
   var images = [];
@@ -821,10 +829,7 @@ function buildProductJsonLD(p){
     ? p.price
     : (typeof p.price_cents === 'number' ? p.price_cents/100 : undefined);
 
-  var url = location.origin + location.pathname + '#/produit/' + encodeURIComponent(p.id || p.sku || (p.title || ''));
-
-  var condition = 'https://schema.org/NewCondition';
-  if (p && (p.used === true || p.condition === 'used')) condition = 'https://schema.org/UsedCondition';
+  var url = originPath() + '#/produit/' + encodeURIComponent(p.id || p.sku || (p.title || ''));
 
   var data = {
     "@context": "https://schema.org",
@@ -842,7 +847,7 @@ function buildProductJsonLD(p){
       "priceCurrency": (p.currency || "EUR"),
       "price": price != null ? String(price) : undefined,
       "availability": schemaAvailability(p),
-      "itemCondition": condition,
+      "itemCondition": p.new ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
       "url": url
     }
   };
@@ -859,11 +864,12 @@ function buildProductJsonLD(p){
     if (Array.isArray(o)) return o.map(prune).filter(function(v){ return v != null; });
     if (o && typeof o === 'object'){
       var r = {};
-      Object.keys(o).forEach(function(k){
+      for (var k in o){
+        if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
         var pv = prune(o[k]);
         if (pv != null && !(Array.isArray(pv) && pv.length === 0)) r[k] = pv;
-      });
-      return Object.keys(r).length ? r : null;
+      }
+      return (function(obj){ for (var kk in obj){ if (Object.prototype.hasOwnProperty.call(obj, kk)) return obj; } return null; })(r);
     }
     return (o === undefined || o === null) ? null : o;
   };
@@ -887,10 +893,341 @@ function clearProductJsonLD(){
 }
 
 /* =========================================================
-   10) CATALOGUE (catégories auto)
+   9) PRODUITS : rendu liste / PDP
+========================================================= */
+function productToHTML(m){
+  var title = fallback(m.title, (fallback(m.brand,'') + (m.brand?' ':'') + fallback(m.sku,''))).trim();
+  var tag   = fallback(m.badge, (Array.isArray(m.tags)&&m.tags[0]) || fallback(m.tag,'')).trim();
+  var desc  = fallback(m.desc, fallback(m.description,''));
+  var id    = String(fallback(m.id, fallback(m.sku, title)));
+
+  var currency   = m && m.currency ? m.currency : 'EUR';
+  var priceCents = (m && typeof m.price_cents === 'number' && isFinite(m.price_cents))
+      ? Math.round(m.price_cents)
+      : (m && typeof m.price === 'number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+  var priceHtml  = '';
+  if (priceCents != null){
+    var priceText = '';
+    try { priceText = (priceCents/100).toLocaleString('fr-FR', { style:'currency', currency: currency }); }
+    catch(_){ priceText = (priceCents/100).toFixed(2)+' '+currency; }
+    priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
+  }
+
+  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
+}
+
+/* Limite le bind au conteneur passé */
+function bindAddToCart(scopeData, root){
+  var container = root || listEl || document;
+  $$('[data-add]', container).forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id = btn.getAttribute('data-add');
+      var p  = scopeData.find(function(x){
+        return (x.id && String(x.id)===id) || (x.sku && String(x.sku)===id) || (x.title===id);
+      });
+      if (!p) return;
+      CART.push(p);
+      saveCart();
+      notifyCartAdded(p.title || p.sku || 'Article');
+    });
+  });
+}
+
+function findProductByKey(key){
+  if (!key) return null;
+  var k = String(key).toLowerCase();
+  return MODELS.find(function(m){
+    var id  = String((m && m.id!=null)  ? m.id  : ((m && m.sku!=null) ? m.sku : '')).toLowerCase();
+    var sku = String((m && m.sku!=null) ? m.sku : '').toLowerCase();
+    var ttl = String((m && m.title!=null)? m.title: '').toLowerCase();
+    return id===k || sku===k || ttl===k;
+  }) || null;
+}
+
+function renderPDP(product){
+  var wrap   = document.getElementById('pdp');
+  if (!wrap) return;
+
+  var elImg  = document.getElementById('pdpImg');
+  var elT    = document.getElementById('pdpTitle');
+  var elTag  = document.getElementById('pdpTag');
+  var elDesc = document.getElementById('pdpDesc');
+  var elSpecs= document.getElementById('pdpSpecs');
+  var elRel  = document.getElementById('pdpRelated');
+  var btnQ   = document.getElementById('pdpQuote');
+  var btnWa  = document.getElementById('pdpWa');
+  var btnShare = document.getElementById('pdpShare');
+
+  var title = product.title || ((product.brand||'') + ' ' + (product.sku||'')).trim();
+  var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
+  var desc  = product.desc || product.description || '';
+  var img   = product.img  || IMG_FALLBACK;
+
+  if (elT) elT.textContent = title;
+  if (elTag) elTag.textContent = tag ? '#'+tag : '';
+  if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
+  if (elImg){ setSafeImg(elImg, img, product.images_alt || title || ''); }
+
+  var currency   = product && product.currency ? product.currency : 'EUR';
+  var priceCents = (product && typeof product.price_cents === 'number' && isFinite(product.price_cents))
+      ? Math.round(product.price_cents)
+      : (product && typeof product.price === 'number' && isFinite(product.price)) ? Math.round(product.price*100) : null;
+
+  var priceEl = document.getElementById('pdpPrice');
+  if (!priceEl){
+    priceEl = document.createElement('p');
+    priceEl.id = 'pdpPrice';
+    priceEl.className = 'pdp__price';
+    priceEl.style.margin = '.35rem 0';
+    priceEl.style.fontWeight = '700';
+    if (elDesc && elDesc.parentNode){ elDesc.parentNode.insertBefore(priceEl, elDesc.nextSibling); }
+  }
+  if (priceCents != null){
+    try { priceEl.textContent = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
+    catch(_){ priceEl.textContent = (priceCents/100).toFixed(2)+' '+currency; }
+  } else {
+    priceEl.textContent = '';
+  }
+
+  var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
+  var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
+
+  var kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
+  var kvDerived = {
+    'Plateforme': product.platform || undefined,
+    'Moteur': product.motor || undefined,
+    'Couple max': (product.torque_nm!=null) ? (product.torque_nm+' Nm') : undefined,
+    'Vitesses': product.rpm || undefined,
+    'Cadence de chocs': product.ipm || undefined,
+    'Mandrin': product.chuck || undefined,
+    'Longueur': (product.length_mm!=null) ? (product.length_mm+' mm') : undefined,
+    'Poids': (product.weight_kg!=null) ? (product.weight_kg+' kg') : undefined,
+    'Garantie': (product.warranty_months!=null) ? (product.warranty_months+' mois') : undefined
+  };
+  var merged = {};
+  if (kvFromJson) for (var k1 in kvFromJson){ if (kvFromJson[k1]!=null && kvFromJson[k1]!=='') merged[k1]=kvFromJson[k1]; }
+  for (var k2 in kvDerived){ var v = kvDerived[k2]; if (v!=null && v!=='') merged[k2]=v; }
+
+  var tableHtml = '';
+  if (Object.keys(merged).length){
+    var rows = Object.keys(merged).map(function(k){ return '<tr><th>'+k+'</th><td>'+merged[k]+'</td></tr>'; }).join('');
+    tableHtml = '\n      <li style="list-style:none; padding:0; margin:.6rem 0 0">\n        <div class="badge" style="margin:0 0 .4rem; display:inline-flex; align-items:center; gap:.4rem">⚙️ Caractéristiques techniques</div>\n        <div style="overflow:auto">\n          <table style="width:100%; border-collapse:collapse; font-size:.95rem">\n            <tbody>'+rows+'</tbody>\n          </table>\n        </div>\n      </li>';
+  }
+
+  if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
+
+  if (btnQ){
+    btnQ.textContent = 'Ajouter au panier';
+    btnQ.onclick = function(){
+      CART.push(product);
+      saveCart();
+      notifyCartAdded(product.title || product.sku || 'Article');
+    };
+  }
+
+  var sku = product.sku || product.id || title;
+  var productLink = originPath() + '#/produit/' + encodeURIComponent(product.id || product.sku || title);
+  var contactSuffix = '';
+  try{
+    var u = (typeof loadUser === 'function') ? loadUser() : null;
+    var arr = [];
+    if (u && u.name)  arr.push('Nom: ' + u.name);
+    if (u && u.email) arr.push('Email: ' + u.email);
+    contactSuffix = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
+  }catch(_){}
+  var textPDP = 'Bonjour, je souhaite un devis pour:\n• ' + sku + ' – ' + title + '\n\nLien: ' + productLink + contactSuffix + '\n\nMerci.';
+  var phone = PHONE_E164.replace('+','');
+  if (btnWa) btnWa.href = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(textPDP);
+
+  if (btnShare){
+    btnShare.onclick = function(){
+      (async function(){
+        try{
+          var shareData = { title: title+' • Pirates Tools', text: title, url: productLink };
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else if (navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(productLink);
+            toast('Lien copié dans le presse-papiers', 'success');
+          }
+        }catch(_){}
+      })();
+    };
+  }
+
+  var related = MODELS.filter(function(m){
+    return (m!==product) && (
+      (product.category && m.category===product.category) ||
+      (tag && ((m.badge===tag) || (Array.isArray(m.tags) && m.tags.indexOf(tag)!==-1)))
+    );
+  }).slice(0,3);
+
+  var elRelWrap = document.getElementById('pdpRelated');
+  if (elRelWrap){
+    var relHTML = '';
+    for (var i=0;i<related.length;i++){
+      var m = related[i];
+      var cur = (m && m.currency) ? m.currency : 'EUR';
+      var pc  = (m && typeof m.price_cents==='number' && isFinite(m.price_cents)) ? Math.round(m.price_cents)
+              : (m && typeof m.price==='number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+      var priceLine = '';
+      if (pc!=null){
+        var ptxt='';
+        try { ptxt = (pc/100).toLocaleString('fr-FR',{style:'currency',currency:cur}); }
+        catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
+        priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
+      }
+      // correction style="margin:0)" -> "margin:0"
+      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+    }
+    elRelWrap.innerHTML = relHTML;
+  }
+
+  if (elRelWrap){
+    elRelWrap.addEventListener('click', function(e){
+      var btn = e.target.closest ? e.target.closest('[data-add]') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-add');
+      var p  = MODELS.find(function(x){ return ((x.id||x.sku||x.title)+'') === id; });
+      if (p){
+        CART.push(p);
+        saveCart();
+        notifyCartAdded(p.title || p.sku || 'Article');
+      }
+      e.stopPropagation();
+    });
+  }
+
+  $$('.pdp__related .card').forEach(function(card){
+    card.addEventListener('click', function(e){
+      if (e.target.closest && e.target.closest('[data-add]')) return;
+      var id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = '#/produit/' + encodeURIComponent(id);
+    });
+  });
+
+  injectProductJsonLD(product);
+}
+
+function renderList(data){
+  if (!Array.isArray(data)) return;
+  if (listEl) listEl.innerHTML = data.map(productToHTML).join('\n');
+  bindAddToCart(data, listEl);
+  $$('.card', listEl).forEach(function(card){
+    card.addEventListener('click', function(e){
+      if (e.target.closest && e.target.closest('[data-add]')) return;
+      var id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = '#/produit/' + encodeURIComponent(id);
+    });
+  });
+  if (listEl) ScrollExit.observeWithin(listEl);
+}
+
+/* ===== Rendu liste dans un conteneur arbitraire (pour la page catégorie) ===== */
+function renderListInto(root, data){
+  if (!root) return;
+  root.innerHTML = (Array.isArray(data) ? data.map(productToHTML).join('\n') : '');
+
+  $$('[data-add]', root).forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id = btn.getAttribute('data-add');
+      var p  = (Array.isArray(data)? data : MODELS).find(function(x){
+        return (x.id && String(x.id)===id) || (x.sku && String(x.sku)===id) || (x.title===id);
+      });
+      if (!p) return;
+      CART.push(p);
+      saveCart();
+      notifyCartAdded(p.title || p.sku || 'Article');
+    });
+  });
+
+  $$('.card', root).forEach(function(card){
+    card.addEventListener('click', function(e){
+      if (e.target.closest && e.target.closest('[data-add]')) return;
+      var id = card.getAttribute('data-id');
+      if (!id) return;
+      location.hash = '#/produit/' + encodeURIComponent(id);
+    });
+  });
+
+  ScrollExit.observeWithin(root);
+}
+
+/* ===== Vue Catégorie (création à la volée) ===== */
+function ensureCategoryView(){
+  var sec = document.getElementById('view-category');
+  if (sec) return sec;
+
+  sec = document.createElement('section');
+  sec.id = 'view-category';
+  sec.className = 'view hidden';
+  sec.setAttribute('aria-label','Catégorie');
+  sec.innerHTML =
+    '<div class="container">'+
+      '<h1 id="catTitle" tabindex="-1">Catégorie</h1>'+
+      '<div id="categoryList"></div>'+
+    '</div>';
+
+  var heroEl = document.getElementById('hero');
+  var cat = document.getElementById('view-catalogue');
+  if (heroEl && heroEl.parentNode) heroEl.parentNode.insertBefore(sec, cat || heroEl.nextSibling);
+  else document.body.appendChild(sec);
+
+  return sec;
+}
+
+/* ===== Rendu d’une catégorie (avec fallback si buildCategories absent) ===== */
+function renderCategoryPage(slugLower){
+  var view = ensureCategoryView();
+  var titleEl = document.getElementById('catTitle');
+  var list = document.getElementById('categoryList');
+
+  // Fallback deriveur local si buildCategories n’est pas dispo
+  function deriveCategories(){
+    var set = {}, arr = [];
+    for (var i=0;i<MODELS.length;i++){
+      var raw = (MODELS[i].category || MODELS[i].badge || MODELS[i].brand || '').toString().trim();
+      if (!raw) continue;
+      var key = slugify(raw);
+      if (!set[key]) { set[key]=1; arr.push({ key:key, label:raw }); }
+    }
+    return arr;
+  }
+
+  var cats = [];
+  try{
+    cats = (typeof buildCategories === 'function') ? buildCategories() : deriveCategories();
+  }catch(_){
+    cats = deriveCategories();
+  }
+
+  var found = cats.find ? cats.find(function(c){ return c.key === slugLower; }) : null;
+  var label = found ? found.label : slugLower;
+  if (titleEl){ titleEl.textContent = label; }
+
+  var items = MODELS.filter(function(m){
+    var raw = (m.category || m.badge || m.brand || '').toString().trim().toLowerCase();
+    return raw === slugLower;
+  });
+
+  renderListInto(list, items);
+}
+
+Voici la partie “10 → 18” corrigée, prête à coller. J’ai surtout:
+	•	harmonisé les catégories avec slugify (clé de cat + route + select) pour éviter les décalages entre “milwaukee tools” et “milwaukee-tools”,
+	•	retiré Object.assign (ES5) dans la bannière d’update PWA,
+	•	remplacé les async/await (section 15 et 18) par des Promises pour rester ES5-safe,
+	•	conservé le polyfill CustomEvent avec garde (aucun conflit si déjà défini dans la 1ère partie).
+
+/* =========================================================
+   10) CATALOGUE (catégories auto) — corrigé (ES5-safe)
 ========================================================= */
 
-/* Polyfill CustomEvent (iOS/Safari anciens) */
+/* Polyfill CustomEvent (iOS/Safari anciens) — garde si déjà présent */
 (function(){
   if (typeof window.CustomEvent !== 'function') {
     function CustomEvent (event, params) {
@@ -904,13 +1241,14 @@ function clearProductJsonLD(){
   }
 })();
 
+/* Catégories basées sur slugify pour aligner routes/filtre */
 function buildCategories(){
   var map = {}; // ES5-safe (pas de Map)
   for (var i=0;i<MODELS.length;i++){
     var m = MODELS[i];
     var raw = (m.category || m.badge || m.brand || '').toString().trim();
     if (!raw) continue;
-    var key = raw.toLowerCase();
+    var key = (typeof slugify==='function') ? slugify(raw) : raw.toLowerCase();
     if (!map[key]) map[key] = { key:key, label:raw, count:0 };
     map[key].count += 1;
   }
@@ -920,12 +1258,15 @@ function buildCategories(){
   return out;
 }
 
+/* Essaie de faire correspondre une option du <select> à partir d’un slug */
 function findSelectMatch(select, keyLower){
   if (!select) return null;
   var opts = Array.prototype.slice.call(select.options || []);
   for (var i=0;i<opts.length;i++){
-    var val = (opts[i].value || opts[i].textContent || '');
-    if (val.toLowerCase() === keyLower) return (opts[i].value || opts[i].textContent);
+    var raw = (opts[i].value || opts[i].textContent || '');
+    var vLower = raw.toLowerCase();
+    var vSlug  = (typeof slugify==='function') ? slugify(raw) : vLower;
+    if (vLower===keyLower || vSlug===keyLower) return (opts[i].value || opts[i].textContent);
   }
   return null;
 }
@@ -941,10 +1282,10 @@ function renderCatalogue(){
       }).join('')
     : '<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>';
 
-  function go(keyLower){
-    var matchVal = findSelectMatch(tagEl, keyLower);
+  function go(slugKey){
+    var matchVal = findSelectMatch(tagEl, slugKey);
     if (tagEl){ tagEl.value = matchVal || ''; }
-    if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
+    if (searchEl){ searchEl.value = matchVal ? '' : slugKey; }
     if (typeof applyFilters === 'function') applyFilters();
 
     // Route vers la page dédiée de la catégorie
@@ -956,7 +1297,7 @@ function renderCatalogue(){
       if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
     };
     window.addEventListener('hashchange', once, false);
-    location.hash = '#/categorie/' + encodeURIComponent(keyLower);
+    location.hash = '#/categorie/' + encodeURIComponent(slugKey);
     setTimeout(function(){ if (!fired) once(); }, 150);
   }
 
@@ -973,8 +1314,7 @@ function renderCatalogue(){
 }
 
 /* =========================================================
-   11) CHARGEMENT PRODUITS
-   (version ES5-safe : Promises, pas d'async/await)
+   11) CHARGEMENT PRODUITS (ES5 : Promises)
 ========================================================= */
 function loadProducts(){
   try{
@@ -1031,13 +1371,13 @@ if (tagEl)    tagEl.addEventListener('change', applyFilters);
   tagEl.__routeWired = 1;
   tagEl.addEventListener('change', function(){
     var v = (tagEl.value || '').trim();
-    if (v) location.hash = '#/categorie/' + encodeURIComponent(slugify(v));
+    if (v) location.hash = '#/categorie/' + encodeURIComponent((typeof slugify==='function')? slugify(v) : v.toLowerCase());
     else   location.hash = '#/catalogue';
   });
 })();
 
 /* =========================================================
-   13) DEVIS (#/devis) — rendu dynamique (centimes + rangée paiement dédiée)
+   13) DEVIS (#/devis) — rendu dynamique (centimes + rangée paiement)
 ========================================================= */
 function renderCartView(){
   var root = $('#devisList');
@@ -1104,7 +1444,8 @@ function renderCartView(){
 
     delegate(root, '[data-dec]', 'click', function(_e, el){
       var key = el.getAttribute('data-dec');
-      var i = CART.findIndex(function(p){ return keyOf(p) === key; });
+      var i = -1;
+      for (var j=0;j<CART.length;j++){ if (keyOf(CART[j])===key){ i=j; break; } }
       if (i >= 0) CART.splice(i, 1);
       saveCart(); renderCartView();
     });
@@ -1164,7 +1505,7 @@ function renderCartView(){
 
 /* =========================================================
    13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
-   — calculs 100% en centimes (fiables)
+   — centimes (fiable)
 ========================================================= */
 
 /* Devise (ne redéfinit pas si déjà présente) */
@@ -1288,7 +1629,7 @@ if (dockQuoteBtn){
   });
 }
 if (dockCartBtn)  dockCartBtn.addEventListener('click', function(){ location.hash = '#/devis'; });
-if (dockCount)     dockCount.addEventListener('click',    function(){ location.hash = '#/devis'; });
+if (dockCount)    dockCount.addEventListener('click',    function(){ location.hash = '#/devis'; });
 
 /* =========================================================
    15) PWA (SW + update banner) — A2HS géré plus haut
@@ -1297,12 +1638,12 @@ function showUpdateBanner(waitingSW){
   var bar = document.createElement('div');
   bar.id = 'updateBanner';
   bar.innerHTML = '\n    <div style="display:flex;gap:.6rem;align-items:center">\n      <span>Nouvelle version disponible.</span>\n      <button class="btn primary" id="btnReload">Mettre à jour</button>\n    </div>';
-  Object.assign(bar.style, {
-    position:'fixed', left:'50%', transform:'translateX(-50%)',
-    bottom:'calc(96px + env(safe-area-inset-bottom,0px))',
-    background:'rgba(10,15,20,.92)', border:'1px solid var(--border)',
-    padding:'.5rem .7rem', borderRadius:'10px', zIndex:'130', boxShadow:'var(--shadow)'
-  });
+  // ES5: sans Object.assign
+  var s = bar.style;
+  s.position='fixed'; s.left='50%'; s.transform='translateX(-50%)';
+  s.bottom='calc(96px + env(safe-area-inset-bottom,0px))';
+  s.background='rgba(10,15,20,.92)'; s.border='1px solid var(--border)';
+  s.padding='.5rem .7rem'; s.borderRadius='10px'; s.zIndex='130'; s.boxShadow='var(--shadow)';
   document.body.appendChild(bar);
 
   var btn = $('#btnReload', bar);
@@ -1317,9 +1658,9 @@ function showUpdateBanner(waitingSW){
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){
-    (async function(){
-      try {
-        var reg = await navigator.serviceWorker.register('sw.js');
+    // ES5: Promises au lieu d’async/await
+    navigator.serviceWorker.register('sw.js')
+      .then(function(reg){
         if (reg.waiting) showUpdateBanner(reg.waiting);
         reg.addEventListener('updatefound', function () {
           var sw = reg.installing;
@@ -1330,10 +1671,8 @@ if ('serviceWorker' in navigator) {
             }
           });
         });
-      } catch (err) {
-        console.warn(err);
-      }
-    })();
+      })
+      .catch(function(err){ console.warn(err); });
   });
 }
 
@@ -1401,7 +1740,7 @@ function renderAccount(){
       var spent = Number(e.target.value || 0);
       var nu = { name: ($('#accName') && $('#accName').value) || '', email: ($('#accEmail') && $('#accEmail').value) || '', spent: spent };
       saveUser(nu);
-      // Mise à jour non destructive (évite multi-écoutes)
+      // Mise à jour non destructive
       var g2 = gradeFromSpent(spent);
       if (spentEl)  spentEl.textContent = spent.toLocaleString('fr-FR') + ' €';
       if (fill)     fill.style.width = clamp((spent/5000)*100, 0, 100) + '%';
@@ -1418,7 +1757,6 @@ function renderAccount(){
    - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
-  // S’assure que la vue home existe et que les bulles sont rendues (fonctions globales de la 1ère partie)
   if (typeof ensureHomeView === 'function') ensureHomeView();
   if (typeof renderHomeBrands === 'function') renderHomeBrands();
 
@@ -1455,11 +1793,8 @@ function renderAccount(){
 
   function ensureDockVisibleOnViews(isHome){
     if (!dock) return;
-    if (isHome){
-      // visibilité gérée par l’animation du hero
-    }else{
-      dock.classList.add('dock--visible');
-    }
+    if (isHome){ /* géré par le HERO */ }
+    else{ dock.classList.add('dock--visible'); }
   }
 
   function wireBack(cameFrom){
@@ -1517,8 +1852,8 @@ function renderAccount(){
       toggleIndexParts(true);
       ensureDockVisibleOnViews(false);
 
-      renderCatalogue();        // catégories auto
-      ensureCatalogueBrands();  // bulles marques visibles uniquement sur CATALOGUE
+      renderCatalogue();
+      ensureCatalogueBrands();
 
       clearProductJsonLD(); resetPageMeta();
       window.scrollTo({top:0,behavior:'auto'});
@@ -1597,49 +1932,52 @@ function renderAccount(){
 })();
 
 /* =========================================================
-   18) PT utils + AUTO-TEST (facultatif, dev-only)
+   18) PT utils + AUTO-TEST (facultatif, dev-only) — ES5
 ========================================================= */
 (function PTUtilsAndSelfTest(){
   var PT = (window.PT = window.PT || {});
 
-  PT.getSWVersion = async function getSWVersion(timeoutMs){
+  /* Promises au lieu d'async/await */
+  PT.getSWVersion = function getSWVersion(timeoutMs){
     if (timeoutMs === void 0) timeoutMs = 1500;
-    if (!('serviceWorker' in navigator)) return null;
-    var reg = await navigator.serviceWorker.getRegistration();
-    if (!reg || !navigator.serviceWorker.controller) return null;
-    return await new Promise(function(resolve){
-      var t = setTimeout(function(){ resolve(null); }, timeoutMs);
-      var onMsg = function(e){
-        var d = e.data;
-        if (d && d.type === 'VERSION') {
-          clearTimeout(t);
-          navigator.serviceWorker.removeEventListener('message', onMsg);
-          resolve(d.version || null);
-        }
-      };
-      navigator.serviceWorker.addEventListener('message', onMsg);
-      try{ reg.active && reg.active.postMessage && reg.active.postMessage('GET_VERSION'); }catch(_){ clearTimeout(t); resolve(null); }
+    if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+    return navigator.serviceWorker.getRegistration().then(function(reg){
+      if (!reg || !navigator.serviceWorker.controller) return null;
+      return new Promise(function(resolve){
+        var t = setTimeout(function(){ resolve(null); }, timeoutMs);
+        var onMsg = function(e){
+          var d = e.data;
+          if (d && d.type === 'VERSION') {
+            clearTimeout(t);
+            navigator.serviceWorker.removeEventListener('message', onMsg);
+            resolve(d.version || null);
+          }
+        };
+        navigator.serviceWorker.addEventListener('message', onMsg);
+        try{ reg.active && reg.active.postMessage && reg.active.postMessage('GET_VERSION'); }catch(_){ clearTimeout(t); resolve(null); }
+      });
     });
   };
 
-  PT.clearCaches = async function clearCaches(timeoutMs){
+  PT.clearCaches = function clearCaches(timeoutMs){
     if (timeoutMs === void 0) timeoutMs = 1500;
-    if (!('serviceWorker' in navigator)) return false;
-    var reg = await navigator.serviceWorker.getRegistration();
-    if (!reg || !navigator.serviceWorker.controller) return false;
-    return await new Promise(function(resolve){
-      var t = setTimeout(function(){ resolve(false); }, timeoutMs);
-      var onMsg = function(e){
-        var d = e.data;
-        if (d && d.type === 'CACHES_CLEARED') {
-          clearTimeout(t);
-          navigator.serviceWorker.removeEventListener('message', onMsg);
-          toast('Caches vidés', 'success');
-          resolve(true);
-        }
-      };
-      navigator.serviceWorker.addEventListener('message', onMsg);
-      try{ reg.active && reg.active.postMessage && reg.active.postMessage('CLEAR_CACHES'); }catch(_){ clearTimeout(t); resolve(false); }
+    if (!('serviceWorker' in navigator)) return Promise.resolve(false);
+    return navigator.serviceWorker.getRegistration().then(function(reg){
+      if (!reg || !navigator.serviceWorker.controller) return false;
+      return new Promise(function(resolve){
+        var t = setTimeout(function(){ resolve(false); }, timeoutMs);
+        var onMsg = function(e){
+          var d = e.data;
+          if (d && d.type === 'CACHES_CLEARED') {
+            clearTimeout(t);
+            navigator.serviceWorker.removeEventListener('message', onMsg);
+            toast('Caches vidés', 'success');
+            resolve(true);
+          }
+        };
+        navigator.serviceWorker.addEventListener('message', onMsg);
+        try{ reg.active && reg.active.postMessage && reg.active.postMessage('CLEAR_CACHES'); }catch(_){ clearTimeout(t); resolve(false); }
+      });
     });
   };
 
@@ -1677,7 +2015,7 @@ function renderAccount(){
     list.appendChild(row);
   }
 
-  async function runSelfTest(){
+  function runSelfTest(){
     var p = panel();
     var list = p.list;
 
@@ -1710,16 +2048,17 @@ function renderAccount(){
     var swStatus = 'warn';
     try{
       if ('serviceWorker' in navigator){
-        var reg = await navigator.serviceWorker.getRegistration();
-        swStatus = reg ? 'ok' : 'warn';
-      } else swStatus = 'warn';
-    }catch(_){ swStatus = 'warn'; }
-    add(list, 'Service Worker enregistré', swStatus);
+        navigator.serviceWorker.getRegistration().then(function(reg){
+          add(list, 'Service Worker enregistré', reg ? 'ok' : 'warn');
+        });
+      } else {
+        add(list, 'Service Worker enregistré', 'warn');
+      }
+    }catch(_){ add(list, 'Service Worker enregistré', 'warn'); }
 
-    try{
-      var ver = await PT.getSWVersion();
+    PT.getSWVersion().then(function(ver){
       add(list, 'SW version' + (ver?(' ('+ver+')'):'') , ver ? 'ok' : 'warn');
-    }catch(_){ add(list, 'SW version', 'warn'); }
+    });
 
     try{
       var beforeTitle = document.title;
