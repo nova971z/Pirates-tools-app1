@@ -36,21 +36,31 @@ function originPath(){
   }catch(_){ return (location.pathname || '/'); }
 }
 
-/* Polyfill CustomEvent (iOS/Android anciens) */
-(function(){
-  try { new CustomEvent('x'); }
-  catch(e){
-    function CE(event, params){
-      params = params || { bubbles:false, cancelable:false, detail:null };
-      var evt = document.createEvent('CustomEvent');
-      evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-      return evt;
-    }
-    CE.prototype = (window.Event && window.Event.prototype) || {};
-    window.CustomEvent = CE;
-  }
-})();
 
+/* Polyfill CustomEvent (iOS/Android anciens) */
+(function () {
+  // Détecte proprement si le constructeur fonctionne vraiment
+  var needPolyfill = false;
+
+  if (typeof window.CustomEvent !== 'function') {
+    needPolyfill = true;
+  } else {
+    try { new window.CustomEvent('test'); }
+    catch (_) { needPolyfill = true; }
+  }
+
+  if (!needPolyfill) return;
+
+  function CustomEvent(event, params) {
+    params = params || { bubbles:false, cancelable:false, detail:null };
+    var evt = document.createEvent('CustomEvent');
+    // booléens forcés pour éviter les surprises
+    evt.initCustomEvent(event, !!params.bubbles, !!params.cancelable, params.detail);
+    return evt;
+  }
+  CustomEvent.prototype = window.Event ? window.Event.prototype : {};
+  window.CustomEvent = CustomEvent;
+})();
 /* Nombres & monnaie sûrs (utiles un peu partout) */
 function toNumberSafe(v){
   var n = (typeof v === 'number') ? v : parseFloat(v);
