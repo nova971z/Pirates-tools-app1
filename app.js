@@ -6,6 +6,15 @@
 
 'use strict';
 
+/* Minimal CSS fallback so .hidden really hides even if styles.css fails */
+(function () {
+  if (document.getElementById('pt-hidden-css')) return;
+  var s = document.createElement('style');
+  s.id = 'pt-hidden-css';
+  s.textContent = '.hidden{display:none!important}';
+  document.head.appendChild(s);
+})();
+
 /* ---------- Helpers (ES5-safe) ---------- */
 var $  = function(sel, root){ return (root || document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -39,7 +48,7 @@ function originPath(){
 
 /* Polyfill CustomEvent (iOS/Android anciens) */
 (function () {
-  // Détecte proprement si le constructeur fonctionne vraiment
+  // Détecte proprement si le constructeur fonctionne vraiment //
   var needPolyfill = false;
 
   if (typeof window.CustomEvent !== 'function') {
@@ -87,30 +96,84 @@ function delegate(root, selector, type, handler){
   }, false);
 }
 
-/* Polyfills minimalistes pour très anciens navigateurs */
-(function(){
-  if (!Element.prototype.matches){
-    Element.prototype.matches =
-      Element.prototype.msMatchesSelector ||
-      Element.prototype.webkitMatchesSelector ||
-      function(s){
-        var m = (this.document || this.ownerDocument).querySelectorAll(s);
-        var i = m.length;
-        while (--i >= 0 && m.item(i) !== this) {}
-        return i > -1;
+
+/* =========================================================
+   Polyfills minimalistes (compat iOS/Android anciens)
+   - Element.matches / Element.closest
+   - Array.find / Array.includes
+========================================================= */
+
+/* matches / closest */
+(function () {
+  var EP = (window.Element || {}).prototype;
+  if (!EP) return;
+
+  if (!EP.matches) {
+    EP.matches =
+      EP.msMatchesSelector ||
+      EP.webkitMatchesSelector ||
+      function (sel) {
+        var doc = this.document || this.ownerDocument;
+        if (!doc || !doc.querySelectorAll) return false;
+        var list = doc.querySelectorAll(sel);
+        var i = list.length;
+        while (i--) { if (list[i] === this) return true; }
+        return false;
       };
   }
-  if (!Element.prototype.closest){
-    Element.prototype.closest = function(s){
+
+  if (!EP.closest) {
+    EP.closest = function (sel) {
       var el = this;
-      while (el && el.nodeType === 1){
-        if (el.matches && el.matches(s)) return el;
+      while (el && el.nodeType === 1) {
+        if (el.matches && el.matches(sel)) return el;
         el = el.parentElement || el.parentNode;
       }
       return null;
     };
   }
 })();
+
+/* Array.find / Array.includes (Patch B) */
+(function () {
+  if (!Array.prototype.find) {
+    var findImpl = function (predicate, thisArg) {
+      if (this == null) throw new TypeError('"this" is null or not defined');
+      if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+      var o = Object(this), len = o.length >>> 0;
+      for (var k = 0; k < len; k++) {
+        var kValue = o[k];
+        if (predicate.call(thisArg, kValue, k, o)) return kValue;
+      }
+      return undefined;
+    };
+    try { Object.defineProperty(Array.prototype, 'find', { value: findImpl, configurable: true, writable: true }); }
+    catch (_) { Array.prototype.find = findImpl; }
+  }
+
+  if (!Array.prototype.includes) {
+    var includesImpl = function (searchElement, fromIndex) {
+      if (this == null) throw new TypeError('"this" is null or not defined');
+      var o = Object(this), len = o.length >>> 0;
+      if (len === 0) return false;
+      var n = fromIndex | 0;
+      var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
+      while (k < len) {
+        var el = o[k];
+        if (el === searchElement ||
+            (typeof el === 'number' && typeof searchElement === 'number' && isNaN(el) && isNaN(searchElement))) {
+          return true;
+        }
+        k++;
+      }
+      return false;
+    };
+    try { Object.defineProperty(Array.prototype, 'includes', { value: includesImpl, configurable: true, writable: true }); }
+    catch (_) { Array.prototype.includes = includesImpl; }
+  }
+})();
+
+
 
 /* === (NOUVEAU) Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
@@ -1369,27 +1432,151 @@ function renderCatalogue(){
 }
 
 /* =========================================================
-   11) CHARGEMENT PRODUITS (ES5 : Promises)
+   11) CHARGEMENT PRODUITS (ES5 : Promises + fallback XHR)
 ========================================================= */
 function loadProducts(){
-  try{
-    return fetch('products.json', { cache:'no-store' })
-      .then(function(r){ return r.json(); })
-      .then(function(json){
-        MODELS = Array.isArray(json) ? json : (json && json.products ? json.products : []);
-        renderList(MODELS);
-        renderCatalogue();
-        if (typeof renderHomeBrands === 'function') renderHomeBrands();
-        try { window.dispatchEvent(new CustomEvent('pt:productsLoaded')); } catch(_){}
-      })
-      .catch(function(e){
-        console.error('Erreur chargement produits:', e);
-        if (listEl) listEl.innerHTML =
-          '\n      <div class="card">\n        <div class="head"><h3 class="title">Produits indisponibles</h3></div>\n        <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div>\n      </div>';
-      });
-  }catch(e){
-    console.error('Erreur fetch products.json:', e);
+  // Empêche les doubles appels qui pourraient se marcher dessus
+  if (loadProducts.__loading) return loadProducts.__loading;
+
+  // --- utilitaires locaux (ES5-safe) ---
+  function basePath(){
+    try{
+      var p = (location.pathname || '/');
+      return (location.origin || (location.protocol + '//' + location.host)) + p.replace(/\/[^\/]*$/, '/');
+    }catch(_){ return './'; }
   }
+
+  function parseProductsPayload(json){
+    // Accepte plusieurs formats possibles
+    if (Array.isArray(json)) return json;
+    if (json && Array.isArray(json.products)) return json.products;
+    if (json && Array.isArray(json.items))    return json.items;
+    if (json && json.data && Array.isArray(json.data)) return json.data;
+    return [];
+  }
+
+  function renderAllSafe(){
+    try { renderList(MODELS); } catch(_){}
+    try { renderCatalogue(); } catch(_){}
+    try { if (typeof renderHomeBrands === 'function') renderHomeBrands(); } catch(_){}
+    try { if (typeof ensureCatalogueBrands === 'function') ensureCatalogueBrands(); } catch(_){}
+    try { window.dispatchEvent(new CustomEvent('pt:productsLoaded')); } catch(_){}
+  }
+
+  function showErrorCard(message){
+    try{
+      if (!listEl) return;
+      listEl.innerHTML =
+        '<div class="card">' +
+          '<div class="head"><h3 class="title">Produits indisponibles</h3></div>' +
+          '<div class="specs"><p style="margin:0">'+ (message || 'Impossible de charger <code>products.json</code>.') +'</p></div>' +
+        '</div>';
+    }catch(_){}
+  }
+
+  // fetch JSON avec timeout + fallback XHR si besoin
+  function safeFetchJson(url, timeoutMs){
+    if (timeoutMs == null) timeoutMs = 7000;
+
+    // Fallback XHR (si fetch absent)
+    if (typeof window.fetch !== 'function'){
+      return new Promise(function(resolve, reject){
+        try{
+          var t = setTimeout(function(){ try{ xhr.abort(); }catch(_){ } reject(new Error('timeout')); }, timeoutMs);
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.overrideMimeType && xhr.overrideMimeType('application/json');
+          xhr.onreadystatechange = function(){
+            if (xhr.readyState !== 4) return;
+            clearTimeout(t);
+            if (xhr.status >= 200 && xhr.status < 300){
+              var text = xhr.responseText || '';
+              try { resolve(JSON.parse(text)); }
+              catch(e){ reject(e); }
+            } else {
+              reject(new Error('HTTP '+xhr.status));
+            }
+          };
+          xhr.send(null);
+        }catch(err){ reject(err); }
+      });
+    }
+
+    // Version fetch + timeout
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var timer = setTimeout(function(){ if (done) return; done = true; reject(new Error('timeout')); }, timeoutMs);
+
+      window.fetch(url, { cache: 'no-store' })
+        .then(function(r){
+          if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : '0'));
+          return r.text(); // lire le texte d’abord pour éviter les crashs de .json() si vide
+        })
+        .then(function(txt){
+          var json = {};
+          try { json = txt ? JSON.parse(txt) : {}; }
+          catch(e){ throw e; }
+          if (done) return;
+          done = true; clearTimeout(timer);
+          resolve(json);
+        })
+        .catch(function(err){
+          if (done) return;
+          done = true; clearTimeout(timer);
+          reject(err);
+        });
+    });
+  }
+
+  // Essaie plusieurs URLs de secours (évite les soucis de chemin sur GitHub Pages)
+  var root = basePath();
+  var ts   = (new Date()).getTime();
+  var urls = [
+    'products.json',
+    './products.json',
+    root + 'products.json',
+    'products.json?v=' + ts
+  ];
+
+  // Retire les doublons tout en gardant l’ordre
+  (function dedupe(){
+    var seen = {}; var out = []; var i;
+    for (i=0;i<urls.length;i++){
+      var u = urls[i];
+      if (!seen[u]){ seen[u]=1; out.push(u); }
+    }
+    urls = out;
+  })();
+
+  // Chaîne les tentatives jusqu’à succès
+  function tryNext(i){
+    if (i >= urls.length){
+      // Échec total : on rend une UI vide mais fonctionnelle
+      MODELS = [];
+      renderAllSafe();
+      showErrorCard('Impossible de charger <code>products.json</code>. Vérifiez le chemin et les permissions.');
+      try{ toast('Erreur: produits introuvables', 'info'); }catch(_){}
+      return Promise.resolve(MODELS);
+    }
+
+    return safeFetchJson(urls[i], 8000).then(function(json){
+      MODELS = parseProductsPayload(json);
+      if (!Array.isArray(MODELS)) MODELS = [];
+      renderAllSafe();
+      if (!MODELS.length){
+        // Fichier vide : on continue à tenter les autres URLs
+        return tryNext(i+1);
+      }
+      return MODELS;
+    }).catch(function(_err){
+      // Essai suivant
+      return tryNext(i+1);
+    });
+  }
+
+  // Lance le chargement
+  loadProducts.__loading = tryNext(0);
+  return loadProducts.__loading;
 }
 loadProducts();
 
@@ -2164,39 +2351,124 @@ function renderAccount(){
 
 /* =========================================================
    FILET DE SÉCURITÉ ANTI "PAGE BLANCHE"
-   À coller tout en bas, APRÈS la section 18.
+   — À placer TOUT EN BAS, après la section 18.
 ========================================================= */
-(function(){
-  function say(msg,type){
-    try{ (typeof toast==='function'? toast : console.log)(msg, type||'info'); }
-    catch(_){ console.log(msg); }
+(function () {
+  function runSafetyNet() {
+    /* -- Utilitaires sûrs -- */
+    function say(msg, type) {
+      try {
+        if (typeof toast === 'function') { toast(msg, type || 'info'); return; }
+      } catch (_){}
+      try { console.log(msg); } catch (_){}
+    }
+
+    function showErrorBar(text) {
+      var bar = document.getElementById('ptErrorBar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'ptErrorBar';
+        // Style inline pour ne dépendre d’aucun CSS externe
+        var s = bar.style;
+        s.position = 'fixed';
+        s.left = '50%';
+        s.transform = 'translateX(-50%)';
+        s.bottom = '16px';
+        s.zIndex = '99999';
+        s.maxWidth = '92vw';
+        s.background = 'rgba(10,15,20,.95)';
+        s.border = '1px solid #22303b';
+        s.color = '#e6edf5';
+        s.padding = '.55rem .7rem';
+        s.borderRadius = '10px';
+        s.boxShadow = '0 12px 24px rgba(0,0,0,.35)';
+        s.font = '600 14px/1.25 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif';
+        bar.innerHTML =
+          '<div style="display:flex;gap:.6rem;align-items:center">' +
+            '<span id="ptErrorMsg" style="white-space:pre-wrap"></span>' +
+            '<span style="flex:1"></span>' +
+            '<button id="ptErrCopy" style="border:1px solid #22303b;background:rgba(255,255,255,.06);color:#e6edf5;padding:.3rem .55rem;border-radius:8px;cursor:pointer">Copier</button>' +
+            '<button id="ptErrClose" style="border:1px solid #22303b;background:rgba(255,255,255,.06);color:#9fb4c5;padding:.3rem .55rem;border-radius:8px;cursor:pointer">Fermer</button>' +
+          '</div>';
+        document.body.appendChild(bar);
+
+        var btnC = document.getElementById('ptErrClose');
+        if (btnC) btnC.addEventListener('click', function(){ bar.parentNode && bar.parentNode.removeChild(bar); });
+
+        var btnCopy = document.getElementById('ptErrCopy');
+        if (btnCopy) btnCopy.addEventListener('click', function(){
+          try {
+            var txt = document.getElementById('ptErrorMsg').textContent || '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt);
+              say('Erreur copiée dans le presse-papiers', 'success');
+            }
+          } catch (_){}
+        });
+      }
+      var span = document.getElementById('ptErrorMsg');
+      if (span) span.textContent = text;
+    }
+
+    /* -- Capture des erreurs (évite un écran vide silencieux) -- */
+    window.addEventListener('error', function (e) {
+      var msg = 'Erreur JavaScript : ' + (e && e.message ? e.message : 'inconnue');
+      say(msg, 'info');
+      showErrorBar(msg);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      var msg = 'Erreur asynchrone : ' + ((r && (r.message || r)) || 'inconnue');
+      say(msg, 'info');
+      showErrorBar(msg);
+    });
+
+    /* -- CSS minimal au cas où le CSS principal ne charge pas -- */
+    if (!document.getElementById('pt-safety-css')) {
+      var css = document.createElement('style');
+      css.id = 'pt-safety-css';
+      css.textContent =
+        '.container{max-width:960px;margin:0 auto;padding:16px}' +
+        '.card{border:1px solid #22303b;border-radius:12px;padding:12px;background:rgba(10,15,20,.92);color:#e6edf5;margin:12px 0}' +
+        '.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem}' +
+        '.badge{border:1px solid #22303b;border-radius:999px;padding:.15rem .5rem;font-size:.8rem;color:#9fb4c5}';
+      try { document.head.appendChild(css); } catch (_){}
+    }
+
+    /* -- Garantit qu’au moins une vue est visible -- */
+    function ensureAtLeastOneView() {
+      var any = document.querySelector('#view-home,#view-catalogue,#view-devis,#view-produit,#view-compte,#view-category');
+      if (!any) {
+        var sec = document.createElement('section');
+        sec.id = 'view-home';
+        sec.className = 'view';
+        sec.innerHTML =
+          '<div class="container">' +
+            '<div class="card">' +
+              '<div class="head"><h3 class="title">Pirates Tools</h3><span class="badge">Secours</span></div>' +
+              '<div class="specs"><p style="margin:0">Interface initialisée (vue de secours).</p></div>' +
+            '</div>' +
+          '</div>';
+        try { document.body.appendChild(sec); } catch (_){}
+      }
+      var shown = document.querySelector('.view:not(.hidden)');
+      if (!shown) {
+        var home = document.getElementById('view-home');
+        if (home) { home.classList.remove('hidden'); }
+        try { if (typeof focusView === 'function') focusView('home'); } catch (_){}
+      }
+    }
+
+    // Exécute maintenant et re-vérifie après un court délai (si le router met du temps)
+    ensureAtLeastOneView();
+    setTimeout(ensureAtLeastOneView, 300);
+    setTimeout(ensureAtLeastOneView, 900);
   }
 
-  // Log doux au lieu de planter silencieusement
-  window.addEventListener('error', function(e){
-    say('Erreur JavaScript : ' + (e && e.message ? e.message : 'inconnue'));
-  });
-  window.addEventListener('unhandledrejection', function(e){
-    var r = e && e.reason;
-    say('Erreur asynchrone : ' + (r && (r.message || r) || 'inconnue'));
-  });
-
-  // S’assurer qu’au moins UNE vue existe
-  var any = document.querySelector('#view-home,#view-catalogue,#view-devis,#view-produit,#view-compte,#view-category');
-  if (!any){
-    var sec = document.createElement('section');
-    sec.id = 'view-home';
-    sec.className = 'view';
-    sec.innerHTML =
-      '<div class="card"><div class="head"><h3 class="title">Pirates Tools</h3></div>' +
-      '<div class="specs"><p>Interface initialisée (vue de secours).</p></div></div>';
-    document.body.appendChild(sec);
-  }
-
-  // Si toutes les vues sont masquées, afficher la home
-  var shown = document.querySelector('.view:not(.hidden)');
-  if (!shown){
-    var home = document.getElementById('view-home');
-    if (home) home.classList.remove('hidden');
+  // Attendre que le DOM soit prêt si nécessaire, pour éviter toute erreur de timing
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ try { runSafetyNet(); } catch (_){ /* no-op */ } }, false);
+  } else {
+    try { runSafetyNet(); } catch (_){ /* no-op */ }
   }
 })();
