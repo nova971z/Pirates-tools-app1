@@ -704,13 +704,418 @@ function renderCartView(){
   }
 }
 
-/* ---------- Dock actions ---------- */
-if (dockQuoteBtn){ dockQuoteBtn.addEventListener('click', function(){ var text=cartToWhatsAppText()||'Bonjour, je souhaite des informations.'; var msg=encodeURIComponent(text); window.open('https://wa.me/'+PHONE_E164.replace('+','')+'?text='+msg,'_blank','noopener'); }); }
-if (dockCartBtn){  dockCartBtn.addEventListener('click', function(){ location.hash='#/devis'; }); }
-if (dockBadge){    dockBadge.addEventListener('click',    function(){ location.hash='#/devis'; }); }
 
-/* ---------- PWA SW ---------- */
+/* =========================================================
+   14) DOCK (bas d’écran) — actions
+========================================================= */
+if (dockQuoteBtn){
+  dockQuoteBtn.addEventListener('click', function(){
+    var text = cartToWhatsAppText() || 'Bonjour, je souhaite des informations.';
+    var msg  = encodeURIComponent(text);
+    window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + msg, '_blank', 'noopener');
+  });
+}
+if (dockCartBtn)  dockCartBtn.addEventListener('click', function(){ location.hash = '#/devis'; });
+if (dockCount)     dockCount.addEventListener('click',    function(){ location.hash = '#/devis'; });
+
+/* =========================================================
+   15) PWA (SW + update banner) — A2HS géré plus haut
+========================================================= */
 function showUpdateBanner(waitingSW){
-  var bar=document.createElement('div'); bar.id='updateBanner';
-  bar.innerHTML='<div style="display:flex;gap:.6rem;align-items:center"><span>Nouvelle version disponible.</span><button class="btn primary" id="btnReload">Mettre à jour</button></div>';
-  var css={position:'fixed',left:'50%',transform:'translateX(-50%)',bottom:'calc(96px + env(safe-area-inset-bottom,0px))',background:'rgba(10,
+  var bar = document.createElement('div');
+  bar.id = 'updateBanner';
+  bar.innerHTML = '\n    <div style="display:flex;gap:.6rem;align-items:center">\n      <span>Nouvelle version disponible.</span>\n      <button class="btn primary" id="btnReload">Mettre à jour</button>\n    </div>';
+  Object.assign(bar.style, {
+    position:'fixed', left:'50%', transform:'translateX(-50%)',
+    bottom:'calc(96px + env(safe-area-inset-bottom,0px))',
+    background:'rgba(10,15,20,.92)', border:'1px solid var(--border)',
+    padding:'.5rem .7rem', borderRadius:'10px', zIndex:'130', boxShadow:'var(--shadow)'
+  });
+  document.body.appendChild(bar);
+
+  var btn = document.getElementById('btnReload');
+  if (btn) btn.addEventListener('click', function(){
+    try{ waitingSW.postMessage('SKIP_WAITING'); }catch(_){}
+  });
+
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('controllerchange', function(){ location.reload(); });
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    (async function(){
+      try {
+        var reg = await navigator.serviceWorker.register('sw.js');
+        if (reg.waiting) showUpdateBanner(reg.waiting);
+        reg.addEventListener('updatefound', function () {
+          var sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', function () {
+            if (sw.state === 'installed' && reg.waiting) {
+              showUpdateBanner(reg.waiting);
+            }
+          });
+        });
+      } catch (err) {
+        console.warn(err);
+      }
+    })();
+  });
+}
+
+window.addEventListener('online',  function(){ toast('Connexion rétablie', 'success'); });
+window.addEventListener('offline', function(){ toast('Vous êtes hors ligne', 'info'); });
+
+/* =========================================================
+   16) COMPTE & FIDÉLITÉ (démo locale)
+========================================================= */
+function loadUser(){
+  try{
+    var v = JSON.parse(localStorage.getItem(USER_KEY));
+    return v || { name:'', email:'', spent:0 };
+  } catch(_){ return { name:'', email:'', spent:0 }; }
+}
+function saveUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(_){} }
+function gradeFromSpent(spent){
+  if (spent >= 5000) return { label:'Excellent acheteur', color:'#00e1b4' };
+  if (spent >= 1000) return { label:'Bon acheteur',       color:'#19d3ff' };
+  return { label:'Moussaillon', color:'#9fb4c5' };
+}
+function renderAccount(){
+  var u = loadUser();
+  var nameEl = document.getElementById('accName'); if (nameEl) nameEl.value = u.name || '';
+  var mailEl = document.getElementById('accEmail'); if (mailEl) mailEl.value = u.email || '';
+  var spentEl= document.getElementById('accSpent'); if (spentEl) spentEl.textContent = (u.spent.toLocaleString('fr-FR') + ' €');
+
+  var g = gradeFromSpent(u.spent);
+  var gradeEl = document.getElementById('accGrade'); if (gradeEl){ gradeEl.textContent = g.label; gradeEl.style.borderColor = g.color; }
+
+  var pct = clamp((u.spent/5000)*100, 0, 100);
+  var fill = document.getElementById('accFill');   if (fill)   fill.style.width = pct + '%';
+  var cur  = document.getElementById('accCursor'); if (cur)    cur.style.left  = pct + '%';
+  var slider = document.getElementById('accSlider'); if (slider) slider.value = Math.min(u.spent, 5000);
+
+  var saveBtn = document.getElementById('accSave');
+  if (saveBtn && !saveBtn.__wired){
+    saveBtn.__wired = 1;
+    saveBtn.addEventListener('click', function(){
+      var nu = { name: (document.getElementById('accName') && document.getElementById('accName').value) || '', email: (document.getElementById('accEmail') && document.getElementById('accEmail').value) || '', spent: u.spent };
+      saveUser(nu);
+      toast('Compte enregistré', 'success');
+    });
+  }
+
+  var resetBtn = document.getElementById('accReset');
+  if (resetBtn && !resetBtn.__wired){
+    resetBtn.__wired = 1;
+    resetBtn.addEventListener('click', function(){
+      saveUser({ name:u.name, email:u.email, spent:0 });
+      renderAccount();
+      toast('Compteur fidélité remis à zéro', 'success');
+    });
+  }
+
+  var sliderEl = document.getElementById('accSlider');
+  if (sliderEl && !sliderEl.__wired){
+    sliderEl.__wired = 1;
+    sliderEl.addEventListener('input', function(e){
+      var spent = Number(e.target.value || 0);
+      var nu = { name: (document.getElementById('accName') && document.getElementById('accName').value) || u.name, email: (document.getElementById('accEmail') && document.getElementById('accEmail').value) || u.email, spent: spent };
+      saveUser(nu);
+      renderAccount();
+    });
+  }
+}
+
+/* =========================================================
+   17) ROUTER (#/…)
+   - Accueil = hero
+   - Autres vues = sections dédiées
+   - Toolbar + main (#list) + ratings MASQUÉS en accueil
+========================================================= */
+(function(){
+  var elToolbar  = document.querySelector('.toolbar');
+  var elMain     = document.querySelector('main.container');
+  var elRatings  = document.querySelector('.ratings');
+
+  var HOME_PARTS = [
+    document.getElementById('hero')
+  ].filter(function(x){ return !!x; });
+
+  var VIEWS = {
+    catalogue: document.getElementById('view-catalogue'),
+    devis:     document.getElementById('view-devis'),
+    produit:   document.getElementById('view-produit'),
+    compte:    document.getElementById('view-compte')
+  };
+
+  var showHero     = function(yes){ HOME_PARTS.forEach(function(el){ el.classList.toggle('hidden', !yes); }); };
+  var hideAllViews = function(){ Object.keys(VIEWS).forEach(function(k){ var el=VIEWS[k]; if (el) el.classList.add('hidden'); }); };
+  var showView     = function(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); };
+
+  function toggleIndexParts(visible){
+    if (elToolbar) elToolbar.classList.toggle('hidden', !visible);
+    if (elMain)    elMain.classList.toggle('hidden', !visible);
+    if (elRatings) elRatings.classList.toggle('hidden', !visible);
+  }
+
+  var prevHash = '';
+
+  function ensureDockVisibleOnViews(isHome){
+    if (!dock) return;
+    if (isHome){
+      // visibilité gérée par l’animation du hero
+    }else{
+      dock.classList.add('dock--visible');
+    }
+  }
+
+  function wireBack(cameFrom){
+    var back = document.querySelector('#pdpBack, .chip--back');
+    if (!back) return;
+    back.onclick = function(e){
+      e.preventDefault();
+      if (cameFrom && cameFrom !== location.hash) { location.hash = cameFrom; return; }
+      if (history.length > 1) { history.back(); return; }
+      location.hash = '';
+    };
+  }
+
+  function onRoute(){
+    var h = (location.hash || '').toLowerCase();
+    var cameFrom = prevHash;
+
+    // #/produit/:id
+    var m = h.match(/^#\/produit\/([^/?#]+)/);
+    if (m){
+      var key = decodeURIComponent(m[1]);
+      var tryRender = function(){
+        var p = findProductByKey(key);
+        showHero(false); hideAllViews(); showView('produit'); toggleIndexParts(true); ensureDockVisibleOnViews(false);
+        if (p){
+          renderPDP(p);
+          injectProductJsonLD(p);
+          setPageMeta('Pirates Tools • ' + (p.title || p.sku || 'Produit'), (p.seo && p.seo.description) || p.desc || p.description || DEFAULT_DESC);
+        }else{
+          if (document.getElementById('pdpTitle')) document.getElementById('pdpTitle').textContent = 'Produit introuvable';
+          if (document.getElementById('pdpDesc'))  document.getElementById('pdpDesc').textContent  = 'Vérifiez la référence ou revenez au catalogue.';
+          clearProductJsonLD();
+          resetPageMeta();
+        }
+        wireBack(cameFrom);
+        window.scrollTo({top:0, behavior:'auto'});
+        focusView('produit');
+        prevHash = h;
+      };
+      if (!MODELS.length){
+        var once = function(){ window.removeEventListener('pt:productsLoaded', once); tryRender(); };
+        window.addEventListener('pt:productsLoaded', once, { once:true });
+      }else{
+        tryRender();
+      }
+      return;
+    }
+
+    // #/catalogue
+    m = h.match(/^#\/catalogue\b/);
+    if (m){
+      showHero(false); hideAllViews(); showView('catalogue'); toggleIndexParts(true); ensureDockVisibleOnViews(false); renderCatalogue();
+      clearProductJsonLD(); resetPageMeta();
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('catalogue');
+      prevHash=h; return;
+    }
+
+    // #/devis
+    m = h.match(/^#\/devis\b/);
+    if (m){
+      showHero(false); hideAllViews(); showView('devis'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderCartView();
+      clearProductJsonLD(); resetPageMeta();
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('devis');
+      prevHash=h; return;
+    }
+
+    // #/compte
+    m = h.match(/^#\/compte\b/);
+    if (m){
+      showHero(false); hideAllViews(); showView('compte'); toggleIndexParts(false); ensureDockVisibleOnViews(false); renderAccount();
+      clearProductJsonLD(); resetPageMeta();
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('compte');
+      prevHash=h; return;
+    }
+
+    // Accueil
+    if (h === '' || h === '#' || h === '#/' || h === '#/home'){
+      showHero(true); hideAllViews(); /* pas de vue "home" dédiée ici */ toggleIndexParts(false); ensureDockVisibleOnViews(true);
+      clearProductJsonLD(); resetPageMeta();
+      window.scrollTo({top:0,behavior:'auto'});
+      focusView('home');
+      prevHash = h; return;
+    }
+
+    // fallback : accueil
+    showHero(true); hideAllViews(); toggleIndexParts(false); ensureDockVisibleOnViews(true);
+    clearProductJsonLD(); resetPageMeta();
+    window.scrollTo({top:0,behavior:'auto'});
+    focusView('home');
+    prevHash = h;
+  }
+
+  window.addEventListener('hashchange', onRoute);
+  onRoute();
+})();
+
+/* =========================================================
+   18) PT utils + AUTO-TEST (facultatif, dev-only)
+========================================================= */
+(function PTUtilsAndSelfTest(){
+  var PT = (window.PT = window.PT || {});
+
+  PT.getSWVersion = async function getSWVersion(timeoutMs){
+    if (timeoutMs === void 0) timeoutMs = 1500;
+    if (!('serviceWorker' in navigator)) return null;
+    var reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !navigator.serviceWorker.controller) return null;
+    return await new Promise(function(resolve){
+      var t = setTimeout(function(){ resolve(null); }, timeoutMs);
+      var onMsg = function(e){
+        var d = e.data;
+        if (d && d.type === 'VERSION') {
+          clearTimeout(t);
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          resolve(d.version || null);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', onMsg);
+      try{ reg.active && reg.active.postMessage && reg.active.postMessage('GET_VERSION'); }catch(_){ clearTimeout(t); resolve(null); }
+    });
+  };
+
+  PT.clearCaches = async function clearCaches(timeoutMs){
+    if (timeoutMs === void 0) timeoutMs = 1500;
+    if (!('serviceWorker' in navigator)) return false;
+    var reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !navigator.serviceWorker.controller) return false;
+    return await new Promise(function(resolve){
+      var t = setTimeout(function(){ resolve(false); }, timeoutMs);
+      var onMsg = function(e){
+        var d = e.data;
+        if (d && d.type === 'CACHES_CLEARED') {
+          clearTimeout(t);
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          toast('Caches vidés', 'success');
+          resolve(true);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', onMsg);
+      try{ reg.active && reg.active.postMessage && reg.active.postMessage('CLEAR_CACHES'); }catch(_){ clearTimeout(t); resolve(false); }
+    });
+  };
+
+  function paramEnabled(){
+    try{
+      var p = new URL(location.href).searchParams;
+      return p.get('selftest') === '1';
+    }catch(_){ return false; }
+  }
+
+  function addStyleOnce(){
+    if (document.getElementById('pt-selftest-css')) return;
+    var s = document.createElement('style');
+    s.id = 'pt-selftest-css';
+    s.textContent = '\n      #ptSelfTest{position:fixed; right:12px; bottom: calc(12px + env(safe-area-inset-bottom,0px)); z-index:140;\n        background:rgba(10,15,20,.95); color:#e6edf5; border:1px solid #22303b; border-radius:12px;\n        min-width:260px; max-width:360px; box-shadow:0 16px 32px rgba(0,0,0,.4); font:600 14px/1.3 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif}\n      #ptSelfTest .head{padding:.6rem .8rem; border-bottom:1px solid #22303b; display:flex; align-items:center; justify-content:space-between}\n      #ptSelfTest .list{max-height:50vh; overflow:auto; padding:.4rem .8rem}\n      #ptSelfTest .row{display:grid; grid-template-columns:18px 1fr; gap:.6rem; padding:.35rem 0; align-items:center}\n      #ptSelfTest .dot{width:10px; height:10px; border-radius:50%}\n      #ptSelfTest .ok{background:#00e1b4} .warn{background:#ffb020} .ko{background:#ff6b6b}\n      #ptSelfTest .foot{padding:.5rem .8rem; border-top:1px solid #22303b; display:flex; gap:.5rem; justify-content:flex-end}\n      #ptSelfTest button{border:1px solid #22303b; background:rgba(255,255,255,.06); color:#e6edf5; padding:.35rem .6rem; border-radius:8px; cursor:pointer}\n    ';
+    document.head.appendChild(s);
+  }
+
+  function panel(){
+    addStyleOnce();
+    var wrap = document.createElement('div');
+    wrap.id = 'ptSelfTest';
+    wrap.innerHTML = '\n      <div class="head"><div>Auto-test Pirates Tools</div><button id="ptClose">✖</button></div>\n      <div class="list" id="ptList"></div>\n      <div class="foot">\n        <button id="ptReload">Recharger</button>\n        <button id="ptClearCaches">Vider caches SW</button>\n      </div>\n    ';
+    document.body.appendChild(wrap);
+    var c = document.getElementById('ptClose'); if (c) c.addEventListener('click', function(){ wrap.remove(); });
+    var r = document.getElementById('ptReload'); if (r) r.addEventListener('click', function(){ location.reload(); });
+    var cc= document.getElementById('ptClearCaches'); if (cc) cc.addEventListener('click', function(){ PT.clearCaches(); });
+    return { root: wrap, list: document.getElementById('ptList') };
+  }
+
+  function add(list, label, status){
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="dot '+status+'"></span><span>'+label+'</span>';
+    list.appendChild(row);
+  }
+
+  async function runSelfTest(){
+    var p = panel();
+    var list = p.list;
+
+    add(list, 'UX CSS injecté', document.getElementById('pt-ux-css') ? 'ok' : 'ko');
+    add(list, 'A2HS CSS injecté', document.getElementById('pt-a2hs-css') ? 'ok' : 'warn');
+    add(list, 'Dock présent', document.getElementById('dock') ? 'ok' : 'ko');
+    add(list, 'Dock shell', document.querySelector('#dock .dock__shell') ? 'ok' : 'warn');
+    add(list, 'Toasts prêts', document.getElementById('toasts') ? 'ok' : 'ko');
+    add(list, 'Zone live (a11y)', (document.getElementById('sr-live') || document.getElementById('srLive')) ? 'ok' : 'ko');
+
+    var telOk = !!(callBtn && callBtn.href && callBtn.href.indexOf('tel:+33774230195') !== -1);
+    var waOk  = !!(waBtn && waBtn.href && /wa\.me\/33774230195/.test(waBtn.href));
+    add(list, 'CTA téléphone', telOk ? 'ok' : 'ko');
+    add(list, 'CTA WhatsApp',  waOk  ? 'ok' : 'ko');
+
+    add(list, 'products.json chargé', MODELS.length ? 'ok' : 'warn');
+
+    var viewsOk = ['view-catalogue','view-devis','view-produit','view-compte'].every(function(id){ return document.getElementById(id); });
+    add(list, 'Vues présentes', viewsOk ? 'ok' : 'ko');
+
+    try{
+      injectProductJsonLD({ title:'Test', sku:'TEST-1', desc:'Desc test' });
+      var jsonld = document.getElementById('jsonld-product');
+      var ok = !!(jsonld && jsonld.textContent && jsonld.textContent.indexOf('"@type":"Product"') !== -1);
+      add(list, 'JSON-LD injecté', ok ? 'ok' : 'ko');
+      clearProductJsonLD();
+      add(list, 'JSON-LD nettoyé', document.getElementById('jsonld-product') ? 'ko' : 'ok');
+    }catch(_){ add(list, 'JSON-LD', 'warn'); }
+
+    var swStatus = 'warn';
+    try{
+      if ('serviceWorker' in navigator){
+        var reg = await navigator.serviceWorker.getRegistration();
+        swStatus = reg ? 'ok' : 'warn';
+      } else swStatus = 'warn';
+    }catch(_){ swStatus = 'warn'; }
+    add(list, 'Service Worker enregistré', swStatus);
+
+    try{
+      var ver = await PT.getSWVersion();
+      add(list, 'SW version' + (ver?(' ('+ver+')'):'') , ver ? 'ok' : 'warn');
+    }catch(_){ add(list, 'SW version', 'warn'); }
+
+    try{
+      var beforeTitle = document.title;
+      var beforeDesc  = META_DESC_EL ? META_DESC_EL.getAttribute('content') : '';
+      setPageMeta('PT • Test', 'Meta test');
+      var okSet = (document.title==='PT • Test') && ((META_DESC_EL ? META_DESC_EL.getAttribute('content') : '')==='Meta test');
+      resetPageMeta();
+      var okReset = (document.title===DEFAULT_TITLE) && ((META_DESC_EL ? META_DESC_EL.getAttribute('content') : '')===DEFAULT_DESC);
+      add(list, 'SEO dynamique (set/reset)', okSet && okReset ? 'ok' : 'ko');
+      document.title = beforeTitle;
+      if (META_DESC_EL) META_DESC_EL.setAttribute('content', beforeDesc);
+    }catch(_){ add(list, 'SEO dynamique', 'warn'); }
+
+    add(list, 'Recherche (#q) présente', searchEl ? 'ok' : 'warn');
+    add(list, 'Select tags (#tag) présent', tagEl ? 'ok' : 'warn');
+
+    toast('Auto-test terminé', 'success');
+  }
+
+  if (paramEnabled()){
+    setTimeout(runSelfTest, 400);
+  }
+
+  PT.selfTest = runSelfTest;
+})();
+```0
