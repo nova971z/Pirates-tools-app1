@@ -2001,7 +2001,11 @@ if (!window.__pt_net_toasts){
    FILET DE SÉCURITÉ ANTI "PAGE BLANCHE"
    — À placer tout en bas, après la section 18.
 ========================================================= */
+
 (function () {
++  if (window.__pt_safety_done) return;
++  window.__pt_safety_done = true;
+
   function runSafetyNet() {
     function say(msg, type) {
       try { if (typeof toast === 'function') { toast(msg, type || 'info'); return; } } catch (_){}
