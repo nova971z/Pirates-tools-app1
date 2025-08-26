@@ -1997,7 +1997,113 @@ if (!window.__pt_net_toasts){
 })();
 
 
+/* =========================================================
+   FILET DE SÉCURITÉ ANTI "PAGE BLANCHE"
+   — À placer tout en bas, après la section 18.
+========================================================= */
+(function () {
+  function runSafetyNet() {
+    function say(msg, type) {
+      try { if (typeof toast === 'function') { toast(msg, type || 'info'); return; } } catch (_){}
+      try { console.log(msg); } catch (_){}
+    }
 
+    function showErrorBar(text) {
+      var bar = document.getElementById('ptErrorBar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'ptErrorBar';
+        var s = bar.style;
+        s.position='fixed'; s.left='50%'; s.transform='translateX(-50%)';
+        s.bottom='16px'; s.zIndex='99999'; s.maxWidth='92vw';
+        s.background='rgba(10,15,20,.95)'; s.border='1px solid #22303b'; s.color='#e6edf5';
+        s.padding='.55rem .7rem'; s.borderRadius='10px'; s.boxShadow='0 12px 24px rgba(0,0,0,.35)';
+        s.font='600 14px/1.25 system-ui,-apple-system,Inter,Roboto,Arial,sans-serif';
+        bar.innerHTML =
+          '<div style="display:flex;gap:.6rem;align-items:center">' +
+            '<span id="ptErrorMsg" style="white-space:pre-wrap"></span>' +
+            '<span style="flex:1"></span>' +
+            '<button id="ptErrCopy" style="border:1px solid #22303b;background:rgba(255,255,255,.06);color:#e6edf5;padding:.3rem .55rem;border-radius:8px;cursor:pointer">Copier</button>' +
+            '<button id="ptErrClose" style="border:1px solid #22303b;background:rgba(255,255,255,.06);color:#9fb4c5;padding:.3rem .55rem;border-radius:8px;cursor:pointer">Fermer</button>' +
+          '</div>';
+        document.body.appendChild(bar);
+
+        var btnC = document.getElementById('ptErrClose');
+        if (btnC) btnC.addEventListener('click', function(){ bar.parentNode && bar.parentNode.removeChild(bar); }, false);
+
+        var btnCopy = document.getElementById('ptErrCopy');
+        if (btnCopy) btnCopy.addEventListener('click', function(){
+          try{
+            var txt = (document.getElementById('ptErrorMsg') && document.getElementById('ptErrorMsg').textContent) || '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt);
+              say('Erreur copiée dans le presse-papiers', 'success');
+            }
+          }catch(_){}
+        }, false);
+      }
+      var span = document.getElementById('ptErrorMsg');
+      if (span) span.textContent = text;
+    }
+
+    // Capture erreurs
+    window.addEventListener('error', function (e) {
+      var msg = 'Erreur JavaScript : ' + (e && e.message ? e.message : 'inconnue');
+      say(msg, 'info'); showErrorBar(msg);
+    }, false);
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      var msg = 'Erreur asynchrone : ' + ((r && (r.message || r)) || 'inconnue');
+      say(msg, 'info'); showErrorBar(msg);
+    }, false);
+
+    // CSS minimal si feuille principale HS
+    if (!document.getElementById('pt-safety-css')) {
+      var css = document.createElement('style');
+      css.id = 'pt-safety-css';
+      css.textContent =
+        '.container{max-width:960px;margin:0 auto;padding:16px}' +
+        '.card{border:1px solid #22303b;border-radius:12px;padding:12px;background:rgba(10,15,20,.92);color:#e6edf5;margin:12px 0}' +
+        '.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem}' +
+        '.badge{border:1px solid #22303b;border-radius:999px;padding:.15rem .5rem;font-size:.8rem;color:#9fb4c5}';
+      try { document.head.appendChild(css); } catch (_){}
+    }
+
+    // Garantit qu’au moins UNE vue est visible
+    function ensureAtLeastOneView() {
+      var any = document.querySelector('#view-home,#view-catalogue,#view-devis,#view-produit,#view-compte,#view-category');
+      if (!any) {
+        var sec = document.createElement('section');
+        sec.id = 'view-home';
+        sec.className = 'view';
+        sec.innerHTML =
+          '<div class="container">' +
+            '<div class="card">' +
+              '<div class="head"><h3 class="title">Pirates Tools</h3><span class="badge">Secours</span></div>' +
+              '<div class="specs"><p style="margin:0">Interface initialisée (vue de secours).</p></div>' +
+            '</div>' +
+          '</div>';
+        try { document.body.appendChild(sec); } catch (_){}
+      }
+      var shown = document.querySelector('.view:not(.hidden)');
+      if (!shown) {
+        var home = document.getElementById('view-home');
+        if (home) { home.classList.remove('hidden'); }
+        try { if (typeof focusView === 'function') focusView('home'); } catch (_){}
+      }
+    }
+
+    ensureAtLeastOneView();
+    setTimeout(ensureAtLeastOneView, 300);
+    setTimeout(ensureAtLeastOneView, 900);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ try { runSafetyNet(); } catch (_){ } }, false);
+  } else {
+    try { runSafetyNet(); } catch (_){ }
+  }
+})();
 
 
 
