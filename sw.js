@@ -20,7 +20,7 @@ const CACHE_IMAGES   = `pt-img-${VERSION}`;
 const CACHE_PRODUCTS = `pt-products-${VERSION}`;
 
 // Quotas (anti-gonflement)
-const LIMIT_STATIC   = 80;
+const LIMIT_STATIC   = 81;
 const LIMIT_DYNAMIC  = 120;
 const LIMIT_IMAGES   = 120;
 const LIMIT_PRODUCTS = 8;
