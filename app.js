@@ -17,9 +17,6 @@
 
 'use strict';
 
-
-
-
 /* ---------- Helpers (ES5-safe) ---------- */
 var $  = function(sel, root){ return (root || document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -28,7 +25,9 @@ var clamp = function(v, min, max){
   v = typeof v === 'number' ? v : parseFloat(v);
   if (!isFinite(v)) v = 0;
   return Math.max(min, Math.min(max, v));
-  // ES5-safe Array.find
+};
+
+// ES5-safe Array.find
 function arrFind(arr, pred){
   if (!arr || !arr.length) return null;
   for (var i=0;i<arr.length;i++){
@@ -36,7 +35,6 @@ function arrFind(arr, pred){
   }
   return null;
 }
-};
 
 var fallback = function(v, alt){
   return (v === undefined || v === null) ? (alt || '') : v;
@@ -102,8 +100,6 @@ function delegate(root, selector, type, handler){
   }
 })();
 
-
-
 /* === (NOUVEAU) Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
 
@@ -153,27 +149,24 @@ function resetPageMeta(){
   style.id = 'pt-ux-css';
   style.textContent = css;
   document.head.appendChild(style);
-  
+
   // ——— Assure les conteneurs nécessaires (toasts + a11y live) ———
-(function ensureBasics(){
-  if (!document.getElementById('toasts')){
-    var t = document.createElement('div');
-    t.id = 'toasts';
-    document.body.appendChild(t);
-  }
-  if (!document.getElementById('sr-live')){
-    var l = document.createElement('div');
-    l.id = 'sr-live';
-    l.setAttribute('aria-live','polite');
-    l.style.position = 'absolute';
-    l.style.left = '-9999px';
-    document.body.appendChild(l);
-  }
+  (function ensureBasics(){
+    if (!document.getElementById('toasts')){
+      var t = document.createElement('div');
+      t.id = 'toasts';
+      document.body.appendChild(t);
+    }
+    if (!document.getElementById('sr-live')){
+      var l = document.createElement('div');
+      l.id = 'sr-live';
+      l.setAttribute('aria-live','polite');
+      l.style.position = 'absolute';
+      l.style.left = '-9999px';
+      document.body.appendChild(l);
+    }
+  })();
 })();
-  
-})();
-
-
 
 // Dock: visibilité contrôlée par le scroll du hero (et via le router)
 function showDock(visible){
@@ -265,28 +258,16 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
-
-
-
 /* ---------- Paiement : configuration ---------- */
 /* Provider PayPal (cart upload) */
 var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
 var CURRENCY = 'EUR';
 
-/* Carte + Apple Pay (Stripe Payment Link ou équivalent)
-   Mets ici un lien de paiement qui accepte Apple Pay (Stripe, Paddle, Lemon Squeezy…).
-   Astuce : si ton fournisseur accepte un montant en query, garde nos tokens :
-   - {AMOUNT}        → 129.90
-   - {AMOUNT_CENTS}  → 12990
-   Exemple Stripe (variable selon ton compte) : 'https://buy.stripe.com/abcd1234?prefilled_amount={AMOUNT}'
-*/
+/* Carte + Apple Pay (Stripe Payment Link ou équivalent) */
 var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
 
-/* Crypto (Coinbase Commerce / NOWPayments / CoinGate …)
-   Même principe : si ton lien accepte un montant en query, garde {AMOUNT} ou {AMOUNT_CENTS}.
-*/
+/* Crypto (Coinbase Commerce / NOWPayments / CoinGate …) */
 var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
-
 
 /* ===== Fallback robuste pour le(s) logo(s) ===== */
 (function logoFallbacks(){
@@ -565,11 +546,7 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
 
 /* =========================================================
    5-bis) Accueil — bulles marques (vue dédiée)
-   - Accueil = hero + #view-home (bulles)
-   - Produits = route #/catalogue (toolbar + liste + ratings)
 ========================================================= */
-
-/* slugify simple (ES5-safe) */
 function slugify(str){
   try{
     return String(str||'')
@@ -581,20 +558,10 @@ function slugify(str){
   }
 }
 
-/* Marques à afficher en home */
 var PT_BRANDS = [
-  'DeWalt',
-  'Milwaukee',
-  'Maffle',
-  'Makita',
-  'feston',
-  'flex',
-  'stanley',
-  'wera',
-  'facom'
+  'DeWalt','Milwaukee','Maffle','Makita','feston','flex','stanley','wera','facom'
 ].map(function(name){ return { name: name, slug: slugify(name) }; });
 
-/* Injection (une seule fois) de la section #view-home sous le HERO */
 function ensureHomeView(){
   var home = document.getElementById('view-home');
   if (home) return home;
@@ -612,7 +579,6 @@ function ensureHomeView(){
   return home;
 }
 
-/* Rendu des bulles marques */
 function renderHomeBrands(){
   var home = ensureHomeView();
   var grid = $('#brandGrid', home);
@@ -636,13 +602,10 @@ function renderHomeBrands(){
     if (!el) return;
     e.preventDefault();
     var label = el.getAttribute('data-brand-name') || '';
-    // On filtre par marque via la recherche (robuste)
     if (tagEl) tagEl.value = '';
     if (searchEl) searchEl.value = label;
-    // Applique le filtre et va sur la route Produits
     if (typeof applyFilters === 'function') applyFilters();
     location.hash = '#/catalogue';
-    // Scroll vers la liste après montée de la vue
     setTimeout(function(){
       var listNode = document.getElementById('list');
       if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
@@ -650,13 +613,8 @@ function renderHomeBrands(){
   }, false);
 })();
 
-
-
 /* =========================================================
    6) Smooth scroll (depuis une vue → retour home avant scroll)
-   — robustifié (fallback iOS/Safari + once manuel)
-   — + redirection spéciale : si on est en Accueil et on clique « Produits » (#list),
-     on bascule d’abord sur #/catalogue puis on scrolle vers #list
 ========================================================= */
 (function smoothScrollLinks(){
   function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
@@ -674,7 +632,6 @@ function renderHomeBrands(){
       var targetIsList = (targetSel && targetSel.toLowerCase) ? (targetSel.toLowerCase() === '#list') : (targetSel === '#list');
       var h = (location.hash || '').toLowerCase();
 
-      // Cas spécial : depuis l’accueil (hash vide) vers #list => route catalogue
       if ((!h || h === '#' || h === '#/' || h === '#/home') && targetIsList){
         var fired = false;
         var once = function(){
@@ -690,8 +647,6 @@ function renderHomeBrands(){
 
       var inView = (/^#\//i).test(h);
       if (inView){
-        // Nouveau : si on est déjà dans une vue et qu’on cible #list,
-        // on route vers #/catalogue (où #list est visible), sinon on revient à l’accueil.
         var done = false;
         var once2 = function(){
           if (done) return; done = true;
@@ -707,9 +662,6 @@ function renderHomeBrands(){
     }, false);
   });
 })();
-
-
-
 
 /* =========================================================
    7) Anim “exit” (injection CSS + IntersectionObserver)
@@ -746,8 +698,6 @@ var ScrollExit = (function () {
   function observeWithin(root){ (root||document).querySelectorAll('[data-tool]').forEach(function(el){ io.observe(el); }); }
   return { observeWithin: observeWithin };
 })();
-
-
 
 
 /* =========================================================
@@ -918,8 +868,6 @@ function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
 
-
-
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -986,7 +934,6 @@ function renderPDP(product){
   var btnQ   = document.getElementById('pdpQuote');
   var btnWa  = document.getElementById('pdpWa');
   var btnShare = document.getElementById('pdpShare');
-  var p = arrFind(MODELS, function(x){ return ((x.id||x.sku||x.title)+'') === id; });
 
   var title = product.title || ((product.brand||'') + ' ' + (product.sku||'')).trim();
   var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
@@ -1158,7 +1105,6 @@ function renderList(data){
   ScrollExit.observeWithin(listEl);
 }
 
-
 /* =========================================================
    10) CATALOGUE (catégories auto)
 ========================================================= */
@@ -1259,7 +1205,6 @@ var applyFilters = debounce(function(){
 
 if (searchEl) searchEl.addEventListener('input', applyFilters, true);
 if (tagEl) tagEl.addEventListener('change', applyFilters);
-
 
 
 
@@ -1595,6 +1540,7 @@ function showUpdateBanner(waitingSW){
 window.addEventListener('online',  function(){ toast('Connexion rétablie', 'success'); });
 window.addEventListener('offline', function(){ toast('Vous êtes hors ligne', 'info'); });
 
+
 /* =========================================================
    16) COMPTE & FIDÉLITÉ (démo locale)
 ========================================================= */
@@ -1654,84 +1600,8 @@ function renderAccount(){
    - Toolbar + main (#list) + ratings MASQUÉS en accueil
 ========================================================= */
 (function(){
-  // ——— Petites utilitaires locales pour la vue Home ———
-  function ensureHomeView(){
-    if (document.getElementById('view-home')) return;
-    var sec = document.createElement('section');
-    sec.id = 'view-home';
-    sec.className = 'view';
-    sec.setAttribute('aria-label','Accueil marques');
-    sec.innerHTML =
-      '<div class="container home" id="home">' +
-        '<div class="brand-grid" id="brandGrid"></div>' +
-      '</div>';
-    // On place la vue home juste après le HERO (si présent), sinon avant le catalogue
-    var hero = document.getElementById('hero');
-    var cat  = document.getElementById('view-catalogue');
-    if (hero && hero.parentNode) hero.parentNode.insertBefore(sec, hero.nextSibling);
-    else if (cat && cat.parentNode) cat.parentNode.insertBefore(sec, cat);
-    else document.body.insertBefore(sec, document.body.firstChild);
-  }
-
-  function renderHomeBrands(){
-    var root = document.getElementById('brandGrid');
-    if (!root) return;
-    if (root.__rendered) return; // évite les doublons
-    root.__rendered = 1;
-
-    var BRANDS = [
-      { key:'dewalt',   label:'DeWalt',   logo:'./images/brands/dewalt.svg'   },
-      { key:'milwaukee',label:'Milwaukee',logo:'./images/brands/milwaukee.svg'},
-      { key:'maffle',   label:'Maffle',   logo:'./images/brands/maffle.svg'   },
-      { key:'makita',   label:'Makita',   logo:'./images/brands/makita.svg'   },
-      { key:'feston',   label:'feston',   logo:'./images/brands/feston.svg'   },
-      { key:'flex',     label:'flex',     logo:'./images/brands/flex.svg'     },
-      { key:'stanley',  label:'stanley',  logo:'./images/brands/stanley.svg'  },
-      { key:'wera',     label:'wera',     logo:'./images/brands/wera.svg'     },
-      { key:'facom',    label:'facom',    logo:'./images/brands/facom.svg'    }
-    ];
-
-    var html = BRANDS.map(function(b){
-      // Sécurité si le fichier logo n’existe pas : fallback sur le logo principal
-      var onerr = "this.onerror=null;this.src='./images/pirates-tools-logo.png?v=7';";
-      return '' +
-        '<a href="#/catalogue" class="brand" data-brand="'+b.key+'">' +
-          '<span class="brand__bubble">' +
-            '<img src="'+b.logo+'" alt="'+b.label+'" loading="lazy" decoding="async" onerror="'+onerr+'">' +
-            '<span class="brand__glass" aria-hidden="true"></span>' +
-          '</span>' +
-          '<span class="brand__label">'+b.label+'</span>' +
-        '</a>';
-    }).join('');
-    root.innerHTML = html;
-
-    // Clic d’une bulle => filtre & route vers catalogue
-    root.addEventListener('click', function(e){
-      var a = e.target && e.target.closest ? e.target.closest('.brand') : null;
-      if (!a) return;
-      e.preventDefault();
-      var key = (a.getAttribute('data-brand') || '').toLowerCase();
-
-      // Si la marque existe dans #tag on la sélectionne, sinon on passe par la recherche
-      if (typeof tagEl !== 'undefined' && tagEl){
-        var val = null, i, opts = Array.prototype.slice.call(tagEl.options || []);
-        for (i=0;i<opts.length;i++){
-          var t = (opts[i].value || opts[i].textContent || '').toLowerCase();
-          if (t === key){ val = opts[i].value || opts[i].textContent; break; }
-        }
-        tagEl.value = val || '';
-      }
-      if (typeof searchEl !== 'undefined' && searchEl){
-        searchEl.value = (tagEl && tagEl.value) ? '' : key;
-      }
-
-      if (typeof applyFilters === 'function') applyFilters();
-      location.hash = '#/catalogue';
-    }, false);
-  }
-  // ——— fin utilitaires home ———
-
-  // S’assure que la vue home existe, puis rend les bulles (une seule fois)
+  // Utilise les fonctions globales définies plus haut :
+  // ensureHomeView() et renderHomeBrands()
   ensureHomeView();
   renderHomeBrands();
 
@@ -2019,7 +1889,18 @@ function renderAccount(){
   }
 
   PT.selfTest = runSelfTest;
-})();     
+})();
+
+
+
+
+
+
+
+
+
+
+
 
 
 
