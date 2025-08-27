@@ -28,6 +28,14 @@ var clamp = function(v, min, max){
   v = typeof v === 'number' ? v : parseFloat(v);
   if (!isFinite(v)) v = 0;
   return Math.max(min, Math.min(max, v));
+  // ES5-safe Array.find
+function arrFind(arr, pred){
+  if (!arr || !arr.length) return null;
+  for (var i=0;i<arr.length;i++){
+    if (pred(arr[i], i, arr)) return arr[i];
+  }
+  return null;
+}
 };
 
 var fallback = function(v, alt){
@@ -145,7 +153,27 @@ function resetPageMeta(){
   style.id = 'pt-ux-css';
   style.textContent = css;
   document.head.appendChild(style);
+  
+  // ——— Assure les conteneurs nécessaires (toasts + a11y live) ———
+(function ensureBasics(){
+  if (!document.getElementById('toasts')){
+    var t = document.createElement('div');
+    t.id = 'toasts';
+    document.body.appendChild(t);
+  }
+  if (!document.getElementById('sr-live')){
+    var l = document.createElement('div');
+    l.id = 'sr-live';
+    l.setAttribute('aria-live','polite');
+    l.style.position = 'absolute';
+    l.style.left = '-9999px';
+    document.body.appendChild(l);
+  }
 })();
+  
+})();
+
+
 
 // Dock: visibilité contrôlée par le scroll du hero (et via le router)
 function showDock(visible){
@@ -935,12 +963,14 @@ function bindAddToCart(scopeData){
 function findProductByKey(key){
   if (!key) return null;
   var k = String(key).toLowerCase();
-  return MODELS.find(function(m){
-    var id  = String((m && m.id!=null)  ? m.id  : ((m && m.sku!=null) ? m.sku : '')).toLowerCase();
-    var sku = String((m && m.sku!=null) ? m.sku : '').toLowerCase();
-    var ttl = String((m && m.title!=null)? m.title: '').toLowerCase();
-    return id===k || sku===k || ttl===k;
-  }) || null;
+  for (var i=0;i<MODELS.length;i++){
+    var m = MODELS[i];
+    var id  = String(m && m.id  != null ? m.id  : '').toLowerCase();
+    var sku = String(m && m.sku != null ? m.sku : '').toLowerCase();
+    var ttl = String(m && m.title!= null ? m.title: '').toLowerCase();
+    if (id===k || sku===k || ttl===k) return m;
+  }
+  return null;
 }
 
 function renderPDP(product){
@@ -956,6 +986,7 @@ function renderPDP(product){
   var btnQ   = document.getElementById('pdpQuote');
   var btnWa  = document.getElementById('pdpWa');
   var btnShare = document.getElementById('pdpShare');
+  var p = arrFind(MODELS, function(x){ return ((x.id||x.sku||x.title)+'') === id; });
 
   var title = product.title || ((product.brand||'') + ' ' + (product.sku||'')).trim();
   var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
