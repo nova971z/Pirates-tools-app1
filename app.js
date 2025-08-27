@@ -1493,35 +1493,51 @@ if (dockCount)     dockCount.addEventListener('click',    function(){ location.h
 
 /* =========================================================
    15) PWA (SW + update banner) — A2HS géré plus haut
+   -> FIX: no reload loop, banner unique, message structuré
 ========================================================= */
 function showUpdateBanner(waitingSW){
+  if (document.getElementById('updateBanner')) return; // évite doublons
+
   var bar = document.createElement('div');
   bar.id = 'updateBanner';
-  bar.innerHTML = '\n    <div style="display:flex;gap:.6rem;align-items:center">\n      <span>Nouvelle version disponible.</span>\n      <button class="btn primary" id="btnReload">Mettre à jour</button>\n    </div>';
+  bar.innerHTML =
+    '<div style="display:flex;gap:.6rem;align-items:center">' +
+      '<span>Nouvelle version disponible.</span>' +
+      '<button class="btn primary" id="btnReload">Mettre à jour</button>' +
+    '</div>';
   Object.assign(bar.style, {
     position:'fixed', left:'50%', transform:'translateX(-50%)',
     bottom:'calc(96px + env(safe-area-inset-bottom,0px))',
-    background:'rgba(10,15,20,.92)', border:'1px solid var(--border)',
-    padding:'.5rem .7rem', borderRadius:'10px', zIndex:'130', boxShadow:'var(--shadow)'
+    background:'rgba(10,15,20,.92)',
+    border:'1px solid #22303b',
+    padding:'.5rem .7rem', borderRadius:'10px',
+    zIndex:'130', boxShadow:'0 10px 24px rgba(0,0,0,.35)',
+    color:'#e6edf5',
+    font:'600 14px/1.2 system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial,sans-serif'
   });
   document.body.appendChild(bar);
 
-  var btn = $('#btnReload', bar);
-  if (btn) btn.addEventListener('click', function(){
-    try{ waitingSW.postMessage('SKIP_WAITING'); }catch(_){}
-  });
-
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener('controllerchange', function(){ location.reload(); });
+  var btn = bar.querySelector('#btnReload');
+  if (btn){
+    btn.addEventListener('click', function(){
+      try { waitingSW.postMessage({ type:'SKIP_WAITING' }); } catch(_){}
+    });
   }
 }
 
-if ('serviceWorker' in navigator) {
+(function registerSWOnce(){
+  if (!('serviceWorker' in navigator)) return;
+
+  // Garde: on ne recharge qu’UNE SEULE FOIS par session
+  var reloadedOnce = false;
+
   window.addEventListener('load', function(){
     (async function(){
       try {
         var reg = await navigator.serviceWorker.register('sw.js');
+
         if (reg.waiting) showUpdateBanner(reg.waiting);
+
         reg.addEventListener('updatefound', function () {
           var sw = reg.installing;
           if (!sw) return;
@@ -1531,12 +1547,19 @@ if ('serviceWorker' in navigator) {
             }
           });
         });
+
+        navigator.serviceWorker.addEventListener('controllerchange', function(){
+          if (reloadedOnce) return;
+          reloadedOnce = true;
+          // petit délai pour laisser le nouveau SW prendre le contrôle
+          setTimeout(function(){ location.reload(); }, 50);
+        });
       } catch (err) {
-        console.warn(err);
+        console.warn('SW register error:', err);
       }
     })();
   });
-}
+})();
 
 window.addEventListener('online',  function(){ toast('Connexion rétablie', 'success'); });
 window.addEventListener('offline', function(){ toast('Vous êtes hors ligne', 'info'); });
