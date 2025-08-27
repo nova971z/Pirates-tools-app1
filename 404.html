@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>404 • Redirection… | Pirates Tools</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root { color-scheme: dark; }
+    html,body{height:100%}
+    body{
+      margin:0;display:grid;place-items:center;background:#0a0f14;color:#e6edf5;
+      font:500 16px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif
+    }
+    .card{
+      width:min(640px,92vw);padding:1.1rem 1.25rem;border-radius:14px;
+      background:rgba(255,255,255,.04);border:1px solid #22303b;box-shadow:0 16px 32px rgba(0,0,0,.35)
+    }
+    h1{margin:.2rem 0 .6rem;font-size:1.15rem}
+    p{margin:.35rem 0}
+    a.btn{
+      display:inline-block;margin-top:.6rem;padding:.5rem .8rem;border-radius:10px;
+      background:#00e1b4;color:#071018;text-decoration:none;font-weight:700;border:0
+    }
+    code{padding:.05rem .35rem;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid #22303b}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Page introuvable (404)</h1>
+    <p>On vous renvoie vers l’application Pirates Tools…</p>
+    <p style="opacity:.8">Si rien ne se passe, touchez le bouton ci-dessous.</p>
+    <a id="goHome" class="btn" href="#">Retour à l’accueil</a>
+    <p style="opacity:.6;font-size:.9rem;margin-top:.6rem">
+      Astuce : vos routes sont en <code>#/…</code>, ce fichier convertit les URLs “propres” en routes hash.
+    </p>
+    <noscript>
+      <p>JavaScript est nécessaire pour la redirection. Allez à la racine du site puis vers le catalogue.</p>
+    </noscript>
+  </main>
+
+  <script>
+    (function () {
+      try {
+        var l = window.location;
+
+        // Base du site (ex: "/Pirates-tools-app1/") – fonctionne pour GitHub Pages project site
+        var parts = l.pathname.split('/').filter(Boolean);
+        var base  = parts.length ? ('/' + parts[0] + '/') : '/';
+
+        // Chemin demandé après la base (ex: "produit/XYZ")
+        var rest = l.pathname.replace(base, '').replace(/^404\.html$/, '');
+        rest = rest.replace(/^\//, '');
+
+        // Conserver query (?x=1) et hash s'il existe déjà
+        var query = l.search || '';
+        var hash  = (l.hash && l.hash !== '#') ? l.hash : ('#/' + rest);
+
+        // Cible finale : base + query + hash
+        var target = base + query + hash;
+
+        // Bouton de secours
+        var a = document.getElementById('goHome');
+        if (a) a.href = target;
+
+        // Redirection immédiate
+        window.location.replace(target);
+      } catch (e) {
+        // Échec rare : repli simple vers la racine
+        var root = (location.pathname.split('/').filter(Boolean).length ? '/' + location.pathname.split('/').filter(Boolean)[0] + '/' : '/');
+        window.location.replace(root + '#/');
+      }
+    })();
+  </script>
+</body>
+</html>
