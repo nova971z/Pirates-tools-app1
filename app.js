@@ -642,6 +642,7 @@ function clearProductJsonLD(){
   var s = document.getElementById('jsonld-product'); if (s) s.remove();
 }
 
+
 /* =========================================================
    9) PRODUITS : rendu liste / PDP
 ========================================================= */
@@ -651,7 +652,20 @@ function productToHTML(m){
   var desc  = fallback(m.desc, fallback(m.description,''));
   var id    = String(fallback(m.id, fallback(m.sku, title)));
 
-  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p></div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
+  // ----- Prix sur la carte (liste) -----
+  var currency   = m && m.currency ? m.currency : 'EUR';
+  var priceCents = (m && typeof m.price_cents === 'number' && isFinite(m.price_cents))
+      ? Math.round(m.price_cents)
+      : (m && typeof m.price === 'number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+  var priceHtml  = '';
+  if (priceCents != null){
+    var priceText = '';
+    try { priceText = (priceCents/100).toLocaleString('fr-FR', { style:'currency', currency: currency }); }
+    catch(_){ priceText = (priceCents/100).toFixed(2)+' '+currency; }
+    priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
+  }
+
+  return '\n  <article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">\n    <div class="head">\n      <h3 class="title">'+title+'</h3>\n      '+(tag ? '<span class="badge">'+tag+'</span>' : '')+'\n    </div>\n    <div class="specs"><p style="margin:0">'+(desc || '—')+'</p>'+priceHtml+'</div>\n    <div class="actions"><button class="btn primary" data-add="'+id+'">Ajouter au panier</button></div>\n  </article>';
 }
 
 function bindAddToCart(scopeData){
@@ -664,7 +678,7 @@ function bindAddToCart(scopeData){
       });
       if (!p) return;
       CART.push(p);
-      saveCart();
+      saveCart(); // rafraîchit le dock + la vue devis si ouverte
       notifyCartAdded(p.title || p.sku || 'Article');
     });
   });
@@ -674,9 +688,9 @@ function findProductByKey(key){
   if (!key) return null;
   var k = String(key).toLowerCase();
   return MODELS.find(function(m){
-    var id  = String(firstDefined(m.id, m.sku, '')).toLowerCase();
-    var sku = String(firstDefined(m.sku, '')).toLowerCase();
-    var ttl = String(firstDefined(m.title, '')).toLowerCase();
+    var id  = String((m && m.id!=null)  ? m.id  : ((m && m.sku!=null) ? m.sku : '')).toLowerCase();
+    var sku = String((m && m.sku!=null) ? m.sku : '').toLowerCase();
+    var ttl = String((m && m.title!=null)? m.title: '').toLowerCase();
     return id===k || sku===k || ttl===k;
   }) || null;
 }
@@ -704,10 +718,32 @@ function renderPDP(product){
   if (elTag) elTag.textContent = tag ? '#'+tag : '';
   if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
 
-  if (elImg){
-    setSafeImg(elImg, img, product.images_alt || title || '');
+  // Image sûre
+  if (elImg){ setSafeImg(elImg, img, product.images_alt || title || ''); }
+
+  // ----- PRIX sur la fiche produit -----
+  var currency   = product && product.currency ? product.currency : 'EUR';
+  var priceCents = (product && typeof product.price_cents === 'number' && isFinite(product.price_cents))
+      ? Math.round(product.price_cents)
+      : (product && typeof product.price === 'number' && isFinite(product.price)) ? Math.round(product.price*100) : null;
+
+  var priceEl = document.getElementById('pdpPrice');
+  if (!priceEl){
+    priceEl = document.createElement('p');
+    priceEl.id = 'pdpPrice';
+    priceEl.className = 'pdp__price';
+    priceEl.style.margin = '.35rem 0';
+    priceEl.style.fontWeight = '700';
+    if (elDesc && elDesc.parentNode){ elDesc.parentNode.insertBefore(priceEl, elDesc.nextSibling); }
+  }
+  if (priceCents != null){
+    try { priceEl.textContent = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
+    catch(_){ priceEl.textContent = (priceCents/100).toFixed(2)+' '+currency; }
+  } else {
+    priceEl.textContent = '';
   }
 
+  // Caractéristiques & tableau
   var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
   var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
 
@@ -735,6 +771,7 @@ function renderPDP(product){
 
   if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
 
+  // Boutons
   if (btnQ){
     btnQ.textContent = 'Ajouter au panier';
     btnQ.onclick = function(){
@@ -744,7 +781,7 @@ function renderPDP(product){
     };
   }
 
-  // ===== WhatsApp PDP (message enrichi + lien + coordonnées si dispo) =====
+  // WhatsApp PDP (message enrichi)
   var sku = product.sku || product.id || title;
   var productLink = location.origin + location.pathname + '#/produit/' + encodeURIComponent(product.id || product.sku || title);
   var contactSuffix = '';
@@ -775,7 +812,7 @@ function renderPDP(product){
     };
   }
 
-  // Produits associés
+  // Produits associés (avec prix)
   var related = MODELS.filter(function(m){
     return (m!==product) && (
       (product.category && m.category===product.category) ||
@@ -783,9 +820,24 @@ function renderPDP(product){
     );
   }).slice(0,3);
 
-  if (elRel) elRel.innerHTML = related.map(function(m){
-    return '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
-  }).join('');
+  if (elRel){
+    var relHTML = '';
+    for (var i=0;i<related.length;i++){
+      var m = related[i];
+      var cur = (m && m.currency) ? m.currency : 'EUR';
+      var pc  = (m && typeof m.price_cents==='number' && isFinite(m.price_cents)) ? Math.round(m.price_cents)
+              : (m && typeof m.price==='number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+      var priceLine = '';
+      if (pc!=null){
+        var ptxt='';
+        try { ptxt = (pc/100).toLocaleString('fr-FR',{style:'currency',currency:cur}); }
+        catch(_){ ptxt = (pc/100).toFixed(2)+' '+cur; }
+        priceLine = '<div class="specs" style="justify-content:flex-end"><strong>'+ptxt+'</strong></div>';
+      }
+      relHTML += '\n    <article class="card" data-id="'+(m.id || m.sku || m.title)+'">\n      <div class="head">\n        <h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>\n        '+((m.badge||'') ? '<span class="badge">'+m.badge+'</span>' : '')+'\n      </div>\n      <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>\n      '+priceLine+'\n      <div class="actions">\n        <button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button>\n      </div>\n    </article>\n  ';
+    }
+    elRel.innerHTML = relHTML;
+  }
 
   if (elRel){
     elRel.addEventListener('click', function(e){
@@ -811,6 +863,7 @@ function renderPDP(product){
     });
   });
 
+  // SEO JSON-LD
   injectProductJsonLD(product);
 }
 
@@ -831,6 +884,7 @@ function renderList(data){
 
   ScrollExit.observeWithin(listEl);
 }
+
 
 /* =========================================================
    10) CATALOGUE (catégories auto)
@@ -932,9 +986,12 @@ var applyFilters = debounce(function(){
 if (searchEl) searchEl.addEventListener('input', applyFilters, true);
 if (tagEl) tagEl.addEventListener('change', applyFilters);
 
+
+
 /* =========================================================
-   13) DEVIS (#/devis) — rendu dynamique
+   13) DEVIS (#/devis) — rendu dynamique (version centimes)
 ========================================================= */
+
 function renderCartView(){
   var root = $('#devisList');
   if (!root) return;
@@ -943,15 +1000,52 @@ function renderCartView(){
   if (!grouped.length){
     root.innerHTML = '<p style="margin:0">Aucun article pour le moment.</p>';
   }else{
-    root.innerHTML = grouped.map(function(g){
+    var html = '';
+    for (var i=0;i<grouped.length;i++){
+      var g = grouped[i];
       var item = g.item, qty = g.qty;
       var sku   = item.sku || item.id || '';
       var title = item.title || ((item.brand||'') + ' ' + (item.sku||'')).trim();
       var key   = keyOf(item);
-      return '\n        <div class="card" style="width:100%">\n          <div class="head">\n            <h3 class="title">'+title+'</h3>\n            <span class="badge">'+sku+'</span>\n          </div>\n          <div class="specs" style="display:flex;gap:.6rem;align-items:center">\n            <button class="btn" data-dec="'+key+'" aria-label="Diminuer">−</button>\n            <strong>'+qty+'</strong>\n            <button class="btn" data-inc="'+key+'" aria-label="Augmenter">+</button>\n            <button class="btn" data-del="'+key+'" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>\n          </div>\n        </div>\n      ';
-    }).join('');
+
+      var unitCents = getUnitCents(item);
+      var lineCents = (unitCents != null) ? unitCents * qty : null;
+      var priceHtml = '';
+      if (lineCents != null){
+        priceHtml =
+          '<div class="specs" style="justify-content:flex-end">' +
+            '<span>' + formatMoneyFromCents(lineCents) +
+            ' <span style="opacity:.7">(' + formatMoneyFromCents(unitCents) + ' × ' + qty + ')</span></span>' +
+          '</div>';
+      }
+
+      html += ''
+        + '<div class="card" style="width:100%">'
+        + '  <div class="head">'
+        + '    <h3 class="title">' + title + '</h3>'
+        + '    <span class="badge">' + sku + '</span>'
+        + '  </div>'
+        + '  <div class="specs" style="display:flex;gap:.6rem;align-items:center">'
+        + '    <button class="btn" data-dec="' + key + '" aria-label="Diminuer">−</button>'
+        + '    <strong>' + qty + '</strong>'
+        + '    <button class="btn" data-inc="' + key + '" aria-label="Augmenter">+</button>'
+        + '    <button class="btn" data-del="' + key + '" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>'
+        + '  </div>'
+        + (priceHtml || '')
+        + '</div>';
+    }
+    root.innerHTML = html;
   }
 
+  // --- Total estimé (en centimes)
+  var info = computeCartTotal();
+  var totalBlock =
+    '<div class="specs" id="devisTotal" style="display:flex;justify-content:flex-end">' +
+    '  <div>Total estimé : <strong>' + (info.hasPrices ? formatMoneyFromCents(info.totalCents) : '—') + '</strong></div>' +
+    '</div>';
+  root.insertAdjacentHTML('beforeend', totalBlock);
+
+  // --- Gestion + / − / Supprimer
   root.onclick = function(e){
     var inc = e.target.closest ? e.target.closest('[data-inc]') : null;
     var dec = e.target.closest ? e.target.closest('[data-dec]') : null;
@@ -963,36 +1057,225 @@ function renderCartView(){
       var p = MODELS.find(function(m){ return keyOf(m)===key; });
       if (p){ CART.push(p); }
     }else if (dec){
-      var i = CART.findIndex(function(p){ return keyOf(p)===key; });
-      if (i>=0) CART.splice(i,1);
+      var idx = -1;
+      for (var j=0;j<CART.length;j++){ if (keyOf(CART[j])===key){ idx=j; break; } }
+      if (idx>=0) CART.splice(idx,1);
     }else if (del){
-      for (var j=CART.length-1;j>=0;j--) if (keyOf(CART[j])===key) CART.splice(j,1);
+      for (var k=CART.length-1;k>=0;k--) if (keyOf(CART[k])===key) CART.splice(k,1);
     }
     saveCart();
     renderCartView();
   };
 
-  // ===== WhatsApp DEVIS (message enrichi) =====
+  // --- Boutons existants
   var sendBtn = $('#devisSend');
-  if (sendBtn){
+  if (sendBtn && !sendBtn.__wired){
+    sendBtn.__wired = 1;
     sendBtn.addEventListener('click', function(){
       var msg = encodeURIComponent(cartToWhatsAppText());
       if (!msg) return;
       window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + msg, '_blank', 'noopener');
       toast('Devis ouvert dans WhatsApp', 'success'); announce('Devis ouvert dans WhatsApp');
-    }, { once:true });
+    });
   }
 
   var clearBtn = $('#devisClear');
-  if (clearBtn){
+  if (clearBtn && !clearBtn.__wired){
+    clearBtn.__wired = 1;
     clearBtn.addEventListener('click', function(){
       CART = [];
       saveCart();
       renderCartView();
       toast('Devis vidé', 'success'); announce('Devis vidé');
-    }, { once:true });
+    });
   }
+
+  // --- Ajout / wiring des 3 boutons de paiement
+  var actionsWrap = $('#view-devis .card .actions');
+  if (actionsWrap){
+    if (!document.getElementById('devisPayStripe')){
+      var b1 = document.createElement('button');
+      b1.id = 'devisPayStripe';
+      b1.className = 'btn primary';
+      b1.textContent = 'Carte / Apple Pay';
+      actionsWrap.insertBefore(b1, actionsWrap.firstChild);
+    }
+    if (!document.getElementById('devisPayPayPal')){
+      var b2 = document.createElement('button');
+      b2.id = 'devisPayPayPal';
+      b2.className = 'btn';
+      b2.textContent = 'PayPal';
+      actionsWrap.appendChild(b2);
+    }
+    if (!document.getElementById('devisPayCrypto')){
+      var b3 = document.createElement('button');
+      b3.id = 'devisPayCrypto';
+      b3.className = 'btn';
+      b3.textContent = 'Crypto';
+      actionsWrap.appendChild(b3);
+    }
+  }
+  var btnStripe = document.getElementById('devisPayStripe');
+  if (btnStripe && !btnStripe.__wired){ btnStripe.__wired = 1; btnStripe.addEventListener('click', payWithStripe); }
+  var btnPP = document.getElementById('devisPayPayPal');
+  if (btnPP && !btnPP.__wired){ btnPP.__wired = 1; btnPP.addEventListener('click', payWithPayPal); }
+  var btnCrypto = document.getElementById('devisPayCrypto');
+  if (btnCrypto && !btnCrypto.__wired){ btnCrypto.__wired = 1; btnCrypto.addEventListener('click', payWithCrypto); }
 }
+
+
+
+
+/* =========================================================
+   13-bis) Paiement multi-moyens (Carte/ApplePay, PayPal, Crypto)
+   — calculs 100% en centimes (fiables)
+========================================================= */
+
+/* Devise (fallback si non définie ailleurs) */
+var CURRENCY = typeof CURRENCY !== 'undefined' ? CURRENCY : 'EUR';
+
+/* Prix unitaire → centimes (int) */
+function getUnitCents(p){
+  if (!p) return null;
+  if (typeof p.price_cents === 'number' && isFinite(p.price_cents)) return Math.round(p.price_cents);
+  if (typeof p.price === 'number' && isFinite(p.price)) return Math.round(p.price * 100);
+  if (typeof p.price === 'string'){
+    var s = p.price.replace(/\s/g,'').replace(',', '.');
+    var v = parseFloat(s);
+    if (isFinite(v)) return Math.round(v*100);
+  }
+  return null;
+}
+
+/* Formatage depuis centimes */
+function formatMoneyFromCents(cents){
+  var v = (cents||0)/100;
+  try{ return v.toLocaleString('fr-FR', { style:'currency', currency:CURRENCY }); }
+  catch(_){ return (Math.round(v*100)/100).toFixed(2) + ' ' + CURRENCY; }
+}
+
+/* Compat : certains appels existants passent encore des euros */
+function formatMoney(euros){
+  var c = Math.round((euros||0)*100);
+  return formatMoneyFromCents(c);
+}
+
+/* Total panier en centimes */
+function computeCartTotal(){
+  var grouped = groupCart();
+  var totalCents = 0;
+  var counted = 0;
+  for (var i=0;i<grouped.length;i++){
+    var u = getUnitCents(grouped[i].item);
+    if (u != null){ totalCents += u * grouped[i].qty; counted++; }
+  }
+  return { totalCents: totalCents, total: totalCents/100, hasPrices: counted>0 };
+}
+
+/* Remplacement des tokens {AMOUNT} (euros.xx) / {AMOUNT_CENTS} (centimes) */
+function fillAmount(url, totalCents){
+  if (!url) return '';
+  var euros = (totalCents/100).toFixed(2);
+  var cents = Math.round(totalCents);
+  return url.replace(/\{AMOUNT\}/g, euros).replace(/\{AMOUNT_CENTS\}/g, String(cents));
+}
+
+/* ===== PayPal : "cart upload" (multi-articles) ===== */
+function buildPayPalCartUrl(){
+  if (!PAYPAL_BUSINESS || PAYPAL_BUSINESS.indexOf('@') === -1) return '';
+  var base = 'https://www.paypal.com/cgi-bin/webscr?cmd=_cart&upload=1';
+  base += '&business=' + encodeURIComponent(PAYPAL_BUSINESS);
+  base += '&currency_code=' + encodeURIComponent(CURRENCY);
+
+  var grouped = groupCart();
+  var idx = 1;
+  for (var i=0;i<grouped.length;i++){
+    var g = grouped[i];
+    var uc = getUnitCents(g.item);
+    if (uc == null) continue;
+    var name = g.item.title || ((g.item.brand||'') + ' ' + (g.item.sku||'')).trim() || 'Article';
+    var amount = (uc/100).toFixed(2); // PayPal attend un décimal en euros
+    base += '&item_name_' + idx + '=' + encodeURIComponent(name);
+    base += '&amount_'    + idx + '=' + encodeURIComponent(amount);
+    base += '&quantity_'  + idx + '=' + encodeURIComponent(g.qty);
+    idx++;
+  }
+  return base;
+}
+
+/* Fallback WhatsApp (si pas de prix ou config incomplète) */
+function fallbackWhatsAppForPayment(extraLine){
+  var msg = cartToWhatsAppText();
+  if (!msg) msg = 'Bonjour, je souhaite régler ma commande. Pouvez-vous m’envoyer un lien de paiement ?';
+  if (extraLine) msg += '\n\n' + extraLine;
+  window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+/* --- Ouverture paiements --- */
+function payWithPayPal(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  var url = buildPayPalCartUrl();
+  if (!url){
+    toast('PayPal non configuré (email manquant).', 'info');
+    return;
+  }
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers PayPal');
+}
+
+function payWithStripe(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  if (!STRIPE_PAY_LINK){
+    toast('Lien Carte/Apple Pay non configuré.', 'info');
+    return;
+  }
+  var url = fillAmount(STRIPE_PAY_LINK, info.totalCents);
+  try{
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
+      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
+    }
+  }catch(_){}
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers Carte / Apple Pay');
+}
+
+function payWithCrypto(){
+  if (!CART.length){ toast('Votre panier est vide', 'info'); return; }
+  var info = computeCartTotal();
+  if (!info.hasPrices){
+    toast('Prix manquants — redirection WhatsApp.', 'info');
+    fallbackWhatsAppForPayment('Montant à régler inconnu (prix manquant).');
+    return;
+  }
+  if (!CRYPTO_PAY_LINK){
+    toast('Lien Crypto non configuré.', 'info');
+    return;
+  }
+  var url = fillAmount(CRYPTO_PAY_LINK, info.totalCents);
+  try{
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+      navigator.clipboard.writeText((info.totalCents/100).toFixed(2));
+      toast('Montant copié : ' + formatMoneyFromCents(info.totalCents), 'success');
+    }
+  }catch(_){}
+  window.open(url, '_blank', 'noopener');
+  announce('Redirection vers Paiement Crypto');
+}
+
+
 
 /* =========================================================
    14) DOCK (bas d’écran) — actions
