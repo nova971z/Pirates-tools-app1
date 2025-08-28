@@ -1895,7 +1895,60 @@ function renderAccount(){
 
 
 
+/* ===================== Brand grid (bulles de marques) ===================== */
+const BRAND_META = {
+  dewalt:    { label: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
+  makita:    { label: 'Makita',    logo: './images/brands/Logo.makita.png' },
+  milwaukee: { label: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
+  festool:   { label: 'Festool',   logo: './images/brands/Logo.festool.png' },
+  flex:      { label: 'FLEX',      logo: './images/brands/Logo.flex.png' },
+  wera:      { label: 'Wera',      logo: './images/brands/Logo.wera.png' },
+  facom:     { label: 'Facom',     logo: './images/brands/Logo.facom.png' },
+  stanley:   { label: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
+};
 
+/** Construit la liste des marques présentes dans les produits */
+function computeBrands(products) {
+  const counts = {};
+  for (const p of products || []) {
+    const k = (p.brand_key || '').toLowerCase();
+    if (!BRAND_META[k]) continue;           // on ignore les marques inconnues
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  return Object.keys(counts)
+    .sort((a, b) => BRAND_META[a].label.localeCompare(BRAND_META[b].label))
+    .map(k => ({ key: k, count: counts[k], ...BRAND_META[k] }));
+}
+
+/** Rend la grille dans #brandGrid */
+function renderBrandGrid(products) {
+  const host = document.getElementById('brandGrid');
+  if (!host) return;
+  const brands = computeBrands(products);
+  if (!brands.length) { host.innerHTML = ''; return; }
+
+  host.innerHTML = brands.map(b => `
+    <button class="brand" type="button" data-brand="${b.key}" aria-label="Voir ${b.label}">
+      <span class="brand__bubble">
+        <img class="brand__logo" src="${b.logo}" alt="${b.label}"
+             onerror="this.src='./images/pirates-tools-logo.png'">
+      </span>
+      <span class="brand__label">${b.label}</span>
+    </button>
+  `).join('');
+}
+
+/* Navigation quand on clique une bulle */
+(function attachBrandGridHandler(){
+  const host = document.getElementById('brandGrid');
+  if (!host) return;
+  host.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-brand]');
+    if (!btn) return;
+    const key = btn.dataset.brand;
+    window.location.hash = `#/catalogue?brand=${encodeURIComponent(key)}`;
+  });
+})();
 
 
 
