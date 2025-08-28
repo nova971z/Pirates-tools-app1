@@ -467,6 +467,43 @@ h3{ font-size: 1.05rem }
   #side-menu .app-label{ font-size:.82rem }
 }
 
+
+/* ===== Marques — grille de bulles (accueil/catalogue) ===== */
+.brand-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:14px; margin:.6rem 0 1rem;
+}
+.brand{ display:flex; flex-direction:column; align-items:center; gap:.5rem; text-align:center }
+.brand__label{ font-weight:700 }
+
+/* Bulle vitrée (même look que le menu latéral) */
+.brand__bubble{
+  position:relative; width:72px; height:72px; border-radius:50%;
+  background:rgba(255,255,255,.10);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.brand__bubble::before{
+  content:""; position:absolute; inset:-8px; border-radius:50%;
+  background:radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  filter:blur(10px); opacity:.55; z-index:-1;
+}
+.brand__bubble img{ width:60%; height:60%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
+
+/* Glow / retour tactile */
+.brand:active .brand__bubble,
+.brand:focus-visible .brand__bubble{
+  transform:scale(.98);
+  box-shadow:0 12px 26px rgba(0,0,0,.5), 0 0 14px rgba(25,211,255,.45);
+}
+
+@media (max-width:420px){
+  .brand__bubble{ width:64px; height:64px }
+}
+
+
 /* ====== PATCH ARRONDIS & SCROLL SAFE ====== */
 
 /* 1) Chips toujours en pilule (Safari compris) */
