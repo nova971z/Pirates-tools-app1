@@ -323,23 +323,34 @@
   </section>
 
   <!-- [VIEW] Catalogue -->
+  
   <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
-    <div class="container">
-      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Catalogue</h1>
-      <p style="margin:0 0 1rem; color:#9fb4c5">
-        Découvrez les catégories générées automatiquement à partir des produits.
-        Touchez une catégorie pour voir la liste filtrée.
-      </p>
-      <div id="catList" class="cat-list" role="list"></div>
+  <div class="container">
+    <h1 style="margin:1rem 0 .5rem" tabindex="-1">Catalogue</h1>
+    <p style="margin:0 0 1rem; color:#9fb4c5">
+      Découvrez les catégories générées automatiquement à partir des produits.
+      Touchez une catégorie pour voir la liste filtrée.
+    </p>
 
-      <div style="margin-top:1rem">
-        <a class="chip" href="#"
-           onclick="var t=document.getElementById('tag'); if(t){t.value='';} window.location.hash=''; setTimeout(function(){var l=document.getElementById('list'); if(l && l.scrollIntoView){ l.scrollIntoView({behavior:'smooth'}); }}, 60); return false;">
-          Voir tous les produits
-        </a>
-      </div>
+    <!-- Grille de marques -->
+    <div id="brandGrid" class="brand-grid" role="list"></div>
+
+    <!-- Sous-catégories / types -->
+    <div id="catList" class="cat-list" role="list"></div>
+
+    <div style="margin-top:1rem">
+      <a class="chip" href="#/"
+         onclick="var t=document.getElementById('tag'); if(t){t.value='';}
+                  window.location.hash='';
+                  setTimeout(function(){var l=document.getElementById('list');
+                    if(l) l.scrollIntoView({behavior:'smooth', block:'start'});},100);">
+        Voir tous les produits
+      </a>
     </div>
-  </section>
+  </div>
+</section>
+
+
 
   <!-- [VIEW] Devis -->
   <section id="view-devis" class="view hidden" aria-label="Devis express">
