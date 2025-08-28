@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -19,14 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Pour un site statique à la racine du repo (index.html, styles.css, app.js, images, etc.)
+      # Configure Pages (base_path, etc.)
+      - uses: actions/configure-pages@v5
+      # Upload du site statique (tout le repo)
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./
+          path: .
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
