@@ -1,0 +1,24 @@
+# Système / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Outils (au cas où on en ajoute plus tard)
+node_modules/
+dist/
+build/
+.tmp/
+.cache/
+.parcel-cache/
+coverage/
+
+# Artefacts locales
+*.local.*
+.env.*
+!.env.example
+
+# Pages/Actions
+*.zip
+*.tar.gz
