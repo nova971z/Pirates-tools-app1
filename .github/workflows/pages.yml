@@ -9,7 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  actions: read       # <-- nécessaire pour que 'deploy' télécharge l'artifact
 
 concurrency:
   group: pages
@@ -21,17 +20,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v4
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .        # on publie la racine du dépôt (index.html, sw.js, etc.)
+          path: '.'   # publie la racine (index.html, styles.css, sw.js, etc.)
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
