@@ -19,9 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Configure Pages (base_path, etc.)
       - uses: actions/configure-pages@v5
-      # Upload du site statique (tout le repo)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
