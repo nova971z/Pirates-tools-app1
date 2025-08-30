@@ -258,6 +258,54 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
+/* ============== [CATALOGUE] Grille de marques ============== */
+
+// 1) Ancrage DOM (id ajouté dans index.html)
+const elBrandGrid = document.getElementById('brandGrid');
+
+// 2) Marques (clé, libellé, logo local) — casse EXACTE des fichiers
+// Dossier: /images/brands/
+const BRANDS = [
+  { key: 'dewalt',    name: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
+  { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/logo.milwaukee.png' },
+  { key: 'makita',    name: 'Makita',    logo: './images/brands/logo.makita.png' },
+  { key: 'festool',   name: 'Festool',   logo: './images/brands/Logo.festool.png' },
+  { key: 'flex',      name: 'FLEX',      logo: './images/brands/Logo.flex.png' },
+  { key: 'wera',      name: 'Wera',      logo: './images/brands/logo.wera.png' },
+  { key: 'stanley',   name: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
+  { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
+];
+
+// 3) Rendu des bulles (anchor + image + label)
+function renderBrandGrid() {
+  if (!elBrandGrid) return;
+
+  elBrandGrid.innerHTML = BRANDS.map((b) => `
+    <a class="brand" data-brand="${b.key}"
+       href="#/catalogue?brand=${encodeURIComponent(b.key)}"
+       role="listitem" aria-label="Voir ${b.name}">
+      <span class="brand__bubble" aria-hidden="true">
+        <img class="brand__img" src="${b.logo}" alt="${b.name}"
+             onerror="this.onerror=null;this.src='./images/pirates-tools-logo.png';">
+      </span>
+      <span class="brand__label">${b.name}</span>
+    </a>
+  `).join('');
+
+  // Confort: après un 1er clic sur une bulle, on descend vers la liste
+  elBrandGrid.addEventListener('click', (e) => {
+    const a = e.target.closest('a.brand');
+    if (!a) return;
+    // Laisse le router changer le hash, puis scroll vers la liste filtrée
+    setTimeout(() => {
+      const list = document.getElementById('list') || document.getElementById('catList');
+      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  });
+}
+
+// 4) Init au chargement (app.js est déjà chargé en bas du HTML)
+document.addEventListener('DOMContentLoaded', renderBrandGrid);
 /* ---------- Paiement : configuration ---------- */
 /* Provider PayPal (cart upload) */
 var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
