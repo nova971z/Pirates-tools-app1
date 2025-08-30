@@ -572,3 +572,51 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 @media (max-width:360px){
   .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem }
 }
+
+
+
+
+
+/* ======= Brand grid (bulles vitrées + glow) ======= */
+.brand-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap:14px;
+  margin:.6rem 0 1rem;
+}
+
+.brand{
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  text-decoration:none;
+}
+
+.brand__bubble{
+  position:relative; width:92px; height:92px; border-radius:50%;
+  background: rgba(255,255,255,.10);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 10px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.brand__bubble::before{
+  content:""; position:absolute; inset:-10px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  filter: blur(10px); opacity:.55; z-index:-1;
+}
+.brand__img{ width:66%; height:66%; object-fit:contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
+.brand__label{ font-size:.92rem; font-weight:700; line-height:1.1; color:#eef4fa }
+
+.brand:hover .brand__bubble{
+  transform: translateY(-2px) scale(1.06);
+  background: rgba(255,255,255,.14);
+  box-shadow: 0 14px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.26);
+}
+
+/* petit flash lumineux tactile */
+@keyframes brand-pulse { 0%{ box-shadow:0 0 0 0 rgba(25,211,255,.55) } 100%{ box-shadow:0 0 0 18px rgba(25,211,255,0) } }
+.brand:active .brand__bubble{ transform: scale(.96); animation: brand-pulse 220ms ease-out 1 }
+
+@media (max-width:360px){
+  .brand__bubble{ width:84px; height:84px }
+  .brand__label{ font-size:.86rem }
+}
