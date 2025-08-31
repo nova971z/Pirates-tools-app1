@@ -276,6 +276,60 @@ const BRANDS = [
   { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
 ];
 
+
+/* 3) Rendu + interactions des bulles de marques
+   (à coller juste après la déclaration de `const BRANDS = [...]`) */
+function renderBrandGrid () {
+  if (!elBrandGrid) return;
+
+  const frag = document.createDocumentFragment();
+
+  for (const b of BRANDS) {
+    const a = document.createElement('a');
+    a.className = 'brand';
+    a.href = `#/catalogue?brand=${encodeURIComponent(b.key)}`;
+    a.setAttribute('role', 'listitem');
+    a.setAttribute('aria-label', b.name);
+    a.dataset.brand = b.key;
+
+    const bubble = document.createElement('span');
+    bubble.className = 'brand__bubble';
+
+    const img = document.createElement('img');
+    img.className = 'brand__logo';
+    img.src = b.logo;                 // ex: ./images/brands/Logo.dewalt.png
+    img.alt = b.name;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = () => { img.src = './images/pirates-tools-logo.png'; };
+
+    bubble.appendChild(img);
+
+    const label = document.createElement('span');
+    label.className = 'brand__label';
+    label.textContent = b.name;
+
+    a.appendChild(bubble);
+    a.appendChild(label);
+    frag.appendChild(a);
+  }
+
+  elBrandGrid.innerHTML = '';
+  elBrandGrid.appendChild(frag);
+}
+
+// petit feedback visuel (optionnel) sans bloquer la navigation hash
+elBrandGrid?.addEventListener('pointerdown', (e) => {
+  const a = e.target.closest('a.brand');
+  if (!a) return;
+  a.style.transform = 'scale(0.98)';
+  setTimeout(() => { a.style.transform = ''; }, 180);
+});
+
+renderBrandGrid();
+
+
 // 3) Rendu des bulles (anchor + image + label)
 function renderBrandGrid() {
   if (!elBrandGrid) return;
