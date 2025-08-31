@@ -377,14 +377,34 @@ function renderTypesForBrand(brandKey){
   elCatList.appendChild(frag);
 }
 
-// Boot au chargement + navigation
+ /* 6) Boot à l’ouverture (depuis l’URL) — v2 : déclencheur liste + event */
+
+// Helpers (à garder au-dessus de bootTypesFromHash)
+function filterByBrandType(brandKey, typeKey){
+  // expose pour la prochaine étape (filtrage réel de #list)
+  window._brandTypeFilter = { brandKey, typeKey };
+  document.dispatchEvent(new CustomEvent('brand-type-selected', {
+    detail: { brandKey, typeKey }
+  }));
+}
+
+function scrollToList(){
+  const l = document.getElementById('list');
+  if (l) setTimeout(() => l.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+}
+
+// Boot + réaction au hash
 function bootTypesFromHash(){
-  const q = parseHashQuery();
-  if (q.brand) renderTypesForBrand(q.brand);
+  const q = parseHashQuery();           // <- ta fonction existe déjà plus haut
+  if (q.brand) renderTypesForBrand(q.brand);   // <- idem, existe déjà
+
+  if (q.brand && q.type){
+    filterByBrandType(q.brand, q.type); // notifie la prochaine étape (liste produits)
+    scrollToList();                     // remonte proprement sur la liste
+  }
 }
 window.addEventListener('hashchange', bootTypesFromHash);
 bootTypesFromHash();
-
 
 // petit feedback visuel (optionnel) sans bloquer la navigation hash
 elBrandGrid?.addEventListener('pointerdown', (e) => {
