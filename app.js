@@ -690,109 +690,81 @@ window.addEventListener('hashchange', handleRouteCatalogue_Extended);
 handleRouteCatalogue_Extended();
 
 
+/* 7) Liste produits — rendu filtré (brand + type) */
+(function(){
+  // DOM
+  if (!window.listEl) window.listEl = document.getElementById('list');
 
+  // Utils locaux
+  function escapeHTML(s){
+    return String(s ?? '').replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+  const slug = s => String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 
-/* =======================  LISTE PRODUITS (brand + type)  ======================= */
-
-/** Format prix FR */
-function fmtPrice(n, c = 'EUR') {
-  try { return new Intl.NumberFormat('fr-FR', { style:'currency', currency:c }).format(n); }
-  catch { return (typeof n === 'number' ? n.toFixed(2) : String(n || '')) + ' ' + c; }
-}
-
-/** Rendu des cartes produit dans #list (sans dépendre d’un autre renderer) */
-function renderBrandTypeList(items) {
-  const listEl = document.getElementById('list');
-  if (!listEl) return;
-
-  if (!items.length) {
-    listEl.innerHTML = `<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>`;
-    listEl.scrollIntoView({ behavior:'smooth', block:'start' });
-    return;
+  // Source produits (essaie plusieurs variables globales possibles)
+  function getProducts(){
+    return (window.PRODUCTS || window.products || window.__PRODUCTS__ || []);
   }
 
-  const html = items.map(p => {
-    const price = p.price != null ? fmtPrice(p.price, p.currency || 'EUR') : '';
-    const old   = p.price_old != null ? fmtPrice(p.price_old, p.currency || 'EUR') : '';
-    const img   = (p.img || '/images/pirates-tools-logo.png');
+  function renderListForBrandType(brandKey, typeKey){
+    const data = getProducts();
+    if (!Array.isArray(data) || !data.length || !window.listEl) {
+      // rien à faire tant qu’on n’a pas chargé les produits
+      return;
+    }
 
-    return `
-      <div class="card">
-        <div class="head">
-          <h3 class="title">${p.title}</h3>
-          ${p.badge ? `<span class="badge">${p.badge}</span>` : ``}
-        </div>
-        <div style="display:grid;grid-template-columns:120px 1fr;gap:12px;padding:1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">
-          <img src="${img}" alt="${p.images_alt || p.title}" onerror="this.src='/images/pirates-tools-logo.png'">
-          <div>
-            <div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">
-              ${price} ${old ? `<span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">${old}</span>` : ``}
-            </div>
-            <div class="specs">
-              ${p.desc ? `<span>${p.desc}</span>` : ``}
-              ${p.torque_nm ? `<span>⚙️ ${p.torque_nm} Nm</span>` : ``}
-              ${p.weight_kg ? `<span>⚖️ ${p.weight_kg} kg</span>` : ``}
-              ${p.length_mm ? `<span>📏 ${p.length_mm} mm</span>` : ``}
-            </div>
+    // filtre brand + type (type = category_key ou slug(category))
+    const items = data.filter(p =>
+      p && p.brand_key === brandKey &&
+      (!typeKey || p.category_key === typeKey || slug(p.category) === typeKey)
+    );
+
+    if (!items.length){
+      listEl.innerHTML = `<p style="opacity:.8">Aucun produit pour cette sélection.</p>`;
+      return;
+    }
+
+    // rendu cartes minimal (compatible avec ton CSS .card/.head/.badge/.specs/.actions)
+    const html = items.map(p => {
+      const title = escapeHTML(p.title || p.id);
+      const badge = p.badge ? `<span class="badge">${escapeHTML(p.badge)}</span>` : '';
+      const torque = p.torque_nm ? `<span>${p.torque_nm} Nm</span>` : '';
+      const rpm    = p.rpm ? `<span>${escapeHTML(p.rpm)} tr/min</span>` : '';
+      const weight = p.weight_kg ? `<span>${p.weight_kg} kg</span>` : '';
+
+      return `
+        <article class="card">
+          <div class="head">
+            <h3 class="title">${title}</h3>
+            ${badge}
           </div>
-        </div>
-        <div class="actions">
-          <a class="btn primary" href="#/produit/${p.id}">Détails</a>
-          <button class="btn" type="button"
-            onclick="try{ (window.addToCart||window.cartAdd||function(){console.log('addToCart mock')})('${p.id}'); }catch(e){}">
-            Ajouter au panier
-          </button>
-          <a class="btn btn-wa" href="https://wa.me/33774230195?text=${encodeURIComponent('Bonjour, je souhaite un devis pour ' + p.sku + ' / ' + p.title)}" target="_blank" rel="noopener">WhatsApp</a>
-        </div>
-      </div>
-    `;
-  }).join('');
+          <div class="specs">${torque}${rpm}${weight}</div>
+          <div class="actions">
+            <a class="btn primary" href="#/produit/${encodeURIComponent(p.id)}">Détails</a>
+            <button class="btn" onclick="window.addToCart ? addToCart('${encodeURIComponent(p.id)}') : 0">Ajouter au panier</button>
+          </div>
+        </article>
+      `;
+    }).join('');
+    listEl.innerHTML = html;
+  }
 
-  listEl.innerHTML = html;
-  listEl.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-/** Filtre utilitaire */
-function filterByBrandType(all, brandKey, typeKey) {
-  const b = String(brandKey || '').toLowerCase();
-  const t = String(typeKey  || '').toLowerCase();
-  return all.filter(p =>
-    (!b || (p.brand_key||'').toLowerCase() === b) &&
-    (!t || (p.category_key||p.category||'').toLowerCase() === t)
-  );
-}
-
-/** ➜ Étend le routeur catalogue pour gérer brand+type et afficher la liste */
-async function handleRouteCatalogue_Extended() {
-  const { view, query } = parseHash();
-  if (view !== 'catalogue') return;
-
-  // Sélection visuelle de la marque dans la grille
-  const selBrand = String(query.brand || '').toLowerCase();
-  document.querySelectorAll('#brandGrid a.brand').forEach(a => {
-    a.classList.toggle('is-active', (a.dataset.brand || '').toLowerCase() === selBrand);
+  // Branche l’event émis à l’étape 3b
+  document.addEventListener('brand-type-selected', (e)=>{
+    const { brandKey, typeKey } = e.detail || {};
+    renderListForBrandType(brandKey, typeKey);
   });
 
-  // Si on a une marque : afficher les types
-  if (query.brand) { await renderTypesForBrand(query.brand); }
-
-  // Si en plus un type est présent : rendre la liste des produits filtrés
-  if (query.brand && query.type) {
-    const all = await loadProducts();
-    const items = filterByBrandType(all, query.brand, query.type);
-    renderBrandTypeList(items);
-  } else {
-    // Pas de type → on vide juste la zone liste (mais on garde la grille + types)
-    const listEl = document.getElementById('list');
-    if (listEl) listEl.innerHTML = '';
+  // Si quelqu’un a déjà posé un filtre (ex: boot immédiat), relance-le
+  if (window._brandTypeFilter){
+    const { brandKey, typeKey } = window._brandTypeFilter;
+    renderListForBrandType(brandKey, typeKey);
   }
-}
-
-/* Remplace l’écouteur précédent par l’étendu */
-window.removeEventListener?.('hashchange', handleRouteCatalogue); // au cas où
-window.addEventListener('hashchange', handleRouteCatalogue_Extended);
-handleRouteCatalogue_Extended();
-
+})();
 
 
 /* =========================================================
