@@ -620,3 +620,64 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
   .brand__bubble{ width:84px; height:84px }
   .brand__label{ font-size:.86rem }
 }
+
+
+
+
+/* ================= Brand grid — bulles vitrées + glow ================= */
+.brand-grid{
+  display:grid;
+  gap:1rem;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  justify-items:center;
+  padding:.5rem 0 0;
+}
+
+.brand{
+  display:flex; flex-direction:column; align-items:center; gap:.55rem;
+  text-align:center; user-select:none; -webkit-tap-highlight-color:transparent;
+  text-decoration:none;
+}
+.brand__bubble{
+  position:relative; width:92px; height:92px; border-radius:50%;
+  display:grid; place-items:center; overflow:hidden;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--border);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+}
+.brand__bubble img{ width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)) }
+.brand__glass{
+  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen;
+  background:radial-gradient(90% 60% at 50% 10%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
+}
+.brand__label{ font-weight:800; font-size:.95rem }
+
+/* Hover / focus : léger soulèvement + halo doux */
+.brand:focus-visible .brand__bubble,
+.brand:hover .brand__bubble{
+  transform:translateY(-2px) scale(1.03);
+  background:rgba(255,255,255,.14);
+  border-color:rgba(25,211,255,.45);
+  box-shadow:0 0 16px 6px rgba(25,211,255,.22), 0 12px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
+  outline:none;
+}
+
+/* Touch / click : petit pulse lumineux court */
+.brand:active .brand__bubble{
+  transform:scale(.97);
+  animation:brandPulse .22s ease-out 1;
+  box-shadow:0 0 22px 12px rgba(25,211,255,.35), 0 10px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
+}
+@keyframes brandPulse{
+  0%  { box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
+  45% { box-shadow:0 0 24px 12px rgba(25,211,255,.35), 0 12px 26px rgba(0,0,0,.50) }
+  100%{ box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
+}
+
+/* (optionnel) état sélectionné par le routeur */
+.brand.is-active .brand__bubble{
+  border-color:rgba(25,211,255,.55);
+  box-shadow:0 0 18px 8px rgba(25,211,255,.25), 0 10px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+}
