@@ -319,6 +319,9 @@ function renderBrandGrid () {
   elBrandGrid.appendChild(frag);
 }
 
+
+
+
 // petit feedback visuel (optionnel) sans bloquer la navigation hash
 elBrandGrid?.addEventListener('pointerdown', (e) => {
   const a = e.target.closest('a.brand');
@@ -384,6 +387,124 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
   ensureFallback(document.getElementById('heroLogo'));
   $$('.topbar-logo').forEach(ensureFallback);
 })();
+
+
+
+/* =======================  SOUS-CATÉGORIES PAR MARQUE  ======================= */
+
+/** Parse le hash courant → { view, query:Object }  (ex: #/catalogue?brand=dewalt) */
+function parseHash () {
+  const h = location.hash || '#/';
+  const [path, queryStr] = h.split('?');
+  const view = path.replace('#/', '').split('/')[0] || '';
+  const query = {};
+  if (queryStr) {
+    for (const part of queryStr.split('&')) {
+      const [k, v] = part.split('=');
+      if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || '');
+    }
+  }
+  return { view, query };
+}
+
+/** Charge les produits (utilise le cache global si déjà présent) */
+async function loadProducts () {
+  if (window.__PT_PRODUCTS?.length) return window.__PT_PRODUCTS;
+  const fallback = window.PRODUCTS || window.products || [];
+  if (fallback.length) { window.__PT_PRODUCTS = fallback; return fallback; }
+  try {
+    const res = await fetch('./products.json', { cache: 'no-store' });
+    const data = await res.json();
+    window.__PT_PRODUCTS = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.warn('loadProducts:', e);
+    window.__PT_PRODUCTS = [];
+  }
+  return window.__PT_PRODUCTS;
+}
+
+/** Rend les cartes “type d’outil” pour une marque donnée (dans #catList) */
+async function renderTypesForBrand (brandKey) {
+  const elCatList = document.getElementById('catList');
+  if (!elCatList) return;
+
+  const all = await loadProducts();
+  const list = all.filter(p => (p.brand_key || '').toLowerCase() === String(brandKey).toLowerCase());
+
+  // Ensemble des types (category / category_key) avec comptage
+  const map = new Map();
+  for (const p of list) {
+    const key = (p.category_key || p.category || 'autres').toLowerCase();
+    const name = p.category || p.category_key || 'Autres';
+    const rec = map.get(key) || { key, name, count: 0 };
+    rec.count++;
+    map.set(key, rec);
+  }
+
+  // Rendu
+  const frag = document.createDocumentFragment();
+  for (const rec of map.values()) {
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `${rec.name} (${rec.count})`);
+    card.dataset.type = rec.key;
+
+    card.innerHTML = `
+      <strong>${rec.name}</strong><br>
+      <span style="opacity:.75;font-size:.95rem">${rec.count} modèle${rec.count>1?'s':''}</span>
+    `;
+
+    // Clic → route #/catalogue?brand=...&type=...
+    card.addEventListener('click', () => {
+      const q = new URLSearchParams({ brand: brandKey, type: rec.key });
+      location.hash = `#/catalogue?${q.toString()}`;
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
+
+    frag.appendChild(card);
+  }
+
+  elCatList.innerHTML = '';
+  if (map.size) {
+    elCatList.appendChild(frag);
+  } else {
+    elCatList.innerHTML = `<div class="cat-card">Aucun type trouvé pour cette marque.</div>`;
+  }
+
+  // Fais défiler la zone des types sous la grille
+  elCatList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Router minimal : quand on est sur #/catalogue et qu’un brand est présent → afficher les types */
+async function handleRouteCatalogue () {
+  const { view, query } = parseHash();
+  if (view !== 'catalogue') return;
+
+  // Met à jour la sélection visuelle dans la grille (optionnel)
+  const sel = String(query.brand || '').toLowerCase();
+  document.querySelectorAll('#brandGrid a.brand').forEach(a => {
+    a.classList.toggle('is-active', (a.dataset.brand || '').toLowerCase() === sel);
+  });
+
+  if (query.brand) {
+    await renderTypesForBrand(query.brand);
+  } else {
+    // Pas de marque → on vide simplement la zone des types
+    const elCatList = document.getElementById('catList');
+    if (elCatList) elCatList.innerHTML = '';
+  }
+}
+
+// Écoute le changement de hash + appelle une fois au chargement
+window.addEventListener('hashchange', handleRouteCatalogue);
+handleRouteCatalogue();
+
+
+
 
 /* =========================================================
    0) Anti-zoom Android
