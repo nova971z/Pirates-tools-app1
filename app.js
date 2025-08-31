@@ -258,27 +258,28 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
+
+
+
 /* ============== [CATALOGUE] Grille de marques ============== */
 
 // 1) Ancrage DOM (id ajouté dans index.html)
 const elBrandGrid = document.getElementById('brandGrid');
 
 // 2) Marques (clé, libellé, logo local) — casse EXACTE des fichiers
-// Dossier: /images/brands/
+// Dossier: ./images/brands/
 const BRANDS = [
   { key: 'dewalt',    name: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
-  { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/logo.milwaukee.png' },
-  { key: 'makita',    name: 'Makita',    logo: './images/brands/logo.makita.png' },
+  { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
+  { key: 'makita',    name: 'Makita',    logo: './images/brands/Logo.makita.png' },
   { key: 'festool',   name: 'Festool',   logo: './images/brands/Logo.festool.png' },
   { key: 'flex',      name: 'FLEX',      logo: './images/brands/Logo.flex.png' },
-  { key: 'wera',      name: 'Wera',      logo: './images/brands/logo.wera.png' },
+  { key: 'wera',      name: 'Wera',      logo: './images/brands/Logo.wera.png' },
   { key: 'stanley',   name: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
   { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
 ];
 
-
-/* 3) Rendu + interactions des bulles de marques
-   (à coller juste après la déclaration de `const BRANDS = [...]`) */
+// 3) Rendu + interactions des bulles
 function renderBrandGrid () {
   if (!elBrandGrid) return;
 
@@ -287,7 +288,7 @@ function renderBrandGrid () {
   for (const b of BRANDS) {
     const a = document.createElement('a');
     a.className = 'brand';
-    a.href = `#/catalogue?brand=${encodeURIComponent(b.key)}`;
+    a.href = '#/catalogue?brand=' + encodeURIComponent(b.key);
     a.setAttribute('role', 'listitem');
     a.setAttribute('aria-label', b.name);
     a.dataset.brand = b.key;
@@ -297,12 +298,12 @@ function renderBrandGrid () {
 
     const img = document.createElement('img');
     img.className = 'brand__logo';
-    img.src = b.logo;                 // ex: ./images/brands/Logo.dewalt.png
+    img.src = b.logo;                    // ./images/brands/Logo.xxx.png
     img.alt = b.name;
     img.loading = 'lazy';
     img.decoding = 'async';
     img.referrerPolicy = 'no-referrer';
-    img.onerror = () => { img.src = './images/pirates-tools-logo.png'; };
+    img.onerror = function () { img.src = './images/pirates-tools-logo.png'; };
 
     bubble.appendChild(img);
 
@@ -318,6 +319,10 @@ function renderBrandGrid () {
   elBrandGrid.innerHTML = '';
   elBrandGrid.appendChild(frag);
 }
+
+document.addEventListener('DOMContentLoaded', renderBrandGrid);
+
+
 
 // ===== [app.js] Catalogue — SOUS-CATÉGORIES PAR MARQUE (types) =====
 const elCatList = document.getElementById('catList');
