@@ -48,12 +48,11 @@ function firstDefined(){
   return undefined;
 }
 
-/* Nombres & monnaie sûrs (utiles un peu partout) */
+/* Nombres & monnaie sûrs */
 function toNumberSafe(v){
   var n = (typeof v === 'number') ? v : parseFloat(v);
   return isFinite(n) ? n : null;
 }
-
 function moneyFR(v, currency){
   currency = currency || 'EUR';
   try{
@@ -65,7 +64,7 @@ function moneyFR(v, currency){
   }
 }
 
-/* Délégation d’événements (pratique pour les listes dynamiques) */
+/* Délégation d’événements */
 function delegate(root, selector, type, handler){
   (root || document).addEventListener(type, function(e){
     var el = e.target && e.target.closest ? e.target.closest(selector) : null;
@@ -75,7 +74,7 @@ function delegate(root, selector, type, handler){
   }, false);
 }
 
-/* Polyfills minimalistes pour très anciens navigateurs */
+/* Polyfills minimalistes */
 (function(){
   if (!Element.prototype.matches){
     Element.prototype.matches =
@@ -100,9 +99,8 @@ function delegate(root, selector, type, handler){
   }
 })();
 
-/* === (NOUVEAU) Images sûres + fallback === */
+/* === Images sûres + fallback === */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
-
 function sanitizeImgUrl(u){
   try{
     var url = new URL(u, location.href);
@@ -110,7 +108,6 @@ function sanitizeImgUrl(u){
     return url.toString();
   }catch(_){ return IMG_FALLBACK; }
 }
-
 function setSafeImg(el, src, alt){
   if (!el) return;
   el.loading = el.loading || 'lazy';
@@ -122,12 +119,11 @@ function setSafeImg(el, src, alt){
   el.src = sanitizeImgUrl(src || IMG_FALLBACK);
 }
 
-/* === SEO defaults (titre + meta description) === */
+/* === SEO defaults === */
 var META_DESC_EL  = document.querySelector('meta[name="description"]');
 var DEFAULT_TITLE = document.title || 'Pirates Tools • Outillage pro (PWA)';
 var DEFAULT_DESC  = (META_DESC_EL ? META_DESC_EL.getAttribute('content') : null) ||
                     'Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).';
-
 function setPageMeta(title, description){
   try{
     if (title) document.title = title;
@@ -150,20 +146,14 @@ function resetPageMeta(){
   style.textContent = css;
   document.head.appendChild(style);
 
-  // ——— Assure les conteneurs nécessaires (toasts + a11y live) ———
+  // conteneurs toasts + a11y live
   (function ensureBasics(){
     if (!document.getElementById('toasts')){
-      var t = document.createElement('div');
-      t.id = 'toasts';
-      document.body.appendChild(t);
+      var t = document.createElement('div'); t.id = 'toasts'; document.body.appendChild(t);
     }
     if (!document.getElementById('sr-live')){
-      var l = document.createElement('div');
-      l.id = 'sr-live';
-      l.setAttribute('aria-live','polite');
-      l.style.position = 'absolute';
-      l.style.left = '-9999px';
-      document.body.appendChild(l);
+      var l = document.createElement('div'); l.id = 'sr-live'; l.setAttribute('aria-live','polite');
+      l.style.position = 'absolute'; l.style.left = '-9999px'; document.body.appendChild(l);
     }
   })();
 })();
@@ -185,7 +175,6 @@ function announce(msg){
   live.textContent = '';
   setTimeout(function(){ live.textContent = msg; }, 20);
 }
-
 function toast(msg, kind){
   if (kind === void 0) kind = 'success';
   if (!toastsC) return;
@@ -201,14 +190,12 @@ function toast(msg, kind){
   toastsC.appendChild(el);
   setTimeout(close, 3200);
 }
-
 function bumpBadge(){
   if (!dockBadge) return;
   dockBadge.classList.remove('bump');
-  void dockBadge.offsetWidth; // reflow
+  void dockBadge.offsetWidth;
   dockBadge.classList.add('bump');
 }
-
 function notifyCartAdded(title){
   if (title === void 0) title = 'Article';
   toast('« ' + title + ' » ajouté au devis');
@@ -225,7 +212,6 @@ function focusView(key){
   else if (key === 'compte')    target = $('#view-compte h1');
   else if (key === 'home')      target = $('#view-home h1');
   else                          target = $('#list'); // fallback
-
   if (target){
     target.setAttribute('tabindex','-1');
     if (typeof target.focus === 'function') target.focus({ preventScroll: true });
@@ -242,7 +228,7 @@ var CART   = [];                 // panier (tableau d’objets produit)
 var STORE_KEY = 'pt_cart_v1';    // clé localStorage
 var USER_KEY  = 'pt_user_v1';    // compte (démo)
 
-// === DOM refs (NÉCESSAIRES à l'anim du logo & au dock) ===
+// === DOM refs ===
 var hero      = document.getElementById('hero');
 var heroLogo  = document.getElementById('heroLogo');
 
@@ -251,23 +237,16 @@ var dockCount     = document.getElementById('dockCount');    // optionnel
 var dockQuoteBtn  = document.getElementById('dockQuoteBtn'); // optionnel
 var dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
 
-// === DOM refs (CTA + toolbar + liste) ===
 var callBtn  = document.getElementById('callBtn');
 var waBtn    = document.getElementById('waBtn');
 var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
-
-
-
 /* ============== [CATALOGUE] Grille de marques ============== */
-
-// 1) Ancrage DOM (id ajouté dans index.html)
 const elBrandGrid = document.getElementById('brandGrid');
 
-// 2) Marques (clé, libellé, logo local) — casse EXACTE des fichiers
-// Dossier: ./images/brands/
+// Dossier: ./images/brands/  (casse EXACTE)
 const BRANDS = [
   { key: 'dewalt',    name: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
   { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
@@ -279,35 +258,36 @@ const BRANDS = [
   { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
 ];
 
-// 3) Rendu + interactions des bulles
+// Rendu + interactions des bulles
 function renderBrandGrid () {
   if (!elBrandGrid) return;
-
   const frag = document.createDocumentFragment();
 
-  for (const b of BRANDS) {
-    const a = document.createElement('a');
+  for (var i=0; i<BRANDS.length; i++){
+    var b = BRANDS[i];
+
+    var a = document.createElement('a');
     a.className = 'brand';
     a.href = '#/catalogue?brand=' + encodeURIComponent(b.key);
     a.setAttribute('role', 'listitem');
     a.setAttribute('aria-label', b.name);
     a.dataset.brand = b.key;
 
-    const bubble = document.createElement('span');
+    var bubble = document.createElement('span');
     bubble.className = 'brand__bubble';
 
-    const img = document.createElement('img');
-    img.className = 'brand__logo';
+    var img = document.createElement('img');
+    img.className = 'brand__img';
     img.src = b.logo;                    // ./images/brands/Logo.xxx.png
     img.alt = b.name;
     img.loading = 'lazy';
     img.decoding = 'async';
     img.referrerPolicy = 'no-referrer';
-    img.onerror = function () { img.src = './images/pirates-tools-logo.png'; };
+    img.onerror = function(){ this.src = './images/pirates-tools-logo.png'; };
 
     bubble.appendChild(img);
 
-    const label = document.createElement('span');
+    var label = document.createElement('span');
     label.className = 'brand__label';
     label.textContent = b.name;
 
@@ -318,152 +298,24 @@ function renderBrandGrid () {
 
   elBrandGrid.innerHTML = '';
   elBrandGrid.appendChild(frag);
-}
 
-document.addEventListener('DOMContentLoaded', renderBrandGrid);
-
-
-
-// ===== [app.js] Catalogue — SOUS-CATÉGORIES PAR MARQUE (types) =====
-const elCatList = document.getElementById('catList');
-
-// Parse `#/xxx?brand=...&type=...`
-function parseHashQuery(){
-  const q = {};
-  const i = location.hash.indexOf('?');
-  if (i === -1) return q;
-  const usp = new URLSearchParams(location.hash.slice(i + 1));
-  usp.forEach((v, k) => q[k] = v);
-  return q;
-}
-
-// Rendu des "types d’outils" pour une marque donnée
-function renderTypesForBrand(brandKey){
-  if (!elCatList) return;
-
-  const PRODUCTS =
-    window.PRODUCTS ||
-    window._products ||
-    (window.state && state.products) ||
-    [];
-
-  elCatList.textContent = '';
-  if (!brandKey) return;
-
-  // Collecter les catégories uniques de cette marque
-  const types = new Map();
-  for (const p of PRODUCTS){
-    if (!p || !p.brand_key) continue;
-    if (p.brand_key.toLowerCase() !== String(brandKey).toLowerCase()) continue;
-
-    const key  = (p.category_key || (p.category || '').toLowerCase().replace(/\s+/g,'-'));
-    const name = p.category || key.replace(/-/g,' ');
-    if (!types.has(key)) types.set(key, name);
-  }
-
-  // Rien trouvé ?
-  if (types.size === 0){
-    const empty = document.createElement('p');
-    empty.textContent = 'Aucun type trouvé pour cette marque.';
-    elCatList.appendChild(empty);
-    return;
-  }
-
-  // Cartes cliquables
-  const frag = document.createDocumentFragment();
-  types.forEach((name, key) => {
-    const a = document.createElement('a');
-    a.href = `#/catalogue?brand=${encodeURIComponent(brandKey)}&type=${encodeURIComponent(key)}`;
-    a.className = 'cat-card';
-    a.setAttribute('role','listitem');
-    a.innerHTML = `<strong>${name}</strong><br><span style="color:#9fb4c5;font-size:.95rem">Voir les produits</span>`;
-    frag.appendChild(a);
-  });
-  elCatList.appendChild(frag);
-}
-
- /* 6) Boot à l’ouverture (depuis l’URL) — v2 : déclencheur liste + event */
-
-// Helpers (à garder au-dessus de bootTypesFromHash)
-function filterByBrandType(brandKey, typeKey){
-  // expose pour la prochaine étape (filtrage réel de #list)
-  window._brandTypeFilter = { brandKey, typeKey };
-  document.dispatchEvent(new CustomEvent('brand-type-selected', {
-    detail: { brandKey, typeKey }
-  }));
-}
-
-function scrollToList(){
-  const l = document.getElementById('list');
-  if (l) setTimeout(() => l.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-}
-
-// Boot + réaction au hash
-function bootTypesFromHash(){
-  const q = parseHashQuery();           // <- ta fonction existe déjà plus haut
-  if (q.brand) renderTypesForBrand(q.brand);   // <- idem, existe déjà
-
-  if (q.brand && q.type){
-    filterByBrandType(q.brand, q.type); // notifie la prochaine étape (liste produits)
-    scrollToList();                     // remonte proprement sur la liste
-  }
-}
-window.addEventListener('hashchange', bootTypesFromHash);
-bootTypesFromHash();
-
-// petit feedback visuel (optionnel) sans bloquer la navigation hash
-elBrandGrid?.addEventListener('pointerdown', (e) => {
-  const a = e.target.closest('a.brand');
-  if (!a) return;
-  a.style.transform = 'scale(0.98)';
-  setTimeout(() => { a.style.transform = ''; }, 180);
-});
-
-renderBrandGrid();
-
-
-// 3) Rendu des bulles (anchor + image + label)
-function renderBrandGrid() {
-  if (!elBrandGrid) return;
-
-  elBrandGrid.innerHTML = BRANDS.map((b) => `
-    <a class="brand" data-brand="${b.key}"
-       href="#/catalogue?brand=${encodeURIComponent(b.key)}"
-       role="listitem" aria-label="Voir ${b.name}">
-      <span class="brand__bubble" aria-hidden="true">
-        <img class="brand__img" src="${b.logo}" alt="${b.name}"
-             onerror="this.onerror=null;this.src='./images/pirates-tools-logo.png';">
-      </span>
-      <span class="brand__label">${b.name}</span>
-    </a>
-  `).join('');
-
-  // Confort: après un 1er clic sur une bulle, on descend vers la liste
-  elBrandGrid.addEventListener('click', (e) => {
-    const a = e.target.closest('a.brand');
+  // petit feedback tactile
+  elBrandGrid.addEventListener('pointerdown', function(e){
+    var a = e.target.closest && e.target.closest('a.brand');
     if (!a) return;
-    // Laisse le router changer le hash, puis scroll vers la liste filtrée
-    setTimeout(() => {
-      const list = document.getElementById('list') || document.getElementById('catList');
-      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    a.style.transform = 'scale(0.98)';
+    setTimeout(function(){ a.style.transform = ''; }, 180);
   });
 }
-
-// 4) Init au chargement (app.js est déjà chargé en bas du HTML)
 document.addEventListener('DOMContentLoaded', renderBrandGrid);
-/* ---------- Paiement : configuration ---------- */
-/* Provider PayPal (cart upload) */
-var PAYPAL_BUSINESS = 'votre-email-paypal@example.com'; // ← remplace par ton email PayPal PRO
+
+/* ---------- Paiement : configuration (placeholders) ---------- */
+var PAYPAL_BUSINESS = 'votre-email-paypal@example.com';
 var CURRENCY = 'EUR';
+var STRIPE_PAY_LINK = '';
+var CRYPTO_PAY_LINK = '';
 
-/* Carte + Apple Pay (Stripe Payment Link ou équivalent) */
-var STRIPE_PAY_LINK = ''; // ← colle ici ton lien Stripe une fois créé
-
-/* Crypto (Coinbase Commerce / NOWPayments / CoinGate …) */
-var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
-
-/* ===== Fallback robuste pour le(s) logo(s) ===== */
+/* Fallback robuste pour le(s) logo(s) */
 (function logoFallbacks(){
   var FALLBACK = './images/pirates-tools-logo.png?v=7';
   function ensureFallback(img){
@@ -477,300 +329,178 @@ var CRYPTO_PAY_LINK = ''; // ← colle ici ton lien crypto si tu en as un
   $$('.topbar-logo').forEach(ensureFallback);
 })();
 
-
-
-/* =======================  SOUS-CATÉGORIES PAR MARQUE  ======================= */
-
-/** Parse le hash courant → { view, query:Object }  (ex: #/catalogue?brand=dewalt) */
+/* =================== ROUTER + TYPES PAR MARQUE =================== */
+/** Parse le hash courant → { view, query } */
 function parseHash () {
-  const h = location.hash || '#/';
-  const [path, queryStr] = h.split('?');
-  const view = path.replace('#/', '').split('/')[0] || '';
-  const query = {};
-  if (queryStr) {
-    for (const part of queryStr.split('&')) {
-      const [k, v] = part.split('=');
-      if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || '');
+  var h = location.hash || '#/';
+  var parts = h.split('?');
+  var path = parts[0];
+  var queryStr = parts[1] || '';
+  var view = path.replace('#/', '').split('/')[0] || '';
+  var query = {};
+  if (queryStr){
+    var kv = queryStr.split('&');
+    for (var i=0;i<kv.length;i++){
+      var s = kv[i].split('=');
+      var k = decodeURIComponent(s[0] || '');
+      var v = decodeURIComponent(s[1] || '');
+      if (k) query[k] = v;
     }
   }
-  return { view, query };
+  return { view: view, query: query };
 }
 
-/** Charge les produits (utilise le cache global si déjà présent) */
+/** Charge les produits (mémoïsés) */
 async function loadProducts () {
-  if (window.__PT_PRODUCTS?.length) return window.__PT_PRODUCTS;
-  const fallback = window.PRODUCTS || window.products || [];
-  if (fallback.length) { window.__PT_PRODUCTS = fallback; return fallback; }
-  try {
-    const res = await fetch('./products.json', { cache: 'no-store' });
-    const data = await res.json();
+  if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length) return window.__PT_PRODUCTS;
+  var fallbackList = window.PRODUCTS || window.products || [];
+  if (fallbackList.length){ window.__PT_PRODUCTS = fallbackList; return fallbackList; }
+  try{
+    var res = await fetch('./products.json', { cache: 'no-store' });
+    var data = await res.json();
     window.__PT_PRODUCTS = Array.isArray(data) ? data : [];
-  } catch (e) {
+  }catch(e){
     console.warn('loadProducts:', e);
     window.__PT_PRODUCTS = [];
   }
   return window.__PT_PRODUCTS;
 }
 
-/** Rend les cartes “type d’outil” pour une marque donnée (dans #catList) */
+/** Rend les cartes “type d’outil” (dans #catList) pour une marque donnée */
 async function renderTypesForBrand (brandKey) {
-  const elCatList = document.getElementById('catList');
+  var elCatList = document.getElementById('catList');
   if (!elCatList) return;
 
-  const all = await loadProducts();
-  const list = all.filter(p => (p.brand_key || '').toLowerCase() === String(brandKey).toLowerCase());
+  var all = await loadProducts();
+  var list = all.filter(function(p){ return (p.brand_key || '').toLowerCase() === String(brandKey).toLowerCase(); });
 
-  // Ensemble des types (category / category_key) avec comptage
-  const map = new Map();
-  for (const p of list) {
-    const key = (p.category_key || p.category || 'autres').toLowerCase();
-    const name = p.category || p.category_key || 'Autres';
-    const rec = map.get(key) || { key, name, count: 0 };
+  var map = new Map();
+  for (var i=0;i<list.length;i++){
+    var p = list[i];
+    var key = (p.category_key || p.category || 'autres').toLowerCase();
+    var name = p.category || p.category_key || 'Autres';
+    var rec = map.get(key) || { key:key, name:name, count:0 };
     rec.count++;
     map.set(key, rec);
   }
 
-  // Rendu
-  const frag = document.createDocumentFragment();
-  for (const rec of map.values()) {
-    const card = document.createElement('div');
+  var frag = document.createDocumentFragment();
+  map.forEach(function(rec){
+    var card = document.createElement('div');
     card.className = 'cat-card';
     card.tabIndex = 0;
-    card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `${rec.name} (${rec.count})`);
+    card.setAttribute('role','button');
+    card.setAttribute('aria-label', rec.name + ' ('+rec.count+')');
     card.dataset.type = rec.key;
+    card.innerHTML = '<strong>'+rec.name+'</strong><br><span style="opacity:.75;font-size:.95rem">'+rec.count+' modèle'+(rec.count>1?'s':'')+'</span>';
 
-    card.innerHTML = `
-      <strong>${rec.name}</strong><br>
-      <span style="opacity:.75;font-size:.95rem">${rec.count} modèle${rec.count>1?'s':''}</span>
-    `;
-
-    // Clic → route #/catalogue?brand=...&type=...
-    card.addEventListener('click', () => {
-      const q = new URLSearchParams({ brand: brandKey, type: rec.key });
-      location.hash = `#/catalogue?${q.toString()}`;
+    card.addEventListener('click', function(){
+      var q = new URLSearchParams({ brand: brandKey, type: rec.key });
+      location.hash = '#/catalogue?' + q.toString();
     });
-    card.addEventListener('keydown', (e) => {
+    card.addEventListener('keydown', function(e){
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
     });
 
     frag.appendChild(card);
-  }
+  });
 
   elCatList.innerHTML = '';
-  if (map.size) {
-    elCatList.appendChild(frag);
-  } else {
-    elCatList.innerHTML = `<div class="cat-card">Aucun type trouvé pour cette marque.</div>`;
-  }
+  if (map.size){ elCatList.appendChild(frag); }
+  else { elCatList.innerHTML = '<div class="cat-card">Aucun type trouvé pour cette marque.</div>'; }
 
-  // Fais défiler la zone des types sous la grille
   elCatList.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/** Router minimal : quand on est sur #/catalogue et qu’un brand est présent → afficher les types */
-async function handleRouteCatalogue () {
-  const { view, query } = parseHash();
-  if (view !== 'catalogue') return;
-
-  // Met à jour la sélection visuelle dans la grille (optionnel)
-  const sel = String(query.brand || '').toLowerCase();
-  document.querySelectorAll('#brandGrid a.brand').forEach(a => {
-    a.classList.toggle('is-active', (a.dataset.brand || '').toLowerCase() === sel);
-  });
-
-  if (query.brand) {
-    await renderTypesForBrand(query.brand);
-  } else {
-    // Pas de marque → on vide simplement la zone des types
-    const elCatList = document.getElementById('catList');
-    if (elCatList) elCatList.innerHTML = '';
-  }
-}
-
-// Écoute le changement de hash + appelle une fois au chargement
-window.addEventListener('hashchange', handleRouteCatalogue);
-handleRouteCatalogue();
-
-
-/* =======================  LISTE PRODUITS (brand + type)  ======================= */
-
-/** Format prix FR */
-function fmtPrice(n, c = 'EUR') {
+/* =================== LISTE PRODUITS (brand + type) =================== */
+function fmtPrice(n, c){
+  if (c === void 0) c = 'EUR';
   try { return new Intl.NumberFormat('fr-FR', { style:'currency', currency:c }).format(n); }
-  catch { return (typeof n === 'number' ? n.toFixed(2) : String(n || '')) + ' ' + c; }
+  catch(_){ return (typeof n === 'number' ? n.toFixed(2) : String(n || '')) + ' ' + c; }
 }
-
-/** Rendu des cartes produit dans #list (sans dépendre d’un autre renderer) */
 function renderBrandTypeList(items) {
-  const listEl = document.getElementById('list');
+  var listEl = document.getElementById('list');
   if (!listEl) return;
 
   if (!items.length) {
-    listEl.innerHTML = `<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>`;
+    listEl.innerHTML = '<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>';
     listEl.scrollIntoView({ behavior:'smooth', block:'start' });
     return;
   }
 
-  const html = items.map(p => {
-    const price = p.price != null ? fmtPrice(p.price, p.currency || 'EUR') : '';
-    const old   = p.price_old != null ? fmtPrice(p.price_old, p.currency || 'EUR') : '';
-    const img   = (p.img || '/images/pirates-tools-logo.png');
+  var html = items.map(function(p){
+    var price = p.price != null ? fmtPrice(p.price, p.currency || 'EUR') : '';
+    var old   = p.price_old != null ? fmtPrice(p.price_old, p.currency || 'EUR') : '';
+    var img   = (p.img || './images/pirates-tools-logo.png');
 
-    return `
-      <div class="card">
-        <div class="head">
-          <h3 class="title">${p.title}</h3>
-          ${p.badge ? `<span class="badge">${p.badge}</span>` : ``}
-        </div>
-        <div style="display:grid;grid-template-columns:120px 1fr;gap:12px;padding:1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">
-          <img src="${img}" alt="${p.images_alt || p.title}" onerror="this.src='/images/pirates-tools-logo.png'">
-          <div>
-            <div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">
-              ${price} ${old ? `<span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">${old}</span>` : ``}
-            </div>
-            <div class="specs">
-              ${p.desc ? `<span>${p.desc}</span>` : ``}
-              ${p.torque_nm ? `<span>⚙️ ${p.torque_nm} Nm</span>` : ``}
-              ${p.weight_kg ? `<span>⚖️ ${p.weight_kg} kg</span>` : ``}
-              ${p.length_mm ? `<span>📏 ${p.length_mm} mm</span>` : ``}
-            </div>
-          </div>
-        </div>
-        <div class="actions">
-          <a class="btn primary" href="#/produit/${p.id}">Détails</a>
-          <button class="btn" type="button"
-            onclick="try{ (window.addToCart||window.cartAdd||function(){console.log('addToCart mock')})('${p.id}'); }catch(e){}">
-            Ajouter au panier
-          </button>
-          <a class="btn btn-wa" href="https://wa.me/33774230195?text=${encodeURIComponent('Bonjour, je souhaite un devis pour ' + p.sku + ' / ' + p.title)}" target="_blank" rel="noopener">WhatsApp</a>
-        </div>
-      </div>
-    `;
+    return ''+
+      '<div class="card">'+
+        '<div class="head">'+
+          '<h3 class="title">'+(p.title||'')+'</h3>'+
+          (p.badge ? '<span class="badge">'+p.badge+'</span>' : '')+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;padding:1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">'+
+          '<img src="'+img+'" alt="'+(p.images_alt || p.title || '')+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
+          '<div>'+
+            '<div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">'+
+              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>' : '')+
+            '</div>'+
+            '<div class="specs">'+
+              (p.desc ? '<span>'+p.desc+'</span>' : '')+
+              (p.torque_nm ? '<span>⚙️ '+p.torque_nm+' Nm</span>' : '')+
+              (p.weight_kg ? '<span>⚖️ '+p.weight_kg+' kg</span>' : '')+
+              (p.length_mm ? '<span>📏 '+p.length_mm+' mm</span>' : '')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="actions">'+
+          '<a class="btn primary" href="#/produit/'+p.id+'">Détails</a>'+
+          '<button class="btn" type="button" onclick="try{ (window.addToCart||window.cartAdd||function(){console.log(\'addToCart mock\')})(\''+p.id+'\'); }catch(e){}">Ajouter au panier</button>'+
+          '<a class="btn btn-wa" href="https://wa.me/33774230195?text='+encodeURIComponent('Bonjour, je souhaite un devis pour ' + (p.sku||'') + ' / ' + (p.title||''))+'" target="_blank" rel="noopener">WhatsApp</a>'+
+        '</div>'+
+      '</div>';
   }).join('');
 
   listEl.innerHTML = html;
   listEl.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-/** Filtre utilitaire */
 function filterByBrandType(all, brandKey, typeKey) {
-  const b = String(brandKey || '').toLowerCase();
-  const t = String(typeKey  || '').toLowerCase();
-  return all.filter(p =>
-    (!b || (p.brand_key||'').toLowerCase() === b) &&
-    (!t || (p.category_key||p.category||'').toLowerCase() === t)
-  );
+  var b = String(brandKey || '').toLowerCase();
+  var t = String(typeKey  || '').toLowerCase();
+  return all.filter(function(p){
+    return (!b || (p.brand_key||'').toLowerCase() === b) &&
+           (!t || (p.category_key||p.category||'').toLowerCase() === t);
+  });
 }
 
-/** ➜ Étend le routeur catalogue pour gérer brand+type et afficher la liste */
+/** Routeur catalogue étendu : gère brand + type */
 async function handleRouteCatalogue_Extended() {
-  const { view, query } = parseHash();
+  var parsed = parseHash();
+  var view = parsed.view, query = parsed.query;
   if (view !== 'catalogue') return;
 
-  // Sélection visuelle de la marque dans la grille
-  const selBrand = String(query.brand || '').toLowerCase();
-  document.querySelectorAll('#brandGrid a.brand').forEach(a => {
-    a.classList.toggle('is-active', (a.dataset.brand || '').toLowerCase() === selBrand);
-  });
+  var selBrand = String(query.brand || '').toLowerCase();
+  var brandLinks = document.querySelectorAll('#brandGrid a.brand');
+  for (var i=0;i<brandLinks.length;i++){
+    var a = brandLinks[i];
+    a.classList.toggle('is-active', ((a.dataset.brand||'').toLowerCase() === selBrand));
+  }
 
-  // Si on a une marque : afficher les types
   if (query.brand) { await renderTypesForBrand(query.brand); }
 
-  // Si en plus un type est présent : rendre la liste des produits filtrés
   if (query.brand && query.type) {
-    const all = await loadProducts();
-    const items = filterByBrandType(all, query.brand, query.type);
+    var all = await loadProducts();
+    var items = filterByBrandType(all, query.brand, query.type);
     renderBrandTypeList(items);
   } else {
-    // Pas de type → on vide juste la zone liste (mais on garde la grille + types)
-    const listEl = document.getElementById('list');
-    if (listEl) listEl.innerHTML = '';
+    var _listEl = document.getElementById('list');
+    if (_listEl) _listEl.innerHTML = '';
   }
 }
 
-/* Remplace l’écouteur précédent par l’étendu */
-window.removeEventListener?.('hashchange', handleRouteCatalogue); // au cas où
 window.addEventListener('hashchange', handleRouteCatalogue_Extended);
 handleRouteCatalogue_Extended();
-
-
-/* 7) Liste produits — rendu filtré (brand + type) */
-(function(){
-  // DOM
-  if (!window.listEl) window.listEl = document.getElementById('list');
-
-  // Utils locaux
-  function escapeHTML(s){
-    return String(s ?? '').replace(/[&<>"']/g, m => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[m]));
-  }
-  const slug = s => String(s||'')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-
-  // Source produits (essaie plusieurs variables globales possibles)
-  function getProducts(){
-    return (window.PRODUCTS || window.products || window.__PRODUCTS__ || []);
-  }
-
-  function renderListForBrandType(brandKey, typeKey){
-    const data = getProducts();
-    if (!Array.isArray(data) || !data.length || !window.listEl) {
-      // rien à faire tant qu’on n’a pas chargé les produits
-      return;
-    }
-
-    // filtre brand + type (type = category_key ou slug(category))
-    const items = data.filter(p =>
-      p && p.brand_key === brandKey &&
-      (!typeKey || p.category_key === typeKey || slug(p.category) === typeKey)
-    );
-
-    if (!items.length){
-      listEl.innerHTML = `<p style="opacity:.8">Aucun produit pour cette sélection.</p>`;
-      return;
-    }
-
-    // rendu cartes minimal (compatible avec ton CSS .card/.head/.badge/.specs/.actions)
-    const html = items.map(p => {
-      const title = escapeHTML(p.title || p.id);
-      const badge = p.badge ? `<span class="badge">${escapeHTML(p.badge)}</span>` : '';
-      const torque = p.torque_nm ? `<span>${p.torque_nm} Nm</span>` : '';
-      const rpm    = p.rpm ? `<span>${escapeHTML(p.rpm)} tr/min</span>` : '';
-      const weight = p.weight_kg ? `<span>${p.weight_kg} kg</span>` : '';
-
-      return `
-        <article class="card">
-          <div class="head">
-            <h3 class="title">${title}</h3>
-            ${badge}
-          </div>
-          <div class="specs">${torque}${rpm}${weight}</div>
-          <div class="actions">
-            <a class="btn primary" href="#/produit/${encodeURIComponent(p.id)}">Détails</a>
-            <button class="btn" onclick="window.addToCart ? addToCart('${encodeURIComponent(p.id)}') : 0">Ajouter au panier</button>
-          </div>
-        </article>
-      `;
-    }).join('');
-    listEl.innerHTML = html;
-  }
-
-  // Branche l’event émis à l’étape 3b
-  document.addEventListener('brand-type-selected', (e)=>{
-    const { brandKey, typeKey } = e.detail || {};
-    renderListForBrandType(brandKey, typeKey);
-  });
-
-  // Si quelqu’un a déjà posé un filtre (ex: boot immédiat), relance-le
-  if (window._brandTypeFilter){
-    const { brandKey, typeKey } = window._brandTypeFilter;
-    renderListForBrandType(brandKey, typeKey);
-  }
-})();
-
 
 /* =========================================================
    0) Anti-zoom Android
