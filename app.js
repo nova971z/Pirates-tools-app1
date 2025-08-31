@@ -319,7 +319,71 @@ function renderBrandGrid () {
   elBrandGrid.appendChild(frag);
 }
 
+// ===== [app.js] Catalogue — SOUS-CATÉGORIES PAR MARQUE (types) =====
+const elCatList = document.getElementById('catList');
 
+// Parse `#/xxx?brand=...&type=...`
+function parseHashQuery(){
+  const q = {};
+  const i = location.hash.indexOf('?');
+  if (i === -1) return q;
+  const usp = new URLSearchParams(location.hash.slice(i + 1));
+  usp.forEach((v, k) => q[k] = v);
+  return q;
+}
+
+// Rendu des "types d’outils" pour une marque donnée
+function renderTypesForBrand(brandKey){
+  if (!elCatList) return;
+
+  const PRODUCTS =
+    window.PRODUCTS ||
+    window._products ||
+    (window.state && state.products) ||
+    [];
+
+  elCatList.textContent = '';
+  if (!brandKey) return;
+
+  // Collecter les catégories uniques de cette marque
+  const types = new Map();
+  for (const p of PRODUCTS){
+    if (!p || !p.brand_key) continue;
+    if (p.brand_key.toLowerCase() !== String(brandKey).toLowerCase()) continue;
+
+    const key  = (p.category_key || (p.category || '').toLowerCase().replace(/\s+/g,'-'));
+    const name = p.category || key.replace(/-/g,' ');
+    if (!types.has(key)) types.set(key, name);
+  }
+
+  // Rien trouvé ?
+  if (types.size === 0){
+    const empty = document.createElement('p');
+    empty.textContent = 'Aucun type trouvé pour cette marque.';
+    elCatList.appendChild(empty);
+    return;
+  }
+
+  // Cartes cliquables
+  const frag = document.createDocumentFragment();
+  types.forEach((name, key) => {
+    const a = document.createElement('a');
+    a.href = `#/catalogue?brand=${encodeURIComponent(brandKey)}&type=${encodeURIComponent(key)}`;
+    a.className = 'cat-card';
+    a.setAttribute('role','listitem');
+    a.innerHTML = `<strong>${name}</strong><br><span style="color:#9fb4c5;font-size:.95rem">Voir les produits</span>`;
+    frag.appendChild(a);
+  });
+  elCatList.appendChild(frag);
+}
+
+// Boot au chargement + navigation
+function bootTypesFromHash(){
+  const q = parseHashQuery();
+  if (q.brand) renderTypesForBrand(q.brand);
+}
+window.addEventListener('hashchange', bootTypesFromHash);
+bootTypesFromHash();
 
 
 // petit feedback visuel (optionnel) sans bloquer la navigation hash
