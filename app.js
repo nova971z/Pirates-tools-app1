@@ -2241,6 +2241,46 @@ function renderBrandGrid(products) {
 
 
 
+/* ===== HOTFIX de fin de fichier — stabilise panier + clic bulles ===== */
+(function PT_HOTFIX_FINAL(){
+  // 1) Normalise le format du panier dans localStorage -> tableau simple
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw){
+      var obj = JSON.parse(raw);
+      if (obj && Array.isArray(obj.items)) {
+        // Convertit ancien format {items:[...]} vers [...]
+        localStorage.setItem(STORE_KEY, JSON.stringify(obj.items));
+      }
+    }
+  }catch(_){}
 
+  // 2) Canonise loadCart/saveCart (si redéfinis ailleurs) pour rester sur un tableau
+  window.loadCart = function(){
+    try{ CART = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }catch(_){ CART = []; }
+    if (typeof updateDock === 'function') updateDock();
+  };
+  window.saveCart = function(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
+    if (typeof updateDock === 'function') updateDock();
+    try{ window.dispatchEvent(new CustomEvent('pt:cartChanged')); }catch(_){}
+  };
+  // applique maintenant
+  loadCart();
+
+  // 3) Brand grid : empêche les double-bind en capturant une seule fois
+  var host = document.getElementById('brandGrid');
+  if (host && !host.__wiredFix){
+    host.__wiredFix = 1;
+    host.addEventListener('click', function(e){
+      var el = e.target && e.target.closest && e.target.closest('[data-brand],a.brand,button.brand');
+      if (!el) return;
+      // Si c'est déjà un <a href="#/catalogue?..."> on laisse le router agir
+      if (el.tagName === 'A') return;
+      var key = el.dataset && el.dataset.brand;
+      if (key) { location.hash = '#/catalogue?brand=' + encodeURIComponent(key); }
+    }, true);
+  }
+})();
 
 
