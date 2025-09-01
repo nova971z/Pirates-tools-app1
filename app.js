@@ -2284,3 +2284,165 @@ function renderBrandGrid(products) {
 })();
 
 
+/* ====================== PT RECOVERY PATCH (FIN DE FICHIER) ======================
+   1) Répare les chemins absolus "/images/..." -> "./images/..."
+   2) Normalise le panier (toujours un tableau dans localStorage)
+   3) Empêche les double-bind sur la grille des marques
+   4) Restaure l'animation du logo (fallback si l’original ne bouge pas)
+=============================================================================== */
+
+(function PT_RECOVERY_PATHS(){
+  function toLocal(p){
+    if (!p) return p;
+    if (/^https?:\/\//i.test(p)) return p;
+    return p.charAt(0) === '/' ? '.' + p : p;
+  }
+  function fixImgs(){
+    var imgs = document.getElementsByTagName('img');
+    for (var i=0;i<imgs.length;i++){
+      var s = imgs[i].getAttribute('src') || '';
+      if (s) {
+        var fixed = toLocal(s);
+        if (fixed !== s) imgs[i].setAttribute('src', fixed);
+      }
+      // Corrige les onerror qui pointent en /images/...
+      var onerr = imgs[i].getAttribute('onerror') || '';
+      if (onerr && /\/images\/pirates-tools-logo\.png/.test(onerr)){
+        imgs[i].setAttribute('onerror', onerr.replace('/images/','./images/'));
+      }
+    }
+  }
+  // exécute maintenant + quand les produits arrivent
+  try{ fixImgs(); }catch(_){}
+  document.addEventListener('DOMContentLoaded', fixImgs, { once:true });
+  document.addEventListener('pt:productsLoaded', fixImgs);
+})();
+
+(function PT_RECOVERY_CART(){
+  // si ancien format {items:[]} → [...]
+  try{
+    var raw = localStorage.getItem(typeof STORE_KEY !== 'undefined' ? STORE_KEY : 'pt_cart_v1');
+    if (raw){
+      var obj = JSON.parse(raw);
+      if (obj && Array.isArray(obj.items)) {
+        localStorage.setItem(STORE_KEY, JSON.stringify(obj.items));
+      }
+    }
+  }catch(_){}
+
+  // impose un format tableau (sans casser le reste)
+  window.loadCart = function(){
+    try{ CART = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }catch(_){ CART = []; }
+    if (typeof updateDock === 'function') updateDock();
+  };
+  window.saveCart = function(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(CART)); }catch(_){}
+    if (typeof updateDock === 'function') updateDock();
+    try{ window.dispatchEvent(new CustomEvent('pt:cartChanged')); }catch(_){}
+  };
+  try{ loadCart(); }catch(_){}
+})();
+
+(function PT_RECOVERY_BRANDS_CLICK(){
+  var host = document.getElementById('brandGrid');
+  if (host && !host.__ptWiredOnce){
+    host.__ptWiredOnce = 1;
+    host.addEventListener('click', function(e){
+      var el = e.target && e.target.closest && e.target.closest('[data-brand],a.brand,button.brand');
+      if (!el) return;
+      // si c'est déjà un <a href="..."> on laisse le hash faire
+      if (el.tagName === 'A') return;
+      var key = el.dataset && el.dataset.brand;
+      if (key){ location.hash = '#/catalogue?brand=' + encodeURIComponent(key); }
+    }, true);
+  }
+})();
+
+(function PT_RECOVERY_HERO(){
+  if (window.__ptHeroFix) return; window.__ptHeroFix = true;
+
+  function q(sel){ return document.querySelector(sel); }
+  function ensureNodes(){
+    // Ré-acquiert si besoin (id + classes possibles)
+    if (!window.hero) window.hero = q('#hero') || q('.hero-full');
+    if (!window.heroLogo) window.heroLogo = q('#heroLogo') || q('.hero-logo') || (window.hero && window.hero.querySelector('img,svg'));
+    return !!(window.hero && window.heroLogo);
+  }
+
+  function getY(){
+    return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
+           (document.scrollingElement && document.scrollingElement.scrollTop) ||
+           document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
+  function startFallback(){
+    if (!ensureNodes()) return;
+    if (window.__ptHeroFallbackRunning) return;
+    window.__ptHeroFallbackRunning = true;
+
+    var vh = Math.max(1, (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1);
+    var prevY = -1;
+
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function render(y){
+      var fin = vh * 0.80;
+      var raw = Math.max(0, Math.min(1, y / (fin || 1)));
+      var p   = easeOutCubic(raw);
+      var scale = 1 + (2.2 - 1) * p;
+      var ty    = (vh * 0.08) * p;
+      var op    = Math.max(0, 1 - 1.4*raw);
+
+      var t = 'translate3d(0,'+ty.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      var el = window.heroLogo;
+      el.style.transform = t;
+      el.style.webkitTransform = t;
+      el.style.opacity = op.toFixed(3);
+
+      document.documentElement.style.setProperty('--listGap', ((1-raw) * 22).toFixed(2)+'vh');
+
+      var done = raw > 0.985;
+      document.body.classList.toggle('after-hero', done);
+      if (window.hero) window.hero.classList.toggle('hero-out', done);
+      if (window.dock){
+        if (raw > 0.97) window.dock.classList.add('dock--visible');
+        else window.dock.classList.remove('dock--visible');
+      }
+    }
+
+    function tick(){
+      var y = getY();
+      if (y !== prevY){ render(y); prevY = y; }
+      window.requestAnimationFrame(tick);
+    }
+
+    // lance tout de suite
+    tick();
+
+    // recalc hauteur viewport si rotation
+    function recalc(){
+      vh = Math.max(1, (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1);
+      render(getY());
+    }
+    window.addEventListener('resize',       recalc, true);
+    window.addEventListener('orientationchange', recalc, true);
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function'){
+      window.visualViewport.addEventListener('resize', recalc, true);
+    }
+  }
+
+  function tryKick(){
+    if (!ensureNodes()) return;
+    // Si l’anim d’origine ne modifie pas le transform après un scroll → on démarre le fallback
+    var initial = getComputedStyle(window.heroLogo).transform;
+    var once = function(){
+      var cur = getComputedStyle(window.heroLogo).transform;
+      if (cur === initial || cur === 'none'){ startFallback(); }
+    };
+    window.addEventListener('scroll', function(){ once(); }, { once:true, passive:true });
+    // si déjà scrollé en arrivant
+    if (getY() > 4){ once(); }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryKick, { once:true });
+  else tryKick();
+})();
