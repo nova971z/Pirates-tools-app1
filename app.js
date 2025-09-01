@@ -407,6 +407,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
 
 
 
+
 /* =========================================================
    0) Anti-zoom Android
 ========================================================= */
@@ -437,39 +438,50 @@ document.addEventListener('DOMContentLoaded', handleRoute);
    2) CTA tel/wa homogènes
 ========================================================= */
 (function syncCTA(){
-  if (callBtn) {
-    callBtn.setAttribute('href', 'tel:' + PHONE_E164);
-    callBtn.innerHTML = '📞 <strong>' + PHONE_HUMAN + '</strong>';
-  }
-  if (waBtn) {
-    waBtn.setAttribute('href', 'https://wa.me/' + PHONE_E164.replace('+',''));
+  if (typeof PHONE_E164 === 'string' && typeof PHONE_HUMAN === 'string'){
+    if (window.callBtn) {
+      callBtn.setAttribute('href', 'tel:' + PHONE_E164);
+      callBtn.innerHTML = '📞 <strong>' + PHONE_HUMAN + '</strong>';
+    }
+    if (window.waBtn) {
+      waBtn.setAttribute('href', 'https://wa.me/' + PHONE_E164.replace('+',''));
+    }
   }
 })();
 
 /* =========================================================
-   3) Bannière Offline / Online
+   3) Bannière Offline / Online (ES5-safe)
 ========================================================= */
 (function netBanner(){
   var bar = document.createElement('div');
   bar.id = 'netBanner';
   bar.setAttribute('aria-live','polite');
-  Object.assign(bar.style, {
-    position:'fixed', left:'50%', transform:'translateX(-50%)',
-    bottom:'calc(72px + env(safe-area-inset-bottom, 0px))',
-    background:'rgba(10,15,20,.88)', border:'1px solid #22303b',
-    padding:'.5rem .8rem', borderRadius:'10px', zIndex:'120', boxShadow:'0 10px 24px rgba(0,0,0,.35)',
-    font:'600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif',
-    color:'#e6edf5', display:'none'
-  });
+
+  // Style sans Object.assign (compat ES5)
+  var st = bar.style;
+  st.position = 'fixed';
+  st.left = '50%';
+  st.transform = 'translateX(-50%)';
+  st.bottom = 'calc(72px + env(safe-area-inset-bottom, 0px))';
+  st.background = 'rgba(10,15,20,.88)';
+  st.border = '1px solid #22303b';
+  st.padding = '.5rem .8rem';
+  st.borderRadius = '10px';
+  st.zIndex = '120';
+  st.boxShadow = '0 10px 24px rgba(0,0,0,.35)';
+  st.font = '600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif';
+  st.color = '#e6edf5';
+  st.display = 'none';
+
   document.body.appendChild(bar);
 
   var hideT = 0;
   var show = function(txt, ok){
     bar.textContent = txt;
-    bar.style.display = 'block';
-    bar.style.borderColor = ok ? '#00e1b4' : '#ff6b6b';
+    st.display = 'block';
+    st.borderColor = ok ? '#00e1b4' : '#ff6b6b';
     clearTimeout(hideT);
-    hideT = setTimeout(function(){ bar.style.display='none'; }, 2400);
+    hideT = setTimeout(function(){ st.display='none'; }, 2400);
   };
   window.addEventListener('offline', function(){ show('Hors ligne — contenu en cache', false); });
   window.addEventListener('online',  function(){ show('De nouveau en ligne', true); });
@@ -490,7 +502,12 @@ document.addEventListener('DOMContentLoaded', handleRoute);
   if (!document.getElementById('pt-a2hs-css')){
     var s = document.createElement('style');
     s.id = 'pt-a2hs-css';
-    s.textContent = '\n      #a2hsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:125;\n        display:flex;gap:.6rem;align-items:center;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;\n        padding:.55rem .7rem;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}\n      #a2hsTip .a2hs-tip__icon{display:inline-block;padding:.12rem .4rem;border-radius:6px;border:1px solid #22303b;background:rgba(255,255,255,.06)}\n      #a2hsTip .a2hs-tip__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}\n      #a2hsTip.out{animation:pt-a2hs-out .18s ease-in both}\n      @keyframes pt-a2hs-out{to{opacity:0;transform:translateX(-50%) translateY(4px)}}\n    ';
+    s.textContent = '\
+#a2hsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:125;display:flex;gap:.6rem;align-items:center;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;padding:.55rem .7rem;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}\
+#a2hsTip .a2hs-tip__icon{display:inline-block;padding:.12rem .4rem;border-radius:6px;border:1px solid #22303b;background:rgba(255,255,255,.06)}\
+#a2hsTip .a2hs-tip__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}\
+#a2hsTip.out{animation:pt-a2hs-out .18s ease-in both}\
+@keyframes pt-a2hs-out{to{opacity:0;transform:translateX(-50%) translateY(4px)}}';
     document.head.appendChild(s);
   }
 
@@ -504,7 +521,9 @@ document.addEventListener('DOMContentLoaded', handleRoute);
     tip.id = 'a2hsTip';
     tip.setAttribute('role','dialog');
     tip.setAttribute('aria-live','polite');
-    tip.innerHTML = '\n      <div class="a2hs-tip__text">\n        Pour installer l’app&nbsp;: touchez\n        <span class="a2hs-tip__icon">▵</span>\n        puis <strong>«&nbsp;Sur l’écran d’accueil&nbsp;»</strong>.\n      </div>\n      <button class="a2hs-tip__close" aria-label="Fermer">✖</button>\n    ';
+    tip.innerHTML = '\
+<div class="a2hs-tip__text">Pour installer l’app&nbsp;: touchez <span class="a2hs-tip__icon">▵</span> puis <strong>«&nbsp;Sur l’écran d’accueil&nbsp;»</strong>.</div>\
+<button class="a2hs-tip__close" aria-label="Fermer">✖</button>';
     var closeBtn = tip.querySelector('.a2hs-tip__close');
     if (closeBtn) closeBtn.addEventListener('click', function(){
       tip.classList.add('out');
@@ -515,9 +534,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
   }
 
   var isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
-  if (isiOSLike && isSafari && !isStandalone) {
-    setTimeout(showTip, 1400);
-  }
+  if (isiOSLike && isSafari && !isStandalone) { setTimeout(showTip, 1400); }
 
   var deferredPrompt = null;
   var installBtn = document.getElementById('installBtn');
@@ -552,8 +569,12 @@ document.addEventListener('DOMContentLoaded', handleRoute);
     if (installBtn && isStandalone) installBtn.hidden = true;
     if (window.matchMedia) {
       var dm = window.matchMedia('(display-mode: standalone)');
-      if (dm && typeof dm.addEventListener === 'function'){
-        dm.addEventListener('change', function(e){ if (installBtn && e.matches) installBtn.hidden = true; });
+      if (dm) {
+        if (typeof dm.addEventListener === 'function'){
+          dm.addEventListener('change', function(e){ if (installBtn && e.matches) installBtn.hidden = true; });
+        } else if (typeof dm.addListener === 'function'){
+          dm.addListener(function(e){ if (installBtn && e.matches) installBtn.hidden = true; });
+        }
       }
     }
   }catch(_){}
@@ -566,29 +587,25 @@ document.addEventListener('DOMContentLoaded', handleRoute);
   var logoLink = document.getElementById('homeLink') || document.querySelector('.topbar-logo-link');
   if (!logoLink) return;
 
-  var goHome = function(e){
-    e.preventDefault();
-    location.hash = '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
+  function goHome(e){
+    if (e) e.preventDefault();
+    location.hash = ''; // -> router => #/
+    try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ window.scrollTo(0,0); }
+  }
   logoLink.addEventListener('click', goHome, false);
-  logoLink.addEventListener('pointerup', function(e){
-    if (e.pointerType === 'touch') goHome(e);
-  }, false);
+  logoLink.addEventListener('pointerup', function(e){ if (e.pointerType === 'touch') goHome(e); }, false);
 })();
 
 /* =========================================================
    5) HERO : zoom + fondu (robuste iOS/Android)
 ========================================================= */
 (function heroEffect(){
-  if (!hero || !heroLogo) return;
+  if (!window.hero || !window.heroLogo) return;
 
   var mq  = window.matchMedia('(max-width: 768px)');
   var mqr = window.matchMedia('(prefers-reduced-motion: reduce)');
   var easeOutCubic = function(t){ return 1 - Math.pow(1 - t, 3); };
   var getVH = function(){ return (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1; };
-
   var getScrollY = function(){
     return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
            (document.scrollingElement && document.scrollingElement.scrollTop) ||
@@ -614,7 +631,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
 
     var opacity  = Math.max(0, Math.min(1, 1 - (mq.matches ? 1.75 : 1.25) * raw));
 
-    var t = 'translate3d(0, '+tyPx.toFixed(2)+'px, 0) scale('+scale.toFixed(3)+')';
+    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
     heroLogo.style.transform = t;
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = opacity.toFixed(3);
@@ -626,7 +643,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
     document.body.classList.toggle('after-hero', done);
     hero.classList.toggle('hero-out', done);
 
-    if (dock){
+    if (window.dock){
       if (raw > 0.97) dock.classList.add('dock--visible');
       else dock.classList.remove('dock--visible');
     }
@@ -634,10 +651,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
 
   function tick(){
     var y = getScrollY();
-    if (y !== prevY) {
-      render(y);
-      prevY = y;
-    }
+    if (y !== prevY) { render(y); prevY = y; }
     rafId = requestAnimationFrame(tick);
   }
 
@@ -649,7 +663,7 @@ document.addEventListener('DOMContentLoaded', handleRoute);
     document.documentElement.style.setProperty('--listGap', '18vh');
     document.body.classList.remove('after-hero');
     hero.classList.remove('hero-out');
-    if (dock) dock.classList.add('dock--visible');
+    if (window.dock) dock.classList.add('dock--visible');
     return;
   }
 
@@ -669,71 +683,71 @@ document.addEventListener('DOMContentLoaded', handleRoute);
 })();
 
 /* =========================================================
-   5-bis) Accueil — bulles marques (vue dédiée)
+   5-bis) Accueil — bulles marques (liens réels vers /catalogue?brand=)
+   -> utilise les clés/fichiers exacts: ./images/brands/Logo.<key>.png
 ========================================================= */
-function slugify(str){
-  try{
-    return String(str||'')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-      .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'')
-      .toLowerCase();
-  }catch(_){
-    return String(str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+(function homeBrandGrid(){
+  function ensureHomeView(){
+    var home = document.getElementById('view-home');
+    if (home) return home;
+    home = document.createElement('section');
+    home.id = 'view-home';
+    home.className = 'view home';
+    home.setAttribute('aria-label', 'Accueil');
+    home.innerHTML =
+      '<div class="container">'+
+        '<h1 style="margin:1rem 0 .5rem" tabindex="-1">Choisir une marque</h1>'+
+        '<div id="brandGrid" class="brand-grid" role="list"></div>'+
+      '</div>';
+    if (window.hero && hero.parentNode) hero.parentNode.insertBefore(home, hero.nextSibling);
+    else document.body.appendChild(home);
+    return home;
   }
-}
 
-var PT_BRANDS = [
-  'DeWalt','Milwaukee','Maffle','Makita','feston','flex','stanley','wera','facom'
-].map(function(name){ return { name: name, slug: slugify(name) }; });
+  var KEYS = ['dewalt','milwaukee','makita','festool','flex','wera','stanley','facom']; // fichiers existants
+  function labelFor(k){
+    // Si BRAND_META global existe, prends le label officiel
+    try{ return (window.BRAND_META && window.BRAND_META[k] && window.BRAND_META[k].label) ? window.BRAND_META[k].label : k.charAt(0).toUpperCase()+k.slice(1); }
+    catch(_){ return k.charAt(0).toUpperCase()+k.slice(1); }
+  }
 
-function ensureHomeView(){
-  var home = document.getElementById('view-home');
-  if (home) return home;
-  home = document.createElement('section');
-  home.id = 'view-home';
-  home.className = 'view home';
-  home.setAttribute('aria-label', 'Accueil');
-  home.innerHTML =
-    '<div class="container">' +
-      '<h1 style="margin:1rem 0 .5rem" tabindex="-1">Bienvenue</h1>' +
-      '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque pour afficher les produits associés.</p>' +
-      '<div id="brandGrid" class="brand-grid" role="list"></div>' +
-    '</div>';
-  if (hero && hero.parentNode) hero.parentNode.insertBefore(home, hero.nextSibling);
-  return home;
-}
+  function render(){
+    var home = ensureHomeView();
+    var grid = document.getElementById('brandGrid');
+    if (!grid) return;
 
-function renderHomeBrands(){
-  var home = ensureHomeView();
-  var grid = $('#brandGrid', home);
-  if (!grid) return;
-  grid.innerHTML = PT_BRANDS.map(function(b){
-    return '' +
-      '<a class="brand" role="listitem" href="#/catalogue" data-brand="'+b.slug+'" data-brand-name="'+b.name+'">' +
-        '<span class="brand__bubble">' +
-          '<img src="./images/brands/'+b.slug+'.png" alt="'+b.name+'" loading="lazy" decoding="async" />' +
-          '<span class="brand__glass" aria-hidden="true"></span>' +
-        '</span>' +
-        '<span class="brand__label">'+b.name+'</span>' +
-      '</a>';
-  }).join('');
-}
+    var html = '';
+    for (var i=0;i<KEYS.length;i++){
+      var key = KEYS[i];
+      var label = labelFor(key);
+      var src = './images/brands/Logo.'+key+'.png'; // casse exacte
+      html += ''+
+        '<a class="brand" role="listitem" href="#/catalogue?brand='+encodeURIComponent(key)+'" data-brand="'+key+'">'+
+          '<span class="brand__bubble">'+
+            '<img class="brand__img" src="'+src+'" alt="'+label+'" loading="lazy" decoding="async" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
+            '<span class="brand__glass" aria-hidden="true"></span>'+
+          '</span>'+
+          '<span class="brand__label">'+label+'</span>'+
+        '</a>';
+    }
+    grid.innerHTML = html;
+  }
 
-/* Clic bulles → filtre & route catalogue */
+  // petit feedback tactile
+  document.addEventListener('pointerdown', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('#brandGrid .brand') : null;
+    if (!a) return; a.style.transform='scale(.98)'; setTimeout(function(){ a.style.transform=''; }, 180);
+  }, false);
+
+  document.addEventListener('DOMContentLoaded', render);
+})();
+
+/* Clic bulles → navigation SPA (filtre marque réel) */
 (function bindBrandBubbles(){
   document.addEventListener('click', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('[data-brand][data-brand-name]') : null;
+    var el = e.target && e.target.closest ? e.target.closest('#brandGrid [data-brand]') : null;
     if (!el) return;
-    e.preventDefault();
-    var label = el.getAttribute('data-brand-name') || '';
-    if (tagEl) tagEl.value = '';
-    if (searchEl) searchEl.value = label;
-    if (typeof applyFilters === 'function') applyFilters();
-    location.hash = '#/catalogue';
-    setTimeout(function(){
-      var listNode = document.getElementById('list');
-      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
-    }, 120);
+    // Laisse travailler le href "#/catalogue?brand=..."
   }, false);
 })();
 
@@ -795,7 +809,12 @@ var ScrollExit = (function () {
     if (document.getElementById('exit-anim-css')) return;
     var style = document.createElement('style');
     style.id = 'exit-anim-css';
-    style.textContent = '\n@keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }\n@keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }\n.tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\n.tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\n@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }';
+    style.textContent = '\
+@keyframes exitLeft { to { transform: translateX(-60px); opacity: 0; filter: blur(2px); } }\
+@keyframes exitRight{ to { transform: translateX(60px);  opacity: 0; filter: blur(2px); } }\
+.tool--exit-left  { animation: exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\
+.tool--exit-right { animation: exitRight 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change: transform, opacity; }\
+@media (prefers-reduced-motion: reduce) { .tool--exit-left,.tool--exit-right { animation: none; opacity: 0; } }';
     document.head.appendChild(style);
   }
   injectExitCSS();
@@ -822,6 +841,9 @@ var ScrollExit = (function () {
   function observeWithin(root){ (root||document).querySelectorAll('[data-tool]').forEach(function(el){ io.observe(el); }); }
   return { observeWithin: observeWithin };
 })();
+
+
+
 
 
 /* =========================================================
