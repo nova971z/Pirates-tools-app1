@@ -15,6 +15,7 @@
    - PT utils + SelfTest (Section 18) activable via ?selftest=1
 ========================================================= */
 
+
 'use strict';
 
 /* ---------- Helpers (ES5-safe) ---------- */
@@ -244,10 +245,10 @@ var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
 /* ============== [CATALOGUE] Grille de marques ============== */
-const elBrandGrid = document.getElementById('brandGrid');
+var elBrandGrid = document.getElementById('brandGrid');
 
 // Dossier: ./images/brands/  (casse EXACTE)
-const BRANDS = [
+var BRANDS = [
   { key: 'dewalt',    name: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
   { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
   { key: 'makita',    name: 'Makita',    logo: './images/brands/Logo.makita.png' },
@@ -258,10 +259,10 @@ const BRANDS = [
   { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
 ];
 
-// Rendu + interactions des bulles
+/* -------- Grille statique (conservée) -------- */
 function renderBrandGrid () {
   if (!elBrandGrid) return;
-  const frag = document.createDocumentFragment();
+  var frag = document.createDocumentFragment();
 
   for (var i=0; i<BRANDS.length; i++){
     var b = BRANDS[i];
@@ -278,7 +279,7 @@ function renderBrandGrid () {
 
     var img = document.createElement('img');
     img.className = 'brand__img';
-    img.src = b.logo;                    // ./images/brands/Logo.xxx.png
+    img.src = b.logo; // ./images/brands/Logo.xxx.png
     img.alt = b.name;
     img.loading = 'lazy';
     img.decoding = 'async';
@@ -299,9 +300,9 @@ function renderBrandGrid () {
   elBrandGrid.innerHTML = '';
   elBrandGrid.appendChild(frag);
 
-  // petit feedback tactile
+  // petit feedback tactile (a + button)
   elBrandGrid.addEventListener('pointerdown', function(e){
-    var a = e.target.closest && e.target.closest('a.brand');
+    var a = e.target.closest ? e.target.closest('a.brand,button.brand') : null;
     if (!a) return;
     a.style.transform = 'scale(0.98)';
     setTimeout(function(){ a.style.transform = ''; }, 180);
@@ -443,7 +444,7 @@ function renderBrandTypeList(items) {
           '<img src="'+img+'" alt="'+(p.images_alt || p.title || '')+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
           '<div>'+
             '<div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">'+
-              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>' : '')+
+              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem)">'+old+'</span>' : '')+
             '</div>'+
             '<div class="specs">'+
               (p.desc ? '<span>'+p.desc+'</span>' : '')+
@@ -481,7 +482,8 @@ async function handleRouteCatalogue_Extended() {
   if (view !== 'catalogue') return;
 
   var selBrand = String(query.brand || '').toLowerCase();
-  var brandLinks = document.querySelectorAll('#brandGrid a.brand');
+  // -> supporte <a> ET <button>
+  var brandLinks = document.querySelectorAll('#brandGrid a.brand, #brandGrid button.brand');
   for (var i=0;i<brandLinks.length;i++){
     var a = brandLinks[i];
     a.classList.toggle('is-active', ((a.dataset.brand||'').toLowerCase() === selBrand));
@@ -502,6 +504,90 @@ async function handleRouteCatalogue_Extended() {
 window.addEventListener('hashchange', handleRouteCatalogue_Extended);
 handleRouteCatalogue_Extended();
 
+
+/* ============================================================
+   AJOUTS : Brand grid dynamique (sans casser la statique)
+   - construit la grille à partir de products.json
+   - ne remplace la statique que si des marques valides existent
+============================================================ */
+
+/* Table de métadonnées logos/labels dérivée de BRANDS (source unique) */
+var BRAND_META = (function(){
+  var map = {};
+  for (var i=0;i<BRANDS.length;i++){
+    var b = BRANDS[i];
+    map[String(b.key).toLowerCase()] = { label: b.name, logo: b.logo };
+  }
+  return map;
+})();
+
+/** Calcule les marques présentes dans le catalogue */
+function computeBrands(products){
+  var counts = {};
+  for (var i=0;i<(products||[]).length;i++){
+    var p = products[i];
+    var k = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
+    if (!k || !BRAND_META[k]) continue; // ignore marques inconnues ou non supportées
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  var keys = Object.keys(counts).sort(function(a,b){
+    return BRAND_META[a].label.localeCompare(BRAND_META[b].label);
+  });
+  var out = [];
+  for (var j=0;j<keys.length;j++){
+    var key = keys[j];
+    var meta = BRAND_META[key];
+    out.push({ key: key, label: meta.label, logo: meta.logo, count: counts[key] });
+  }
+  return out;
+}
+
+/** Rendu dynamique — retourne true si rendu (sinon laisse la statique) */
+function renderBrandGridFromProducts(products){
+  var host = document.getElementById('brandGrid');
+  if (!host) return false;
+  var brands = computeBrands(products);
+  if (!brands.length) return false; // => garde le rendu statique existant
+
+  var html = '';
+  for (var i=0;i<brands.length;i++){
+    var b = brands[i];
+    html += '' +
+      '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">' +
+        '<span class="brand__bubble">' +
+          '<img class="brand__logo" src="'+b.logo+'" alt="'+b.label+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">' +
+        '</span>' +
+        '<span class="brand__label">'+b.label+'</span>' +
+      '</button>';
+  }
+  host.innerHTML = html;
+  return true;
+}
+
+/* Handler de navigation pour les bulles dynamiques (et statiques si besoin) */
+(function attachBrandGridHandler(){
+  var host = document.getElementById('brandGrid');
+  if (!host) return;
+  host.addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+    if (!el) return;
+    var key = el.getAttribute('data-brand') || '';
+    if (!key) return;
+    // on force la route catalogue avec la marque
+    location.hash = '#/catalogue?brand=' + encodeURIComponent(key);
+  });
+})();
+
+/* Boot : quand les produits sont chargés, tenter le rendu dynamique.
+   Si aucune marque valide n’est trouvée, on conserve la grille statique. */
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    (async function(){
+      var all = await loadProducts();
+      renderBrandGridFromProducts(all); // si rien => laisse tel quel
+    })();
+  }catch(_){}
+});
 /* =========================================================
    0) Anti-zoom Android
 ========================================================= */
