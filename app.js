@@ -2446,3 +2446,100 @@ function renderBrandGrid(products) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryKick, { once:true });
   else tryKick();
 })();
+
+/* ===================== ROUTER & VIEWS RESCUE PATCH (SAFE) ===================== */
+(function PT_VIEWS_RESCUE(){
+  if (window.__pt_views_rescue) return; window.__pt_views_rescue = true;
+
+  function ensure(id, label, inner){
+    var el = document.getElementById(id);
+    if (!el){
+      el = document.createElement('section');
+      el.id = id; el.className = 'view hidden';
+      el.setAttribute('aria-label', label);
+      el.innerHTML = inner || '<div class="container"><h1>'+label+'</h1></div>';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  // Garantir les vues (si supprimées / renommées par mégarde)
+  ensure('view-home',      'Bienvenue',      '<div class="container"><h1>Bienvenue</h1><div id="brandGrid" class="brand-grid" role="list"></div></div>');
+  ensure('view-catalogue', 'Catalogue',      '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list"></div><div id="list" class="list"></div></div>');
+  ensure('view-devis',     'Devis',          '<div class="container"><h1>Devis</h1><div id="devisList"></div><div class="actions"><button id="devisSend" class="btn primary">Envoyer sur WhatsApp</button><button id="devisClear" class="btn">Vider</button></div></div>');
+  ensure('view-produit',   'Fiche produit',  '<div class="container"><div class="chip chip--back"><a class="chip__link" href="#/catalogue">&larr; Retour catalogue</a></div><article class="pdp"><div class="pdp__grid"><div class="pdp__media"><img id="pdpImg" alt=""></div><div class="pdp__info"><h1 id="pdpTitle" class="pdp__title">Produit</h1><p id="pdpDesc" class="pdp__desc"></p><div id="pdpSpecs" class="pdp__specs"></div><div class="actions"><button class="btn primary" id="pdpAddBtn" type="button">Ajouter au panier</button><a class="btn btn-wa" id="pdpWaBtn" target="_blank" rel="noopener">WhatsApp</a><button class="btn" id="pdpShareBtn" type="button">Partager</button></div></div></div><div id="pdpRelated" class="pdp__related"></div></article></div>');
+  ensure('view-compte',    'Mon compte',     '<div class="container"><h1>Mon compte</h1><div class="card" style="padding:1rem"><label>Nom<br><input id="accName" class="search" placeholder="Votre nom"></label><br><label>Email<br><input id="accEmail" class="search" placeholder="email@example.com" type="email"></label><br><div class="meter" style="margin-top:.6rem"><div class="meter__rail"><div id="accFill" class="meter__fill"></div><div id="accCursor" class="meter__cursor" style="left:0%"></div></div><input id="accSlider" type="range" min="0" max="5000" value="0"></div><div style="margin-top:.6rem;display:flex;gap:.5rem"><button id="accSave" class="btn primary" type="button">Enregistrer</button><button id="accReset" class="btn" type="button">Réinitialiser</button><span id="accGrade" class="chip" style="margin-left:auto">Moussaillon</span></div><div style="margin-top:.4rem;color:#9fb4c5">Total achats: <strong id="accSpent">0 €</strong></div></div></div>');
+
+  // Utilitaires simples d’affichage (sans toucher à ton routeur existant)
+  var VIEWS = {
+    home:      document.getElementById('view-home'),
+    catalogue: document.getElementById('view-catalogue'),
+    devis:     document.getElementById('view-devis'),
+    produit:   document.getElementById('view-produit'),
+    compte:    document.getElementById('view-compte')
+  };
+  function hideAll(){ for (var k in VIEWS){ if (VIEWS[k]) VIEWS[k].classList.add('hidden'); } }
+  function show(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); }
+
+  // Petit parseur de hash (robuste)
+  function parse(){
+    var h = (location.hash||'#/').toLowerCase();
+    // produit ?
+    var m = h.match(/^#\/produit\/([^/?#]+)/);
+    if (m) return { view:'produit', id: decodeURIComponent(m[1]||'') };
+    if (/^#\/devis\b/.test(h))      return { view:'devis' };
+    if (/^#\/compte\b/.test(h))     return { view:'compte' };
+    if (/^#\/catalogue\b/.test(h))  return { view:'catalogue' };
+    return { view:'home' };
+  }
+
+  // Router minimal — NE S’ACTIVE que si la page est “blanche” (aucune vue visible)
+  function pagesInvisible(){
+    return Object.keys(VIEWS).every(function(k){ return VIEWS[k] && VIEWS[k].classList.contains('hidden'); });
+  }
+
+  function simpleRoute(){
+    var p = parse();
+    hideAll();
+    show(p.view);
+    // focus accessible basique
+    var h1 = VIEWS[p.view] && VIEWS[p.view].querySelector('h1');
+    if (h1){ h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ } setTimeout(function(){ h1.removeAttribute('tabindex'); }, 300); }
+    // appels de rendu si existants
+    if (p.view === 'catalogue' && typeof renderCatalogue==='function'){ try{ renderCatalogue(); }catch(_){ } }
+    if (p.view === 'devis'     && typeof renderCartView==='function'){ try{ renderCartView(); }catch(_){ } }
+    if (p.view === 'compte'    && typeof renderAccount==='function'){ try{ renderAccount(); }catch(_){ } }
+    if (p.view === 'produit'){
+      if (typeof handleRoutePDP==='function'){ try{ handleRoutePDP(); }catch(_){ } }
+      else if (typeof renderPDPView==='function'){ try{ renderPDPView({ title:'Produit' }); }catch(_){ } }
+    }
+    // hero/dock basic
+    if (typeof showDock==='function'){ showDock(p.view !== 'home'); }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function boot(){
+    // si ton routeur d’origine a déjà montré une vue, on n’intervient pas.
+    if (!pagesInvisible()) return;
+    // sinon on prend la main, mais SANS empêcher ton routeur de fonctionner.
+    simpleRoute();
+    window.addEventListener('hashchange', simpleRoute);
+  }
+
+  // Rewire rapide de quelques boutons critiques (si présents)
+  try{
+    var logoLink = document.getElementById('homeLink') || document.querySelector('.topbar-logo-link');
+    if (logoLink && !logoLink.__ptWired){
+      logoLink.__ptWired = 1;
+      logoLink.addEventListener('click', function(e){ e.preventDefault(); location.hash = '#/'; }, false);
+    }
+    var dCart = document.getElementById('dockCartBtn');
+    if (dCart && !dCart.__ptWired){ dCart.__ptWired = 1; dCart.addEventListener('click', function(){ location.hash = '#/devis'; }); }
+    var dCount = document.getElementById('dockCount');
+    if (dCount && !dCount.__ptWired){ dCount.__ptWired = 1; dCount.addEventListener('click', function(){ location.hash = '#/devis'; }); }
+  }catch(_){}
+
+  // Lancement “doux”
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true });
+  else boot();
+})();
