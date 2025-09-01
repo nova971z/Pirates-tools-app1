@@ -244,72 +244,6 @@ var listEl   = document.getElementById('list');
 var searchEl = document.getElementById('q');
 var tagEl    = document.getElementById('tag');
 
-/* ============== [CATALOGUE] Grille de marques ============== */
-var elBrandGrid = document.getElementById('brandGrid');
-
-// Dossier: ./images/brands/  (casse EXACTE)
-var BRANDS = [
-  { key: 'dewalt',    name: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
-  { key: 'milwaukee', name: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
-  { key: 'makita',    name: 'Makita',    logo: './images/brands/Logo.makita.png' },
-  { key: 'festool',   name: 'Festool',   logo: './images/brands/Logo.festool.png' },
-  { key: 'flex',      name: 'FLEX',      logo: './images/brands/Logo.flex.png' },
-  { key: 'wera',      name: 'Wera',      logo: './images/brands/Logo.wera.png' },
-  { key: 'stanley',   name: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
-  { key: 'facom',     name: 'Facom',     logo: './images/brands/Logo.facom.png' },
-];
-
-/* -------- Grille statique (conservée) -------- */
-function renderBrandGrid () {
-  if (!elBrandGrid) return;
-  var frag = document.createDocumentFragment();
-
-  for (var i=0; i<BRANDS.length; i++){
-    var b = BRANDS[i];
-
-    var a = document.createElement('a');
-    a.className = 'brand';
-    a.href = '#/catalogue?brand=' + encodeURIComponent(b.key);
-    a.setAttribute('role', 'listitem');
-    a.setAttribute('aria-label', b.name);
-    a.dataset.brand = b.key;
-
-    var bubble = document.createElement('span');
-    bubble.className = 'brand__bubble';
-
-    var img = document.createElement('img');
-    img.className = 'brand__img';
-    img.src = b.logo; // ./images/brands/Logo.xxx.png
-    img.alt = b.name;
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.referrerPolicy = 'no-referrer';
-    img.onerror = function(){ this.src = './images/pirates-tools-logo.png'; };
-
-    bubble.appendChild(img);
-
-    var label = document.createElement('span');
-    label.className = 'brand__label';
-    label.textContent = b.name;
-
-    a.appendChild(bubble);
-    a.appendChild(label);
-    frag.appendChild(a);
-  }
-
-  elBrandGrid.innerHTML = '';
-  elBrandGrid.appendChild(frag);
-
-  // petit feedback tactile (a + button)
-  elBrandGrid.addEventListener('pointerdown', function(e){
-    var a = e.target.closest ? e.target.closest('a.brand,button.brand') : null;
-    if (!a) return;
-    a.style.transform = 'scale(0.98)';
-    setTimeout(function(){ a.style.transform = ''; }, 180);
-  });
-}
-document.addEventListener('DOMContentLoaded', renderBrandGrid);
-
 /* ---------- Paiement : configuration (placeholders) ---------- */
 var PAYPAL_BUSINESS = 'votre-email-paypal@example.com';
 var CURRENCY = 'EUR';
@@ -420,12 +354,12 @@ function fmtPrice(n, c){
   catch(_){ return (typeof n === 'number' ? n.toFixed(2) : String(n || '')) + ' ' + c; }
 }
 function renderBrandTypeList(items) {
-  var listEl = document.getElementById('list');
-  if (!listEl) return;
+  var listEl2 = document.getElementById('list');
+  if (!listEl2) return;
 
   if (!items.length) {
-    listEl.innerHTML = '<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>';
-    listEl.scrollIntoView({ behavior:'smooth', block:'start' });
+    listEl2.innerHTML = '<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>';
+    listEl2.scrollIntoView({ behavior:'smooth', block:'start' });
     return;
   }
 
@@ -444,7 +378,7 @@ function renderBrandTypeList(items) {
           '<img src="'+img+'" alt="'+(p.images_alt || p.title || '')+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
           '<div>'+
             '<div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">'+
-              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem)">'+old+'</span>' : '')+
+              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>' : '')+
             '</div>'+
             '<div class="specs">'+
               (p.desc ? '<span>'+p.desc+'</span>' : '')+
@@ -462,8 +396,8 @@ function renderBrandTypeList(items) {
       '</div>';
   }).join('');
 
-  listEl.innerHTML = html;
-  listEl.scrollIntoView({ behavior:'smooth', block:'start' });
+  listEl2.innerHTML = html;
+  listEl2.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function filterByBrandType(all, brandKey, typeKey) {
@@ -482,8 +416,8 @@ async function handleRouteCatalogue_Extended() {
   if (view !== 'catalogue') return;
 
   var selBrand = String(query.brand || '').toLowerCase();
-  // -> supporte <a> ET <button>
-  var brandLinks = document.querySelectorAll('#brandGrid a.brand, #brandGrid button.brand');
+  // -> supporte <button.brand>
+  var brandLinks = document.querySelectorAll('#brandGrid [data-brand]');
   for (var i=0;i<brandLinks.length;i++){
     var a = brandLinks[i];
     a.classList.toggle('is-active', ((a.dataset.brand||'').toLowerCase() === selBrand));
@@ -504,22 +438,23 @@ async function handleRouteCatalogue_Extended() {
 window.addEventListener('hashchange', handleRouteCatalogue_Extended);
 handleRouteCatalogue_Extended();
 
-
 /* ============================================================
-   AJOUTS : Brand grid dynamique (sans casser la statique)
-   - construit la grille à partir de products.json
-   - ne remplace la statique que si des marques valides existent
+   GRILLE DE MARQUES 100% DYNAMIQUE
+   - Construit à partir des produits
+   - Compat ES5
 ============================================================ */
 
-/* Table de métadonnées logos/labels dérivée de BRANDS (source unique) */
-var BRAND_META = (function(){
-  var map = {};
-  for (var i=0;i<BRANDS.length;i++){
-    var b = BRANDS[i];
-    map[String(b.key).toLowerCase()] = { label: b.name, logo: b.logo };
-  }
-  return map;
-})();
+/* Table meta des logos/labels (source centrale) */
+var BRAND_META = {
+  dewalt:    { label: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
+  milwaukee: { label: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
+  makita:    { label: 'Makita',    logo: './images/brands/Logo.makita.png' },
+  festool:   { label: 'Festool',   logo: './images/brands/Logo.festool.png' },
+  flex:      { label: 'FLEX',      logo: './images/brands/Logo.flex.png' },
+  wera:      { label: 'Wera',      logo: './images/brands/Logo.wera.png' },
+  stanley:   { label: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
+  facom:     { label: 'Facom',     logo: './images/brands/Logo.facom.png' }
+};
 
 /** Calcule les marques présentes dans le catalogue */
 function computeBrands(products){
@@ -527,7 +462,7 @@ function computeBrands(products){
   for (var i=0;i<(products||[]).length;i++){
     var p = products[i];
     var k = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
-    if (!k || !BRAND_META[k]) continue; // ignore marques inconnues ou non supportées
+    if (!k || !BRAND_META[k]) continue;
     counts[k] = (counts[k] || 0) + 1;
   }
   var keys = Object.keys(counts).sort(function(a,b){
@@ -542,12 +477,16 @@ function computeBrands(products){
   return out;
 }
 
-/** Rendu dynamique — retourne true si rendu (sinon laisse la statique) */
+/** Rendu dynamique — remplit #brandGrid */
 function renderBrandGridFromProducts(products){
   var host = document.getElementById('brandGrid');
-  if (!host) return false;
+  if (!host) return;
+
   var brands = computeBrands(products);
-  if (!brands.length) return false; // => garde le rendu statique existant
+  if (!brands.length){
+    host.innerHTML = '<div class="card" style="padding:.8rem">Aucune marque disponible.</div>';
+    return;
+  }
 
   var html = '';
   for (var i=0;i<brands.length;i++){
@@ -561,32 +500,43 @@ function renderBrandGridFromProducts(products){
       '</button>';
   }
   host.innerHTML = html;
-  return true;
 }
 
-/* Handler de navigation pour les bulles dynamiques (et statiques si besoin) */
-(function attachBrandGridHandler(){
+/* Navigation + feedback tactile pour la grille dynamique */
+(function attachBrandGridHandlers(){
   var host = document.getElementById('brandGrid');
   if (!host) return;
-  host.addEventListener('click', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+
+  host.addEventListener('pointerdown', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('button.brand') : null;
     if (!el) return;
-    var key = el.getAttribute('data-brand') || '';
+    el.style.transform = 'scale(0.98)';
+    setTimeout(function(){ el.style.transform = ''; }, 180);
+  });
+
+  host.addEventListener('click', function(e){
+    var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+    if (!btn) return;
+    var key = btn.getAttribute('data-brand') || '';
     if (!key) return;
-    // on force la route catalogue avec la marque
     location.hash = '#/catalogue?brand=' + encodeURIComponent(key);
   });
 })();
 
-/* Boot : quand les produits sont chargés, tenter le rendu dynamique.
-   Si aucune marque valide n’est trouvée, on conserve la grille statique. */
+/* Boot : charger les produits et rendre la grille dynamique */
 document.addEventListener('DOMContentLoaded', function(){
-  try{
-    (async function(){
+  (async function(){
+    try{
       var all = await loadProducts();
-      renderBrandGridFromProducts(all); // si rien => laisse tel quel
-    })();
-  }catch(_){}
+      renderBrandGridFromProducts(all);
+      // Propage un évènement si des modules écoutent la disponibilité des marques
+      try{ document.dispatchEvent(new CustomEvent('pt:brandsRendered')); }catch(_){}
+    }catch(e){
+      console.warn('Brand grid:', e);
+      var host = document.getElementById('brandGrid');
+      if (host) host.innerHTML = '<div class="card" style="padding:.8rem">Impossible d’afficher les marques.</div>';
+    }
+  })();
 });
 /* =========================================================
    0) Anti-zoom Android
