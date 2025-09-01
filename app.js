@@ -15,6 +15,15 @@
    - PT utils + SelfTest (Section 18) activable via ?selftest=1
 ========================================================= */
 
+ 
+
+/* =========================================================
+   Pirates Tools — app.js (FULL, stable, clean)
+   - SPA hash router (Accueil, Catalogue, Devis, Compte, Produit)
+   - Grille marques dynamique (images sûres + fallback)
+   - Hero animé au scroll + dock visible hors-hero
+   - ES5-compatible (no ?. / ??)
+========================================================= */
 
 'use strict';
 
@@ -22,441 +31,132 @@
 var $  = function(sel, root){ return (root || document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
-var clamp = function(v, min, max){
+function clamp(v, min, max){
   v = typeof v === 'number' ? v : parseFloat(v);
   if (!isFinite(v)) v = 0;
   return Math.max(min, Math.min(max, v));
-};
-
-// ES5-safe Array.find
+}
 function arrFind(arr, pred){
   if (!arr || !arr.length) return null;
-  for (var i=0;i<arr.length;i++){
-    if (pred(arr[i], i, arr)) return arr[i];
-  }
+  for (var i=0;i<arr.length;i++){ if (pred(arr[i], i, arr)) return arr[i]; }
   return null;
 }
+function firstDefined(){ for (var i=0;i<arguments.length;i++){ var v=arguments[i]; if (v!==void 0 && v!==null) return v; } return void 0; }
 
-var fallback = function(v, alt){
-  return (v === undefined || v === null) ? (alt || '') : v;
-};
-
-function firstDefined(){
-  for (var i = 0; i < arguments.length; i++){
-    var v = arguments[i];
-    if (v !== undefined && v !== null) return v;
-  }
-  return undefined;
-}
-
-/* Nombres & monnaie sûrs */
-function toNumberSafe(v){
-  var n = (typeof v === 'number') ? v : parseFloat(v);
-  return isFinite(n) ? n : null;
-}
-function moneyFR(v, currency){
-  currency = currency || 'EUR';
-  try{
-    return Number(v).toLocaleString('fr-FR', { style:'currency', currency: currency });
-  }catch(_){
-    var n = Math.round(Number(v) * 100) / 100;
-    if (!isFinite(n)) n = 0;
-    return n.toFixed(2) + ' ' + currency;
-  }
-}
-
-/* Délégation d’événements */
-function delegate(root, selector, type, handler){
-  (root || document).addEventListener(type, function(e){
-    var el = e.target && e.target.closest ? e.target.closest(selector) : null;
-    if (el && (root ? (root.contains ? root.contains(el) : true) : true)){
-      handler.call(el, e, el);
-    }
-  }, false);
-}
-
-/* Polyfills minimalistes */
-(function(){
-  if (!Element.prototype.matches){
-    Element.prototype.matches =
-      Element.prototype.msMatchesSelector ||
-      Element.prototype.webkitMatchesSelector ||
-      function(s){
-        var m = (this.document || this.ownerDocument).querySelectorAll(s);
-        var i = m.length;
-        while (--i >= 0 && m.item(i) !== this) {}
-        return i > -1;
-      };
-  }
-  if (!Element.prototype.closest){
-    Element.prototype.closest = function(s){
-      var el = this;
-      while (el && el.nodeType === 1){
-        if (el.matches && el.matches(s)) return el;
-        el = el.parentElement || el.parentNode;
-      }
-      return null;
-    };
-  }
-})();
-
-/* === Images sûres + fallback === */
+/* ---------- URLs & images sûres ---------- */
 var IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
 function sanitizeImgUrl(u){
-  try{
-    var url = new URL(u, location.href);
-    if (url.protocol === 'http:') url.protocol = 'https:';
-    return url.toString();
-  }catch(_){ return IMG_FALLBACK; }
+  try{ var url = new URL(u, location.href); if (url.protocol === 'http:') url.protocol = 'https:'; return url.toString(); }
+  catch(_){ return IMG_FALLBACK; }
 }
 function setSafeImg(el, src, alt){
   if (!el) return;
+  el.alt = alt || '';
   el.loading = el.loading || 'lazy';
   el.decoding = 'async';
   el.referrerPolicy = 'no-referrer';
   el.crossOrigin = 'anonymous';
-  el.alt = alt || '';
-  el.onerror = function(){ el.onerror = null; el.src = IMG_FALLBACK; };
+  el.onerror = function(){ el.onerror=null; el.src = IMG_FALLBACK; };
   el.src = sanitizeImgUrl(src || IMG_FALLBACK);
 }
 
-/* === SEO defaults === */
+/* ---------- SEO ---------- */
 var META_DESC_EL  = document.querySelector('meta[name="description"]');
 var DEFAULT_TITLE = document.title || 'Pirates Tools • Outillage pro (PWA)';
 var DEFAULT_DESC  = (META_DESC_EL ? META_DESC_EL.getAttribute('content') : null) ||
-                    'Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).';
-function setPageMeta(title, description){
-  try{
-    if (title) document.title = title;
-    if (META_DESC_EL && description) META_DESC_EL.setAttribute('content', description);
-  }catch(_){}
-}
-function resetPageMeta(){
-  try{
-    document.title = DEFAULT_TITLE;
-    if (META_DESC_EL) META_DESC_EL.setAttribute('content', DEFAULT_DESC);
-  }catch(_){}
-}
+  'Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).';
+function setPageMeta(title, description){ try{ if (title) document.title = title; if (META_DESC_EL && description) META_DESC_EL.setAttribute('content', description); }catch(_){ } }
+function resetPageMeta(){ try{ document.title = DEFAULT_TITLE; if (META_DESC_EL) META_DESC_EL.setAttribute('content', DEFAULT_DESC); }catch(_){ } }
 
-/* ---------- UX CSS (toasts + badge bump) injecté ---------- */
+/* ---------- Toasts & a11y ---------- */
 (function injectUXCSS(){
   if (document.getElementById('pt-ux-css')) return;
-  var css = '\n  @keyframes pt-bump { 0%{transform:scale(1)} 35%{transform:scale(1.15)} 100%{transform:scale(1)} }\n  #dockCount.bump{ animation: pt-bump .42s ease }\n\n  #toasts{ position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:130; display:grid; gap:.5rem; }\n  .toast{ display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; padding:.6rem .75rem; border-radius:12px;\n          background:rgba(10,15,20,.92); border:1px solid #22303b; color:#e6edf5; box-shadow:0 12px 24px rgba(0,0,0,.35);\n          font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,\"Inter\",\"Segoe UI\",Roboto,Arial,sans-serif; }\n  .toast__icon{ align-self:center }\n  .toast__body{ align-self:center }\n  .toast__close{ background:transparent; border:0; color:#9fb4c5; cursor:pointer; font-size:16px; }\n  @keyframes toast-out { to { opacity:0; transform:translateY(6px) } }\n  ';
-  var style = document.createElement('style');
-  style.id = 'pt-ux-css';
-  style.textContent = css;
-  document.head.appendChild(style);
+  var css = '' +
+    '@keyframes pt-bump{0%{transform:scale(1)}35%{transform:scale(1.15)}100%{transform:scale(1)}}' +
+    '#dockCount.bump{animation:pt-bump .42s ease}' +
+    '#toasts{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:130;display:grid;gap:.5rem}' +
+    '.toast{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;padding:.6rem .75rem;border-radius:12px;background:rgba(10,15,20,.92);border:1px solid #22303b;color:#e6edf5;box-shadow:0 12px 24px rgba(0,0,0,.35);font:600 14px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif}' +
+    '.toast__icon{align-self:center}.toast__body{align-self:center}.toast__close{background:transparent;border:0;color:#9fb4c5;cursor:pointer;font-size:16px}' +
+    '@keyframes toast-out{to{opacity:0;transform:translateY(6px)}}';
+  var style = document.createElement('style'); style.id='pt-ux-css'; style.textContent=css; document.head.appendChild(style);
 
-  // conteneurs toasts + a11y live
-  (function ensureBasics(){
-    if (!document.getElementById('toasts')){
-      var t = document.createElement('div'); t.id = 'toasts'; document.body.appendChild(t);
-    }
-    if (!document.getElementById('sr-live')){
-      var l = document.createElement('div'); l.id = 'sr-live'; l.setAttribute('aria-live','polite');
-      l.style.position = 'absolute'; l.style.left = '-9999px'; document.body.appendChild(l);
-    }
-  })();
+  if (!document.getElementById('toasts')){ var t=document.createElement('div'); t.id='toasts'; document.body.appendChild(t); }
+  if (!document.getElementById('sr-live')){ var l=document.createElement('div'); l.id='sr-live'; l.setAttribute('aria-live','polite'); l.style.position='absolute'; l.style.left='-9999px'; document.body.appendChild(l); }
 })();
-
-// Dock: visibilité contrôlée par le scroll du hero (et via le router)
-function showDock(visible){
-  if (!dock) return;
-  if (visible) dock.classList.add('dock--visible');
-  else dock.classList.remove('dock--visible');
-}
-
-/* ---------- A11y helpers ---------- */
-var live    = document.getElementById('sr-live') || document.getElementById('srLive');
-var toastsC = $('#toasts');
-var dockBadge = $('#dockCount');
-
-function announce(msg){
-  if (!live) return;
-  live.textContent = '';
-  setTimeout(function(){ live.textContent = msg; }, 20);
-}
+var live = document.getElementById('sr-live');
+var toastsC = document.getElementById('toasts');
 function toast(msg, kind){
-  if (kind === void 0) kind = 'success';
+  kind = kind || 'success';
   if (!toastsC) return;
-  var el = document.createElement('div');
-  el.className = 'toast toast--' + kind;
-  el.innerHTML = '\n    <div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div>\n    <div class="toast__body">'+msg+'</div>\n    <button class="toast__close" aria-label="Fermer">✖</button>\n  ';
-  var close = function(){
-    el.style.animation = 'toast-out .18s ease-in both';
-    setTimeout(function(){ el.remove(); }, 180);
-  };
-  var btn = el.querySelector('.toast__close');
-  if (btn) btn.addEventListener('click', close);
-  toastsC.appendChild(el);
-  setTimeout(close, 3200);
+  var el=document.createElement('div'); el.className='toast toast--'+kind;
+  el.innerHTML = '<div class="toast__icon">'+(kind==='success'?'✅':'ℹ️')+'</div><div class="toast__body">'+msg+'</div><button class="toast__close" aria-label="Fermer">✖</button>';
+  var close=function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); },180); };
+  var btn=el.querySelector('.toast__close'); if (btn) btn.addEventListener('click', close);
+  toastsC.appendChild(el); setTimeout(close, 3200);
 }
-function bumpBadge(){
-  if (!dockBadge) return;
-  dockBadge.classList.remove('bump');
-  void dockBadge.offsetWidth;
-  dockBadge.classList.add('bump');
-}
-function notifyCartAdded(title){
-  if (title === void 0) title = 'Article';
-  toast('« ' + title + ' » ajouté au devis');
-  announce(title + ' ajouté au devis');
-  bumpBadge();
-}
+function announce(msg){ if (!live) return; live.textContent=''; setTimeout(function(){ live.textContent=msg; },20); }
 
-/* ---------- Focus helper après navigation ---------- */
-function focusView(key){
-  var target = null;
-  if (key === 'produit')        target = $('#pdpTitle');
-  else if (key === 'catalogue') target = $('#view-catalogue h1');
-  else if (key === 'devis')     target = $('#view-devis h1');
-  else if (key === 'compte')    target = $('#view-compte h1');
-  else if (key === 'home')      target = $('#view-home h1');
-  else                          target = $('#list'); // fallback
-  if (target){
-    target.setAttribute('tabindex','-1');
-    if (typeof target.focus === 'function') target.focus({ preventScroll: true });
-    setTimeout(function(){ target.removeAttribute('tabindex'); }, 300);
+/* ---------- Globals & DOM refs ---------- */
+var PHONE_E164 = '+33774230195';
+var dock        = document.getElementById('dock');
+var dockCount   = document.getElementById('dockCount');
+function showDock(visible){ if (!dock) return; if (visible) dock.classList.add('dock--visible'); else dock.classList.remove('dock--visible'); }
+
+/* ---------- Hero (animation au scroll) ---------- */
+var hero     = document.getElementById('hero');
+var heroLogo = document.getElementById('heroLogo');
+(function heroScrollFX(){
+  function onScroll(){
+    if (!hero || !heroLogo) { showDock(true); return; }
+    var h = Math.max(1, hero.offsetHeight || window.innerHeight || 1);
+    var y = clamp(window.scrollY || window.pageYOffset || 0, 0, h);
+    var t = y / h; // 0 → 1
+    var scale = 1 + t * 0.06; // léger zoom
+    var opacity = 1 - t * 1.05; if (opacity < 0) opacity = 0;
+    heroLogo.style.transform = 'translateZ(0) scale(' + scale + ')';
+    heroLogo.style.opacity = String(opacity);
+    showDock(t > 0.15);
   }
-}
-
-/* ---------- Globals ---------- */
-var PHONE_HUMAN = '07 74 23 01 95';
-var PHONE_E164  = '+33774230195';
-
-var MODELS = [];                 // produits
-var CART   = [];                 // panier (tableau d’objets produit)
-var STORE_KEY = 'pt_cart_v1';    // clé localStorage
-var USER_KEY  = 'pt_user_v1';    // compte (démo)
-
-// === DOM refs ===
-var hero      = document.getElementById('hero');
-var heroLogo  = document.getElementById('heroLogo');
-
-var dock          = document.getElementById('dock');
-var dockCount     = document.getElementById('dockCount');    // optionnel
-var dockQuoteBtn  = document.getElementById('dockQuoteBtn'); // optionnel
-var dockCartBtn   = document.getElementById('dockCartBtn');  // optionnel
-
-var callBtn  = document.getElementById('callBtn');
-var waBtn    = document.getElementById('waBtn');
-var listEl   = document.getElementById('list');
-var searchEl = document.getElementById('q');
-var tagEl    = document.getElementById('tag');
-
-/* ---------- Paiement : configuration (placeholders) ---------- */
-var PAYPAL_BUSINESS = 'votre-email-paypal@example.com';
-var CURRENCY = 'EUR';
-var STRIPE_PAY_LINK = '';
-var CRYPTO_PAY_LINK = '';
-
-/* Fallback robuste pour le(s) logo(s) */
-(function logoFallbacks(){
-  var FALLBACK = './images/pirates-tools-logo.png?v=7';
-  function ensureFallback(img){
-    if (!img) return;
-    img.addEventListener('error', function(){
-      if (!img.src || img.src.indexOf('pirates-tools-logo.png') === -1) img.src = FALLBACK;
-    });
-    if (img.complete && img.naturalWidth === 0) img.src = FALLBACK;
-  }
-  ensureFallback(document.getElementById('heroLogo'));
-  $$('.topbar-logo').forEach(ensureFallback);
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', onScroll);
+  document.addEventListener('DOMContentLoaded', onScroll);
 })();
 
-/* =================== ROUTER + TYPES PAR MARQUE =================== */
-/** Parse le hash courant → { view, query } */
-function parseHash () {
-  var h = location.hash || '#/';
-  var parts = h.split('?');
-  var path = parts[0];
-  var queryStr = parts[1] || '';
-  var view = path.replace('#/', '').split('/')[0] || '';
-  var query = {};
-  if (queryStr){
-    var kv = queryStr.split('&');
-    for (var i=0;i<kv.length;i++){
-      var s = kv[i].split('=');
-      var k = decodeURIComponent(s[0] || '');
-      var v = decodeURIComponent(s[1] || '');
-      if (k) query[k] = v;
-    }
+/* ---------- Fallback robuste pour logos topbar/hero ---------- */
+(function logoFallbacks(){
+  function ensure(img){ if (!img) return;
+    img.addEventListener('error', function(){ if (!img.src || img.src.indexOf('pirates-tools-logo.png') === -1) img.src = IMG_FALLBACK; });
+    if (img.complete && img.naturalWidth === 0) img.src = IMG_FALLBACK;
   }
-  return { view: view, query: query };
-}
+  ensure(document.getElementById('heroLogo'));
+  $$('.topbar-logo').forEach(ensure);
+})();
 
-/** Charge les produits (mémoïsés) */
-async function loadProducts () {
+/* =================== PRODUITS =================== */
+async function loadProducts(){
   if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length) return window.__PT_PRODUCTS;
   var fallbackList = window.PRODUCTS || window.products || [];
-  if (fallbackList.length){ window.__PT_PRODUCTS = fallbackList; return fallbackList; }
+  if (fallbackList && fallbackList.length){ window.__PT_PRODUCTS = fallbackList; return fallbackList; }
   try{
     var res = await fetch('./products.json', { cache: 'no-store' });
     var data = await res.json();
     window.__PT_PRODUCTS = Array.isArray(data) ? data : [];
-  }catch(e){
-    console.warn('loadProducts:', e);
-    window.__PT_PRODUCTS = [];
-  }
+  }catch(e){ console.warn('loadProducts:', e); window.__PT_PRODUCTS = []; }
   return window.__PT_PRODUCTS;
 }
 
-/** Rend les cartes “type d’outil” (dans #catList) pour une marque donnée */
-async function renderTypesForBrand (brandKey) {
-  var elCatList = document.getElementById('catList');
-  if (!elCatList) return;
-
-  var all = await loadProducts();
-  var list = all.filter(function(p){ return (p.brand_key || '').toLowerCase() === String(brandKey).toLowerCase(); });
-
-  var map = new Map();
-  for (var i=0;i<list.length;i++){
-    var p = list[i];
-    var key = (p.category_key || p.category || 'autres').toLowerCase();
-    var name = p.category || p.category_key || 'Autres';
-    var rec = map.get(key) || { key:key, name:name, count:0 };
-    rec.count++;
-    map.set(key, rec);
-  }
-
-  var frag = document.createDocumentFragment();
-  map.forEach(function(rec){
-    var card = document.createElement('div');
-    card.className = 'cat-card';
-    card.tabIndex = 0;
-    card.setAttribute('role','button');
-    card.setAttribute('aria-label', rec.name + ' ('+rec.count+')');
-    card.dataset.type = rec.key;
-    card.innerHTML = '<strong>'+rec.name+'</strong><br><span style="opacity:.75;font-size:.95rem">'+rec.count+' modèle'+(rec.count>1?'s':'')+'</span>';
-
-    card.addEventListener('click', function(){
-      var q = new URLSearchParams({ brand: brandKey, type: rec.key });
-      location.hash = '#/catalogue?' + q.toString();
-    });
-    card.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
-    });
-
-    frag.appendChild(card);
-  });
-
-  elCatList.innerHTML = '';
-  if (map.size){ elCatList.appendChild(frag); }
-  else { elCatList.innerHTML = '<div class="cat-card">Aucun type trouvé pour cette marque.</div>'; }
-
-  elCatList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-/* =================== LISTE PRODUITS (brand + type) =================== */
-function fmtPrice(n, c){
-  if (c === void 0) c = 'EUR';
-  try { return new Intl.NumberFormat('fr-FR', { style:'currency', currency:c }).format(n); }
-  catch(_){ return (typeof n === 'number' ? n.toFixed(2) : String(n || '')) + ' ' + c; }
-}
-function renderBrandTypeList(items) {
-  var listEl2 = document.getElementById('list');
-  if (!listEl2) return;
-
-  if (!items.length) {
-    listEl2.innerHTML = '<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>';
-    listEl2.scrollIntoView({ behavior:'smooth', block:'start' });
-    return;
-  }
-
-  var html = items.map(function(p){
-    var price = p.price != null ? fmtPrice(p.price, p.currency || 'EUR') : '';
-    var old   = p.price_old != null ? fmtPrice(p.price_old, p.currency || 'EUR') : '';
-    var img   = (p.img || './images/pirates-tools-logo.png');
-
-    return ''+
-      '<div class="card">'+
-        '<div class="head">'+
-          '<h3 class="title">'+(p.title||'')+'</h3>'+
-          (p.badge ? '<span class="badge">'+p.badge+'</span>' : '')+
-        '</div>'+
-        '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;padding:1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">'+
-          '<img src="'+img+'" alt="'+(p.images_alt || p.title || '')+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
-          '<div>'+
-            '<div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">'+
-              price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>' : '')+
-            '</div>'+
-            '<div class="specs">'+
-              (p.desc ? '<span>'+p.desc+'</span>' : '')+
-              (p.torque_nm ? '<span>⚙️ '+p.torque_nm+' Nm</span>' : '')+
-              (p.weight_kg ? '<span>⚖️ '+p.weight_kg+' kg</span>' : '')+
-              (p.length_mm ? '<span>📏 '+p.length_mm+' mm</span>' : '')+
-            '</div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="actions">'+
-          '<a class="btn primary" href="#/produit/'+p.id+'">Détails</a>'+
-          '<button class="btn" type="button" onclick="try{ (window.addToCart||window.cartAdd||function(){console.log(\'addToCart mock\')})(\''+p.id+'\'); }catch(e){}">Ajouter au panier</button>'+
-          '<a class="btn btn-wa" href="https://wa.me/33774230195?text='+encodeURIComponent('Bonjour, je souhaite un devis pour ' + (p.sku||'') + ' / ' + (p.title||''))+'" target="_blank" rel="noopener">WhatsApp</a>'+
-        '</div>'+
-      '</div>';
-  }).join('');
-
-  listEl2.innerHTML = html;
-  listEl2.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function filterByBrandType(all, brandKey, typeKey) {
-  var b = String(brandKey || '').toLowerCase();
-  var t = String(typeKey  || '').toLowerCase();
-  return all.filter(function(p){
-    return (!b || (p.brand_key||'').toLowerCase() === b) &&
-           (!t || (p.category_key||p.category||'').toLowerCase() === t);
-  });
-}
-
-/** Routeur catalogue étendu : gère brand + type */
-async function handleRouteCatalogue_Extended() {
-  var parsed = parseHash();
-  var view = parsed.view, query = parsed.query;
-  if (view !== 'catalogue') return;
-
-  var selBrand = String(query.brand || '').toLowerCase();
-  // -> supporte <button.brand>
-  var brandLinks = document.querySelectorAll('#brandGrid [data-brand]');
-  for (var i=0;i<brandLinks.length;i++){
-    var a = brandLinks[i];
-    a.classList.toggle('is-active', ((a.dataset.brand||'').toLowerCase() === selBrand));
-  }
-
-  if (query.brand) { await renderTypesForBrand(query.brand); }
-
-  if (query.brand && query.type) {
-    var all = await loadProducts();
-    var items = filterByBrandType(all, query.brand, query.type);
-    renderBrandTypeList(items);
-  } else {
-    var _listEl = document.getElementById('list');
-    if (_listEl) _listEl.innerHTML = '';
-  }
-}
-
-window.addEventListener('hashchange', handleRouteCatalogue_Extended);
-handleRouteCatalogue_Extended();
-
-/* ============================================================
-   GRILLE DE MARQUES 100% DYNAMIQUE
-   - Construit à partir des produits
-   - Compat ES5
-============================================================ */
-
-/* Table meta des logos/labels (source centrale) */
+/* =================== MARQUES (grille dynamique) =================== */
 var BRAND_META = {
-  dewalt:    { label: 'DeWALT',    logo: './images/brands/Logo.dewalt.png' },
-  milwaukee: { label: 'Milwaukee', logo: './images/brands/Logo.milwaukee.png' },
-  makita:    { label: 'Makita',    logo: './images/brands/Logo.makita.png' },
-  festool:   { label: 'Festool',   logo: './images/brands/Logo.festool.png' },
-  flex:      { label: 'FLEX',      logo: './images/brands/Logo.flex.png' },
-  wera:      { label: 'Wera',      logo: './images/brands/Logo.wera.png' },
-  stanley:   { label: 'Stanley',   logo: './images/brands/Logo.stanley.png' },
-  facom:     { label: 'Facom',     logo: './images/brands/Logo.facom.png' }
+  dewalt   : { label:'DeWALT',    logo:'./images/brands/Logo.dewalt.png' },
+  milwaukee: { label:'Milwaukee', logo:'./images/brands/Logo.milwaukee.png' },
+  makita   : { label:'Makita',    logo:'./images/brands/Logo.makita.png' },
+  festool  : { label:'Festool',   logo:'./images/brands/Logo.festool.png' },
+  flex     : { label:'FLEX',      logo:'./images/brands/Logo.flex.png' },
+  wera     : { label:'Wera',      logo:'./images/brands/Logo.wera.png' },
+  stanley  : { label:'Stanley',   logo:'./images/brands/Logo.stanley.png' },
+  facom    : { label:'Facom',     logo:'./images/brands/Logo.facom.png' }
 };
 
-/** Calcule les marques présentes dans le catalogue */
 function computeBrands(products){
   var counts = {};
   for (var i=0;i<(products||[]).length;i++){
@@ -465,79 +165,248 @@ function computeBrands(products){
     if (!k || !BRAND_META[k]) continue;
     counts[k] = (counts[k] || 0) + 1;
   }
-  var keys = Object.keys(counts).sort(function(a,b){
-    return BRAND_META[a].label.localeCompare(BRAND_META[b].label);
-  });
+  var keys = Object.keys(counts).sort(function(a,b){ return BRAND_META[a].label.localeCompare(BRAND_META[b].label); });
   var out = [];
-  for (var j=0;j<keys.length;j++){
-    var key = keys[j];
-    var meta = BRAND_META[key];
-    out.push({ key: key, label: meta.label, logo: meta.logo, count: counts[key] });
-  }
+  for (var j=0;j<keys.length;j++){ var key=keys[j]; out.push({ key:key, label:BRAND_META[key].label, logo:BRAND_META[key].logo, count: counts[key] }); }
   return out;
 }
 
-/** Rendu dynamique — remplit #brandGrid */
 function renderBrandGridFromProducts(products){
   var host = document.getElementById('brandGrid');
   if (!host) return;
 
-  var brands = computeBrands(products);
-  if (!brands.length){
-    host.innerHTML = '<div class="card" style="padding:.8rem">Aucune marque disponible.</div>';
-    return;
+  var list = computeBrands(products);
+  if (!list.length){ host.innerHTML = '<div class="card" style="padding:.8rem">Aucune marque disponible.</div>'; return; }
+
+  // Création DOM (évite innerHTML + permet setSafeImg)
+  var frag = document.createDocumentFragment();
+  for (var i=0;i<list.length;i++){
+    var b = list[i];
+    var a = document.createElement('a');
+    a.className = 'brand';
+    a.href = '#/catalogue?brand=' + encodeURIComponent(b.key);
+    a.setAttribute('data-brand', b.key);
+    a.setAttribute('role', 'listitem');
+    a.setAttribute('aria-label', 'Voir ' + b.label);
+
+    var bubble = document.createElement('span'); bubble.className = 'brand__bubble';
+
+    var img = document.createElement('img'); img.className = 'brand__img';
+    setSafeImg(img, b.logo, b.label);
+    bubble.appendChild(img);
+
+    var label = document.createElement('span'); label.className='brand__label'; label.textContent = b.label;
+
+    a.appendChild(bubble); a.appendChild(label);
+    frag.appendChild(a);
+  }
+  host.innerHTML = ''; host.appendChild(frag);
+
+  // petit feedback tactile
+  host.addEventListener('pointerdown', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('.brand') : null;
+    if (!a) return; a.style.transform='scale(.98)'; setTimeout(function(){ a.style.transform=''; }, 180);
+  });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  (async function(){ try{ var all = await loadProducts(); renderBrandGridFromProducts(all); document.dispatchEvent(new CustomEvent('pt:brandsRendered')); }catch(_){ } })();
+});
+
+/* =================== CATALOGUE (brand + type) =================== */
+function fmtPrice(n,c){ c=c||'EUR'; try{ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:c}).format(n); }catch(_){ return (typeof n==='number'?n.toFixed(2):String(n||''))+' '+c; } }
+function filterByBrandType(all, brandKey, typeKey){
+  var b = String(brandKey||'').toLowerCase(), t = String(typeKey||'').toLowerCase();
+  return all.filter(function(p){
+    return (!b || (p.brand_key||'').toLowerCase()===b) &&
+           (!t || (p.category_key||p.category||'').toLowerCase()===t);
+  });
+}
+async function renderTypesForBrand(brandKey){
+  var el = document.getElementById('catList'); if (!el) return;
+  var all = await loadProducts();
+  var list = all.filter(function(p){ return (p.brand_key||'').toLowerCase() === String(brandKey).toLowerCase(); });
+
+  var map = {}; // key -> {name,count}
+  for (var i=0;i<list.length;i++){
+    var p = list[i];
+    var key = (p.category_key || p.category || 'autres').toLowerCase();
+    var name = p.category || p.category_key || 'Autres';
+    var rec = map[key] || { name:name, count:0 };
+    rec.count++; map[key] = rec;
   }
 
-  var html = '';
-  for (var i=0;i<brands.length;i++){
-    var b = brands[i];
-    html += '' +
-      '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">' +
-        '<span class="brand__bubble">' +
-          '<img class="brand__logo" src="'+b.logo+'" alt="'+b.label+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">' +
-        '</span>' +
-        '<span class="brand__label">'+b.label+'</span>' +
-      '</button>';
+  var frag = document.createDocumentFragment(), any=false;
+  for (var k in map){ any=true;
+    var card=document.createElement('div'); card.className='cat-card'; card.tabIndex=0; card.setAttribute('role','button'); card.dataset.type = k;
+    card.setAttribute('aria-label', map[k].name + ' ('+map[k].count+')');
+    card.innerHTML = '<strong>'+map[k].name+'</strong><br><span style="opacity:.75;font-size:.95rem">'+map[k].count+' modèle'+(map[k].count>1?'s':'')+'</span>';
+    card.addEventListener('click', function(e){
+      var key = e.currentTarget.dataset.type || '';
+      var q = new URLSearchParams({ brand: brandKey, type: key });
+      location.hash = '#/catalogue?' + q.toString();
+    });
+    card.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } });
+    frag.appendChild(card);
   }
-  host.innerHTML = html;
+  el.innerHTML=''; if (any) el.appendChild(frag); else el.innerHTML='<div class="cat-card">Aucun type trouvé pour cette marque.</div>';
+  el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function renderBrandTypeList(items){
+  var listEl = document.getElementById('list'); if (!listEl) return;
+  if (!items.length){ listEl.innerHTML='<div class="card" style="padding:1rem">Aucun produit pour ce filtre.</div>'; listEl.scrollIntoView({behavior:'smooth',block:'start'}); return; }
+  var html = items.map(function(p){
+    var price = p.price!=null ? fmtPrice(p.price, p.currency||'EUR') : '';
+    var old   = p.price_old!=null ? fmtPrice(p.price_old, p.currency||'EUR') : '';
+    var img   = p.img || './images/pirates-tools-logo.png';
+    return ''+
+      '<div class="card">'+
+        '<div class="head"><h3 class="title">'+(p.title||'')+'</h3>'+(p.badge?'<span class="badge">'+p.badge+'</span>':'')+'</div>'+
+        '<div style="display:grid;grid-template-columns:120px 1fr;gap:12px;padding:1rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">'+
+          '<img src="'+img+'" alt="'+(p.images_alt||p.title||'')+'" onerror="this.src=\'./images/pirates-tools-logo.png\'">'+
+          '<div>'+
+            '<div style="margin:.2rem 0 .4rem;color:#cfeaf8;font-weight:700;">'+price+(old?' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>':'')+'</div>'+
+            '<div class="specs">'+
+              (p.desc?'<span>'+p.desc+'</span>':'')+
+              (p.torque_nm?'<span>⚙️ '+p.torque_nm+' Nm</span>':'')+
+              (p.weight_kg?'<span>⚖️ '+p.weight_kg+' kg</span>':'')+
+              (p.length_mm?'<span>📏 '+p.length_mm+' mm</span>':'')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="actions">'+
+          '<a class="btn primary" href="#/produit/'+p.id+'">Détails</a>'+
+          '<button class="btn" type="button" onclick="try{(window.addToCart||function(){console.log(\'addToCart mock\')})(\''+p.id+'\');}catch(e){}">Ajouter au panier</button>'+
+          '<a class="btn btn-wa" href="https://wa.me/33774230195?text='+encodeURIComponent('Bonjour, je souhaite un devis pour '+(p.sku||'')+' / '+(p.title||''))+'" target="_blank" rel="noopener">WhatsApp</a>'+
+        '</div>'+
+      '</div>';
+  }).join('');
+  listEl.innerHTML = html;
+  listEl.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-/* Navigation + feedback tactile pour la grille dynamique */
-(function attachBrandGridHandlers(){
-  var host = document.getElementById('brandGrid');
-  if (!host) return;
+/* =================== ROUTER =================== */
+function parseHash(){
+  var h = location.hash || '#/';
+  var q = {}, path=h, qs='';
+  var idx = h.indexOf('?'); if (idx>=0){ path=h.slice(0,idx); qs=h.slice(idx+1); }
+  var view = path.replace('#/','').split('/')[0] || '';
+  if (qs){ var parts = qs.split('&'); for (var i=0;i<parts.length;i++){ var s=parts[i].split('='); q[decodeURIComponent(s[0]||'')] = decodeURIComponent(s[1]||''); } }
+  // produit/id
+  var m = h.match(/^#\/produit\/([^/?#]+)/);
+  if (m) return { view:'produit', id: decodeURIComponent(m[1]||''), query:q };
+  return { view:view||'home', query:q };
+}
 
-  host.addEventListener('pointerdown', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('button.brand') : null;
-    if (!el) return;
-    el.style.transform = 'scale(0.98)';
-    setTimeout(function(){ el.style.transform = ''; }, 180);
-  });
+function ensureViews(){
+  function ensure(id, label, inner){
+    var el = document.getElementById(id);
+    if (!el){
+      el = document.createElement('section'); el.id=id; el.className='view hidden'; el.setAttribute('aria-label', label);
+      el.innerHTML = inner || '<div class="container"><h1>'+label+'</h1></div>';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  ensure('view-home',      'Bienvenue',     '<div class="container"><h1>Choisir une marque</h1><div id="brandGrid" class="brand-grid" role="list"></div></div>');
+  ensure('view-catalogue', 'Catalogue',     '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list"></div><div id="list" class="list"></div></div>');
+  ensure('view-devis',     'Devis',         '<div class="container"><h1>Devis</h1><div id="devisList"></div></div>');
+  ensure('view-produit',   'Fiche produit', '<div class="container"><div class="chip chip--back"><a class="chip__link" href="#/catalogue">&larr; Retour catalogue</a></div><article class="pdp"><div class="pdp__grid"><div class="pdp__media"><img id="pdpImg" alt=""></div><div class="pdp__info"><h1 id="pdpTitle" class="pdp__title">Produit</h1><p id="pdpDesc" class="pdp__desc"></p><div id="pdpSpecs" class="pdp__specs"></div><div class="actions"><button class="btn primary" id="pdpAddBtn" type="button">Ajouter au panier</button><a class="btn btn-wa" id="pdpWaBtn" target="_blank" rel="noopener">WhatsApp</a></div></div></div><div id="pdpRelated" class="pdp__related"></div></article></div>');
+  ensure('view-compte',    'Mon compte',    '<div class="container"><h1>Mon compte</h1><div class="card" style="padding:1rem"><label>Nom<br><input id="accName" class="search" placeholder="Votre nom"></label><br><label>Email<br><input id="accEmail" class="search" placeholder="email@example.com" type="email"></label></div></div>');
+}
+ensureViews();
 
-  host.addEventListener('click', function(e){
-    var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
-    if (!btn) return;
-    var key = btn.getAttribute('data-brand') || '';
-    if (!key) return;
-    location.hash = '#/catalogue?brand=' + encodeURIComponent(key);
-  });
+var VIEWS = {
+  home:      document.getElementById('view-home'),
+  catalogue: document.getElementById('view-catalogue'),
+  devis:     document.getElementById('view-devis'),
+  produit:   document.getElementById('view-produit'),
+  compte:    document.getElementById('view-compte')
+};
+function hideAll(){ for (var k in VIEWS){ if (VIEWS[k]) VIEWS[k].classList.add('hidden'); } }
+function show(key){ if (VIEWS[key]) VIEWS[key].classList.remove('hidden'); }
+
+async function handleRoute(){
+  var p = parseHash();
+  hideAll();
+
+  // état actif dans la grille des marques (si présente)
+  var brandLinks = document.querySelectorAll('#brandGrid [data-brand]');
+  var selBrand = String(p.query.brand||'').toLowerCase();
+  for (var i=0;i<brandLinks.length;i++){
+    var el = brandLinks[i];
+    el.classList.toggle('is-active', ((el.getAttribute('data-brand')||'').toLowerCase()===selBrand));
+  }
+
+  if (p.view === 'catalogue'){
+    show('catalogue');
+    if (p.query.brand){ try{ await renderTypesForBrand(p.query.brand); }catch(_){ } }
+    if (p.query.brand && p.query.type){
+      var all = await loadProducts();
+      renderBrandTypeList(filterByBrandType(all, p.query.brand, p.query.type));
+    }else{ var list = document.getElementById('list'); if (list) list.innerHTML=''; }
+    setPageMeta('Catalogue • Pirates Tools', DEFAULT_DESC);
+  }
+  else if (p.view === 'devis'){
+    show('devis');
+    setPageMeta('Mon devis • Pirates Tools', DEFAULT_DESC);
+  }
+  else if (p.view === 'compte'){
+    show('compte');
+    setPageMeta('Mon compte • Pirates Tools', DEFAULT_DESC);
+  }
+  else if (p.view === 'produit'){
+    show('produit');
+    // si tu as déjà un rendu PDP ailleurs, laisse-le faire
+    if (typeof window.handleRoutePDP === 'function'){ try{ window.handleRoutePDP(p.id); }catch(_){ } }
+    setPageMeta('Produit • Pirates Tools', DEFAULT_DESC);
+  }
+  else {
+    show('home');
+    resetPageMeta();
+  }
+
+  // focus accessible
+  var active = VIEWS[p.view] || VIEWS.home;
+  var h1 = active && active.querySelector('h1');
+  if (h1){ h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ } setTimeout(function(){ h1.removeAttribute('tabindex'); },300); }
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+window.addEventListener('hashchange', handleRoute);
+document.addEventListener('DOMContentLoaded', handleRoute);
+
+/* ---------- Raccourcis navigation ---------- */
+(function wireQuickNav(){
+  var logoLink = document.getElementById('homeLink') || document.querySelector('.topbar-logo-link');
+  if (logoLink && !logoLink.__ptWired){
+    logoLink.__ptWired = 1;
+    logoLink.addEventListener('click', function(e){ e.preventDefault(); location.hash = '#/'; }, false);
+  }
+  var dCart = document.getElementById('dockCartBtn');
+  if (dCart && !dCart.__ptWired){ dCart.__ptWired=1; dCart.addEventListener('click', function(){ location.hash = '#/devis'; }); }
+  var dCount = document.getElementById('dockCount');
+  if (dCount && !dCount.__ptWired){ dCount.__ptWired=1; dCount.addEventListener('click', function(){ location.hash = '#/devis'; }); }
 })();
 
-/* Boot : charger les produits et rendre la grille dynamique */
-document.addEventListener('DOMContentLoaded', function(){
-  (async function(){
-    try{
-      var all = await loadProducts();
-      renderBrandGridFromProducts(all);
-      // Propage un évènement si des modules écoutent la disponibilité des marques
-      try{ document.dispatchEvent(new CustomEvent('pt:brandsRendered')); }catch(_){}
-    }catch(e){
-      console.warn('Brand grid:', e);
-      var host = document.getElementById('brandGrid');
-      if (host) host.innerHTML = '<div class="card" style="padding:.8rem">Impossible d’afficher les marques.</div>';
-    }
-  })();
-});
+/* =============== Mini-panier (mock léger pour ne rien casser) =============== */
+(function cartLite(){
+  var KEY='pt_cart_v1';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]')||[]; }catch(_){ return []; } }
+  function save(v){ try{ localStorage.setItem(KEY, JSON.stringify(v||[])); }catch(_){ } }
+  function updateBadge(){
+    var list = load(); var n = 0; for (var i=0;i<list.length;i++){ n += Math.max(1, Number(list[i].qty||1)); }
+    if (dockCount){ dockCount.textContent = String(n); dockCount.classList.add('bump'); setTimeout(function(){ dockCount.classList.remove('bump'); }, 450); }
+  }
+  window.addToCart = function(id){
+    if (!id) return;
+    var list = load(); var it = arrFind(list, function(x){ return x && x.id===id; });
+    if (it) it.qty = (Number(it.qty)||1)+1; else list.push({ id:id, qty:1 });
+    save(list); updateBadge(); toast('Ajouté au devis'); announce('Ajouté au devis');
+  };
+  document.addEventListener('DOMContentLoaded', updateBadge);
+})();
+
+
+
 /* =========================================================
    0) Anti-zoom Android
 ========================================================= */
