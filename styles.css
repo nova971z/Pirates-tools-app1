@@ -9,7 +9,8 @@
   --bg:#0a0f14; --panel:#0e151c; --card:#121b24; --fg:#e6edf5; --muted:#9fb4c5; --border:#22303b;
   --brand:#19d3ff; --brand-2:#00e1b4; --wa-1:#25d366; --wa-2:#128c7e;
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
-  --listGap: 18vh; /* marge dynamique sous le hero (pilotée par app.js) */
+  --listGap: 18vh;              /* marge dynamique sous le hero (pilotée par app.js) */
+  --dock-bottom: 14px;          /* base pour positionner toasts/bannières au-dessus du dock */
 }
 
 /* ---------- Reset & base ---------- */
@@ -193,8 +194,8 @@ h3{ font-size: 1.05rem }
 /* ================= DOCK (mobile) ================= */
 .dock{
   position: fixed; left: 50%;
-  bottom: calc(14px + constant(safe-area-inset-bottom, 0px));
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--dock-bottom) + constant(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--dock-bottom) + env(safe-area-inset-bottom, 0px));
   z-index: 110;
   transform: translateX(-50%) translateY(12px); opacity: 0;
   transition: opacity .28s ease-out, transform .28s ease-out;
@@ -310,7 +311,7 @@ h3{ font-size: 1.05rem }
 /* ================= Toasts ================= */
 #toasts{
   position:fixed; z-index:120; right:12px;
-  bottom: calc(var(--dock-bottom, 14px) + env(safe-area-inset-bottom, 0px) + 62px);
+  bottom: calc(var(--dock-bottom) + env(safe-area-inset-bottom, 0px) + 62px);
   display:grid; gap:.5rem; width:min(92vw, 420px); pointer-events:none;
 }
 .toast{
@@ -467,42 +468,75 @@ h3{ font-size: 1.05rem }
   #side-menu .app-label{ font-size:.82rem }
 }
 
-
-/* ===== Marques — grille de bulles (accueil/catalogue) ===== */
+/* ===== Marques — grille de bulles (accueil/catalogue)
+     (UNIQUE & unifiée pour <a.brand> et <button.brand>) ===== */
 .brand-grid{
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-  gap:14px; margin:.6rem 0 1rem;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap:14px;
+  margin:.6rem 0 1rem;
+  justify-items:center;
+  padding:.5rem 0 0;
 }
-.brand{ display:flex; flex-direction:column; align-items:center; gap:.5rem; text-align:center }
-.brand__label{ font-weight:700 }
+.brand{
+  /* reset bouton natif si <button> */
+  background: none; border: 0; padding: 0; appearance: none; -webkit-appearance: none;
+  display:flex; flex-direction:column; align-items:center; gap:.55rem;
+  text-align:center; user-select:none; -webkit-tap-highlight-color:transparent;
+  text-decoration:none; cursor:pointer;
+}
+.brand__label{ font-weight:800; font-size:.95rem; color:#eef4fa }
 
-/* Bulle vitrée (même look que le menu latéral) */
+/* Bulle vitrée + halo */
 .brand__bubble{
-  position:relative; width:72px; height:72px; border-radius:50%;
-  background:rgba(255,255,255,.10);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
-  transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+  position:relative; width:92px; height:92px; border-radius:50%;
+  display:grid; place-items:center; overflow:hidden;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--border);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
 }
 .brand__bubble::before{
   content:""; position:absolute; inset:-8px; border-radius:50%;
   background:radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
   filter:blur(10px); opacity:.55; z-index:-1;
 }
-.brand__bubble img{ width:60%; height:60%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
 
-/* Glow / retour tactile */
-.brand:active .brand__bubble,
-.brand:focus-visible .brand__bubble{
-  transform:scale(.98);
-  box-shadow:0 12px 26px rgba(0,0,0,.5), 0 0 14px rgba(25,211,255,.45);
+/* Logos (prise en charge .brand__img ou .brand__logo) */
+.brand__bubble img,
+.brand__img, .brand__logo{
+  width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))
 }
 
-@media (max-width:420px){
-  .brand__bubble{ width:64px; height:64px }
+/* Hover / focus : léger soulèvement + halo doux */
+.brand:focus-visible .brand__bubble,
+.brand:hover .brand__bubble{
+  transform:translateY(-2px) scale(1.03);
+  background:rgba(255,255,255,.14);
+  border-color:rgba(25,211,255,.45);
+  box-shadow:0 0 16px 6px rgba(25,211,255,.22), 0 12px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
+  outline:none;
 }
 
+/* Touch / click : petit pulse lumineux court */
+.brand:active .brand__bubble{
+  transform:scale(.97);
+  animation:brandPulse .22s ease-out 1;
+  box-shadow:0 0 22px 12px rgba(25,211,255,.35), 0 10px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
+}
+@keyframes brandPulse{
+  0%  { box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
+  45% { box-shadow:0 0 24px 12px rgba(25,211,255,.35), 0 12px 26px rgba(0,0,0,.50) }
+  100%{ box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
+}
+
+/* État sélectionné par le routeur */
+.brand.is-active .brand__bubble{
+  border-color:rgba(25,211,255,.55);
+  box-shadow:0 0 18px 8px rgba(25,211,255,.25), 0 10px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+}
+@media (max-width:420px){ .brand__bubble{ width:84px; height:84px } .brand__label{ font-size:.9rem } }
 
 /* ====== PATCH ARRONDIS & SCROLL SAFE ====== */
 
@@ -571,113 +605,4 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 /* Ajustement mobile pour la topbar uniquement */
 @media (max-width:360px){
   .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem }
-}
-
-
-
-
-
-/* ======= Brand grid (bulles vitrées + glow) ======= */
-.brand-grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap:14px;
-  margin:.6rem 0 1rem;
-}
-
-.brand{
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  text-decoration:none;
-}
-
-.brand__bubble{
-  position:relative; width:92px; height:92px; border-radius:50%;
-  background: rgba(255,255,255,.10);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 10px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
-}
-.brand__bubble::before{
-  content:""; position:absolute; inset:-10px; border-radius:50%;
-  background: radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
-  filter: blur(10px); opacity:.55; z-index:-1;
-}
-.brand__img{ width:66%; height:66%; object-fit:contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
-.brand__label{ font-size:.92rem; font-weight:700; line-height:1.1; color:#eef4fa }
-
-.brand:hover .brand__bubble{
-  transform: translateY(-2px) scale(1.06);
-  background: rgba(255,255,255,.14);
-  box-shadow: 0 14px 28px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.26);
-}
-
-/* petit flash lumineux tactile */
-@keyframes brand-pulse { 0%{ box-shadow:0 0 0 0 rgba(25,211,255,.55) } 100%{ box-shadow:0 0 0 18px rgba(25,211,255,0) } }
-.brand:active .brand__bubble{ transform: scale(.96); animation: brand-pulse 220ms ease-out 1 }
-
-@media (max-width:360px){
-  .brand__bubble{ width:84px; height:84px }
-  .brand__label{ font-size:.86rem }
-}
-
-
-
-
-/* ================= Brand grid — bulles vitrées + glow ================= */
-.brand-grid{
-  display:grid;
-  gap:1rem;
-  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-  justify-items:center;
-  padding:.5rem 0 0;
-}
-
-.brand{
-  display:flex; flex-direction:column; align-items:center; gap:.55rem;
-  text-align:center; user-select:none; -webkit-tap-highlight-color:transparent;
-  text-decoration:none;
-}
-.brand__bubble{
-  position:relative; width:92px; height:92px; border-radius:50%;
-  display:grid; place-items:center; overflow:hidden;
-  background:rgba(255,255,255,.08);
-  border:1px solid var(--border);
-  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
-  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
-}
-.brand__bubble img{ width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3)) }
-.brand__glass{
-  position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen;
-  background:radial-gradient(90% 60% at 50% 10%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
-}
-.brand__label{ font-weight:800; font-size:.95rem }
-
-/* Hover / focus : léger soulèvement + halo doux */
-.brand:focus-visible .brand__bubble,
-.brand:hover .brand__bubble{
-  transform:translateY(-2px) scale(1.03);
-  background:rgba(255,255,255,.14);
-  border-color:rgba(25,211,255,.45);
-  box-shadow:0 0 16px 6px rgba(25,211,255,.22), 0 12px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
-  outline:none;
-}
-
-/* Touch / click : petit pulse lumineux court */
-.brand:active .brand__bubble{
-  transform:scale(.97);
-  animation:brandPulse .22s ease-out 1;
-  box-shadow:0 0 22px 12px rgba(25,211,255,.35), 0 10px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
-}
-@keyframes brandPulse{
-  0%  { box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
-  45% { box-shadow:0 0 24px 12px rgba(25,211,255,.35), 0 12px 26px rgba(0,0,0,.50) }
-  100%{ box-shadow:0 0 0 0 rgba(25,211,255,0), 0 8px 22px rgba(0,0,0,.45) }
-}
-
-/* (optionnel) état sélectionné par le routeur */
-.brand.is-active .brand__bubble{
-  border-color:rgba(25,211,255,.55);
-  box-shadow:0 0 18px 8px rgba(25,211,255,.25), 0 10px 24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
 }
