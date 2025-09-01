@@ -980,6 +980,20 @@ function groupCart(){
   return out;
 }
 
+
+/* AddToCart global (compatible groupCart) */
+function addToCart(keyOrId, qty){
+  qty = Math.max(1, Number(qty || 1));
+  var p = findProductByKey(keyOrId);
+  if (!p) return;
+  for (var i=0;i<qty;i++) CART.push(p);  // on duplique l’item, groupCart comptera les quantités
+  saveCart();
+  notifyCartAdded(p.title || p.sku || 'Article');
+}
+window.addToCart = addToCart;
+
+
+
 /* ===== WhatsApp (Devis + PDP) ===== */
 function cartToWhatsAppText(){
   var grouped = groupCart();
@@ -1379,25 +1393,39 @@ function renderCatalogue(){
   });
 }
 
+
+
 /* =========================================================
-   11) CHARGEMENT PRODUITS
+   11) CHARGEMENT PRODUITS — version unifiée (retourne un tableau)
 ========================================================= */
 async function loadProducts(){
   try{
-    var r = await fetch('products.json', { cache:'no-store' });
+    var r = await fetch('./products.json', { cache:'no-store' });
     var json = await r.json();
     MODELS = Array.isArray(json) ? json : (json.products || []);
+    // effets souhaités au boot
     renderList(MODELS);
     renderCatalogue();
-    // Rendu home (bulles) à chaud
-    renderHomeBrands();
+    // Appelle la grille dynamique (voir patch #4)
+    if (typeof renderBrandGridFromProducts === 'function') {
+      renderBrandGridFromProducts(MODELS);
+    }
     window.dispatchEvent(new CustomEvent('pt:productsLoaded'));
+    return MODELS; // <-- IMPORTANT : toujours retourner le tableau
   }catch(e){
     console.error('Erreur chargement produits:', e);
-    if (listEl) listEl.innerHTML = '\n      <div class="card">\n        <div class="head"><h3 class="title">Produits indisponibles</h3></div>\n        <div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div>\n      </div>';
+    MODELS = [];
+    if (listEl) {
+      listEl.innerHTML =
+        '<div class="card"><div class="head"><h3 class="title">Produits indisponibles</h3></div>'+
+        '<div class="specs"><p>Impossible de charger <code>products.json</code>.</p></div></div>';
+    }
+    return MODELS;
   }
 }
 loadProducts();
+
+
 
 /* =========================================================
    12) FILTRE (debounce)
@@ -1428,173 +1456,6 @@ if (tagEl) tagEl.addEventListener('change', applyFilters);
 
 
 
-/* ======================= [12.1] PDP — #/produit/:id ======================= */
-
-/* Récupère l'id de produit depuis le hash (#/produit/123) */
-function getHashProductId(){
-  var raw = (location.hash.split('?')[0] || '');
-  var parts = raw.split('/'); // ["#", "produit", ":id"]
-  return decodeURIComponent(parts[2] || '');
-}
-
-/* Charge (ou retrouve) un produit par id */
-async function getProductById(id){
-  var all = await loadProducts();
-  for (var i=0;i<all.length;i++){
-    if (String(all[i].id) === String(id)) return all[i];
-  }
-  return null;
-}
-
-/* ==== Panier minimal (localStorage) — utilisé par le bouton “Ajouter au panier” ==== */
-function loadCart(){
-  try{
-    var raw = localStorage.getItem(STORE_KEY);
-    var obj = raw ? JSON.parse(raw) : null;
-    CART = Array.isArray(obj && obj.items) ? obj.items : [];
-  }catch(_){ CART = []; }
-}
-function saveCart(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify({ items: CART })); }catch(_){}
-}
-async function addToCart(id, qty){
-  qty = Number(qty || 1);
-  if (!isFinite(qty) || qty < 1) qty = 1;
-  var all = await loadProducts();
-  var prod = null;
-  for (var i=0;i<all.length;i++){
-    if (String(all[i].id) === String(id)) { prod = all[i]; break; }
-  }
-  if (!prod) return;
-
-  // fusion simple par id
-  var found = false;
-  for (var j=0;j<CART.length;j++){
-    if (String(CART[j].id) === String(id)){ CART[j].qty = (CART[j].qty||1) + qty; found = true; break; }
-  }
-  if (!found) CART.push({ id: prod.id, title: prod.title, price: prod.price, currency: prod.currency || 'EUR', qty: qty });
-  saveCart();
-  notifyCartAdded(prod.title || 'Article');
-}
-loadCart();
-
-/* Rendu de la fiche produit (dans #pdp ou #view-produit) */
-function renderPDPView(prod){
-  var root = document.getElementById('pdp') || document.getElementById('view-produit');
-  if (!root) return;
-
-  var price = (prod.price != null) ? fmtPrice(prod.price, prod.currency || 'EUR') : '';
-  var old   = (prod.price_old != null) ? fmtPrice(prod.price_old, prod.currency || 'EUR') : '';
-  var img   = prod.img || './images/pirates-tools-logo.png';
-  var desc  = prod.desc || (prod.features && prod.features.join ? prod.features.join(', ') : '');
-
-  root.innerHTML = ''+
-    '<div class="chip chip--back"><a href="#/catalogue">&larr; Retour catalogue</a></div>'+
-    '<article class="pdp">'+
-      '<div class="pdp__grid">'+
-        '<div class="pdp__media">'+
-          '<img id="pdpImg" alt="'+(prod.images_alt || prod.title || '')+'">'+
-        '</div>'+
-        '<div class="pdp__info">'+
-          '<h1 id="pdpTitle" class="pdp__title">'+(prod.title || '')+'</h1>'+
-          (prod.badge ? '<div class="pdp__tag"><span class="badge">'+prod.badge+'</span></div>' : '')+
-          (desc ? '<p class="pdp__desc">'+desc+'</p>' : '')+
-          '<div style="margin:.3rem 0 1rem; font-weight:800; color:#cfeaf8">'+
-            price + (old ? ' <span style="opacity:.7;text-decoration:line-through;margin-left:.35rem">'+old+'</span>' : '')+
-          '</div>'+
-          '<div class="actions">'+
-            '<button class="btn primary" type="button" id="pdpAddBtn">Ajouter au panier</button>'+
-            '<a class="btn btn-wa" id="pdpWaBtn" target="_blank" rel="noopener">WhatsApp</a>'+
-            '<button class="btn" type="button" id="pdpShareBtn">Partager</button>'+
-          '</div>'+
-          '<div class="pdp__specs">'+ buildSpecsTable(prod) +'</div>'+
-        '</div>'+
-      '</div>'+
-    '</article>';
-
-  // image sécurisée + handlers boutons
-  var pdpImg = document.getElementById('pdpImg');
-  setSafeImg(pdpImg, img, prod.images_alt || prod.title || '');
-
-  var addBtn = document.getElementById('pdpAddBtn');
-  if (addBtn){
-    addBtn.addEventListener('click', function(){ addToCart(prod.id, 1); });
-  }
-
-  var wa = document.getElementById('pdpWaBtn');
-  if (wa){
-    var msg = 'Bonjour, je souhaite un devis pour '+ (prod.sku||prod.id) +' / '+ (prod.title||'') + (price ? ' ('+price+')' : '');
-    wa.href = 'https://wa.me/33774230195?text=' + encodeURIComponent(msg);
-  }
-
-  var shareBtn = document.getElementById('pdpShareBtn');
-  if (shareBtn && navigator.share){
-    shareBtn.addEventListener('click', function(){
-      navigator.share({
-        title: prod.title || 'Produit',
-        text : 'Regarde ce produit : '+(prod.title||''),
-        url  : location.href
-      }).catch(function(){});
-    });
-  }
-
-  focusView('produit');
-}
-
-/* Construit un tableau de specs à partir des champs connus + specs_kv */
-function buildSpecsTable(prod){
-  try{
-    var rows = [];
-    var kv = prod.specs_kv || {};
-    function pushRow(label, val){
-      if (val === undefined || val === null || val === '') return;
-      rows.push('<tr><th>'+label+'</th><td>'+val+'</td></tr>');
-    }
-    // prioriser specs_kv si présent
-    for (var k in kv){
-      if (!kv.hasOwnProperty(k)) continue;
-      pushRow(k, kv[k]);
-    }
-    // compléter avec champs connus
-    pushRow('Plateforme', prod.platform);
-    pushRow('Moteur', prod.motor || prod.brushless ? 'Brushless' : '');
-    pushRow('Couple (Nm)', prod.torque_nm);
-    pushRow('Vitesse (tr/min)', prod.rpm);
-    pushRow('Impacts (ipm)', prod.ipm);
-    pushRow('Mandrin', prod.chuck);
-    pushRow('Longueur (mm)', prod.length_mm);
-    pushRow('Poids (kg)', prod.weight_kg);
-    pushRow('Garantie', prod.warranty);
-
-    if (!rows.length) return '';
-    return '<table><tbody>'+rows.join('')+'</tbody></table>';
-  }catch(_){ return ''; }
-}
-
-/* Routeur PDP */
-async function handleRoutePDP(){
-  var parsed = parseHash();
-  if (parsed.view !== 'produit') return;
-
-  var id = getHashProductId();
-  var root = document.getElementById('pdp') || document.getElementById('view-produit');
-  if (!root) return;
-
-  if (!id){
-    root.innerHTML = '<div class="card" style="padding:1rem">Produit introuvable (id manquant).</div>';
-    return;
-  }
-
-  var prod = await getProductById(id);
-  if (!prod){
-    root.innerHTML = '<div class="card" style="padding:1rem">Produit introuvable.</div>';
-    return;
-  }
-  renderPDPView(prod);
-}
-
-window.addEventListener('hashchange', handleRoutePDP);
-handleRoutePDP();
 
 
 
