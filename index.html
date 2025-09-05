@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <link rel="preload" href="./images/pirates-tools-logo.png?v=7" as="image" />
+  <link rel="preload" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><rect fill='%230a0f14' width='100%25' height='100%25'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23e6edf5' font-family='system-ui,Segoe UI,Arial' font-size='24'>PIRATES TOOLS</text></svg>" as="image" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -21,7 +21,7 @@
       </button>
 
       <a id="homeLink" class="topbar-logo-link" href="#">
-        <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" />
+        <img class="topbar-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><rect fill='%230a0f14' width='100%25' height='100%25'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23e6edf5' font-family='system-ui,Segoe UI,Arial' font-size='24'>PIRATES TOOLS</text></svg>" alt="Pirates Tools" />
       </a>
     </div>
 
@@ -33,7 +33,7 @@
 
   <!-- =================== HERO =================== -->
   <section id="hero" class="hero-full" aria-hidden="true">
-    <img id="heroLogo" class="hero-logo" src="./images/pirates-tools-logo.png?v=7" alt="" />
+    <img id="heroLogo" class="hero-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='80'><rect fill='%230a0f14' width='100%25' height='100%25'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23e6edf5' font-family='system-ui,Segoe UI,Arial' font-size='24'>PIRATES TOOLS</text></svg>" alt="" />
     <div class="hero-fade"></div>
   </section>
 
@@ -208,5 +208,7 @@
       if (ovl){ ovl.addEventListener('click', close); }
     })();
   </script>
+  <!-- point d’injection PDP / exigence CI -->
+  <section id="pdp" class="view hidden" aria-label="Produit"></section>
 </body>
 </html>
