@@ -1,580 +1,212 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <!-- ===== Métadonnées de base ===== -->
   <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <meta name="robots" content="index,follow,max-image-preview:large" />
-  <meta name="format-detection" content="telephone=no" />
-  <meta name="theme-color" content="#0a0f14" />
-  <meta name="referrer" content="no-referrer" />
-
-  <!-- ===== PWA / iOS / Android ===== -->
-  <meta name="application-name" content="Pirates Tools" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <link rel="icon" href="favicon.ico" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
-
-  <!-- ===== Perf hints ===== -->
-  <link rel="preconnect" href="https://wa.me" crossorigin />
-  <link rel="dns-prefetch" href="https://wa.me" />
-  <link rel="preconnect" href="https://pimstoragea.blob.core.windows.net" crossorigin />
-  <link rel="dns-prefetch" href="https://pimstoragea.blob.core.windows.net" />
-  <link rel="preconnect" href="https://dewalt.mediaroom.com" crossorigin />
-  <link rel="dns-prefetch" href="https://dewalt.mediaroom.com" />
-  <link rel="preload" as="image" href="./images/pirates-tools-logo.png?v=7" fetchpriority="high" />
-  <link rel="preload" href="products.json" as="fetch" crossorigin="anonymous" />
-
-  <!-- ===== Styles ===== -->
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- ===== Open Graph / SEO ===== -->
-  <meta property="og:title" content="Pirates Tools — Outillage pro" />
-  <meta property="og:description" content="Visseuses à chocs DeWALT, dispo Antilles. WhatsApp pour devis rapide." />
-  <meta property="og:image" content="https://nova971z.github.io/Pirates-tools-app1/images/pirates-tools-logo.png?v=7" />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://nova971z.github.io/Pirates-tools-app1/" />
-  <meta property="og:locale" content="fr_FR" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/" />
-
-  <!-- ===== A11y helpers (fallback minimal) ===== -->
-  <style>
-    .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
-    .skip-link:focus{position:fixed;left:12px;top:12px;width:auto;height:auto;padding:.5rem .7rem;border-radius:8px;background:#fff;color:#000;z-index:1000}
-    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  </style>
-
-  <!-- ===== Safe offset pour topbar fixed (empêche le haut "coupé") ===== -->
-  <style>
-    :root { --topbar-safe: calc(72px + env(safe-area-inset-top, 0px)); }
-    .topbar-spacer{height:var(--topbar-safe); pointer-events:none}
-    /* quand on navigue vers des ancres ou qu’une vue devient visible */
-    #list, #contact, .view, .toolbar { scroll-margin-top: var(--topbar-safe); }
-  </style>
+  <link rel="preload" href="./images/pirates-tools-logo.png?v=7" as="image" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- ===== Sprite SVG minimal (icônes modernes) ===== -->
-  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
-    <defs>
-      <symbol id="ico-grid" viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7" rx="2" />
-        <rect x="14" y="3" width="7" height="7" rx="2" />
-        <rect x="3" y="14" width="7" height="7" rx="2" />
-        <rect x="14" y="14" width="7" height="7" rx="2" />
-      </symbol>
-      <symbol id="ico-tools" viewBox="0 0 24 24">
-        <path d="M21 7a5 5 0 0 1-6.4 4.8l-6.8 6.8a2 2 0 0 1-2.8-2.8l6.8-6.8A5 5 0 0 1 7 3l3 3 2-1 2 2-1 2 3 3a5 5 0 0 1 5-5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </symbol>
-      <symbol id="ico-quote" viewBox="0 0 24 24">
-        <path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M8 17c1.5 0 2-.8 3-1s1.5 1 3 1 2-.8 3-1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </symbol>
-      <symbol id="ico-user-shield" viewBox="0 0 24 24">
-        <circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M14 19c0-3.3-3.1-5-5-5s-5 1.7-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M14 11l4-1 4 1v4c0 2.8-2 4.3-4 5-2-.7-4-2.2-4-5v-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-      </symbol>
-      <symbol id="ico-plane" viewBox="0 0 24 24">
-        <path d="M22 2 11 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M22 2 15 22l-4-8-8-4 19-8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-      </symbol>
-    </defs>
-  </svg>
 
-  <!-- ===== Skip link ===== -->
-  <a href="#list" class="skip-link">Aller au contenu</a>
+  <a class="skip-link" href="#list">Aller au contenu</a>
 
-  <!-- Zones d’annonce SR + toasts -->
-  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-  <div id="toasts" aria-live="polite" aria-relevant="additions"></div>
-
-  <!-- ========= TOPBAR ========= -->
-  <header class="topbar" role="banner" aria-label="Barre supérieure">
+  <!-- =================== TOPBAR =================== -->
+  <header class="topbar" role="banner">
     <div class="topbar-left">
-      <button id="menu-toggle" class="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
+      <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
-      <a id="homeLink" class="topbar-logo-link" href="#/">
-        <img class="topbar-logo"
-             src="./images/pirates-tools-logo.png?v=7"
-             alt="Pirates Tools"
-             width="256" height="64"
-             decoding="async" fetchpriority="high" />
+      <a id="homeLink" class="topbar-logo-link" href="#">
+        <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" />
       </a>
     </div>
 
     <div class="cta">
       <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/33774230195" aria-label="WhatsApp">💬</a>
+      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
     </div>
   </header>
 
-  <!-- ===== SPACER sous la topbar (évite le contenu masqué) ===== -->
-  <div class="topbar-spacer" aria-hidden="true"></div>
-
-  <!-- ===== VOILE + MENU LATERAL ===== -->
-  <div id="menu-overlay" hidden></div>
-
-  <nav id="side-menu" class="app-grid" aria-label="Menu latéral">
-    <a href="#/" class="app-link" data-route>
-      <span class="app-bubble">
-        <img src="./images/pirates-tools-logo.png?v=7" alt="" class="app-icon-img" loading="lazy" decoding="async" />
-      </span>
-      <span class="app-label">Accueil</span>
-    </a>
-
-    <a href="#/catalogue" class="app-link" data-route>
-      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-grid"/></svg></span>
-      <span class="app-label">Catalogue</span>
-    </a>
-
-    <a href="#list" class="app-link" data-scroll="#list">
-      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tools"/></svg></span>
-      <span class="app-label">Produits</span>
-    </a>
-
-    <a href="#/devis" class="app-link" data-route>
-      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-quote"/></svg></span>
-      <span class="app-label">Devis</span>
-    </a>
-
-    <a href="#/compte" class="app-link" data-route>
-      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-user-shield"/></svg></span>
-      <span class="app-label">Compte</span>
-    </a>
-
-    <a href="#/contact" class="app-link" data-route>
-      <span class="app-bubble"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-plane"/></svg></span>
-      <span class="app-label">Contact</span>
-    </a>
-  </nav>
-
-  <!-- ========= HERO ========= -->
-  <section id="hero" class="hero-full" aria-label="Pirates Tools">
-    <img id="heroLogo" class="hero-logo"
-         src="./images/pirates-tools-logo.png?v=7"
-         alt="Pirates Tools"
-         width="900" height="900"
-         loading="eager" decoding="async" />
-    <div class="hero-fade" aria-hidden="true"></div>
+  <!-- =================== HERO =================== -->
+  <section id="hero" class="hero-full" aria-hidden="true">
+    <img id="heroLogo" class="hero-logo" src="./images/pirates-tools-logo.png?v=7" alt="" />
+    <div class="hero-fade"></div>
   </section>
 
-  <!-- ===== [VIEW] ACCUEIL : bulles marques ===== -->
-  <section id="view-home" class="view" aria-label="Accueil — Marques">
-    <div class="home container">
-      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Choisir une marque</h1>
+  <!-- =================== VUES (SPA) =================== -->
+  <main id="app" role="main">
 
-      <!-- /images/brands/dewalt.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=dewalt" aria-label="Catalogue DeWalt">
-  <span class="brand__bubble">
-    <img src="./images/brands/dewalt.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">DeWALT</span>
-</a>
+    <!-- HOME -->
+    <section id="view-home" class="view">
+      <div class="container">
+        <h1 tabindex="-1">Bienvenue</h1>
+        <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
+        <div id="brandGrid" class="brand-grid" role="list"></div>
+      </div>
+    </section>
 
-<!-- /images/brands/milwaukee.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=milwaukee" aria-label="Catalogue Milwaukee">
-  <span class="brand__bubble">
-    <img src="./images/brands/milwaukee.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Milwaukee</span>
-</a>
+    <!-- CATALOGUE -->
+    <section id="view-catalogue" class="view hidden">
+      <div class="container">
+        <h1 tabindex="-1">Catalogue</h1>
 
-<!-- /images/brands/makita.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=makita" aria-label="Catalogue Makita">
-  <span class="brand__bubble">
-    <img src="./images/brands/makita.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Makita</span>
-</a>
-
-<!-- /images/brands/festool.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=festool" aria-label="Catalogue Festool">
-  <span class="brand__bubble">
-    <img src="./images/brands/festool.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Festool</span>
-</a>
-
-<!-- /images/brands/mafell.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=mafell" aria-label="Catalogue Mafell">
-  <span class="brand__bubble">
-    <img src="./images/brands/mafell.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Mafell</span>
-</a>
-
-<!-- /images/brands/flex.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=flex" aria-label="Catalogue Flex">
-  <span class="brand__bubble">
-    <img src="./images/brands/flex.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Flex</span>
-</a>
-
-<!-- /images/brands/stanley.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=stanley" aria-label="Catalogue Stanley">
-  <span class="brand__bubble">
-    <img src="./images/brands/stanley.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Stanley</span>
-</a>
-
-<!-- /images/brands/wera.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=wera" aria-label="Catalogue Wera">
-  <span class="brand__bubble">
-    <img src="./images/brands/wera.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Wera</span>
-</a>
-
-<!-- /images/brands/facom.svg -->
-<a class="brand" data-route role="listitem" href="#/catalogue?brand=facom" aria-label="Catalogue Facom">
-  <span class="brand__bubble">
-    <img src="./images/brands/facom.svg" alt="" loading="lazy" decoding="async" />
-    <span class="brand__glass" aria-hidden="true"></span>
-  </span>
-  <span class="brand__label">Facom</span>
-</a>
-
-  <!-- ===== Toolbar (produits) ===== -->
-  <section class="toolbar" aria-label="Recherche et filtres">
-    <input id="q" class="search" type="search" placeholder="Rechercher un modèle, ex. DCF887" aria-label="Rechercher un produit" autocomplete="off" />
-    <select id="tag" class="select" aria-label="Filtrer par tag">
-      <option value="">Tous</option>
-      <option>18V</option>
-      <option>Brushless</option>
-      <option>Promo</option>
-    </select>
-  </section>
-
-  <!-- ===== Liste produits ===== -->
-  <main id="main" class="container" role="main">
-    <section id="list" class="list" role="list" aria-label="Produits"></section>
-  </main>
-
-  <!-- ===== Avis ===== -->
-  <section class="ratings" aria-label="Avis clients">
-    <h2 tabindex="-1" id="h-ratings">Ils nous font confiance</h2>
-    <ul class="ratings__list">
-      <li>★★★★★ — “Service rapide en Guadeloupe !” — Marc</li>
-      <li>★★★★★ — “DeWALT dispo, prix corrects.” — Sara</li>
-      <li>★★★★★ — “Conseils pros, je recommande.” — Tony</li>
-    </ul>
-  </section>
-
-  <!-- ===== VUES (hash-router) ===== -->
-
-  <!-- [VIEW] Produit -->
-  <section id="view-produit" class="view hidden" aria-label="Fiche produit">
-    <div class="container pdp" id="pdp">
-      <a id="pdpBack" class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
-
-      <div class="pdp__grid">
-        <div class="pdp__media">
-          <img id="pdpImg"
-               alt=""
-               loading="lazy"
-               decoding="async"
-               referrerpolicy="no-referrer"
-               crossorigin="anonymous"
-               onerror="this.onerror=null; this.src='./images/pirates-tools-logo.png?v=7';" />
+        <div class="toolbar">
+          <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" />
+          <select id="tag" class="select" aria-label="Filtrer par catégorie">
+            <option value="">Tous</option>
+          </select>
         </div>
 
-        <div class="pdp__info">
-          <h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>
-          <p id="pdpTag" class="pdp__tag"></p>
-          <p id="pdpDesc" class="pdp__desc"></p>
+        <div id="catList" class="cat-list" aria-label="Catégories"></div>
+        <div id="list" class="list" aria-live="polite" aria-busy="false"></div>
+      </div>
+    </section>
+
+    <!-- PRODUIT (PDP) -->
+    <section id="view-produit" class="view hidden">
+      <div class="container pdp">
+        <a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
+
+        <div class="pdp__grid">
+          <div class="pdp__media">
+            <img id="pdpImg" alt="" />
+          </div>
+
+          <div class="pdp__info">
+            <h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>
+            <div id="pdpTag" class="pdp__tag"></div>
+            <p id="pdpDesc" class="pdp__desc"></p>
+            <ul id="pdpSpecs" class="pdp__specs"></ul>
+
+            <div class="actions">
+              <button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>
+              <a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>
+              <button id="pdpShare" class="btn" type="button">Partager</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdp__related" id="pdpRelated"></div>
+      </div>
+    </section>
+
+    <!-- DEVIS (panier) -->
+    <section id="view-devis" class="view hidden">
+      <div class="container">
+        <h1 tabindex="-1">Mon devis</h1>
+
+        <div class="card">
+          <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
+
+          <div id="devisList" class="specs" style="display:grid;gap:.8rem"></div>
 
           <div class="actions">
-            <button class="btn primary" id="pdpQuote">Ajouter au panier</button>
-            <button class="btn" id="pdpShare" type="button">Partager</button>
-            <a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>
+            <button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>
+            <button id="devisClear" class="btn" type="button">Vider</button>
           </div>
-
-          <ul class="pdp__specs" id="pdpSpecs" aria-label="Caractéristiques"></ul>
         </div>
       </div>
+    </section>
 
-      <div class="pdp__related">
-        <h2>Produits associés</h2>
-        <div class="pdp__related" id="pdpRelated" aria-label="Produits liés"></div>
-      </div>
-    </div>
-  </section>
+    <!-- COMPTE -->
+    <section id="view-compte" class="view hidden">
+      <div class="container">
+        <h1 tabindex="-1">Mon compte</h1>
 
-  <!-- [VIEW] Catalogue -->
-  
-  <section id="view-catalogue" class="view hidden" aria-label="Catalogue">
-  <div class="container">
-    <h1 style="margin:1rem 0 .5rem" tabindex="-1">Catalogue</h1>
-    <p style="margin:0 0 1rem; color:#9fb4c5">
-      Découvrez les catégories générées automatiquement à partir des produits.
-      Touchez une catégorie pour voir la liste filtrée.
-    </p>
+        <div class="card">
+          <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
+          <div class="specs">
+            <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
+              <label>Nom
+                <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
+              </label>
+              <label>Email
+                <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
+              </label>
+              <div class="actions">
+                <button id="accSave" class="btn primary" type="button">Enregistrer</button>
+              </div>
+            </form>
 
-    <!-- Grille de marques -->
-    <div id="brandGrid" class="brand-grid" role="list"></div>
-
-    <!-- Sous-catégories / types -->
-    <div id="catList" class="cat-list" role="list"></div>
-
-    <div style="margin-top:1rem">
-      <a class="chip" href="#/"
-         onclick="var t=document.getElementById('tag'); if(t){t.value='';}
-                  window.location.hash='';
-                  setTimeout(function(){var l=document.getElementById('list');
-                    if(l) l.scrollIntoView({behavior:'smooth', block:'start'});},100);">
-        Voir tous les produits
-      </a>
-    </div>
-  </div>
-</section>
-
-
-
-  <!-- [VIEW] Devis -->
-  <section id="view-devis" class="view hidden" aria-label="Devis express">
-    <div class="container">
-      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Devis express</h1>
-      <p style="margin:0 0 1rem; color:#9fb4c5">
-        Récapitulatif des articles sélectionnés + envoi WhatsApp.
-      </p>
-
-      <div class="card">
-        <div class="head"><h3 class="title">Votre sélection</h3></div>
-        <div class="specs" id="devisList"><p style="margin:0">Aucun article pour le moment.</p></div>
-        <div class="actions">
-          <button class="btn primary" id="devisSend">Envoyer le devis via WhatsApp</button>
-          <button class="btn" id="devisClear" style="background:rgba(255,255,255,.06);color:#d9e3ec">Vider</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- [VIEW] Compte -->
-  <section id="view-compte" class="view hidden" aria-label="Espace client">
-    <div class="container">
-      <h1 style="margin:1rem 0 .5rem" tabindex="-1">Mon compte</h1>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="head"><h3 class="title">Profil</h3></div>
-        <div class="specs" style="display:grid;gap:.8rem">
-          <label>Nom <input id="accName" class="select" placeholder="Votre nom" autocomplete="name" /></label>
-          <label>Email <input id="accEmail" class="select" placeholder="vous@exemple.com" autocomplete="email" /></label>
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="accSave">Enregistrer</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="head"><h3 class="title">Fidélité</h3><span id="accGrade" class="badge">Niveau</span></div>
-        <div class="specs" style="display:grid;gap:.6rem">
-          <div> Total dépensé estimé : <strong id="accSpent">0 €</strong></div>
-
-          <div class="meter" aria-label="Progression fidélité">
-            <div class="meter__rail">
-              <div class="meter__fill" id="accFill"></div>
-              <div class="meter__cursor" id="accCursor"></div>
-            </div>
-            <div class="meter__scale">
-              <span>0€</span><span>1 000€</span><span>5 000€</span>
+            <!-- Jauge fidélité (facultatif / CSS prêt) -->
+            <div class="meter" style="max-width:520px;margin-top:1rem">
+              <div class="meter__rail">
+                <div id="accFill" class="meter__fill"></div>
+                <div id="accCursor" class="meter__cursor" style="left:0%"></div>
+              </div>
+              <div class="meter__scale"><span>0%</span><span>100%</span></div>
+              <input id="accSlider" type="range" min="0" max="100" step="1" value="0" />
             </div>
           </div>
-
-          <input id="accSlider" type="range" min="0" max="5000" step="50" />
-        </div>
-        <div class="actions">
-          <button class="btn" id="accReset" style="background:rgba(255,255,255,.06);color:#d9e3ec">Réinitialiser</button>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- [VIEW] Contact -->
-  <section id="view-contact" class="view hidden" aria-label="Contact">
-    <div class="container"><p class="empty">Vide</p></div>
-  </section>
+  </main>
 
-  <!-- ===== Barre de liens ===== -->
-  <nav class="site-links" aria-label="Liens rapides">
-    <a class="chip" href="#/" data-route>Accueil</a>
-    <a class="chip" href="#/catalogue" data-route>Catalogue</a>
-    <a class="chip" href="#list" data-scroll="#list">Produits</a>
-    <a class="chip" href="#/devis" data-route>Devis</a>
-    <a class="chip" href="#/compte" data-route>Compte</a>
-    <a class="chip" href="#/contact" data-route>Contact</a>
-  </nav>
-
-  <!-- ===== Footer ===== -->
-  <footer id="contact" class="foot" role="contentinfo">
-    <div class="foot__grid">
-      <div>
-        <strong>Pirates Tools</strong><br />
-        Antilles — Guadeloupe
-      </div>
-      <div>
-        Tél : <a href="tel:+33774230195">07 74 23 01 95</a><br />
-        WhatsApp : <a href="https://wa.me/33774230195" target="_blank" rel="noopener">ouvrir</a>
-      </div>
-      <div>
-        © Pirates Tools — PWA rapide, hors-ligne, contact immédiat.
-      </div>
-    </div>
-  </footer>
-
-  <!-- ===== Dock mobile ===== -->
-  <nav class="dock" id="dock" aria-label="Actions rapides">
+  <!-- =================== DOCK =================== -->
+  <nav id="dock" class="dock" aria-label="Barre d’action">
     <div class="dock__shell">
+      <button id="dockQuoteBtn" class="dock__btn dock__btn--tools" type="button" aria-label="Devis WhatsApp">🛠️</button>
+      <button id="dockCartBtn"  class="dock__btn dock__btn--cart"  type="button" aria-label="Voir le panier">🛒</button>
+      <span id="dockCount" class="dock__badge" aria-label="Articles dans le panier">0</span>
       <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
-      <button class="dock__btn dock__btn--wa" id="dockQuoteBtn" aria-label="Envoyer un devis WhatsApp">💬</button>
-      <button class="dock__btn dock__btn--cart" id="dockCartBtn" aria-label="Voir mon devis/panier">🛒</button>
-      <a class="dock__btn dock__btn--tools" href="#list" data-scroll="#list" aria-label="Voir les produits">🧰</a>
-      <span class="dock__badge" id="dockCount" aria-live="polite">0</span>
+      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
     </div>
   </nav>
 
-  <!-- ===== Coachmark iOS A2HS (caché par défaut) ===== -->
-  <button id="a2hsTriangle" hidden aria-label="Installer l’application">▲</button>
+  <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
+  <div id="menu-overlay" hidden></div>
+  <aside id="side-menu" hidden>
+    <a class="app-link" href="#/">
+      <span class="app-bubble">🏠</span>
+      <span class="app-label">Accueil</span>
+    </a>
+    <a class="app-link" href="#/catalogue">
+      <span class="app-bubble">🧰</span>
+      <span class="app-label">Catalogue</span>
+    </a>
+    <a class="app-link" href="#/devis">
+      <span class="app-bubble">🛒</span>
+      <span class="app-label">Devis</span>
+    </a>
+    <a class="app-link" href="#/compte">
+      <span class="app-bubble">👤</span>
+      <span class="app-label">Compte</span>
+    </a>
+  </aside>
 
-  <div id="a2hsTip" hidden
-       role="dialog" aria-live="polite" aria-label="Installation de l’app">
-    <span class="a2hs-tip__icon">▴</span>
-    <span>Appuie sur <strong>▴</strong> pour installer</span>
-    <button class="a2hs-tip__close" id="a2hsClose" aria-label="Fermer">×</button>
-  </div>
+  <!-- =================== TOASTS + A11y roots (les scripts les créent si absents) =================== -->
+  <div id="toasts" aria-live="polite"></div>
+  <div id="sr-live" class="sr-only" aria-live="polite"></div>
 
-  <!-- ===== PWA install (Android/Chromium) ===== -->
-  <button id="installBtn" hidden aria-label="Installer l’application">Installer l’app</button>
+  <!-- Bouton d’installation PWA (révélé par JS si pertinent) -->
+  <button id="installBtn" class="chip hidden" hidden>Installer l’app</button>
 
-  <!-- ===== JS Menu ===== -->
-  <script>
-    (function () {
-      const body = document.body;
-      const toggle  = document.getElementById('menu-toggle');
-      const overlay = document.getElementById('menu-overlay');
-      const side    = document.getElementById('side-menu');
+  <noscript>
+    <div style="padding:1rem;margin:1rem;border:1px solid #22303b;border-radius:8px;background:#121b24;color:#e6edf5">
+      Cette application nécessite JavaScript.
+    </div>
+  </noscript>
 
-      function openMenu() {
-        body.classList.add('menu-open');
-        toggle.setAttribute('aria-expanded', 'true');
-        overlay.removeAttribute('hidden');
-        body.style.overflow = 'hidden';
-      }
-      function closeMenu() {
-        body.classList.remove('menu-open');
-        toggle.setAttribute('aria-expanded', 'false');
-        overlay.setAttribute('hidden', '');
-        body.style.overflow = '';
-      }
-      function toggleMenu() {
-        body.classList.contains('menu-open') ? closeMenu() : openMenu();
-      }
+  <!-- =================== JS =================== -->
+  <script src="./app.js" defer></script>
 
-      if (toggle)  toggle.addEventListener('click', toggleMenu);
-      if (overlay) overlay.addEventListener('click', closeMenu);
-      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-      if (side) side.addEventListener('click', (e) => {
-        const link = e.target.closest('a'); if (link) closeMenu();
-      });
-    })();
-  </script>
-
-  <!-- ===== iOS A2HS + anti-blocage scroll + SW refresh ===== -->
-  <script>
-  (function () {
-    const TIP_KEY = 'pt_a2hs_dismissed_v2';
-    const tip      = document.getElementById('a2hsTip');
-    const triangle = document.getElementById('a2hsTriangle');
-    const isIOS    = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-    function showTip(){
-      if (!tip || localStorage.getItem(TIP_KEY) || isStandalone) return;
-      tip.hidden = false;
-    }
-    function hideTip(persist){
-      if (tip){ tip.classList.add('out'); setTimeout(()=> tip.remove(),180); }
-      if (triangle){ triangle.remove(); }
-      if (persist) { try { localStorage.setItem(TIP_KEY,'1'); } catch(e){} }
-    }
-
-    // Délégation: la croix marche même si le DOM bouge
-    document.addEventListener('click', (e)=>{
-      if (e.target.closest('#a2hsClose'))    hideTip(true);
-      if (e.target.closest('#a2hsTriangle')) showTip();
-    }, {passive:true});
-
-    // Masquer au scroll prolongé
-    window.addEventListener('scroll', ()=>{ if (window.scrollY > 400) hideTip(false); }, {passive:true});
-
-    // Affichage iOS uniquement
-    if (isIOS && !isStandalone) {
-      if (triangle) triangle.hidden = false;
-      showTip();
-    }
-
-    // Anti "scroll bloqué" si un overflow:hidden traîne
-    const releaseScroll = ()=>{ document.body.classList.remove('menu-open'); document.body.style.overflow=''; };
-    window.addEventListener('hashchange', releaseScroll);
-    window.addEventListener('pageshow', releaseScroll);
-
-    // SW: hard refresh via query param
-    if ('serviceWorker' in navigator) {
-      const SW_VER = 'v90';
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register(`sw.js?${SW_VER}`).then(reg=>{
-          reg.addEventListener('updatefound', ()=>{
-            const nw = reg.installing;
-            if (!nw) return;
-            nw.addEventListener('statechange', ()=>{
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                // location.reload();
-              }
-            });
-          });
-        }).catch(console.warn);
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ /* prêt */ });
-    }
-  })();
-  </script>
-
-  <!-- ===== JS minimal (fallback) : fermer le coachmark si le bloc ci-dessus est indispo ===== -->
+  <!-- Micro-script menu (non intrusif, compatible avec vos styles) -->
   <script>
     (function(){
-      const tip = document.getElementById('a2hsTip');
-      const closeBtn = document.getElementById('a2hsClose');
-      if (closeBtn && tip) {
-        closeBtn.addEventListener('click', () => {
-          tip.setAttribute('hidden','');
-          try { localStorage.setItem('hideA2HSTip','1'); } catch(e){}
-        }, { once:true });
-      }
+      var btn = document.getElementById('menu-toggle');
+      var ovl = document.getElementById('menu-overlay');
+      var side= document.getElementById('side-menu');
+      function open(){ document.body.classList.add('menu-open'); if(ovl) ovl.hidden=false; if(side) side.hidden=false; btn && btn.setAttribute('aria-expanded','true'); }
+      function close(){ document.body.classList.remove('menu-open'); if(ovl) ovl.hidden=true;  if(side) side.hidden=true;  btn && btn.setAttribute('aria-expanded','false'); }
+      if (btn){ btn.addEventListener('click', function(){ document.body.classList.contains('menu-open') ? close() : open(); }); }
+      if (ovl){ ovl.addEventListener('click', close); }
     })();
   </script>
-
-  <!-- App -->
-  <script src="app.js" defer></script>
-  <noscript>Activez JavaScript pour profiter de l’animation du logo et du chargement des produits.</noscript>
 </body>
 </html>
