@@ -1539,35 +1539,38 @@ window.PT.handleRoute = handleRoute;
     return view;
   }
 
+  
   function ensureProduitView(){
-    var view = D.getElementById('view-produit');
-    if (view) return view;
-    view = D.createElement('section');
-    view.id = 'view-produit';
-    view.className = 'view hidden';
-    view.innerHTML =
-      '<div class="container pdp">'+
-        '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
-        '<div class="pdp__grid">'+
-          '<div class="pdp__media"><img id="pdpImg" alt="" /></div>'+
-          '<div class="pdp__info">'+
-            '<h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>'+
-            '<div id="pdpTag" class="pdp__tag"></div>'+
-            '<p id="pdpDesc" class="pdp__desc"></p>'+
-            '<ul id="pdpSpecs" class="pdp__specs"></ul>'+
-            '<div class="actions">'+
-              '<button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>'+
-              '<a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>'+
-              '<button id="pdpShare" class="btn" type="button">Partager</button>'+
-            '</div>'+
+  var view = D.getElementById('view-produit');
+  if (view) return view;
+  view = D.createElement('section');
+  view.id = 'view-produit';
+  view.className = 'view hidden';
+  view.innerHTML =
+    '<div id="pdp" class="container pdp">'+
+      '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
+      '<div class="pdp__grid">'+
+        '<div class="pdp__media"><img id="pdpImg" alt="" /></div>'+
+        '<div class="pdp__info">'+
+          '<h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>'+
+          '<div id="pdpTag" class="pdp__tag"></div>'+
+          '<p id="pdpDesc" class="pdp__desc"></p>'+
+          '<ul id="pdpSpecs" class="pdp__specs"></ul>'+
+          '<div class="actions">'+
+            '<button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>'+
+            '<a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>'+
+            '<button id="pdpShare" class="btn" type="button">Partager</button>'+
           '</div>'+
         '</div>'+
-        '<div class="pdp__related" id="pdpRelated"></div>'+
-      '</div>';
-    D.body.appendChild(view);
-    return view;
-  }
-
+      '</div>'+
+      '<div class="pdp__related" id="pdpRelated"></div>'+
+    '</div>';
+  D.body.appendChild(view);
+  return view;
+}
+  
+  
+  
   function ensureDevisView(){
     var view = D.getElementById('view-devis');
     if (view) return view;
