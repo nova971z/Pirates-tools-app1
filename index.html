@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <link rel="preload" href="./images/pirates-tools-logo.png?v=7" as="image" />
+  <!-- ⛔ supprimé: preload image manquante ./images/pirates-tools-logo.png?v=7 -->
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -21,7 +21,13 @@
       </button>
 
       <a id="homeLink" class="topbar-logo-link" href="#">
-        <img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" />
+        <!-- ✅ logo inline: plus de chemin cassé -->
+        <svg class="topbar-logo" width="140" height="40" viewBox="0 0 140 40" role="img" aria-label="Pirates Tools">
+          <rect x="0" y="0" width="140" height="40" rx="8" ry="8" fill="#0bd1ff"></rect>
+          <text x="50%" y="50%" font-size="18" font-weight="700" text-anchor="middle"
+                dominant-baseline="middle" fill="#001018"
+                font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial">Pirates&nbsp;Tools</text>
+        </svg>
       </a>
     </div>
 
@@ -33,7 +39,18 @@
 
   <!-- =================== HERO =================== -->
   <section id="hero" class="hero-full" aria-hidden="true">
-    <img id="heroLogo" class="hero-logo" src="./images/pirates-tools-logo.png?v=7" alt="" />
+    <!-- ✅ image remplacée par SVG inline -->
+    <svg id="heroLogo" class="hero-logo" viewBox="0 0 140 40" role="img" aria-label="">
+      <defs>
+        <linearGradient id="pt-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#0bd1ff"/><stop offset="1" stop-color="#49f2c2"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="140" height="40" rx="8" ry="8" fill="url(#pt-grad)"></rect>
+      <text x="50%" y="50%" font-size="18" font-weight="700" text-anchor="middle"
+            dominant-baseline="middle" fill="#001018"
+            font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial">Pirates&nbsp;Tools</text>
+    </svg>
     <div class="hero-fade"></div>
   </section>
 
@@ -145,6 +162,9 @@
         </div>
       </div>
     </section>
+
+    <!-- ✅ ancre requise par la CI -->
+    <a id="pdp" class="sr-only" aria-hidden="true"></a>
 
   </main>
 
