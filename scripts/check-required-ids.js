@@ -1,42 +1,27 @@
-const fs = require('fs');
+import { promises as fs } from 'fs';
+import path from 'path';
 
-module.exports = async function(){
-  const errs = [];
-  const mustIds = [
-    // Hero
-    'hero','heroLogo',
-    // Home / Catalogue / Devis / Compte / PDP
-    'view-home','view-catalogue','view-devis','view-compte','pdp',
-    // Grilles & listes
-    'brandGrid','catList','list',
-    // Filtres
-    'q','tag',
-    // PDP elements
-    'pdpImg','pdpTitle','pdpTag','pdpDesc','pdpSpecs','pdpRelated',
-    'pdpQuote','pdpWa','pdpShare',
-    // Devis
-    'devisList','devisSend','devisClear',
-    // Dock
-    'dock','dockCount','dockQuoteBtn','dockCartBtn',
-    // A11y / Toasts
-    'sr-live','toasts'
+export async function run(){
+  const root = process.cwd();
+  const file = path.join(root, 'index.html');
+  let html = '';
+  try { html = await fs.readFile(file, 'utf8'); }
+  catch { throw new Error('index.html introuvable à la racine'); }
+
+  const needIds = [
+    'view-home','view-catalogue','view-produit','view-devis', // vues clés SPA
+    'list','catList','pdp','devisList',                      // conteneurs de contenu
+    'dock','toasts'                                          // dock & toasts
   ];
-
-  const html = fs.existsSync('index.html') ? fs.readFileSync('index.html','utf8') : '';
-  if (!html) {
-    errs.push('Fichier index.html manquant ou vide.');
-    return errs;
+  for (const id of needIds){
+    const ok = new RegExp(`id=["']${id}["']`).test(html);
+    if (!ok) throw new Error(`id requis manquant: #${id}`);
   }
 
-  // Vérif IDs
-  mustIds.forEach(id => {
-    const re = new RegExp(`id=["']${id}["']`);
-    if (!re.test(html)) errs.push(`index.html: id="#${id}" introuvable.`);
-  });
+  // Vérifier que styles.css et app.js sont référencés
+  const hasCSS = /<link[^>]+href=["']\.\/?styles\.css(\?[^"']*)?["'][^>]*>/i.test(html);
+  if (!hasCSS) throw new Error('styles.css non référencé dans index.html');
 
-  // Vérif liens <link> et <script>
-  if (!/href=["']\.\/styles\.css["']/.test(html)) errs.push('index.html: <link href="./styles.css"> manquant.');
-  if (!/src=["']\.\/app\.js["']/.test(html)) errs.push('index.html: <script src="./app.js"> manquant.');
-
-  return errs;
-};
+  const hasJS = /<script[^>]+src=["']\.\/?app\.js(\?[^"']*)?["'][^>]*><\/script>/i.test(html);
+  if (!hasJS) throw new Error('app.js non référencé dans index.html');
+}

@@ -1,18 +1,19 @@
-const reqIds = require('./check-required-ids');
-const reqPaths = require('./check-paths');
-const reqProducts = require('./check-products-json');
+import { run as checkRequiredIds } from './check-required-ids.js';
+import { run as checkPaths } from './check-paths.js';
+import { run as checkProducts } from './check-products-json.js';
 
-(async () => {
-  let errors = [];
-  try { errors = errors.concat(await reqIds()); } catch(e){ errors.push('[check-required-ids] ' + e.message); }
-  try { errors = errors.concat(await reqPaths()); } catch(e){ errors.push('[check-paths] ' + e.message); }
-  try { errors = errors.concat(await reqProducts()); } catch(e){ errors.push('[check-products-json] ' + e.message); }
+const failures = [];
+async function step(name, fn){
+  try { await fn(); console.log('✅', name); }
+  catch (e){ failures.push(name); console.error('❌', name, '-', e.message || e); }
+}
 
-  if (errors.length) {
-    console.error('❌ CI FAILED — problèmes détectés:\n');
-    errors.forEach((e, i) => console.error((i+1)+'. '+e));
-    process.exit(1);
-  } else {
-    console.log('✅ CI OK — tous les contrôles sont passés.');
-  }
-})();
+await step('index.html — ids & références requises', checkRequiredIds);
+await step('index.html — chemins d’assets existants', checkPaths);
+await step('products.json — validité & champs', checkProducts);
+
+if (failures.length){
+  console.error('\nCI FAILED:', failures.join(', '));
+  process.exit(1);
+}
+console.log('\nAll checks passed.');

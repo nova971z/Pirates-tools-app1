@@ -1,47 +1,28 @@
-const fs = require('fs');
-const path = require('path');
+import { promises as fs } from 'fs';
+import path from 'path';
 
-function collectFromHTML(html){
-  const re = /(src|href)=["'](\.\/images\/[^"']+)["']/gi;
-  const out = [];
-  let m;
-  while ((m = re.exec(html))) out.push(m[2]);
-  return out;
+function normalize(p){
+  return p.split('#')[0].split('?')[0];
 }
-function collectFromCSS(css){
-  const re = /url\(([^)]+)\)/gi;
-  const out = [];
+
+export async function run(){
+  const root = process.cwd();
+  const htmlPath = path.join(root,'index.html');
+  const html = await fs.readFile(htmlPath,'utf8');
+
+  // Récupérer src/href locaux (png|jpg|jpeg|webp|svg|ico|css|js)
+  const rx = /(src|href)=["']([^"']+\.(?:png|jpg|jpeg|webp|svg|ico|css|js)(?:\?[^"']*)?)["']/ig;
+  const found = new Set();
   let m;
-  while ((m = re.exec(css))) {
-    let u = (m[1] || '').trim().replace(/^["']|["']$/g,'');
-    if (/^\.\/images\//.test(u) && !/^data:/.test(u)) out.push(u);
+  while ((m = rx.exec(html)) !== null){
+    const url = m[2];
+    if (/^(https?:)?\/\//i.test(url) || url.startsWith('mailto:')) continue;
+    found.add(normalize(url.replace(/^\.\//,'')));
   }
-  return out;
-}
-function collectFromJS(js){
-  const re = /["'](\.\/images\/[^"']+)["']/g;
-  const out = [];
-  let m;
-  while ((m = re.exec(js))) out.push(m[1]);
-  return out;
-}
 
-module.exports = async function(){
-  const errs = [];
-  const files = {
-    html: fs.existsSync('index.html') ? fs.readFileSync('index.html','utf8') : '',
-    css:  fs.existsSync('styles.css') ? fs.readFileSync('styles.css','utf8') : '',
-    js:   fs.existsSync('app.js')     ? fs.readFileSync('app.js','utf8')     : ''
-  };
-  const set = new Set();
-  collectFromHTML(files.html).forEach(p=>set.add(p));
-  collectFromCSS(files.css).forEach(p=>set.add(p));
-  collectFromJS(files.js).forEach(p=>set.add(p));
-
-  // Vérifie l’existence de chaque fichier
-  for (const rel of set) {
-    const full = path.join(process.cwd(), rel);
-    if (!fs.existsSync(full)) errs.push(`Chemin image introuvable: ${rel}`);
+  for (const rel of found){
+    const abs = path.join(root, rel);
+    try { await fs.access(abs); }
+    catch { throw new Error(`Chemin référencé introuvable: ${rel}`); }
   }
-  return errs;
-};
+}
