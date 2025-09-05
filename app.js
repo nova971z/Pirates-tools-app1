@@ -1541,12 +1541,13 @@ window.PT.handleRoute = handleRoute;
 
   
   function ensureProduitView(){
+  var D = window.D || document;
+  // Vue déjà construite ?
   var view = D.getElementById('view-produit');
   if (view) return view;
-  view = D.createElement('section');
-  view.id = 'view-produit';
-  view.className = 'view hidden';
-  view.innerHTML =
+
+  // Marqueup complet de la PDP (le conteneur garde l'id="pdp")
+  var markup =
     '<div id="pdp" class="container pdp">'+
       '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
       '<div class="pdp__grid">'+
@@ -1565,6 +1566,27 @@ window.PT.handleRoute = handleRoute;
       '</div>'+
       '<div class="pdp__related" id="pdpRelated"></div>'+
     '</div>';
+
+  // S’il existe l’ancre statique #pdp dans index.html, on la remplace par la vue.
+  var anchor = D.getElementById('pdp');
+  if (anchor){
+    var section = D.createElement('section');
+    section.id = 'view-produit';
+    section.className = 'view hidden';
+    section.innerHTML = markup;
+    if (anchor.parentNode) {
+      anchor.parentNode.replaceChild(section, anchor);
+    } else {
+      D.body.appendChild(section);
+    }
+    return section;
+  }
+
+  // Fallback : créer la vue en fin de body
+  view = D.createElement('section');
+  view.id = 'view-produit';
+  view.className = 'view hidden';
+  view.innerHTML = markup;
   D.body.appendChild(view);
   return view;
 }
