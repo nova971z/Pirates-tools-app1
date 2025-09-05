@@ -85,6 +85,8 @@ h3{ font-size: 1.05rem }
   .btn.btn-wa{width:40px; height:40px; font-size:1.1rem}
 }
 
+.empty{opacity:.6; text-align:center; padding:2rem 0}
+
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
 .hero-full{
   position: relative; height: 100vh; height: 100svh; height: 100dvh;
@@ -92,11 +94,12 @@ h3{ font-size: 1.05rem }
 }
 .hero-logo{
   width: min(78vmin, 900px); max-width: 900px; height: auto;
-  opacity: 1; transition: opacity .18s linear;
+  opacity:0; transition: opacity .4s ease;
   will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
   filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
 }
+.hero-logo.on{opacity:1}
 .hero-fade{
   position: absolute; inset: auto 0 0 0; height: 26vh;
   background: linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
