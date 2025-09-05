@@ -1,0 +1,8 @@
+{
+  "name": "pirates-tools-spa",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node scripts/ci.js"
+  }
+}
