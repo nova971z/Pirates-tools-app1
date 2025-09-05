@@ -540,7 +540,7 @@
 
     // SW: hard refresh via query param
     if ('serviceWorker' in navigator) {
-      const SW_VER = 'v89';
+      const SW_VER = 'v90';
       window.addEventListener('load', ()=>{
         navigator.serviceWorker.register(`sw.js?${SW_VER}`).then(reg=>{
           reg.addEventListener('updatefound', ()=>{
