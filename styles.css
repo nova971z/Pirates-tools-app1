@@ -1,5 +1,5 @@
 /* =========================================================
-  Pirates Tools — styles.css (Optimisé, cohérent HTML/JS)
+  Pirates Tools — styles.css (HARMONISÉ)
   Thème sombre, menu bulles, topbar stable, perfs mobiles.
 ========================================================= */
 
@@ -32,6 +32,7 @@ a:focus-visible,button:focus-visible{ outline:2px solid var(--brand); outline-of
 button,input,select,textarea{ font:inherit; color:inherit }
 .container{ width:min(1100px,92vw); margin:0 auto; position:relative; z-index:2 }
 .hidden{ display:none !important }
+.empty{opacity:.6; text-align:center; padding:2rem 0}
 
 /* ---------- Titres ---------- */
 h1,h2,h3{ font-weight:900; letter-spacing:.2px }
@@ -72,20 +73,21 @@ h3{ font-size: 1.05rem }
   min-width:0; max-width:62vw; overflow:hidden; text-overflow:ellipsis
 }
 .btn.btn-call strong{font-weight:800}
-.btn.btn-wa{
-  width:44px; height:44px; padding:0; border-radius:999px;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:1.25rem; line-height:1;
-  background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
-  color:#001; box-shadow:0 3px 10px rgba(0,0,0,.35); flex:0 0 auto
-}
-@media (max-width:420px){ .btn.btn-call{font-size:13.5px; padding:.38rem .7rem; max-width:58vw} }
-@media (max-width:360px){
-  .btn.btn-call{font-size:12.5px; padding:.34rem .6rem; max-width:54vw}
-  .btn.btn-wa{width:40px; height:40px; font-size:1.1rem}
-}
 
-.empty{opacity:.6; text-align:center; padding:2rem 0}
+/* ===== WhatsApp (pilule partout, rond uniquement dans la topbar) ===== */
+.btn.btn-wa{
+  width:auto; height:auto; padding:.7rem .95rem; border-radius:12px;
+  background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
+  color:#042016; font-size:1rem; line-height:1.1; box-shadow:var(--shadow); flex:0 0 auto;
+}
+/* Exception topbar : bouton rond, icône seule */
+.topbar .btn.btn-wa{
+  width:44px; height:44px; padding:0; border-radius:999px;
+  font-size:1.25rem; line-height:1; display:inline-flex; align-items:center; justify-content:center;
+}
+@media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } }
+@media (max-width:420px){ .btn.btn-call{font-size:13.5px; padding:.38rem .7rem; max-width:58vw} }
+@media (max-width:360px){ .btn.btn-call{font-size:12.5px; padding:.34rem .6rem; max-width:54vw} }
 
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
 .hero-full{
@@ -145,7 +147,7 @@ h3{ font-size: 1.05rem }
 }
 .specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem; color:var(--muted) }
 
-/* === Boutons d’actions : retour à la ligne mobile (évite la coupe à droite) === */
+/* Boutons d’actions */
 .actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem; flex-wrap: wrap }
 .actions .btn{ min-width: 0; flex: 0 1 auto }
 @media (max-width: 560px){ .actions .btn{ flex: 1 1 100%; white-space: nowrap } }
@@ -164,19 +166,14 @@ h3{ font-size: 1.05rem }
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
   padding:.42rem .9rem;
-  border-radius:999px;                       /* <-- arrondi global */
+  border-radius:999px;
   background:rgba(255,255,255,.04);
   border:1px solid var(--border);
   color:#d9e3ec;
   box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
 }
 .chip:hover{ background:rgba(255,255,255,.07) }
-.chip--back{
-  border:1px solid var(--border);            /* <-- contour rétabli */
-  border-radius:999px;
-  background:rgba(255,255,255,.05);
-  padding:.36rem .7rem;
-}
+.chip--back{ border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,.05); padding:.36rem .7rem; margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 
 /* ================= SITE LINKS ================= */
 .site-links{
@@ -264,9 +261,6 @@ h3{ font-size: 1.05rem }
 .pdp__specs .badge{ background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10)); border-color:rgba(25,211,255,.45); color:#e6f7ff }
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 @media (max-width: 960px){ .pdp__grid{ grid-template-columns: 1fr } }
-
-/* Bouton retour (pille + contour) */
-.chip--back{ margin:.5rem 0 1rem; display:inline-flex; align-items:center; gap:.4rem }
 
 /* ================= Catalogue ================= */
 .cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
@@ -414,7 +408,7 @@ h3{ font-size: 1.05rem }
 }
 .menu-open #menu-overlay{ display:block }
 
-/* Le conteneur n’a PAS de panneau : uniquement des bulles alignées à gauche */
+/* Conteneur de bulles (pas de panneau latéral) */
 #side-menu{
   position: fixed; inset: 0; z-index: 1001;
   padding: 90px 0 28px 18px;      /* marge du bord gauche + sous la topbar */
@@ -423,14 +417,12 @@ h3{ font-size: 1.05rem }
   background: transparent;
   opacity:0; pointer-events:none; transition: opacity .18s ease-out;
 }
-.menu-open #side-menu{ opacity:1 } /* pointer-events restent gérés par les liens seulement */
+.menu-open #side-menu{ opacity:1 } /* pointer-events gérés par les liens */
 
 #side-menu .app-link{
   pointer-events: auto; display: inline-flex; flex-direction: column;
   align-items: center; gap: 10px; text-decoration: none;
 }
-
-/* BULLE type app (rond + halo) */
 #side-menu .app-bubble{
   position: relative; width: 64px; height: 64px; border-radius: 50%;
   background: rgba(255,255,255,0.10);
@@ -439,40 +431,30 @@ h3{ font-size: 1.05rem }
   box-shadow: 0 8px 22px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22);
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-/* halo doux autour */
 #side-menu .app-bubble::before{
   content:""; position:absolute; inset:-8px; border-radius:50%;
   background: radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
   filter: blur(10px); opacity:.55; z-index:-1;
 }
-
-/* Icône image (logo) ou SVG sprite */
 #side-menu .app-icon-img{ width:65%; height:65%; object-fit:contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
 #side-menu .app-bubble svg{ width:22px; height:22px; display:block; color:#fff; stroke:currentColor; fill:none }
-
-/* Label sous la bulle */
 #side-menu .app-label{
   font-size:.88rem; font-weight:600; line-height:1.1;
   color: rgba(255,255,255,0.96); text-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
-
-/* hover / active */
 #side-menu .app-link:hover .app-bubble{
   transform: translateY(-2px) scale(1.06);
   background: rgba(255,255,255,0.14);
   box-shadow: 0 12px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.26);
 }
 #side-menu .app-link:active .app-bubble{ transform: scale(0.96) }
-
-/* Petits mobiles */
 @media (max-width: 360px){
   #side-menu{ padding-left:14px; gap:24px }
   #side-menu .app-bubble{ width:60px; height:60px }
   #side-menu .app-label{ font-size:.82rem }
 }
 
-/* ===== Marques — grille de bulles (accueil/catalogue)
-     (UNIQUE & unifiée pour <a.brand> et <button.brand>) ===== */
+/* ===== Marques — grille de bulles (UNIFIÉE pour <a.brand> et <button.brand>) ===== */
 .brand-grid{
   display:grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -506,7 +488,7 @@ h3{ font-size: 1.05rem }
   filter:blur(10px); opacity:.55; z-index:-1;
 }
 
-/* Logos (prise en charge .brand__img ou .brand__logo) */
+/* Logos (support .brand__img ou .brand__logo) */
 .brand__bubble img,
 .brand__img, .brand__logo{
   width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))
@@ -522,7 +504,7 @@ h3{ font-size: 1.05rem }
   outline:none;
 }
 
-/* Touch / click : petit pulse lumineux court */
+/* Touch / click : pulse court */
 .brand:active .brand__bubble{
   transform:scale(.97);
   animation:brandPulse .22s ease-out 1;
@@ -541,131 +523,22 @@ h3{ font-size: 1.05rem }
 }
 @media (max-width:420px){ .brand__bubble{ width:84px; height:84px } .brand__label{ font-size:.9rem } }
 
-/* ====== PATCH ARRONDIS & SCROLL SAFE ====== */
+/* ===== Patches de robustesse ===== */
 
-/* 1) Chips toujours en pilule (Safari compris) */
-.chip{ 
-  border-radius:9999px !important; 
-  overflow:hidden;
-  -webkit-mask-image: -webkit-radial-gradient(white, black); /* force le rendu arrondi WebKit */
-}
+/* 1) Chips toujours pilule (Safari compris) */
+.chip{ border-radius:9999px !important; overflow:hidden; -webkit-mask-image: -webkit-radial-gradient(white, black) }
 .site-links .chip{ border-radius:9999px !important }
 
-/* 2) Bouton retour (puce + contour) */
-.chip--back{
-  border:1px solid var(--border);
-  border-radius:9999px;
-  background:rgba(255,255,255,.05);
-  padding:.36rem .7rem;
-}
-
-/* 3) Bulle iOS (fermeture cliquable + position au-dessus du dock) */
+/* 2) iOS A2HS : éléments cliquables + au-dessus du dock */
 #a2hsTip{ pointer-events:auto; z-index:125 }
-#a2hsTip .a2hs-tip__close{
-  padding:.25rem; border-radius:6px; cursor:pointer;
-}
-#a2hsTip, #a2hsTriangle{
-  bottom: calc(96px + env(safe-area-inset-bottom,0px)); /* net au-dessus du dock */
-}
+#a2hsTip .a2hs-tip__close{ padding:.25rem; border-radius:6px; cursor:pointer }
+#a2hsTip, #a2hsTriangle{ bottom: calc(96px + env(safe-area-inset-bottom,0px)) }
 
-/* 4) Toujours pouvoir « accrocher » le haut sous la topbar fixe */
+/* 3) Scroll padding sous topbar fixe */
 html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 #list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top: 84px }
 
-/* ====== PATCH WHATSAPP (pilule partout, rond seulement dans la topbar) ====== */
-
-/* Par défaut : même forme que les autres boutons */
-.btn.btn-wa{
-  width:auto;
-  height:auto;
-  padding:.7rem .95rem;
-  border-radius:12px;
-  background:linear-gradient(90deg,var(--wa-1),var(--wa-2));
-  color:#042016;
-  font-size:1rem;
-  line-height:1.1;
-  box-shadow:var(--shadow);
-  flex:0 0 auto;
-}
-
-/* Évite la compression lorsqu’il y a plusieurs actions côte à côte */
-.actions .btn{ min-width:auto; flex:0 0 auto }
-@media (max-width:560px){ .actions .btn{ flex:1 1 100% } }
-
-/* Exception topbar : bouton rond, icône seule */
-.topbar .btn.btn-wa{
-  width:44px;
-  height:44px;
-  padding:0;
-  border-radius:999px;
-  font-size:1.25rem;
-  line-height:1;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-
-/* Ajustement mobile pour la topbar uniquement */
-@media (max-width:360px){
-  .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem }
-}
-
-
-
-/* ===== HOTFIX / Brand grid stable (override en fin de fichier) ===== */
-#brandGrid.brand-grid{
-  display:grid !important;
-  grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)) !important;
-  gap:14px !important;
-  justify-items:center !important;
-  align-items:start !important;
-  margin:.6rem 0 1rem !important;
-  padding:.5rem 0 0 !important;
-}
-
-/* Remet .brand en mode bloc (et non flex-item forcé par un ancien patch) */
-#brandGrid .brand{
-  width:auto !important;
-  flex:initial !important;
-  display:flex; flex-direction:column; align-items:center; gap:.55rem;
-  text-align:center; text-decoration:none; user-select:none; -webkit-tap-highlight-color:transparent;
-}
-
-/* Bulle : taille cohérente, responsive simple */
-#brandGrid .brand__bubble{
-  width:86px !important; height:86px !important; border-radius:50% !important;
-  display:grid; place-items:center; overflow:hidden;
-  background:rgba(255,255,255,.08); border:1px solid var(--border);
-  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
-  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
-}
-#brandGrid .brand__bubble img,
-#brandGrid .brand__img, #brandGrid .brand__logo{
-  width:64%; height:64%; object-fit:contain;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
-}
-
-/* Label court, coupe proprement si trop long */
-#brandGrid .brand__label{
-  font-weight:800; font-size:.95rem; color:#eef4fa;
-  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-
-@media (max-width:380px){
-  #brandGrid .brand__bubble{ width:76px !important; height:76px !important; }
-  #brandGrid .brand__label{ font-size:.9rem }
-}
-
-
-
-
-
-
-
-/* ===== HOTFIX (fin de fichier) : Grille & Héro visibles/stables ===== */
-
-/* Grille de marques : auto-fit propre, sans “trous”, responsive fluide */
+/* ===== HOTFIX ciblé : grille #brandGrid générée en JS ===== */
 #brandGrid.brand-grid{
   display:grid !important;
   grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)) !important;
@@ -676,8 +549,7 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
   padding:.5rem 0 0 !important;
 }
 #brandGrid .brand{
-  width:auto !important;
-  flex:initial !important;
+  width:auto !important; flex:initial !important;
   display:flex; flex-direction:column; align-items:center; gap:.55rem;
   text-align:center; text-decoration:none; user-select:none; -webkit-tap-highlight-color:transparent;
 }
@@ -698,11 +570,11 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
   max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 @media (max-width:380px){
-  #brandGrid .brand__bubble{ width:76px !important; height:76px !important; }
+  #brandGrid .brand__bubble{ width:76px !important; height:76px !important }
   #brandGrid .brand__label{ font-size:.9rem }
 }
 
-/* Héro : s’assure que la zone est visible et animable */
+/* ===== Fin : stabilité héro ===== */
 .hero-full{ z-index: 30 }
 .hero-full.hero-out{ z-index: -1 }
 #heroLogo, .hero-logo{ will-change: transform, opacity }
