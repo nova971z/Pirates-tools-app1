@@ -7,6 +7,26 @@
 ========================================================= */
 'use strict';
 
+/* === CI: Brand logos as inline SVG (no external assets) ================== */
+(function(W){
+  const BRAND_LOGOS = {
+    milwaukee: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160"><rect width="320" height="160" rx="24" fill="%23c8102e"/><text x="50%" y="50%" fill="%23ffffff" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="42" dominant-baseline="middle" text-anchor="middle">Milwaukee</text></svg>',
+    makita:    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160"><rect width="320" height="160" rx="24" fill="%2300a3ad"/><text x="50%" y="50%" fill="%23ffffff" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="42" dominant-baseline="middle" text-anchor="middle">Makita</text></svg>',
+    wera:      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160"><rect width="320" height="160" rx="24" fill="%2300a651"/><text x="50%" y="50%" fill="%23ffffff" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="42" dominant-baseline="middle" text-anchor="middle">Wera</text></svg>'
+  };
+
+  function getBrandLogo(name){
+    if (!name) return BRAND_LOGOS.makita;
+    const k = String(name).toLowerCase();
+    return BRAND_LOGOS[k] || BRAND_LOGOS.makita;
+  }
+
+  // Expose pour le code existant (si besoin)
+  W.BRAND_LOGOS = BRAND_LOGOS;
+  W.getBrandLogo = getBrandLogo;
+})(window);
+/* ======================================================================== */
+
 /* ------------ Helpers ES5 ------------ */
 var $  = function(sel, root){ return (root||document).querySelector(sel); };
 var $$ = function(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); };
@@ -203,11 +223,11 @@ ensureView('view-create',
 /* ------------ Marques (métadonnées + rendu) ------------ */
 var BRAND_META = {
   dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.dewalt.png' },
-  milwaukee: { label:'Milwaukee', logo:'./images/brands/Logo.milwaukee.png' },
-  makita:    { label:'Makita',    logo:'./images/brands/Logo.makita.png' },
+  milwaukee: { label:'Milwaukee', logo:getBrandLogo('milwaukee') },
+  makita:    { label:'Makita',    logo:getBrandLogo('makita') },
   festool:   { label:'Festool',   logo:'./images/brands/Logo.festool.png' },
   flex:      { label:'FLEX',      logo:'./images/brands/Logo.flex.png' },
-  wera:      { label:'Wera',      logo:'./images/brands/Logo.wera.png' },
+  wera:      { label:'Wera',      logo:getBrandLogo('wera') },
   stanley:   { label:'Stanley',   logo:'./images/brands/Logo.stanley.png' },
   facom:     { label:'Facom',     logo:'./images/brands/Logo.facom.png' }
 };
