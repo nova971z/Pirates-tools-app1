@@ -1,0 +1,13 @@
+{
+  "name": "pirates-tools-app1",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Static PWA for Pirates Tools. CI runs `node scripts/ci.js` to validate anchors/assets.",
+  "scripts": {
+    "test": "node scripts/ci.js"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "license": "UNLICENSED"
+}
