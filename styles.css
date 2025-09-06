@@ -728,3 +728,108 @@ body{ padding-bottom: calc(var(--dockH) + 16px); } /* pour que le contenu ne pas
   .brand{ padding:12px; }
   .brand__label{ font-size:.9rem; }
 }
+
+/* =========================================================
+   BLOC 8 — HERO polish / no-seam / HD
+   - Qualité d'affichage pendant le zoom
+   - Fondu de jonction (zéro "barre" entre hero et contenu)
+   - Sûr: n'écrase pas tes styles si déjà présents
+========================================================= */
+
+/* Variables de base (laisse tes valeurs existantes si déjà définies) */
+:root{
+  --bg: #0a0f14;                /* même fond partout */
+  --heroFadeH: clamp(18vh,26vh,32vh);
+  --listGap: 26vh;
+}
+
+/* Section hero (fond transparent, au dessus du contenu) */
+#hero,
+.hero-full{
+  position: relative;
+  height: 100vh; height: 100svh; height: 100dvh;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  pointer-events: none;
+  background: transparent;
+  z-index: 30;
+  padding-top: max(0px, env(safe-area-inset-top));
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+/* Logo net pendant l'overshoot (BLOC 7 fournit srcset/sizes) */
+#heroLogo,
+.hero-logo{
+  display: block;
+  margin: 0 auto;
+  width: clamp(180px, 56vmin, 560px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  object-position: center;
+
+  /* rendu propre pendant les transforms */
+  image-rendering: auto;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+
+  /* piloté par JS (classe .on au chargement) */
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+#heroLogo.on,
+.hero-logo.on{ opacity: 1; }
+
+/* Fondu interne du hero (masque toute couture en bas du visuel) */
+.hero-fade{
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -1px;                 /* chevauche 1px pour éviter la “ligne” */
+  height: var(--heroFadeH);
+  pointer-events: none;
+  z-index: -1;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10,15,20,0) 0%,
+      rgba(10,15,20,.65) 55%,
+      var(--bg) 100%
+    );
+  /* lissage progressif (WebKit iOS) */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+          mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+}
+
+/* Quand le hero a “passé”, on le place sous la page */
+.hero-full.hero-out,
+#hero.hero-out{ z-index: -1; }
+
+/* Petit voile global (2e sécurité) pour gommer toute séparation sur tous thèmes */
+body::after{
+  content: "";
+  position: fixed;
+  left: 0; right: 0;
+  top: calc(100vh - var(--heroFadeH));
+  height: var(--heroFadeH);
+  pointer-events: none;
+  z-index: 29;                               /* sous la topbar, au dessus du contenu */
+  background: linear-gradient(180deg, rgba(10,15,20,0) 0%, var(--bg) 85%, var(--bg) 100%);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+/* On active ce voile uniquement pendant la phase “après hero” */
+body.after-hero::after{ opacity: 1; }
+
+/* Espace visuel contrôlé par le JS (var --listGap) si tu en as besoin */
+:root{ --listGap: 26vh; }
+.brand-grid,
+#list,
+#catList,
+.view .container{ scroll-margin-top: 12vh; }
+
+/* Paysage très bas : réduit légèrement la taille du visuel */
+@media (max-height: 480px){
+  #heroLogo, .hero-logo{ width: clamp(140px, 40vmin, 420px); }
+}
