@@ -13,26 +13,61 @@
   <a class="skip-link" href="#list">Aller au contenu</a>
 
   <!-- =================== TOPBAR =================== -->
-  <header class="topbar" role="banner">
-    <div class="topbar-left">
-      <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
-        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
-      </button>
+<header class="topbar" role="banner">
+  <div class="topbar-left">
+    <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
+      <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+    </button>
 
- <a id="homeLink" class="topbar-logo-link" href="#">
-  <img class="topbar-logo"
-       src="./images/pirates-tools-logo.png?v=7"
-       alt="Pirates Tools" width="140" height="40" />
-</a>
-    </div>
+    <a id="homeLink" class="topbar-logo-link" href="#">
+      <img
+        id="topbarLogo"
+        class="topbar-logo"
+        src="./icons/icon-384.png"
+        srcset="./icons/icon-180.png 180w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
+        sizes="140px"
+        alt="Pirates Tools"
+        width="140" height="40"
+        decoding="async" loading="eager" referrerpolicy="no-referrer"
+      />
+    </a>
+  </div>
 
-    <div class="cta">
-      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
-    </div>
-  </header>
+  <div class="cta">
+    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+    <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+  </div>
+</header>
 
- 
+<script>
+/* Topbar logo : charge l’icône sûre, puis essaye le logo marque */
+(function () {
+  var el = document.getElementById('topbarLogo');
+  if (!el) return;
+
+  var BRAND = './images/pirates-tools-logo.png?v=7'; // ton fichier de marque
+  var SAFE  = './icons/icon-384.png';                // roue de secours garantie
+
+  function setSrcSafe(img, src){
+    try {
+      if (typeof window.setSafeImg === 'function') {
+        window.setSafeImg(img, src, 'Pirates Tools');
+      } else {
+        img.src = src;
+      }
+    } catch(_) { img.src = src; }
+  }
+
+  // Teste si le logo de marque existe ; sinon garde l’icône sûre
+  var probe = new Image();
+  probe.referrerPolicy = 'no-referrer';
+  probe.onload  = function(){ setSrcSafe(el, BRAND); };
+  probe.onerror = function(){ setSrcSafe(el, SAFE); };
+  probe.src = BRAND;
+})();
+</script> 
+
+  
 <!-- === HERO (final) === -->
 <section id="hero" class="hero-full" aria-hidden="true">
   <img
