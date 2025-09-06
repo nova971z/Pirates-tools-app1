@@ -149,6 +149,59 @@
               </div>
             </form>
 
+
+<!-- LOGIN -->
+<section id="view-login" class="view hidden">
+  <div class="container">
+    <h1 tabindex="-1">Connexion</h1>
+    <div class="card">
+      <div class="head"><h3 class="title">Se connecter</h3><span class="badge">Compte</span></div>
+      <div class="specs" style="display:block">
+        <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+          <label>Email
+            <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+          </label>
+          <label>Mot de passe
+            <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
+          </label>
+          <div class="actions">
+            <button id="loginSubmit" class="btn primary" type="submit">Connexion</button>
+            <a class="btn" href="#/register">Créer un compte</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTER -->
+<section id="view-register" class="view hidden">
+  <div class="container">
+    <h1 tabindex="-1">Inscription</h1>
+    <div class="card">
+      <div class="head"><h3 class="title">Créer un compte</h3><span class="badge">Compte</span></div>
+      <div class="specs" style="display:block">
+        <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+          <label>Nom complet
+            <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+          </label>
+          <label>Email
+            <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+          </label>
+          <label>Mot de passe
+            <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
+          </label>
+          <div class="actions">
+            <button id="regSubmit" class="btn primary" type="submit">Créer le compte</button>
+            <a class="btn" href="#/login">J’ai déjà un compte</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+
             <!-- Jauge fidélité (facultatif / CSS prêt) -->
             <div class="meter" style="max-width:520px;margin-top:1rem">
               <div class="meter__rail">
