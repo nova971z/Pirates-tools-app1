@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-  <!-- ⛔ supprimé: preload image manquante ./images/pirates-tools-logo.png?v=7 -->
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -21,7 +20,7 @@
       </button>
 
       <a id="homeLink" class="topbar-logo-link" href="#">
-        <!-- ✅ logo inline: plus de chemin cassé -->
+        <!-- logo inline -->
         <svg class="topbar-logo" width="140" height="40" viewBox="0 0 140 40" role="img" aria-label="Pirates Tools">
           <rect x="0" y="0" width="140" height="40" rx="8" ry="8" fill="#0bd1ff"></rect>
           <text x="50%" y="50%" font-size="18" font-weight="700" text-anchor="middle"
@@ -39,7 +38,7 @@
 
   <!-- =================== HERO =================== -->
   <section id="hero" class="hero-full" aria-hidden="true">
-    <!-- ✅ image remplacée par SVG inline -->
+    <!-- image remplacée par SVG inline -->
     <svg id="heroLogo" class="hero-logo" viewBox="0 0 140 40" role="img" aria-label="">
       <defs>
         <linearGradient id="pt-grad" x1="0" y1="0" x2="1" y2="1">
@@ -85,7 +84,7 @@
 
     <!-- PRODUIT (PDP) -->
     <section id="view-produit" class="view hidden">
-      <div class="container pdp">
+      <div class="container pdp" id="pdp">
         <a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
         <div class="pdp__grid">
@@ -149,75 +148,70 @@
               </div>
             </form>
 
-
-<!-- LOGIN -->
-<section id="view-login" class="view hidden">
-  <div class="container">
-    <h1 tabindex="-1">Connexion</h1>
-    <div class="card">
-      <div class="head"><h3 class="title">Se connecter</h3><span class="badge">Compte</span></div>
-      <div class="specs" style="display:block">
-        <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
-          <label>Email
-            <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-          </label>
-          <label>Mot de passe
-            <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
-          </label>
-          <div class="actions">
-            <button id="loginSubmit" class="btn primary" type="submit">Connexion</button>
-            <a class="btn" href="#/register">Créer un compte</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- REGISTER -->
-<section id="view-register" class="view hidden">
-  <div class="container">
-    <h1 tabindex="-1">Inscription</h1>
-    <div class="card">
-      <div class="head"><h3 class="title">Créer un compte</h3><span class="badge">Compte</span></div>
-      <div class="specs" style="display:block">
-        <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
-          <label>Nom complet
-            <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
-          </label>
-          <label>Email
-            <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-          </label>
-          <label>Mot de passe
-            <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
-          </label>
-          <div class="actions">
-            <button id="regSubmit" class="btn primary" type="submit">Créer le compte</button>
-            <a class="btn" href="#/login">J’ai déjà un compte</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-            <!-- Jauge fidélité (facultatif / CSS prêt) -->
+            <!-- Jauge fidélité -->
             <div class="meter" style="max-width:520px;margin-top:1rem">
               <div class="meter__rail">
                 <div id="accFill" class="meter__fill"></div>
                 <div id="accCursor" class="meter__cursor" style="left:0%"></div>
               </div>
               <div class="meter__scale"><span>0%</span><span>100%</span></div>
-              <input id="accSlider" type="range" min="0" max="100" step="1" value="0" />
+              <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ✅ ancre requise par la CI -->
-    <a id="pdp" class="sr-only" aria-hidden="true"></a>
+    <!-- LOGIN (séparé de #view-compte) -->
+    <section id="view-login" class="view hidden">
+      <div class="container">
+        <h1 tabindex="-1">Connexion</h1>
+        <div class="card">
+          <div class="head"><h3 class="title">Se connecter</h3><span class="badge">Compte</span></div>
+          <div class="specs" style="display:block">
+            <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+              <label>Email
+                <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+              </label>
+              <label>Mot de passe
+                <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
+              </label>
+              <div class="actions">
+                <button id="loginSubmit" class="btn primary" type="submit">Connexion</button>
+                <a class="btn" href="#/register">Créer un compte</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTER (séparé de #view-compte) -->
+    <section id="view-register" class="view hidden">
+      <div class="container">
+        <h1 tabindex="-1">Inscription</h1>
+        <div class="card">
+          <div class="head"><h3 class="title">Créer un compte</h3><span class="badge">Compte</span></div>
+          <div class="specs" style="display:block">
+            <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+              <label>Nom complet
+                <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+              </label>
+              <label>Email
+                <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+              </label>
+              <label>Mot de passe
+                <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
+              </label>
+              <div class="actions">
+                <button id="regSubmit" class="btn primary" type="submit">Créer le compte</button>
+                <a class="btn" href="#/login">J’ai déjà un compte</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
 
   </main>
 
@@ -253,11 +247,11 @@
     </a>
   </aside>
 
-  <!-- =================== TOASTS + A11y roots (les scripts les créent si absents) =================== -->
+  <!-- =================== TOASTS + A11y roots =================== -->
   <div id="toasts" aria-live="polite"></div>
   <div id="sr-live" class="sr-only" aria-live="polite"></div>
 
-  <!-- Bouton d’installation PWA (révélé par JS si pertinent) -->
+  <!-- Bouton d’installation PWA -->
   <button id="installBtn" class="chip hidden" hidden>Installer l’app</button>
 
   <noscript>
@@ -269,7 +263,7 @@
   <!-- =================== JS =================== -->
   <script src="./app.js" defer></script>
 
-  <!-- Micro-script menu (non intrusif, compatible avec vos styles) -->
+  <!-- Micro-script menu -->
   <script>
     (function(){
       var btn = document.getElementById('menu-toggle');
