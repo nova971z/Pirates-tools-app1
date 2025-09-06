@@ -2556,3 +2556,358 @@
     obs.observe(header, { childList:true, subtree:true, characterData:true });
   }
 })();
+
+
+/* =========================================================
+   BLOC 4 — Accès COMPTE + Liens menu garantis
+   - Force les bons href/data-route sur le menu (Accueil/Catalogue/Devis/Compte)
+   - Garantit l’existence de la vue #/compte (fallback si la Partie 3 n’a pas fini)
+   - Ne casse rien : défensif, n’override pas tes fonctions
+========================================================= */
+(function(){
+  'use strict';
+  function $(s, r){ return (r||document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+
+  /* -------- 1) Normalise les liens du panneau latéral -------- */
+  var menu = $('#sideMenu') || $('#drawer') || $('#menu') || $('.side-menu') || $('.drawer') || null;
+
+  // mappage label -> route
+  var MAP = {
+    'accueil'   : '#/',
+    'catalogue' : '#/catalogue',
+    'devis'     : '#/devis',
+    'compte'    : '#/compte'
+  };
+
+  if (menu){
+    // a) <a> existants → force le bon href
+    $$('.menu a, a', menu).forEach(function(a){
+      var txt = (a.textContent||'').trim().toLowerCase();
+      if (MAP[txt]) a.setAttribute('href', MAP[txt]);
+    });
+    // b) <button> éventuels → ajoute data-route
+    $$('.menu button, button', menu).forEach(function(b){
+      var txt = (b.textContent||'').trim().toLowerCase();
+      if (MAP[txt] && !b.getAttribute('data-route')){
+        b.setAttribute('data-route', MAP[txt].replace('#/',''));
+      }
+    });
+  }
+
+  /* -------- 2) Vue COMPTE de secours (si absente) -------- */
+  if (!document.getElementById('view-compte')) {
+    var s = document.createElement('section');
+    s.id = 'view-compte';
+    s.className = 'view hidden';
+    s.innerHTML =
+      '<div class="container">'+
+        '<h1 tabindex="-1">Mon compte</h1>'+
+        '<p style="color:#9fb4c5;margin:.25rem 0 1rem">Préparez/complétez vos infos pour accélérer les devis.</p>'+
+        '<div id="accContent"><div class="card"><div class="specs"><p>Interface en cours de chargement…</p></div></div></div>'+
+      '</div>';
+    document.body.appendChild(s);
+  }
+
+  /* -------- 3) Raccourci éventuel "goAccountBtn" -------- */
+  var goAcc = $('#goAccountBtn');
+  if (goAcc && !goAcc.__ptW){
+    goAcc.__ptW = 1;
+    goAcc.addEventListener('click', function(e){
+      e.preventDefault();
+      location.hash = '#/compte';
+    }, false);
+  }
+
+  /* -------- 4) Arrivées directes sur #/compte -------- */
+  function tryRenderAccount(){
+    try{
+      if (typeof window.renderAccountView === 'function'){ window.renderAccountView(); }
+      if (typeof window.showView === 'function'){ window.showView('compte'); }
+      if (typeof window.focusView === 'function'){ window.focusView('compte'); }
+    }catch(_){}
+  }
+  if ((location.hash||'').indexOf('#/compte') === 0){
+    // si les produits/JS des autres parties n’ont pas fini, on retente un peu plus tard
+    setTimeout(tryRenderAccount, 0);
+    window.addEventListener('pt:userChanged', tryRenderAccount, { once:true });
+  }
+})();
+
+
+/* =========================================================
+   BLOC 5 — Navigation UX++ (menu auto-close, focus H1, actifs)
+   - Ferme le menu latéral à chaque navigation
+   - Met à jour aria-current dans le menu
+   - Focus le H1 après changement de route
+   - Dock: délégation de navigation fiable
+   - ES5-safe, ne casse pas les blocs précédents
+========================================================= */
+(function(){
+  'use strict';
+  function $(s, r){ return (r||document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+
+  /* --------- Sélection défensive des éléments du menu --------- */
+  var drawer = $('#sideMenu') || $('#drawer') || $('#menu') || $('.side-menu') || $('.drawer') || $('#nav');
+  var burger = $('#menuBtn') || $('.topbar-burger') || $('#burgerBtn') || $('.menu-toggle');
+  var backdrop = $('#menuBackdrop') || (drawer ? $('.menu-backdrop', drawer) || $('.backdrop', drawer) : null);
+
+  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
+  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
+  function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
+
+  function drawerIsOpen(){
+    if (!drawer) return false;
+    return hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active') || drawer.getAttribute('aria-hidden') === 'false';
+  }
+  function openDrawer(){
+    if (!drawer) return;
+    addClass(drawer,'open'); addClass(drawer,'is-open'); addClass(drawer,'active');
+    drawer.setAttribute('aria-hidden','false');
+    if (burger) burger.setAttribute('aria-expanded','true');
+    if (backdrop) addClass(backdrop,'show');
+    // focus premier lien
+    try{ var a = drawer.querySelector('a,button,[tabindex]'); if (a) a.focus(); }catch(_){}
+  }
+  function closeDrawer(){
+    if (!drawer) return;
+    rmClass(drawer,'open'); rmClass(drawer,'is-open'); rmClass(drawer,'active');
+    drawer.setAttribute('aria-hidden','true');
+    if (burger) burger.setAttribute('aria-expanded','false');
+    if (backdrop) rmClass(backdrop,'show');
+    try{ if (burger && burger.focus) burger.focus(); }catch(_){}
+  }
+  function toggleDrawer(){ drawerIsOpen() ? closeDrawer() : openDrawer(); }
+
+  if (burger && !burger.__ptW){
+    burger.__ptW = 1;
+    burger.addEventListener('click', function(e){ e.preventDefault(); toggleDrawer(); }, false);
+    burger.addEventListener('pointerup', function(e){ if (e.pointerType==='touch'){ e.preventDefault(); toggleDrawer(); } }, false);
+  }
+  if (backdrop && !backdrop.__ptW){
+    backdrop.__ptW = 1;
+    backdrop.addEventListener('click', function(){ closeDrawer(); }, false);
+  }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' || e.keyCode === 27) closeDrawer(); }, false);
+
+  /* --------- Navigation dans le menu: auto-close + route --------- */
+  if (drawer && !drawer.__ptNav){
+    drawer.__ptNav = 1;
+    drawer.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      var b = e.target && e.target.closest ? e.target.closest('button[data-route]') : null;
+
+      if (a){
+        // Laisse la navigation hash se faire, on ferme le menu
+        setTimeout(closeDrawer, 0);
+        return; // on ne bloque pas le comportement par défaut
+      }
+      if (b){
+        var route = b.getAttribute('data-route') || '';
+        if (route){ location.hash = '#/' + route.replace(/^#\//,''); setTimeout(closeDrawer, 0); }
+      }
+    }, false);
+  }
+
+  /* --------- Mise à jour aria-current dans le menu --------- */
+  function getRoutePath(){
+    try{
+      var p = (typeof window.parseHash === 'function') ? window.parseHash() : { view:'', path:'#/' };
+      var v = (p && p.view) || '';
+      if (!v || v==='home') return '#/';
+      return '#/' + v;
+    }catch(_){ return (location.hash||'#/'); }
+  }
+  function markActiveLink(){
+    if (!drawer) return;
+    var cur = getRoutePath();
+    var links = drawer.querySelectorAll ? drawer.querySelectorAll('a[href^="#"]') : [];
+    for (var i=0;i<links.length;i++){
+      var href = links[i].getAttribute('href') || '';
+      if (href === cur) links[i].setAttribute('aria-current','page');
+      else links[i].removeAttribute('aria-current');
+    }
+  }
+
+  /* --------- Focus H1 après navigation --------- */
+  function focusCurrentH1(){
+    try{
+      var p = (typeof window.parseHash === 'function') ? window.parseHash() : { view:'' };
+      if (typeof window.focusView === 'function'){ window.focusView(p.view||''); return; }
+      var id = p.view ? ('view-' + p.view) : 'view-home';
+      var scope = document.getElementById(id);
+      var h1 = scope ? scope.querySelector('h1') : null;
+      if (h1){
+        h1.setAttribute('tabindex','-1');
+        try{ h1.focus({preventScroll:true}); }catch(_){}
+        setTimeout(function(){ h1.removeAttribute('tabindex'); }, 280);
+      }
+    }catch(_){}
+  }
+
+  /* --------- Dock (bas) — délégation de navigation fiable --------- */
+  var dock = document.getElementById('dock');
+  if (dock && !dock.__ptNav){
+    dock.__ptNav = 1;
+    dock.addEventListener('click', function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('[data-route],[data-go]') : null;
+      if (btn){
+        var r = btn.getAttribute('data-route') || btn.getAttribute('data-go') || '';
+        if (r){
+          if (r.indexOf('#/')===0){ location.hash = r; }
+          else { location.hash = '#/' + r.replace(/^#\//,''); }
+          e.preventDefault();
+        }
+      }
+    }, false);
+  }
+  // si des IDs connus existent, on leur donne un data-route par sûreté
+  var id2route = {
+    dockToolsBtn:   '#/catalogue',
+    dockCartBtn:    '#/devis',
+    dockAccountBtn: '#/compte',
+    homeLink:       '#/'
+  };
+  for (var k in id2route){
+    var el = document.getElementById(k);
+    if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', id2route[k]);
+  }
+
+  /* --------- Synchronisation sur changement de route --------- */
+  function afterRoute(){
+    try{ markActiveLink(); }catch(_){}
+    try{ closeDrawer(); }catch(_){}
+    try{ focusCurrentH1(); }catch(_){}
+  }
+
+  window.addEventListener('hashchange', function(){ setTimeout(afterRoute, 0); }, false);
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(afterRoute, 0); }, false);
+})();
+
+/* =========================================================
+   BLOC 6 — Mobile polish + gestes + héros fluide (ES5-safe)
+   - Héro: fade-in .on quand l'image est prête + fix 100vh mobile
+   - Menu latéral: swipe pour fermer + inertie iOS + anti-overscroll
+   - Défensif: n'écrase pas les fonctions existantes des blocs 1–5
+========================================================= */
+(function(){
+  'use strict';
+
+  function $(s, r){ return (r||document).querySelector(s); }
+  function on(el, ev, fn, opts){ if (el && !el.__pt6) el.__pt6 = {}; if (el && !el.__pt6[ev]){ el.__pt6[ev] = 1; el.addEventListener(ev, fn, opts||false); } }
+
+  /* ---------------- HÉRO — fade-in + 100vh mobile fix ---------------- */
+  (function(){
+    var hero = $('#hero');
+    var logo = $('#heroLogo'); // <img id="heroLogo" ...>
+
+    // 1) Fade-in fiable du logo
+    function armLogo(){
+      if (!logo) return;
+      var done = function(){ try{ logo.classList.add('on'); }catch(_){ } };
+      if (logo.complete && logo.naturalWidth > 0){ done(); return; }
+      on(logo, 'load', done, { passive:true });
+      on(logo, 'error', done, { passive:true }); // fallback si échec réseau
+    }
+    armLogo();
+
+    // 2) Fix 100vh sur iOS/Android (visualViewport)
+    function isMobileUA(){ return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''); }
+    function applyHeroVH(){
+      if (!hero) return;
+      try{
+        if (isMobileUA() && window.visualViewport){
+          var vh = Math.max(1, Math.round(window.visualViewport.height));
+          hero.style.height = vh + 'px';
+        } else {
+          hero.style.height = ''; // laisse le CSS gérer en desktop
+        }
+      }catch(_){}
+    }
+    applyHeroVH();
+    on(window, 'resize', applyHeroVH, { passive:true });
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function'){
+      on(window.visualViewport, 'resize', applyHeroVH, { passive:true });
+    }
+    on(window, 'orientationchange', function(){ setTimeout(applyHeroVH, 120); }, { passive:true });
+    on(document, 'visibilitychange', function(){ if (!document.hidden) applyHeroVH(); }, { passive:true });
+    on(window, 'pageshow', function(e){ if (e && e.persisted) applyHeroVH(); }, { passive:true });
+  })();
+
+  /* --------------- MENU LATÉRAL — inertie + swipe to close --------------- */
+  (function(){
+    // Sélecteurs natifs de ton HTML
+    var body    = document.body;
+    var drawer  = $('#side-menu');
+    var overlay = $('#menu-overlay');
+    var burger  = $('#menu-toggle');
+
+    // Fermeture safe (n'écrase pas le micro-script déjà présent)
+    function ptCloseDrawer(){
+      try {
+        body.classList.remove('menu-open');
+        if (overlay) overlay.hidden = true;
+        if (drawer)  drawer.hidden  = true;
+        if (burger)  burger.setAttribute('aria-expanded','false');
+        // anti-overscroll (on restaure)
+        if (drawer){ drawer.style.touchAction = ''; drawer.style.webkitOverflowScrolling = ''; }
+        body.style.overscrollBehaviorY = '';
+      } catch(_){}
+    }
+
+    // Améliorations iOS: inertie + overscroll containment quand ouvert
+    function applyOpenTuning(){
+      try{
+        if (!drawer) return;
+        drawer.style.touchAction = 'pan-y';
+        drawer.style.webkitOverflowScrolling = 'touch';
+        body.style.overscrollBehaviorY = 'contain';
+      }catch(_){}
+    }
+
+    // Écoute le micro-script existant → si on ouvre via le bouton, on applique la tuning
+    if (burger && !burger.__pt6hook){
+      burger.__pt6hook = 1;
+      on(burger, 'click', function(){ setTimeout(applyOpenTuning, 0); }, { passive:true });
+      on(burger, 'pointerup', function(){ setTimeout(applyOpenTuning, 0); }, { passive:true });
+    }
+
+    // Swipe-to-close: drag vers la gauche à l’intérieur du drawer
+    var sx = 0, sy = 0, moving = false;
+    function start(e){
+      var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
+      sx = t.clientX; sy = t.clientY; moving = true;
+    }
+    function move(e){
+      if (!moving) return;
+      var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
+      var dx = t.clientX - sx;
+      var dy = t.clientY - sy;
+      // geste horizontal net vers la gauche
+      if (dx < -48 && Math.abs(dx) > Math.abs(dy)*1.4){
+        moving = false;
+        ptCloseDrawer();
+      }
+    }
+    function end(){ moving = false; }
+
+    var swipeTarget = drawer || document;
+    on(swipeTarget, 'touchstart', start, { passive:true });
+    on(swipeTarget, 'touchmove',  move,  { passive:true });
+    on(swipeTarget, 'touchend',   end,   { passive:true });
+    on(swipeTarget, 'pointerdown', start, { passive:true });
+    on(swipeTarget, 'pointermove',  move,  { passive:true });
+    on(swipeTarget, 'pointerup',    end,   { passive:true });
+
+    // L'overlay ferme déjà via ton micro-script; double-sécurisation :
+    if (overlay && !overlay.__pt6close){
+      overlay.__pt6close = 1;
+      on(overlay, 'click', ptCloseDrawer, { passive:true });
+    }
+
+    // Ferme automatiquement le menu quand la route change (sécurité supplémentaire)
+    on(window, 'hashchange', function(){ setTimeout(ptCloseDrawer, 0); }, { passive:true });
+  })();
+
+})();
