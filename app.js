@@ -224,85 +224,137 @@
     if (dock) dock.classList.add('dock--visible');
   })();
 
-/* ---------- HÉRO : zoom overshoot + fondu ---------- */
+/* ---------- HÉRO : zoom overshoot ++, blur, HD ---------- */
 (function heroEffect(){
-  // ⛔️ Important : si l’overshoot avancé (PARTIE 6) est actif, on ne branche PAS cette anim de base
-  if (window.__ptHeroOvershoot) return;
+  'use strict';
+  if (window.__ptHeroWired) return;          // anti double-wiring
+  window.__ptHeroWired = 1;                   // (désactive les autres blocs hero)
+  window.__ptHeroOvershoot = 1;
 
-  if (window.__ptHeroWired) return; // évite double wiring
-  var hero = document.getElementById('hero');
-  var heroLogo = document.getElementById('heroLogo');
+  var D = document, W = window;
+  var hero = D.getElementById('hero');
+  var heroLogo = D.getElementById('heroLogo');
   if (!hero || !heroLogo) return;
 
-  // quand l’image est prête → fade-in
-  var reveal = function(){ heroLogo.classList.add('on'); };
-  if (heroLogo.complete) setTimeout(reveal, 0);
-  else heroLogo.addEventListener('load', reveal, { once:true });
+  /* --- qualité image (src/srcset/sizes) --- */
+  (function ensureHiRes(){
+    try{
+      if (heroLogo.tagName === 'IMG') {
+        var cur = heroLogo.getAttribute('src') || '';
+        if (!cur || /icon-180\.png$/i.test(cur)) heroLogo.setAttribute('src','./icons/icon-512.png');
+        // Si certains fichiers n’existent pas, le navigateur ignore l’entrée → pas de casse
+        heroLogo.setAttribute('srcset',
+          './icons/icon-2048.png 2048w, '+
+          './icons/icon-1024.png 1024w, '+
+          './icons/icon-512.png 512w, '+
+          './icons/icon-384.png 384w, '+
+          './icons/icon-256.png 256w, '+
+          './icons/icon-192.png 192w, '+
+          './icons/icon-180.png 180w'
+        );
+        heroLogo.setAttribute('sizes','(max-width:768px) 66vmin, 900px');
+        heroLogo.decoding = 'async';
+        heroLogo.loading  = 'eager';
+        heroLogo.referrerPolicy = 'no-referrer';
+        heroLogo.onerror = function(){ this.onerror=null; this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7'); };
+      }
+    }catch(_){}
+    // hints rendu
+    heroLogo.style.willChange = 'transform,opacity,filter';
+    heroLogo.style.backfaceVisibility = 'hidden';
+    heroLogo.style.webkitBackfaceVisibility = 'hidden';
+    heroLogo.style.imageRendering = '-webkit-optimize-contrast';
+    heroLogo.style.transform = 'translateZ(0)';
+  })();
 
-  var mqMobile = window.matchMedia('(max-width: 768px)');
-  var mqr     = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var easeOut = function(t){ return 1 - Math.pow(1 - t, 3); };
-
-  function getVH(){ return (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1; }
-  function scrollY(){
-    return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
-           (document.scrollingElement && document.scrollingElement.scrollTop) ||
-           document.documentElement.scrollTop ||
-           document.body.scrollTop || 0;
+  // assure le fondu interne si absent
+  if (!hero.querySelector('.hero-fade')){
+    var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
   }
+
+  // accessibilité
+  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mqr && mqr.matches){
+    heroLogo.style.transform = 'translate3d(0,0,0) scale(1)';
+    heroLogo.style.opacity = '1';
+    heroLogo.style.filter  = 'none';
+    return;
+  }
+
+  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
+  var easeOut = function(t){ return 1 - Math.pow(1 - t, 3); };
+  var clamp   = function(x,a,b){ return x<a?a:(x>b?b:x); };
+  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+  function scrollY(){
+    return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+           (D.scrollingElement && D.scrollingElement.scrollTop) ||
+           D.documentElement.scrollTop || D.body.scrollTop || 0;
+  }
+
+  // Paramètres (gros au départ + overshoot élevé + blur)
+  var MAX_SCALE_M = 8.0, MAX_SCALE_D = 6.5;   // zoom final très important
+  var BASE_M = 1.30,   BASE_D = 1.18;         // plus gros à l’ouverture
+  var DIST_M = 1.25,   DIST_D = 1.35;         // distance en hauteurs d’écran
+  var BLUR_MAX_M = 16, BLUR_MAX_D = 12;       // flou max
 
   var vh = getVH(), prevY = -1, rafId = 0;
 
   function render(y){
-    // Fin d’anim + overshoot : continuer jusqu’à 120% de la hauteur
-    var finPx = vh * (mqMobile.matches ? 1.20 : 1.15);
-    var raw = Math.max(0, Math.min(1, y / (finPx || 1)));
-    var p   = easeOut(raw);
+    var isM   = mqMobile && mqMobile.matches;
+    var finPx = vh * (isM ? DIST_M : DIST_D);
 
-    // Overshoot plus fort sur mobile
-    var maxScale = mqMobile.matches ? 4.2 : 3.2;
-    var scale    = 1 + (maxScale - 1) * p;
+    var raw      = y / (finPx || 1);          // non clampé → autorise l’overshoot
+    var clamped  = clamp(raw, 0, 1);
+    var eased    = easeOut(clamped);
 
-    var tyPx     = (mqMobile.matches ? 10 : 6) * (vh / 100) * p;
-    var opacity  = Math.max(0, Math.min(1, 1 - (mqMobile.matches ? 1.75 : 1.35) * raw));
+    // continue de grossir après 1 → disparition
+    var over     = raw < 0 ? 0 : (raw > 2.4 ? 2.4 : raw);
+    var base     = isM ? BASE_M : BASE_D;
+    var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
+    var scale    = base + (maxS - base) * over;
+
+    var tyPx     = (isM ? 12 : 8) * (vh/100) * eased;
+
+    // opacité : garde net longtemps puis fondu
+    var startFade = 0.60;
+    var op = 1 - clamp((raw - startFade) / 0.40, 0, 1); // 60%→100%
+
+    // flou progressif (sensation de profondeur)
+    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+    var blur = blurMax * clamp(raw, 0, 1.15);
 
     var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
     heroLogo.style.transform = t;
     heroLogo.style.webkitTransform = t;
-    heroLogo.style.opacity = opacity.toFixed(3);
+    heroLogo.style.opacity = op.toFixed(3);
+    heroLogo.style.filter  = (blur>0 ? 'blur('+blur.toFixed(2)+'px)' : 'none');
 
-    // gap pour la grille qui remonte élégamment
-    var gap = (1 - raw) * (mqMobile.matches ? 18 : 22);
-    document.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+    // espace visuel pour la grille sous le hero
+    var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
+    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
 
-    var done = raw > 0.985; // on “passe” le hero
-    document.body.classList.toggle('after-hero', done);
+    // quand on a parcouru ~120% → “derrière”
+    var done = raw > 1.20;
+    D.body.classList.toggle('after-hero', done);
     hero.classList.toggle('hero-out', done);
   }
 
-  function tick(){ var y = scrollY(); if (y !== prevY){ render(y); prevY = y; } rafId = requestAnimationFrame(tick); }
+  function tick(){ var y = scrollY(); if (y !== prevY){ render(y); prevY = y; } rafId = W.requestAnimationFrame(tick); }
 
-  if (mqr.matches){
-    var t0 = 'translate3d(0,0,0) scale(1)';
-    heroLogo.style.transform = t0; heroLogo.style.webkitTransform = t0; heroLogo.style.opacity='1';
-    document.documentElement.style.setProperty('--listGap', '18vh');
-    document.body.classList.remove('after-hero'); hero.classList.remove('hero-out');
-  } else {
-    rafId = requestAnimationFrame(tick);
-    var recalc = function(){ vh = getVH(); render(scrollY()); };
-    window.addEventListener('resize', recalc, true);
-    if (window.visualViewport && typeof window.visualViewport.addEventListener==='function'){
-      window.visualViewport.addEventListener('resize', recalc, true);
-    }
-    window.addEventListener('orientationchange', recalc, true);
-    document.addEventListener('visibilitychange', function(){ if (!document.hidden) recalc(); }, true);
-    window.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-    window.addEventListener('pagehide', function(){ cancelAnimationFrame(rafId); }, true);
-    render(scrollY());
-  }
+  // fade-in quand prêt
+  var reveal = function(){ heroLogo.classList.add('on'); };
+  if (heroLogo.complete) setTimeout(reveal, 0); else heroLogo.addEventListener('load', reveal, { once:true });
 
-  window.__ptHeroWired = 1;
-})();
+  rafId = W.requestAnimationFrame(tick);
+  var recalc = function(){ vh = getVH(); render(scrollY()); };
+  W.addEventListener('resize', recalc, true);
+  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){ W.visualViewport.addEventListener('resize', recalc, true); }
+  W.addEventListener('orientationchange', recalc, true);
+  D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+  W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+  W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+})();   
+
 
    
   /* ---------- Grille marques : toutes les marques visibles ---------- */
