@@ -13,76 +13,67 @@
   <a class="skip-link" href="#list">Aller au contenu</a>
 
   <!-- =================== TOPBAR =================== -->
-<header class="topbar" role="banner">
-  <div class="topbar-left">
-    <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
-      <span class="bar"></span><span class="bar"></span><span class="bar"></span>
-    </button>
+  <header class="topbar" role="banner">
+    <div class="topbar-left">
+      <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </button>
 
-    <a id="homeLink" class="topbar-logo-link" href="#">
-      <img
-        id="topbarLogo"
-        class="topbar-logo"
-        src="./icons/icon-384.png"
-        srcset="./icons/icon-180.png 180w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
-        sizes="140px"
-        alt="Pirates Tools"
-        width="140" height="40"
-        decoding="async" loading="eager" referrerpolicy="no-referrer"
-      />
-    </a>
-  </div>
+      <a id="homeLink" class="topbar-logo-link" href="#">
+        <img
+          id="topbarLogo"
+          class="topbar-logo"
+          src="./icons/icon-384.png"
+          srcset="./icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
+          sizes="140px"
+          alt="Pirates Tools"
+          width="140" height="40"
+          decoding="async" loading="eager" referrerpolicy="no-referrer" fetchpriority="high"
+        />
+      </a>
+    </div>
 
-  <div class="cta">
-    <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-    <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
-  </div>
-</header>
+    <div class="cta">
+      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
+      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+    </div>
+  </header>
 
-<script>
-/* Topbar logo : charge l’icône sûre, puis essaye le logo marque */
-(function () {
-  var el = document.getElementById('topbarLogo');
-  if (!el) return;
+  <script>
+  /* Topbar logo : utilise une icône sûre puis tente le logo marque */
+  (function () {
+    var el = document.getElementById('topbarLogo');
+    if (!el) return;
+    var BRAND = './images/pirates-tools-logo.png?v=7'; // ton logo marque (si présent)
+    var SAFE  = './icons/icon-384.png';                // roue de secours garantie
 
-  var BRAND = './images/pirates-tools-logo.png?v=7'; // ton fichier de marque
-  var SAFE  = './icons/icon-384.png';                // roue de secours garantie
+    function setSrcSafe(img, src){ try{ img.src = src; }catch(_){ img.setAttribute('src', src); } }
 
-  function setSrcSafe(img, src){
-    try {
-      if (typeof window.setSafeImg === 'function') {
-        window.setSafeImg(img, src, 'Pirates Tools');
-      } else {
-        img.src = src;
-      }
-    } catch(_) { img.src = src; }
-  }
+    // teste l’existence du logo de marque
+    var probe = new Image();
+    probe.referrerPolicy = 'no-referrer';
+    probe.onload  = function(){ setSrcSafe(el, BRAND); };
+    probe.onerror = function(){ setSrcSafe(el, SAFE);  };
+    probe.src = BRAND;
+  })();
+  </script>
 
-  // Teste si le logo de marque existe ; sinon garde l’icône sûre
-  var probe = new Image();
-  probe.referrerPolicy = 'no-referrer';
-  probe.onload  = function(){ setSrcSafe(el, BRAND); };
-  probe.onerror = function(){ setSrcSafe(el, SAFE); };
-  probe.src = BRAND;
-})();
-</script> 
+  <!-- === HERO (final) === -->
+  <section id="hero" class="hero-full" aria-hidden="true">
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      src="./icons/icon-512.png"
+      srcset="./icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
+      sizes="min(62vmin, 560px)"
+      alt="Pirates Tools"
+      width="512" height="512"
+      decoding="async" loading="eager" referrerpolicy="no-referrer" fetchpriority="high"
+    />
+    <div class="hero-fade" aria-hidden="true"></div>
+  </section>
+  <!-- === /HERO === -->
 
-  
-<!-- === HERO (final) === -->
-<section id="hero" class="hero-full" aria-hidden="true">
-  <img
-    id="heroLogo"
-    class="hero-logo"
-    src="./icons/icon-180.png"
-    alt="Pirates Tools"
-    width="512"
-    height="512"
-    decoding="async"
-    loading="eager"
-  />
-  <div class="hero-fade" aria-hidden="true"></div>
-</section>
-<!-- === /HERO === -->  
   <!-- =================== VUES (SPA) =================== -->
   <main id="app" role="main">
 
@@ -248,9 +239,9 @@
   <!-- =================== DOCK =================== -->
   <nav id="dock" class="dock" aria-label="Barre d’action">
     <div class="dock__shell">
-      <button id="dockQuoteBtn" class="dock__btn dock__btn--tools" type="button" aria-label="Devis WhatsApp">🛠️</button>
-      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte">👤</button>      
-      <button id="dockCartBtn"  class="dock__btn dock__btn--cart"  type="button" aria-label="Voir le panier">🛒</button>
+      <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" aria-label="Devis WhatsApp">🛠️</button>
+      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte">👤</button>
+      <button id="dockCartBtn"    class="dock__btn dock__btn--cart"    type="button" aria-label="Voir le panier">🛒</button>
       <span id="dockCount" class="dock__badge" aria-label="Articles dans le panier">0</span>
       <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
       <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
@@ -297,9 +288,9 @@
   <!-- Micro-script menu -->
   <script>
     (function(){
-      var btn = document.getElementById('menu-toggle');
-      var ovl = document.getElementById('menu-overlay');
-      var side= document.getElementById('side-menu');
+      var btn  = document.getElementById('menu-toggle');
+      var ovl  = document.getElementById('menu-overlay');
+      var side = document.getElementById('side-menu');
       function open(){ document.body.classList.add('menu-open'); if(ovl) ovl.hidden=false; if(side) side.hidden=false; btn && btn.setAttribute('aria-expanded','true'); }
       function close(){ document.body.classList.remove('menu-open'); if(ovl) ovl.hidden=true;  if(side) side.hidden=true;  btn && btn.setAttribute('aria-expanded','false'); }
       if (btn){ btn.addEventListener('click', function(){ document.body.classList.contains('menu-open') ? close() : open(); }); }
