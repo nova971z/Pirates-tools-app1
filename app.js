@@ -224,63 +224,47 @@
     if (dock) dock.classList.add('dock--visible');
   })();
 
-
 /* ---------- HÉRO : zoom overshoot ++, blur, HD (iOS/Android safe) ---------- */
 (function heroEffect(){
   'use strict';
-  if (window.__ptHeroWired) return;                  // anti double-wiring
+  if (window.__ptHeroWired) return;          // anti double-wiring
   window.__ptHeroWired = 1;
-  window.__ptHeroOvershoot = 1;                      // désactive d’éventuels autres blocs
 
   var D = document, W = window;
   var hero     = D.getElementById('hero');
   var heroLogo = D.getElementById('heroLogo');
   if (!hero || !heroLogo) return;
 
-  /* --- Qualité image (src/srcset/sizes) : uniquement les fichiers existants --- */
+  // --- Qualité image (uniquement fichiers existants) ---
   (function ensureHiRes(){
+    if (heroLogo.tagName !== 'IMG') return;
     try{
-      if (heroLogo.tagName === 'IMG') {
-        var cur = heroLogo.getAttribute('src') || '';
-        if (!cur || /icon-180\.png$/i.test(cur)) heroLogo.setAttribute('src','./icons/icon-512.png');
-
-        // uniquement les tailles présentes dans /icons/
-        heroLogo.setAttribute('srcset',
-          './icons/icon-180.png 180w, '+
-          './icons/icon-192.png 192w, '+
-          './icons/icon-256.png 256w, '+
-          './icons/icon-384.png 384w, '+
-          './icons/icon-512.png 512w'
-        );
-        heroLogo.setAttribute('sizes','(max-width:768px) 66vmin, 900px');
-        heroLogo.decoding = 'async';
-        heroLogo.loading  = 'eager';
-        heroLogo.referrerPolicy = 'no-referrer';
-
-        // fallback sans écraser un onerror inline éventuel
-        if (!heroLogo.getAttribute('onerror') && !heroLogo.__ptOnErr){
-          heroLogo.__ptOnErr = 1;
-          heroLogo.addEventListener('error', function(){
-            if (heroLogo.src.indexOf('icon-384.png') === -1) heroLogo.src = './icons/icon-384.png';
-          }, { once:true });
-        }
-      }
+      var cur = heroLogo.getAttribute('src') || '';
+      if (!cur || /icon-180\.png$/i.test(cur)) heroLogo.setAttribute('src','./icons/icon-512.png');
+      heroLogo.setAttribute('srcset',
+        './icons/icon-180.png 180w, '+
+        './icons/icon-192.png 192w, '+
+        './icons/icon-256.png 256w, '+
+        './icons/icon-384.png 384w, '+
+        './icons/icon-512.png 512w'
+      );
+      heroLogo.setAttribute('sizes','(max-width:768px) 66vmin, 900px');
+      heroLogo.decoding = 'async';
+      heroLogo.loading  = 'eager';
+      heroLogo.referrerPolicy = 'no-referrer';
     }catch(_){}
-    // Hints rendu (stabilité zoom/blur sur iOS/Android)
     heroLogo.style.willChange = 'transform,opacity,filter';
     heroLogo.style.backfaceVisibility = 'hidden';
     heroLogo.style.webkitBackfaceVisibility = 'hidden';
-    heroLogo.style.imageRendering = '-webkit-optimize-contrast';
     heroLogo.style.transform = 'translateZ(0)';
-    heroLogo.style.transformOrigin = 'center center';
   })();
 
-  // Assure le fondu interne si absent (masque la jonction bas du hero)
+  // Assure le fondu interne si absent
   if (!hero.querySelector('.hero-fade')){
     var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
   }
 
-  // Accessibilité: animations réduites → état stable + visible
+  // Accessibilité : no-motion
   var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
   if (mqr && mqr.matches){
     var t0 = 'translate3d(0,0,0) scale(1)';
@@ -292,10 +276,10 @@
     return;
   }
 
-  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-  var easeOut = function(t){ return 1 - Math.pow(1 - t, 3); };
-  var clamp   = function(x,a,b){ return x<a?a:(x>b?b:x); };
-
+  // Helpers
+  var mqMobile = (W.matchMedia && W.matchMedia('(max-width: 768px)')) || { matches:false };
+  function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
   function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
   function scrollY(){
     return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
@@ -303,68 +287,60 @@
            D.documentElement.scrollTop || D.body.scrollTop || 0;
   }
 
+  // ===== TUNING : plus gros & disparition plus tôt =====
+  var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
+  var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
+  var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
+  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
+  var FADE_START  = 0.40;                      // fondu commence plus tôt
+  var FADE_LEN    = 0.34;                      // fondu plus rapide
+  var DONE_M      = 1.06, DONE_D      = 1.10;  // passe « derrière » plus tôt
+  var OVER_MAX    = 2.6;                       // plafonne l’overshoot
 
-// ===== TUNING demandé : plus gros & disparition plus tôt =====
-var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
-var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
-var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
-var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
-var FADE_START  = 0.40;                       // fondu commence plus tôt
-var FADE_LEN    = 0.34;                       // fondu plus rapide
-var DONE_M      = 1.06, DONE_D      = 1.10;   // passe « derrière » plus tôt
-var OVER_MAX    = 2.6;                        // plafonne l’overshoot
+  var vh = getVH(), prevY = -1, rafId = 0;
 
-var vh = getVH(), prevY = -1, rafId = 0;
+  function render(y){
+    if (!heroLogo) return;
 
-function render(y){
-  // sécurité si dépendances absentes
-  if (!heroLogo) return;
+    var isM   = mqMobile && mqMobile.matches;
+    var finPx = vh * (isM ? DIST_M : DIST_D) || 1;
 
-  var isM   = mqMobile && mqMobile.matches;
-  var finPx = vh * (isM ? DIST_M : DIST_D) || 1;
+    // progression (non clampée) → autorise l’overshoot
+    var raw      = y / finPx;
+    var clamped  = clamp(raw, 0, 1);
+    var eased    = easeOut(clamped);
 
-  // progression (non clampée) → autorise l’overshoot
-  var raw      = y / finPx;
-  var clamped  = clamp(raw, 0, 1);
-  var eased    = easeOut(clamped);
+    // surcroissance douce au-delà de 1 → disparition plus bas
+    var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
+    var base     = isM ? BASE_M : BASE_D;
+    var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
+    var scale    = base + (maxS - base) * over;
 
-  // surcroissance douce au-delà de 1 → disparition complète plus bas
-  var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
-  var base     = isM ? BASE_M : BASE_D;
-  var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
-  var scale    = base + (maxS - base) * over;
+    // translation légère (garde l’effet “zoom avant”)
+    var tyPx     = (isM ? 13 : 9) * (vh / 100) * eased;
 
-  // translation légère (courte pour garder l’effet de “zoom avant”)
-  var tyPx     = (isM ? 13 : 9) * (vh / 100) * eased;
+    // opacité : fondu plus tôt/rapide
+    var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
 
-  // opacité : fondu plus tôt/rapide
-  var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+    // flou progressif
+    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+    var blur    = blurMax * clamp(raw, 0, 1.15);
 
-  // flou progressif (début plus tôt)
-  var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
-  var blur    = blurMax * clamp(raw, 0, 1.15);
+    var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
+    heroLogo.style.transform       = t;
+    heroLogo.style.webkitTransform = t;
+    heroLogo.style.opacity         = op.toFixed(3);
+    heroLogo.style.filter          = (blur > 0 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none');
 
-  var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
-  heroLogo.style.transform       = t;
-  heroLogo.style.webkitTransform = t;
-  heroLogo.style.opacity         = op.toFixed(3);
-  heroLogo.style.filter          = (blur > 0 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none');
+    // espace visuel pour la grille sous le hero
+    var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
+    D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-  // espace visuel pour la grille sous le hero
-  var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
-  D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
-
-  // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
-  var done = raw > (isM ? DONE_M : DONE_D);
-  D.body.classList.toggle('after-hero', done);
-  hero.classList.toggle('hero-out', done);
-}
-
-
-
-
-   
-
+    // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
+    var done = raw > (isM ? DONE_M : DONE_D);
+    D.body.classList.toggle('after-hero', done);
+    hero.classList.toggle('hero-out', done);
+  }
 
   function tick(){
     var y = scrollY();
@@ -391,7 +367,6 @@ function render(y){
   W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
   W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
 })();
-   
   /* ---------- Grille marques : toutes les marques visibles ---------- */
   var BRAND_META = {
     dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.Dewalt.png' },
