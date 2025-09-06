@@ -578,3 +578,11 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 .hero-full{ z-index: 30 }
 .hero-full.hero-out{ z-index: -1 }
 #heroLogo, .hero-logo{ will-change: transform, opacity }
+
+
+/* Topbar — logo compact collé au hamburger */
+.topbar-logo-link{
+  display:inline-flex; align-items:center;
+  margin-left:.5rem; text-decoration:none;
+}
+.topbar-logo{ display:block; height:28px; width:auto; }
