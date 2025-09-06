@@ -581,8 +581,11 @@ html{ scroll-padding-top: 70px } /* ≈ hauteur topbar */
 
 
 /* Topbar — logo compact collé au hamburger */
-.topbar-logo-link{
-  display:inline-flex; align-items:center;
-  margin-left:.5rem; text-decoration:none;
-}
+.topbar-logo-link{ display:inline-flex; align-items:center; margin-left:.5rem; text-decoration:none; }
 .topbar-logo{ display:block; height:28px; width:auto; }
+
+/* Masques de secours si ton thème rejoute un titre texte */
+header .site-title,
+header .brand-title,
+header .nav-title,
+header .title-pill { display:none !important; }
