@@ -2797,44 +2797,114 @@
   function $(s, r){ return (r||document).querySelector(s); }
   function on(el, ev, fn, opts){ if (el && !el.__pt6) el.__pt6 = {}; if (el && !el.__pt6[ev]){ el.__pt6[ev] = 1; el.addEventListener(ev, fn, opts||false); } }
 
-  /* ---------------- HÉRO — fade-in + 100vh mobile fix ---------------- */
-  (function(){
-    var hero = $('#hero');
-    var logo = $('#heroLogo'); // <img id="heroLogo" ...>
+   
+   /* ------------ HERO Overshoot: zoom jusqu’à disparition + fondu + timing vues ------------ */
+(function heroEffectOvershoot(){
+  'use strict';
+  var hero = document.getElementById('hero');
+  var logo = document.getElementById('heroLogo');
+  if (!hero || !logo) return;
 
-    // 1) Fade-in fiable du logo
-    function armLogo(){
-      if (!logo) return;
-      var done = function(){ try{ logo.classList.add('on'); }catch(_){ } };
-      if (logo.complete && logo.naturalWidth > 0){ done(); return; }
-      on(logo, 'load', done, { passive:true });
-      on(logo, 'error', done, { passive:true }); // fallback si échec réseau
-    }
-    armLogo();
+  var mqMobile = window.matchMedia('(max-width: 768px)');
+  var mqr      = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    // 2) Fix 100vh sur iOS/Android (visualViewport)
-    function isMobileUA(){ return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent||''); }
-    function applyHeroVH(){
-      if (!hero) return;
-      try{
-        if (isMobileUA() && window.visualViewport){
-          var vh = Math.max(1, Math.round(window.visualViewport.height));
-          hero.style.height = vh + 'px';
-        } else {
-          hero.style.height = ''; // laisse le CSS gérer en desktop
-        }
-      }catch(_){}
+  // paramètres (tu peux ajuster légèrement si tu veux)
+  var MAX_SCALE_M = 6.5;   // mobile: jusqu’à ~6.5x
+  var MAX_SCALE_D = 4.8;   // desktop: jusqu’à ~4.8x
+  var DIST_M      = 1.10;  // distance de scroll (en vh) avant “fin” mobile  (~110% viewport)
+  var DIST_D      = 1.20;  // distance de scroll desktop (~120% viewport)
+
+  function getVH(){ return (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1; }
+  function getY(){
+    return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
+           (document.scrollingElement && document.scrollingElement.scrollTop) ||
+           document.documentElement.scrollTop ||
+           document.body.scrollTop || 0;
+  }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function clamp01(x){ return x < 0 ? 0 : (x > 1 ? 1 : x); }
+
+  // fade-in du visuel au chargement
+  (function showLogoOnceReady(){
+    if (logo.tagName === 'IMG'){
+      if (logo.complete)               logo.classList.add('on');
+      else logo.addEventListener('load', function(){ logo.classList.add('on'); }, { once:true });
+    } else {
+      setTimeout(function(){ logo.classList.add('on'); }, 60);
     }
-    applyHeroVH();
-    on(window, 'resize', applyHeroVH, { passive:true });
-    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function'){
-      on(window.visualViewport, 'resize', applyHeroVH, { passive:true });
-    }
-    on(window, 'orientationchange', function(){ setTimeout(applyHeroVH, 120); }, { passive:true });
-    on(document, 'visibilitychange', function(){ if (!document.hidden) applyHeroVH(); }, { passive:true });
-    on(window, 'pageshow', function(e){ if (e && e.persisted) applyHeroVH(); }, { passive:true });
   })();
 
+  // mode réduit: logo fixe + visible
+  if (mqr.matches){
+    var t0 = 'translate3d(0,0,0) scale(1)';
+    logo.style.transform = t0; logo.style.webkitTransform = t0; logo.style.opacity = '1';
+    document.documentElement.style.setProperty('--listGap', '20vh');
+    document.body.classList.remove('after-hero');
+    hero.classList.remove('hero-out');
+    return;
+  }
+
+  var prevY = -1, rafId = 0;
+
+  function render(y){
+    var vh = getVH();
+    var fin = vh * (mqMobile.matches ? DIST_M : DIST_D);
+
+    // progression non clampée (pour autoriser l’overshoot)
+    var raw = y / (fin || 1);
+    var clamped = clamp01(raw);
+    var eased   = easeOutCubic(clamped);
+
+    // sur-croissance (overshoot) jusqu’à ~2.25x la progression “1”
+    var over = raw < 0 ? 0 : (raw > 2.25 ? 2.25 : raw);
+    var maxScale = mqMobile.matches ? MAX_SCALE_M : MAX_SCALE_D;
+    var scale = 1 + (maxScale - 1) * over;
+
+    // légère translation vers le bas pendant la montée
+    var tyPx = (mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
+
+    // fondu tardif (on garde le logo bien visible longtemps)
+    var opacity = 1 - Math.max(0, raw - 0.75) * 1.6; // commence à 75%, fini proche de 0 après 1.35
+    if (opacity < 0) opacity = 0;
+
+    var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
+    logo.style.transform = t;
+    logo.style.webkitTransform = t;
+    logo.style.opacity = opacity.toFixed(3);
+
+    // Espace entre hero et liste (pour le “timing” avec le contenu dessous)
+    var gapStart = mqMobile.matches ? 22 : 26;
+    var gap = Math.max(0, (1 - clamped) * gapStart);
+    document.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
+
+    // Quand l’overshoot est bien engagé, on passe le hero sous la page
+    var done = raw > 1.12; // ~112% de la hauteur écran
+    document.body.classList.toggle('after-hero', done);
+    hero.classList.toggle('hero-out', done);
+  }
+
+  function tick(){
+    var y = getY();
+    if (y !== prevY){ render(y); prevY = y; }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  rafId = requestAnimationFrame(tick);
+
+  function recalc(){ prevY = -1; render(getY()); }
+  window.addEventListener('resize',            recalc, true);
+  if (window.visualViewport && window.visualViewport.addEventListener){
+    window.visualViewport.addEventListener('resize', recalc, true);
+  }
+  window.addEventListener('orientationchange', recalc, true);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) recalc(); }, true);
+  window.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+  window.addEventListener('pagehide', function(){ cancelAnimationFrame(rafId); }, true);
+
+  render(getY());
+})();
+
+   
   /* --------------- MENU LATÉRAL — inertie + swipe to close --------------- */
   (function(){
     // Sélecteurs natifs de ton HTML
