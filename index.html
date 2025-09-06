@@ -20,16 +20,14 @@
       </button>
 
       <a id="homeLink" class="topbar-logo-link" href="#">
+        <!-- Placeholder transparent pour éviter l’icône “?” -->
         <img
           id="topbarLogo"
           class="topbar-logo"
-          src="./icons/icon-384.png"
-          srcset="./icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
-          sizes="140px"
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
           alt="Pirates Tools"
           width="140" height="40"
-          decoding="async" loading="eager" referrerpolicy="no-referrer" fetchpriority="high"
-        />
+          decoding="async" loading="eager" fetchpriority="high" />
       </a>
     </div>
 
@@ -39,159 +37,143 @@
     </div>
   </header>
 
-  <!-- ====== Chargeurs robustes pour les logos (topbar + héros) ====== -->
+  <!-- === HERO === -->
+  <section id="hero" class="hero-full" aria-hidden="true">
+    <!-- Placeholder transparent; la vraie source est posée via script -->
+    <img
+      id="heroLogo"
+      class="hero-logo"
+      alt="Pirates Tools"
+      src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+      width="512" height="512"
+      decoding="async" loading="eager" />
+    <div class="hero-fade" aria-hidden="true"></div>
+  </section>
+  <!-- === /HERO === -->
+
+  <!-- ====== Loader robuste (topbar + hero) : chemins GitHub Pages + cache-busting ====== -->
   <script>
   (function(){
     'use strict';
-    // ⚠️ Si ton repo a un autre nom, change cette valeur :
-    var REPO_SLUG = 'Pirates-tools-app1';
+    var D = document;
 
-    // Essaye plusieurs URLs jusqu'à en trouver une qui fonctionne
-    function pickWorkingURL(candidates, onOk, onFail){
-      var i = -1, n = candidates.length;
-      function tryNext(){
+    function onReady(fn){
+      if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', fn, {once:true});
+      else fn();
+    }
+
+    // Teste une URL d’image; appelle ok(url) si charge, sinon passe à la suivante
+    function pickWorkingURL(candidates, ok, fail){
+      var i = -1;
+      function next(){
         i++;
-        if (i >= n){ if (onFail) onFail(); return; }
+        if (i >= candidates.length){ if (fail) fail(); return; }
         var url = candidates[i];
         var probe = new Image();
+        probe.onload  = function(){ ok(url); };
+        probe.onerror = next;
         probe.referrerPolicy = 'no-referrer';
-        probe.onload  = function(){ onOk(url); };
-        probe.onerror = tryNext;
-        // évite un éventuel cache SW
-        probe.src = url + (url.indexOf('?')>-1?'&':'?') + 'probe=' + Date.now();
+        probe.src = url + (url.indexOf('?')>-1 ? '&' : '?') + 'probe=' + Date.now();
       }
-      tryNext();
+      next();
     }
-
-    function setImg(img, url){
-      try { img.src = url + (url.indexOf('?')>-1?'&':'?') + 'v=' + (window.__ASSET_VER||'9'); }
-      catch(_){ img.setAttribute('src', url); }
-      // fade-in si classe .on gérée par ta CSS
-      if (img.complete){ try{ img.classList.add('on'); }catch(_){ } }
-      else { img.addEventListener('load', function(){ try{ img.classList.add('on'); }catch(_){} }, { once:true }); }
-    }
-
-    // ---------- TOPBAR ----------
-    (function(){
-      var img = document.getElementById('topbarLogo'); if(!img) return;
-
-      // 1) on tente le logo marque si présent (facultatif)
-      var BRANDs = [
-        './images/pirates-tools-logo.png',
-        '/images/pirates-tools-logo.png',
-        '/' + REPO_SLUG + '/images/pirates-tools-logo.png'
-      ];
-
-      pickWorkingURL(BRANDs, function(ok){
-        setImg(img, ok);
-      }, function(){
-        // 2) fallback sûr = icône
-        var ICONs = [
-          './icons/icon-384.png',
-          '/icons/icon-384.png',
-          '/' + REPO_SLUG + '/icons/icon-384.png'
-        ];
-        pickWorkingURL(ICONs, function(ok){ setImg(img, ok); });
-      });
-    })();
-
-    // ---------- HÉRO ----------
-    (function(){
-      var img = document.getElementById('heroLogo'); if(!img) return;
-
-      // srcset pour la netteté pendant le zoom
+    function setImg(img, url, bust){
       try{
-        img.setAttribute('srcset',
-          './icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w'
-        );
-        img.setAttribute('sizes', 'min(62vmin, 560px)');
-      }catch(_){}
+        img.src = url + (url.indexOf('?')>-1 ? '&' : '?') + (bust || ('v='+(window.__ASSET_VER||'10')));
+      }catch(_){ img.setAttribute('src', url); }
+      if (img.complete) requestAnimationFrame(function(){ img.classList.add('on'); });
+      else img.addEventListener('load', function(){ img.classList.add('on'); }, { once:true });
+    }
 
-      var ICONs = [
-        './icons/icon-512.png',
-        './icons/icon-384.png',
-        '/icons/icon-512.png',
-        '/' + REPO_SLUG + '/icons/icon-512.png',
-        '/' + REPO_SLUG + '/icons/icon-384.png'
-      ];
+    onReady(function(){
+      // Détecte la base (site à la racine ou sous /<repo>/)
+      var parts = location.pathname.split('/').filter(Boolean);
+      var repo  = parts.length ? parts[0] : '';
+      var baseRepo = repo ? ('/' + repo + '/') : '/';
+      var bases = ['', baseRepo, '/']; // ordre: relatif -> /<repo>/ -> racine
 
-      pickWorkingURL(ICONs, function(ok){ setImg(img, ok); });
-      // sécurité supplémentaire si l'attribut src échoue immédiatement
-      img.onerror = function(){ pickWorkingURL(ICONs, function(ok){ setImg(img, ok); }); };
-    })();
+      var topImg  = D.getElementById('topbarLogo');
+      var heroImg = D.getElementById('heroLogo');
+
+      // --- TOPBAR : tente le logo marque puis fallback icône ---
+      if (topImg){
+        (function resolveTopbar(i){
+          if (i >= bases.length) return;
+          var b = bases[i];
+          var brand = b + 'images/pirates-tools-logo.png';
+          pickWorkingURL([brand], function(u){
+            setImg(topImg, u, 'v=7');
+            // pas de srcset pour le logo marque
+          }, function(){
+            // Fallback icône avec srcset
+            var icon = b + 'icons/icon-384.png';
+            pickWorkingURL([icon], function(u){
+              setImg(topImg, u);
+              topImg.setAttribute('srcset',
+                b+'icons/icon-180.png 180w, '+
+                b+'icons/icon-256.png 256w, '+
+                b+'icons/icon-384.png 384w, '+
+                b+'icons/icon-512.png 512w'
+              );
+              topImg.setAttribute('sizes','140px');
+            }, function(){ resolveTopbar(i+1); });
+          });
+        })(0);
+      }
+
+      // --- HERO : icône HD + srcset/sizes pour qualité pendant le zoom ---
+      if (heroImg){
+        (function resolveHero(i){
+          if (i >= bases.length) return;
+          var b = bases[i];
+          var candidates = [ b+'icons/icon-512.png', b+'icons/icon-384.png' ];
+          pickWorkingURL(candidates, function(u){
+            // srcset/sizes hautes définitions
+            heroImg.setAttribute('srcset',
+              b+'icons/icon-180.png 180w, '+
+              b+'icons/icon-192.png 192w, '+
+              b+'icons/icon-256.png 256w, '+
+              b+'icons/icon-384.png 384w, '+
+              b+'icons/icon-512.png 512w'
+            );
+            heroImg.setAttribute('sizes','min(62vmin, 560px)');
+            heroImg.style.willChange = 'transform,opacity,filter';
+            heroImg.style.backfaceVisibility = 'hidden';
+            heroImg.style.webkitBackfaceVisibility = 'hidden';
+            heroImg.style.transform = 'translateZ(0)';
+            setImg(heroImg, u);
+          }, function(){ resolveHero(i+1); });
+        })(0);
+
+        // si l'URL se casse ensuite, on retente
+        heroImg.addEventListener('error', function(){
+          // relance une résolution depuis le début
+          var parts = location.pathname.split('/').filter(Boolean);
+          var repo  = parts.length ? parts[0] : '';
+          var baseRepo = repo ? ('/' + repo + '/') : '/';
+          var bases = ['', baseRepo, '/'];
+          (function resolveHero(i){
+            if (i >= bases.length) return;
+            var b = bases[i];
+            var candidates = [ b+'icons/icon-512.png', b+'icons/icon-384.png' ];
+            pickWorkingURL(candidates, function(u){
+              heroImg.setAttribute('srcset',
+                b+'icons/icon-180.png 180w, '+
+                b+'icons/icon-192.png 192w, '+
+                b+'icons/icon-256.png 256w, '+
+                b+'icons/icon-384.png 384w, '+
+                b+'icons/icon-512.png 512w'
+              );
+              heroImg.setAttribute('sizes','min(62vmin, 560px)');
+              setImg(heroImg, u);
+            }, function(){ resolveHero(i+1); });
+          })(0);
+        }, { once:true });
+      }
+    });
   })();
   </script>
 
- <!-- === HERO (fixed) === -->
-<section id="hero" class="hero-full" aria-hidden="true">
-  <img
-    id="heroLogo"
-    class="hero-logo"
-    alt="Pirates Tools"
-    src="./icons/icon-512.png"
-    srcset="
-      ./icons/icon-180.png 180w,
-      ./icons/icon-192.png 192w,
-      ./icons/icon-256.png 256w,
-      ./icons/icon-384.png 384w,
-      ./icons/icon-512.png 512w"
-    sizes="min(62vmin, 560px)"
-    width="512" height="512"
-    decoding="async" loading="eager" referrerpolicy="no-referrer"
-  />
-  <div class="hero-fade" aria-hidden="true"></div>
-</section>
-
-<script>
-/* HERO loader robuste : essaie plusieurs chemins + anti-cache */
-(function(){
-  'use strict';
-  var REPO_SLUG = 'Pirates-tools-app1'; // change si ton dépôt a un autre nom
-  var img = document.getElementById('heroLogo'); if(!img) return;
-
-  // srcset pour qualité pendant le zoom (au cas où le HTML est modifié plus tard)
-  try{
-    img.setAttribute('srcset',
-      './icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w'
-    );
-    img.setAttribute('sizes', 'min(62vmin, 560px)');
-  }catch(_){}
-
-  function pickWorkingURL(list, ok, fail){
-    var i = -1;
-    function next(){
-      i++;
-      if(i >= list.length){ if(fail) fail(); return; }
-      var url = list[i], p = new Image();
-      p.referrerPolicy = 'no-referrer';
-      p.onload  = function(){ ok(url); };
-      p.onerror = next;
-      p.src = url + (url.indexOf('?')>-1?'&':'?') + 'probe=' + Date.now();
-    }
-    next();
-  }
-  function setImg(url){
-    var ver = (window.__ASSET_VER || '9');
-    img.src = url + (url.indexOf('?')>-1?'&':'?') + 'v=' + ver;
-    if (img.complete) { try{ img.classList.add('on'); }catch(_){ } }
-    else img.addEventListener('load', function(){ try{ img.classList.add('on'); }catch(_){ } }, { once:true });
-  }
-
-  var candidates = [
-    './icons/icon-512.png',
-    './icons/icon-384.png',
-    '/icons/icon-512.png',
-    '/' + REPO_SLUG + '/icons/icon-512.png',
-    '/' + REPO_SLUG + '/icons/icon-384.png'
-  ];
-  pickWorkingURL(candidates, setImg, function(){ /* on garde l'alt si tout échoue */ });
-
-  // si l'attribut src initial échoue immédiatement, on relance les fallbacks
-  img.addEventListener('error', function(){
-    pickWorkingURL(candidates, setImg, function(){});
-  }, { once:true });
-})();
-</script>
   <!-- =================== VUES (SPA) =================== -->
   <main id="app" role="main">
 
