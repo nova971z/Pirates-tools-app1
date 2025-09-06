@@ -135,6 +135,39 @@ h3{ font-size: 1.05rem }
   image-rendering: -webkit-optimize-contrast; /* Safari/iOS */
 }
 
+/* ===== HERO qualité + anti-coupure ===== */
+
+/* image plus grande rendue nette même sur iOS pendant les transforms */
+.hero-logo{
+  /* on augmente la base pour limiter le sur-échantillonnage */
+  width: clamp(420px, 62vmin, 820px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  /* netteté iOS/Android */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimizeQuality;
+  transform: translateZ(0); /* GPU hint */
+}
+
+/* fondu global fixé en bas de l’écran, masque la “jonction” */
+.hero-fade-fixed{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 28vh;
+  pointer-events: none;
+  z-index: 12;
+  opacity: 1;
+  transition: opacity .35s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,.82) 60%,
+    var(--bg, #0a0f14) 100%
+  );
+}
+/* quand on a bien dépassé le héro, on fait disparaître le fondu */
+.after-hero .hero-fade-fixed{ opacity: 0; }
+
 /* l’image devient visible quand elle est prête */
 .hero-logo.on{ opacity: 1; }
 
