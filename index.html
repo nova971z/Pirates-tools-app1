@@ -4,22 +4,40 @@
   <meta charset="utf-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
+
   <link rel="stylesheet" href="./styles.css" />
-<style id="pt-hero-overshoot-css">
-  #hero{ position:relative; z-index:0; }
-  body.after-hero #hero{ z-index:-1; pointer-events:none; }
-  #hero .hero-fade{
-    position:absolute; inset:auto 0 0 0; height:28vh;
-    background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
-    pointer-events:none;
-  }
-</style>
 
+  <!-- ===== HÉRO : styles nécessaires à l’animation pilotée par app.js ===== -->
+  <style id="pt-hero-overshoot-css">
+    :root{ --listGap: 22vh; } /* valeur par défaut, app.js l’anime */
+
+    /* Le hero est au flux avec superposition contrôlée */
+    #hero{ position:relative; z-index:0; }
+    body.after-hero #hero{ z-index:-1; pointer-events:none; }
+
+    /* Dégradé pour fondre le logo dans le contenu */
+    #hero .hero-fade{
+      position:absolute; inset:auto 0 0 0; height:28vh;
+      background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
+      pointer-events:none;
+    }
+
+    /* L’espace au-dessus de la grille d’accueil suit --listGap */
+    #view-home .container{
+      margin-top: var(--listGap, 22vh);
+      transition: margin-top .22s ease-out;
+    }
+
+    /* Aspect du logo pendant le fade-in initial (classe posée par le loader) */
+    .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
+    .hero-logo.on{ opacity:1; }
+  </style>
 </head>
-<body>
 
+<body>
   <a class="skip-link" href="#list">Aller au contenu</a>
 
   <!-- =================== TOPBAR =================== -->
@@ -30,7 +48,7 @@
       </button>
 
       <a id="homeLink" class="topbar-logo-link" href="#/">
-        <!-- Placeholder transparent le temps que le loader pose la vraie source -->
+        <!-- Placeholder transparent : la vraie source est posée par le loader ci-dessous -->
         <img
           id="topbarLogo"
           class="topbar-logo"
@@ -47,9 +65,9 @@
     </div>
   </header>
 
-  <!-- === HERO === -->
+  <!-- =================== HÉRO =================== -->
   <section id="hero" class="hero-full" aria-hidden="true">
-    <!-- Placeholder transparent; la vraie source est posée via script -->
+    <!-- Placeholder transparent : la vraie source + srcset sont résolus par le loader -->
     <img
       id="heroLogo"
       class="hero-logo"
@@ -59,7 +77,6 @@
       decoding="async" loading="eager" referrerpolicy="no-referrer" />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
-  <!-- === /HERO === -->
 
   <!-- ====== Loader robuste (topbar + hero) : chemins GitHub Pages + anti-cache ====== -->
   <script>
@@ -112,8 +129,7 @@
           var b = bases[i];
           var brand = b + 'images/pirates-tools-logo.png';
           pickWorkingURL([brand], function(u){
-            setImg(topImg, u, 'v=7'); // ta version de logo
-            // pas de srcset pour le logo marque (évite re-échantillonnage)
+            setImg(topImg, u, 'v=7'); // version du logo
           }, function(){
             // Fallback icône + srcset
             var icon = b + 'icons/icon-384.png';
@@ -150,6 +166,7 @@
             heroImg.style.backfaceVisibility = 'hidden';
             heroImg.style.webkitBackfaceVisibility = 'hidden';
             heroImg.style.transform = 'translateZ(0)';
+            heroImg.style.transformOrigin = '50% 50%';
             setImg(heroImg, u);
           }, function(){ resolveHero(i+1); });
         })(0);
@@ -301,7 +318,7 @@
       </div>
     </section>
 
-    <!-- LOGIN (séparé de #view-compte) -->
+    <!-- LOGIN -->
     <section id="view-login" class="view hidden">
       <div class="container">
         <h1 tabindex="-1">Connexion</h1>
@@ -325,7 +342,7 @@
       </div>
     </section>
 
-    <!-- REGISTER (séparé de #view-compte) -->
+    <!-- REGISTER -->
     <section id="view-register" class="view hidden">
       <div class="container">
         <h1 tabindex="-1">Inscription</h1>
@@ -401,9 +418,10 @@
   </noscript>
 
   <!-- =================== JS =================== -->
+  <!-- app.js contient l’animation du hero (overshoot/blur/fade + gestion --listGap) -->
   <script src="./app.js" defer></script>
 
-  <!-- Micro-script menu -->
+  <!-- Micro-script menu (indépendant) -->
   <script>
     (function(){
       var btn  = document.getElementById('menu-toggle');
