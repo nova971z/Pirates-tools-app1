@@ -60,7 +60,7 @@ var heroLogo = document.getElementById('heroLogo');
 var dock     = document.getElementById('dock');
 var dockCount= document.getElementById('dockCount');
 
-var MODELS   = []; // produits (chargés plus bas)
+window.MODELS = Array.isArray(window.MODELS) ? window.MODELS : []; // produits (chargés plus bas)
 
 /* ------------ Assure la structure de vues ------------ */
 function ensureView(id, html){
@@ -114,7 +114,7 @@ ensureView('view-create',
   '<div class="container">'+
     '<h1 style="margin:1rem 0 .75rem">Créer un compte</h1>'+
     '<div id="createContent">'+
-      '<p>Formulaire à venir (Partie 4). En attendant, ce chemin est fonctionnel.</p>'+
+      '<p>Formulaire à venir (Parties 3–4). En attendant, le chemin est fonctionnel.</p>'+
     '</div>'+
   '</div>'
 );
@@ -234,7 +234,7 @@ function renderBrandGridFromProducts(products){
     html += ''+
       '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">'+
         '<span class="brand__bubble">'+
-          '<img class="brand__logo" src="'+b.logo+'" alt="'+b.label+'" onerror="this.src=\'./images/pirates-tools-logo.png?v=7\'">'+
+          '<img class="brand__logo" src="'+b.logo+'" alt="'+b.label+'" onerror="this.src=\''+IMG_FALLBACK+'\'">'+
         '</span>'+
         '<span class="brand__label">'+b.label+'</span>'+
       '</button>';
@@ -262,24 +262,56 @@ function renderBrandGridFromProducts(products){
 
 /* ------------ Chargement produits (mémoisé) ------------ */
 function loadProducts(){
-  if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length) return Promise.resolve(window.__PT_PRODUCTS);
+  // mémoire déjà peuplée ?
+  if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length){
+    window.MODELS = window.__PT_PRODUCTS.slice();
+    try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+    return Promise.resolve(window.__PT_PRODUCTS);
+  }
+
   var fallbackList = window.PRODUCTS || window.products || [];
-  if (fallbackList.length){ window.__PT_PRODUCTS = fallbackList; return Promise.resolve(fallbackList); }
-  return fetch('./products.json', {cache:'no-store'}).then(function(res){ return res.json(); }).then(function(data){
-    var arr = Array.isArray(data) ? data : (data && Array.isArray(data.products) ? data.products : []);
-    window.__PT_PRODUCTS = arr; return arr;
-  }).catch(function(){ window.__PT_PRODUCTS = []; return []; });
+  if (fallbackList.length){
+    window.__PT_PRODUCTS = fallbackList;
+    window.MODELS = fallbackList.slice();
+    try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+    return Promise.resolve(fallbackList);
+  }
+
+  return fetch('./products.json', {cache:'no-store'})
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      var arr = Array.isArray(data) ? data : (data && Array.isArray(data.products) ? data.products : []);
+      window.__PT_PRODUCTS = arr;
+      window.MODELS = arr.slice();
+      try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+      return arr;
+    })
+    .catch(function(){
+      window.__PT_PRODUCTS = [];
+      window.MODELS = [];
+      try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+      return [];
+    });
 }
 
 /* ------------ Router ------------ */
 function parseHash(){
   var h = location.hash || '#/';
-  var parts = h.split('?'); var path = parts[0]; var qs = parts[1]||'';
+  var parts = h.split('?'); var path = parts[0] || '#/';
+  var qs = parts[1] || '';
   var view = path.replace('#/','').split('/')[0] || '';
   var sub  = path.replace('#/','').split('/')[1] || '';
   var query = {};
-  if (qs){ var kv = qs.split('&'); for (var i=0;i<kv.length;i++){ var s=kv[i].split('='); var k=decodeURIComponent(s[0]||''); var v=decodeURIComponent(s[1]||''); if (k) query[k]=v; } }
-  return { view:view, sub:sub, query:query };
+  if (qs){
+    var kv = qs.split('&');
+    for (var i=0;i<kv.length;i++){
+      var s = kv[i].split('=');
+      var k = decodeURIComponent(s[0]||'');
+      var v = decodeURIComponent(s[1]||'');
+      if (k) query[k] = v;
+    }
+  }
+  return { path:path, view:view, sub:sub, query:query, raw:h };
 }
 
 function showOnly(ids){
@@ -296,8 +328,9 @@ function focusH1(id){
 
 function handleRoute(){
   var p = parseHash();
-  // vues: home|catalogue|produit|devis|compte|compte/creation
-  if (!p.view || p.view==='home' || p.view==='/'){ // Accueil
+
+  // Cette partie 1 gère seulement home/catalogue pour éviter les conflits.
+  if (!p.view || p.view==='home' || p.view==='/'){
     showOnly(['view-home']); focusH1('view-home');
     loadProducts().then(renderBrandGridFromProducts);
     return;
@@ -305,26 +338,11 @@ function handleRoute(){
 
   if (p.view==='catalogue'){
     showOnly(['view-catalogue']); focusH1('view-catalogue');
-    // la Partie 2 s'occupera de remplir #catList et #list selon brand/type/q
-    // Ici on assure que la grille de marques est déjà rendue côté Accueil.
     return;
   }
 
-  if (p.view==='produit'){ // PDP virtuelle (Partie 2 complètera)
-    showOnly(['view-catalogue']); // PDP vit dans la page catalogue pour garder le header/layout
-    // placeholder PDP minimal (non bloquant)
-    var list = $('#list'); if (list){ list.innerHTML = '<div class="card" style="padding:1rem">Chargement du produit…</div>'; }
-    return;
-  }
-
-  if (p.view==='devis'){ // Panier/Devis (Partie 3)
-    showOnly(['view-devis']); focusH1('view-devis');
-    return;
-  }
-
-  if (p.view==='compte'){
-    if (p.sub==='creation'){ showOnly(['view-create']); focusH1('view-create'); return; }
-    showOnly(['view-compte']); focusH1('view-compte');
+  // Laisser les autres parties gérer ces routes :
+  if (p.view==='produit' || p.view==='devis' || p.view==='compte'){
     return;
   }
 
@@ -353,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Première route
   handleRoute();
 
-  // Pré-charger les produits pour que la grille soit prête
+  // Pré-charger les produits pour que la grille soit prête sur #/
   loadProducts().then(function(arr){
     if (!location.hash || location.hash==='#/' || location.hash==='#/home'){
       renderBrandGridFromProducts(arr);
@@ -366,8 +384,10 @@ window.PT = window.PT || {};
 window.PT.loadProducts = loadProducts;
 window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 window.PT.handleRoute = handleRoute;
-
-
+window.PT.parseHash = parseHash;
+window.PT.fallback = fallback;
+window.PT.firstDefined = firstDefined;
+window.PT.setSafeImg = setSafeImg;
 
 
 
