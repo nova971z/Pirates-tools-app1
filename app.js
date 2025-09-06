@@ -2286,7 +2286,7 @@
   'use strict';
   if (window.__ptP6Booted) return; window.__ptP6Booted = 1;
 
-  var D = document, W = window;
+  var W = window, D = document;
 
   /* ---------------- Helpers ---------------- */
   function qs(s, r){ return (r||D).querySelector(s); }
@@ -2295,186 +2295,190 @@
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
 
- <script>
-/* ---------- HÉRO unique (Partie 6) : overshoot doux + blur avant fade + disparition rapide ---------- */
-(function heroEffectOvershoot(){
-  'use strict';
-  var W = window, D = document;
+  /* =========================================================
+     1) HÉRO — overshoot doux + blur AVANT fade + disparition rapide
+     • plus progressif
+     • le logo passe derrière tôt (libère les bulles)
+     • z-index / pointer-events gérés automatiquement
+  ========================================================== */
+  (function heroEffectOvershoot(){
+    'use strict';
+    // Anti double-wiring
+    if (W.__ptHeroWired2) return;
+    W.__ptHeroWired2 = 1;
 
-  // Anti double-wiring
-  if (W.__ptHeroWired2) return;
-  W.__ptHeroWired2 = 1;
+    var hero = D.getElementById('hero') || qs('.hero-full');
+    var logo = D.getElementById('heroLogo') || qs('.hero-logo');
+    if (!hero || !logo) return;
 
-  var hero = D.getElementById('hero');
-  var logo = D.getElementById('heroLogo');
-  if (!hero || !logo) return;
-
-  /* Qualité image + rendu */
-  try{
-    if (logo.tagName === 'IMG') {
-      if (!logo.getAttribute('srcset')){
-        logo.setAttribute('srcset',
-          './icons/icon-180.png 180w, '+
-          './icons/icon-192.png 192w, '+
-          './icons/icon-256.png 256w, '+
-          './icons/icon-384.png 384w, '+
-          './icons/icon-512.png 512w'
-        );
+    // Qualité image + rendu (sans casser le loader)
+    try{
+      if (logo.tagName === 'IMG') {
+        if (!logo.getAttribute('srcset')){
+          // garde compatible GH Pages / chemins relatifs
+          logo.setAttribute('srcset',
+            './icons/icon-180.png 180w, '+
+            './icons/icon-192.png 192w, '+
+            './icons/icon-256.png 256w, '+
+            './icons/icon-384.png 384w, '+
+            './icons/icon-512.png 512w'
+          );
+        }
+        if (!logo.getAttribute('sizes')){
+          logo.setAttribute('sizes','min(62vmin, 560px)');
+        }
+        logo.decoding = 'async';
+        logo.loading  = 'eager';
+        logo.referrerPolicy = 'no-referrer';
+        logo.onerror = function(){
+          this.onerror=null;
+          this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
+        };
       }
-      if (!logo.getAttribute('sizes')){
-        logo.setAttribute('sizes','min(62vmin, 560px)');
-      }
-      logo.decoding = 'async';
-      logo.loading  = 'eager';
-      logo.referrerPolicy = 'no-referrer';
-      logo.onerror = function(){
-        this.onerror=null;
-        this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
-      };
+      logo.style.willChange = 'transform,opacity,filter';
+      logo.style.backfaceVisibility = 'hidden';
+      logo.style.webkitBackfaceVisibility = 'hidden';
+      logo.style.transform = 'translateZ(0)';
+      logo.style.transformOrigin = '50% 50%';
+    }catch(_){}
+
+    // Fond dégradé interne si manquant
+    if (!hero.querySelector('.hero-fade')){
+      var f = D.createElement('div'); f.className = 'hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
     }
-    logo.style.willChange = 'transform,opacity,filter';
-    logo.style.backfaceVisibility = 'hidden';
-    logo.style.webkitBackfaceVisibility = 'hidden';
-    logo.style.transform = 'translateZ(0)';
-    logo.style.transformOrigin = '50% 50%';
-  }catch(_){}
 
-  // Fond dégradé interne si manquant
-  if (!hero.querySelector('.hero-fade')){
-    var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
-  }
-
-  // Respect “réduction animations”
-  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mqr && mqr.matches){
-    var t0 = 'translate3d(0,0,0) scale(1)';
-    logo.style.transform = t0;
-    logo.style.webkitTransform = t0;
-    logo.style.opacity = '1';
-    logo.style.filter  = 'none';
-    try{ logo.classList.add('on'); }catch(_){}
-    return;
-  }
-
-  /* ===== Réglages (progressif + disparition plus tôt) =====
-     - BLUR démarre AVANT FADE
-     - SCALE croît vite au début mais reste “léger”
-     - DONE bas → bascule derrière tôt pour libérer les bulles
-  */
-  var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;   // zoom final (assez grand mais maîtrisé)
-  var BASE_M      = 1.10, BASE_D      = 1.08;  // départ léger (donne “plus léger plus vite”)
-  var DIST_M      = 0.90, DIST_D      = 0.96;  // distance courte -> disparition rapide
-  var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // flou démarre tôt, monte doucement
-  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // plafond de flou
-  var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fondu plus tôt et plus rapide que le flou
-  var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière très tôt
-  var OVER_MAX    = 2.2;                       // limite overshoot
-
-  // Espace visuel pour la grille (réduit)
-  var GAP_M       = 12,   GAP_D       = 16;    // en vh
-
-  // Helpers easing
-  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1 - t) * (1 - t); } // pour SCALE au démarrage
-  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-  function scrollY(){
-    return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
-           (D.scrollingElement && D.scrollingElement.scrollTop) ||
-           D.documentElement.scrollTop || D.body.scrollTop || 0;
-  }
-
-  var _vh = getVH(), prevY = -1, rafId = 0;
-
-  function render(y){
-    var isM   = mqMobile && mqMobile.matches;
-    var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
-
-    var raw      = y / finPx;           // progress “réel” (non clampé)
-    var prog01   = clamp(raw, 0, 1);    // progress [0..1]
-    var eased    = easeOutCubic(prog01);
-
-    // —— SCALE : croissance “légère mais rapide au début” + overshoot contrôlé
-    var sProg    = clamp(prog01 * 1.10, 0, 1);    // un peu plus vite au début
-    var sEase    = easeOutQuad(sProg);
-    var over     = raw > 1 ? Math.min(raw - 1, OVER_MAX - 1) : 0; // extra au-delà de 1
-    var base     = isM ? BASE_M : BASE_D;
-    var sMax     = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale    = base + (sMax - base) * (sEase + over * 0.55);  // overshoot adouci
-
-    // —— Translation douce (renforce l’effet zoom vers le bas)
-    var tyPx     = (isM ? 10 : 8) * (_vh / 100) * eased;
-
-    // —— BLUR : commence AVANT le fondu
-    var blurMax  = isM ? BLUR_MAX_M : BLUR_MAX_D;
-    var blurP    = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
-    var blur     = blurMax * (0.12 + 0.88 * blurP); // petite base pour éviter le “cut” sec
-
-    // —— FADE : plus tôt & plus court que le blur
-    var fadeP    = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
-    var opacity  = 1 - fadeP;
-
-    // Applique
-    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform       = t;
-    logo.style.webkitTransform = t;
-    logo.style.opacity         = opacity.toFixed(3);
-    logo.style.filter          = blur>0 ? ('blur('+blur.toFixed(2)+'px)') : 'none';
-
-    // Espace au-dessus de la grille
-    var gap = Math.max(0, (1 - prog01) * (isM ? GAP_M : GAP_D));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
-
-    // Bascule “derrière” très tôt pour libérer les bulles
-    var done = raw > (isM ? DONE_M : DONE_D);
-    if (done){
-      D.body.classList.add('after-hero');
-      hero.classList.add('hero-out');
-      hero.style.zIndex = -1;
-      hero.style.pointerEvents = 'none';
-      // sécurité : si opacité 0, on fige pour éviter tout flicker
-      if (opacity <= 0.02){
-        logo.style.opacity = '0';
-        logo.style.filter  = 'blur(' + blurMax + 'px)';
-      }
-    } else {
-      D.body.classList.remove('after-hero');
-      hero.classList.remove('hero-out');
-      hero.style.zIndex = '';
-      hero.style.pointerEvents = '';
+    // Respect “réduction animations”
+    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mqr && mqr.matches){
+      var t0 = 'translate3d(0,0,0) scale(1)';
+      logo.style.transform = t0;
+      logo.style.webkitTransform = t0;
+      logo.style.opacity = '1';
+      logo.style.filter  = 'none';
+      try{ logo.classList.add('on'); }catch(_){}
+      addClass(hero,'hero-out'); addClass(D.body,'after-hero');
+      hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
+      D.documentElement.style.setProperty('--listGap', '0vh');
+      return;
     }
-  }
 
-  function tick(){
-    var y = scrollY();
-    if (y !== prevY){ render(y); prevY = y; }
+    /* ===== Réglages =====
+       - BLUR démarre AVANT FADE
+       - SCALE “léger mais rapide au début”
+       - DONE bas → bascule derrière tôt
+    */
+    var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;  // zoom final
+    var BASE_M      = 1.10, BASE_D      = 1.08; // départ léger (“plus léger plus vite”)
+    var DIST_M      = 0.90, DIST_D      = 0.96; // distance courte → disparition rapide
+    var BLUR_START  = 0.22, BLUR_LEN    = 0.38; // blur avant fade
+    var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;   // plafond blur
+    var FADE_START  = 0.30, FADE_LEN    = 0.26; // fade tôt & court
+    var DONE_M      = 0.94, DONE_D      = 0.98; // passe derrière très tôt
+    var OVER_MAX    = 2.2;                      // limite overshoot
+    var GAP_M       = 12,   GAP_D       = 16;   // vh — espace au-dessus des bulles
+
+    // Helpers easing/scroll
+    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
+    function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function easeOutQuad(t){ return 1 - (1 - t) * (1 - t); } // pour SCALE au démarrage
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function scrollY(){
+      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
+    }
+
+    var _vh = getVH(), prevY = -1, rafId = 0;
+
+    function render(y){
+      var isM   = mqMobile && mqMobile.matches;
+      var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
+
+      var raw      = y / finPx;           // progress “réel” (non clampé)
+      var prog01   = clamp(raw, 0, 1);    // progress [0..1]
+      var eased    = easeOutCubic(prog01);
+
+      // SCALE : croissance “légère mais rapide au début” + overshoot adouci
+      var sProg    = clamp(prog01 * 1.10, 0, 1); // un peu plus vite au début
+      var sEase    = easeOutQuad(sProg);
+      var over     = raw > 1 ? Math.min(raw - 1, OVER_MAX - 1) : 0; // extra > 1
+      var base     = isM ? BASE_M : BASE_D;
+      var sMax     = isM ? MAX_SCALE_M : MAX_SCALE_D;
+      var scale    = base + (sMax - base) * (sEase + over * 0.55); // overshoot contrôlé
+
+      // Translation douce (renforce le zoom vers le bas)
+      var tyPx     = (isM ? 10 : 8) * (_vh / 100) * eased;
+
+      // BLUR avant FADE
+      var blurMax  = isM ? BLUR_MAX_M : BLUR_MAX_D;
+      var blurP    = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
+      var blur     = blurMax * (0.12 + 0.88 * blurP); // petite base pour éviter le “cut” sec
+
+      // FADE plus tôt & plus court que le blur
+      var fadeP    = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+      var opacity  = 1 - fadeP;
+
+      // Applique transform/opacity/blur
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform       = t;
+      logo.style.webkitTransform = t;
+      logo.style.opacity         = opacity.toFixed(3);
+      logo.style.filter          = blur>0 ? ('blur('+blur.toFixed(2)+'px)') : 'none';
+
+      // Espace au-dessus de la grille (accueil)
+      var gap = Math.max(0, (1 - prog01) * (isM ? GAP_M : GAP_D));
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
+
+      // Bascule “derrière” très tôt pour libérer les bulles
+      var done = raw > (isM ? DONE_M : DONE_D);
+      if (done){
+        addClass(D.body,'after-hero');
+        addClass(hero,'hero-out');
+        hero.style.zIndex = -1;
+        hero.style.pointerEvents = 'none';
+        // sécurité : coupe toute l’opacité résiduelle
+        if (opacity <= 0.02){
+          logo.style.opacity = '0';
+          logo.style.filter  = 'blur(' + blurMax + 'px)';
+        }
+      } else {
+        rmClass(D.body,'after-hero');
+        rmClass(hero,'hero-out');
+        hero.style.zIndex = '';
+        hero.style.pointerEvents = '';
+      }
+    }
+
+    function tick(){
+      var y = scrollY();
+      if (y !== prevY){ render(y); prevY = y; }
+      rafId = W.requestAnimationFrame(tick);
+    }
+
+    // Révélation douce une fois l’image prête
+    var reveal = function(){ try{ logo.classList.add('on'); }catch(_){ } };
+    if (logo.complete) setTimeout(reveal, 0);
+    else logo.addEventListener('load', reveal, { once:true });
+
+    // Boot
+    render(scrollY());
     rafId = W.requestAnimationFrame(tick);
-  }
 
-  // Révélation douce une fois l’image prête
-  var reveal = function(){ try{ logo.classList.add('on'); }catch(_){ } };
-  if (logo.complete) setTimeout(reveal, 0);
-  else logo.addEventListener('load', reveal, { once:true });
+    var recalc = function(){ _vh = getVH(); render(scrollY()); };
+    W.addEventListener('resize', recalc, true);
+    if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+      W.visualViewport.addEventListener('resize', recalc, true);
+    }
+    W.addEventListener('orientationchange', recalc, true);
+    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+    W.addEventListener('pageshow', function(e){ if (e && e.persisted) recalc(); }, true);
+    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+  })();
 
-  // Boot
-  render(scrollY());
-  rafId = W.requestAnimationFrame(tick);
-
-  var recalc = function(){ _vh = getVH(); render(scrollY()); };
-  W.addEventListener('resize', recalc, true);
-  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-    W.visualViewport.addEventListener('resize', recalc, true);
-  }
-  W.addEventListener('orientationchange', recalc, true);
-  D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
-  W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-  W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-})();
-</script>   
-   
-   /* =========================================================
+  /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
+     • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
   ========================================================== */
   (function drawerGestures(){
     if (W.__ptDrawerGestures) return; W.__ptDrawerGestures = 1;
@@ -2513,7 +2517,7 @@
       for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
       if (drawer){
         for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
-        drawer.hidden = true; // compat avec index.html
+        drawer.hidden = true; // compat index.html
       }
       if (overlay){
         addClass(overlay,'hidden'); overlay.style.display='none'; overlay.hidden = true;
@@ -2550,7 +2554,7 @@
     if (overlay && !overlay.__ptP6){ overlay.__ptP6 = 1; overlay.addEventListener('click', closeDrawer, false); }
     // ESC ferme
     D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
-    // ouverture → tuning
+    // ouverture → tuning (micro-script d’ouverture déjà dans l’index)
     if (burger && !burger.__ptP6){
       burger.__ptP6 = 1;
       burger.addEventListener('click', function(){ setTimeout(openTuning,0); }, false);
@@ -2683,10 +2687,10 @@
       if (rf && !rf.__ptP6){ rf.__ptP6=1; rf.addEventListener('submit', onRegister, false); }
     }
 
-    // squelette minimal si absent
+    // Squelette minimal si absent
     if (!qs('#view-compte')){
       var v = D.createElement('section'); v.id='view-compte'; v.className='view hidden';
-      v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"><div class="card"><div class="specs"><p>Chargement…</p></div></div></div></div>';
+      v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div class="card"><div class="specs"><p>Chargement…</p></div></div></div>';
       D.body.appendChild(v);
     }
 
