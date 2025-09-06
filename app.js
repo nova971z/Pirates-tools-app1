@@ -370,8 +370,7 @@ window.PT.handleRoute = handleRoute;
 
 
 
-<!-- PARTIE 2 — À COLLER DANS app.js (bloc autonome, ES5-safe) -->
-<script>
+
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
@@ -1141,11 +1140,7 @@ window.PT.handleRoute = handleRoute;
   if (dockCount)   dockCount.addEventListener('click',   function(){ location.hash = '#/devis'; }, false);
 
 })();
-</script>
 
-
-<!-- PARTIE 3 — À COLLER DANS app.js (bloc autonome, ES5-safe) -->
-<script>
 /* =========================================================
    PARTIE 3 — Compte + Création de compte (local) + Fidélité
    - Route: #/compte
@@ -1449,12 +1444,7 @@ window.PT.handleRoute = handleRoute;
     goAccountBtn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
   }
 })();
-</script>
 
-
-
-<!-- PARTIE 4 — À COLLER DANS app.js (bloc autonome, ES5-safe) -->
-<script>
 /* =========================================================
    PARTIE 4 — Router principal + Vues fail-safe + SEO
    - Crée/synchronise: #/ (home), #/catalogue, #/produit/:id, #/devis, #/compte
