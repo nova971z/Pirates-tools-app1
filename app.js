@@ -2220,17 +2220,27 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg, #0a0f14) 100%);pointer-events:none;z-index:-1}' +
       '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
       'will-change:transform,opacity;transform:translateZ(0);}' +
-      /* Home : grille marques 3 colonnes + bulles */
-'#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
-'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
-'#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:transparent;border:0;cursor:pointer}' +
-'#view-home .brand__bubble{display:grid;place-items:center;aspect-ratio:1/1;width:clamp(86px,22vmin,140px);' +
-'border-radius:50%;overflow:hidden;padding:6%;' + /* marge interne sûre pour 100% */
-'background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
-'backdrop-filter:saturate(120%) blur(4px)}' +
-'#view-home .brand__logo{width:100%;height:100%;display:block;object-fit:contain;object-position:center;' +
-'image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}' +
-'#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +       /* FAB Compte (bas droite) */
+      /* Home : grille marques 3 colonnes + bulles plein cadre */
+     '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
+     'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
+     '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:transparent;border:0;cursor:pointer}' +
+     '#view-home .brand__bubble{display:grid;place-items:center;aspect-ratio:1/1;width:clamp(86px,22vmin,140px);' +
+     'position:relative;border-radius:50%;overflow:hidden;padding:0;' +  
+       /* aucune marge interne */
+     'background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
+     'backdrop-filter:saturate(120%) blur(4px);' +
+     '-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white);}' + /* clip net iOS */
+     '#view-home .brand__logo{width:100%;height:100%;max-width:none;max-height:none;display:block;' +
+     'object-fit:cover;object-position:center;' +                       
+       /* remplit totalement la bulle */
+     'image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;}' +
+     '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +       /* marge interne sûre pour 100% */
+      'background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
+      'backdrop-filter:saturate(120%) blur(4px)}' +
+      '#view-home .brand__logo{width:100%;height:100%;display:block;object-fit:contain;object-position:center;' +
+      'image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}' +
+      '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +       
+       /* FAB Compte (bas droite) */
       '#fabAccount{position:fixed;right:clamp(12px,2.4vmin,18px);bottom:clamp(12px,2.4vmin,18px);' +
       'z-index:1000;border:0;border-radius:999px;padding:.9rem 1.05rem;background:linear-gradient(135deg,#19d3ff,#49f2c2);' +
       'color:#001018;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer;display:inline-flex;align-items:center;gap:.55rem}' +
