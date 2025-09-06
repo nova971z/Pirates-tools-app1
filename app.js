@@ -2346,12 +2346,8 @@
 
 /* =========================================================
    PARTIE 6/4 — Héro overshoot + Gestes mobile + Focus H1 + Actifs + Fallback compte
-   - Héro: zoom continu jusqu’à disparition + fondu + raccord visuel
-   - Menu latéral: swipe pour fermer + inertie iOS + anti-overscroll
-   - Navigation: focus H1 après route, aria-current dans le menu
-   - Compte: fallback léger (save/load) + wiring (login/register/accSave)
-   - FAB Compte: auto-cache sur #/compte, visible ailleurs
-   - ES5-safe, défensif (flags anti-doublon)
+   - ES5-safe, défensif, aucun double wiring
+   - IMPORTANT: ce bloc remplace l'ancien + supprime le "BLOC 7" du fichier
 ========================================================= */
 (function(){
   'use strict';
@@ -2368,137 +2364,137 @@
 
   /* =========================================================
      1) HÉRO — overshoot (zoom jusqu’à disparition)
-     (n’override pas l’anim si déjà gérée ailleurs)
+     (ne s'active qu'une fois; neutralise l'anim de base)
   ========================================================== */
-  /* ------------ HERO Overshoot: net iOS + fondu fixe + overshoot ----------- */
-(function heroEffectOvershoot(){
-  var W = window, D = document;
-  if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
+  (function heroEffectOvershoot(){
+    if (W.__ptHeroOvershoot) return;         // garde anti-doublon
+    W.__ptHeroOvershoot = 1;
+    W.__ptHeroWired = 1;                      // décourage la Partie 1 de rebrancher
 
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
+    var hero = qs('#hero');
+    var logo = qs('#heroLogo');
+    if (!hero || !logo) return;
 
-  var hero = qs('#hero');
-  var logo = qs('#heroLogo');
-  if (!hero || !logo) return;
-
-  /* 1) HD pour éviter la bouillie au zoom (surtout iOS) */
-  if (logo.tagName === 'IMG'){
-    try{
-      var src = logo.getAttribute('src') || '';
-      if (!src || /icon-180\.png$/i.test(src)) logo.setAttribute('src', './icons/icon-512.png');
-      logo.setAttribute('srcset',
-        './icons/icon-1024.png 1024w, '+
-        './icons/icon-512.png 512w, '+
-        './icons/icon-384.png 384w, '+
-        './icons/icon-256.png 256w, '+
-        './icons/icon-192.png 192w, '+
-        './icons/icon-180.png 180w'
-      );
-      logo.setAttribute('sizes', '(max-width:768px) 62vmin, 820px');
-      logo.decoding = 'async';
-      logo.loading  = 'eager';
-    }catch(_){}
-  }
-
-  /* 2) Fondu fixe bas d’écran (supprime la coupure) */
-  var fadeFixed = D.getElementById('heroFadeFixed');
-  if (!fadeFixed){
-    fadeFixed = D.createElement('div');
-    fadeFixed.id = 'heroFadeFixed';
-    fadeFixed.className = 'hero-fade-fixed';
-    D.body.appendChild(fadeFixed);
-  }
-  // fondu interne si oublié dans le HTML
-  if (!qs('.hero-fade', hero)){
-    var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
-  }
-
-  /* 3) Réduit : pas d’anim */
-  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mqr && mqr.matches){
-    var t0 = 'translate3d(0,0,0) scale(1)';
-    logo.style.transform = t0; logo.style.webkitTransform = t0;
-    logo.style.opacity = '1';
-    if (fadeFixed) fadeFixed.style.opacity = '0';
-    return;
-  }
-
-  /* 4) Fade-in une fois prêt */
-  (function showOnceReady(){
+    // HD pour éviter le flou pendant le zoom (surtout iOS)
     if (logo.tagName === 'IMG'){
-      if (logo.complete) addClass(logo,'on');
-      else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
-    } else { setTimeout(function(){ addClass(logo,'on'); }, 60); }
-  })();
-
-  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-  function getY(){
-    return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
-           (D.scrollingElement && D.scrollingElement.scrollTop) ||
-           D.documentElement.scrollTop || D.body.scrollTop || 0;
-  }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function clamp01(x){ return x<0?0:(x>1?1:x); }
-
-  // paramètres (qualité + overshoot)
-  var MAX_SCALE_M = 6.5, MAX_SCALE_D = 5.0;  // taille finale
-  var BASE_M = 0.72, BASE_D = 0.78;          // START < 1 → piqué ++
-  var DIST_M = 1.10, DIST_D = 1.20;          // distance de scroll (en vh)
-
-  var prevY = -1, rafId = 0;
-
-  function render(y){
-    var vh  = getVH();
-    var isM = mqMobile && mqMobile.matches;
-    var fin = vh * (isM ? DIST_M : DIST_D);
-
-    var raw     = y / (fin || 1);                 // progression non clampée
-    var clamped = clamp01(raw);
-    var eased   = easeOutCubic(clamped);
-
-    // overshoot: continue de grandir au-delà de 1
-    var over    = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
-    var maxS    = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var base    = isM ? BASE_M : BASE_D;
-    var scale   = base + (maxS - base) * over;
-
-    var tyPx    = (isM ? 10 : 7) * (vh / 100) * eased;
-    var opacity = 1 - Math.max(0, raw - 0.75) * 1.7; if (opacity < 0) opacity = 0;
-
-    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform = t; logo.style.webkitTransform = t;
-    logo.style.opacity   = opacity.toFixed(3);
-
-    // gap pour le contenu dessous (timing visuel)
-    var gapStart = isM ? 22 : 26;
-    var gap = Math.max(0, (1 - clamped) * gapStart);
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-    // fondu fixe : masque la jonction
-    if (fadeFixed){
-      var fadeAlpha = 1 - clamp01((raw - 0.25) / 0.85); // disparaît progressivement
-      fadeFixed.style.opacity = fadeAlpha.toFixed(3);
+      try{
+        var src = logo.getAttribute('src') || '';
+        if (!src || /icon-180\.png$/i.test(src)) logo.setAttribute('src', './icons/icon-512.png');
+        logo.setAttribute('srcset',
+          './icons/icon-1024.png 1024w, '+
+          './icons/icon-512.png 512w, '+
+          './icons/icon-384.png 384w, '+
+          './icons/icon-256.png 256w, '+
+          './icons/icon-192.png 192w, '+
+          './icons/icon-180.png 180w'
+        );
+        logo.setAttribute('sizes', '(max-width:768px) 62vmin, 820px');
+        logo.decoding = 'async';
+        logo.loading  = 'eager';
+        logo.style.willChange = 'transform,opacity';
+        logo.style.backfaceVisibility = 'hidden';
+        logo.style.webkitBackfaceVisibility = 'hidden';
+        logo.style.transform = 'translateZ(0)';
+      }catch(_){}
     }
 
-    // quand assez loin → héro sous la page
-    var done = raw > 1.18;
-    hero.classList.toggle('hero-out', done);
-    D.body.classList.toggle('after-hero', done);
-  }
+    // fondu interne + fade fixe
+    var fadeFixed = D.getElementById('heroFadeFixed');
+    if (!fadeFixed){
+      fadeFixed = D.createElement('div');
+      fadeFixed.id = 'heroFadeFixed';
+      fadeFixed.className = 'hero-fade-fixed';
+      D.body.appendChild(fadeFixed);
+    }
+    if (!qs('.hero-fade', hero)){
+      var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
+    }
 
-  function tick(){ var y = getY(); if (y !== prevY){ render(y); prevY = y; } rafId = W.requestAnimationFrame(tick); }
-  function recalc(){ prevY = -1; render(getY()); }
+    // prefers-reduced-motion → pas d’anim
+    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mqr && mqr.matches){
+      var t0 = 'translate3d(0,0,0) scale(1)';
+      logo.style.transform = t0; logo.style.webkitTransform = t0;
+      logo.style.opacity = '1';
+      if (fadeFixed) fadeFixed.style.opacity = '0';
+      return;
+    }
 
-  rafId = W.requestAnimationFrame(tick);
-  W.addEventListener('resize', recalc, true);
-  if (W.visualViewport && W.visualViewport.addEventListener){ W.visualViewport.addEventListener('resize', recalc, true); }
-  W.addEventListener('orientationchange', recalc, true);
-  D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
-  W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-  W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-})();  /* =========================================================
+    // fade-in quand prêt
+    (function showOnceReady(){
+      if (logo.tagName === 'IMG'){
+        if (logo.complete) addClass(logo,'on');
+        else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+      } else { setTimeout(function(){ addClass(logo,'on'); }, 60); }
+    })();
+
+    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function getY(){
+      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || D.body.scrollTop || 0;
+    }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function clamp01(x){ return x<0?0:(x>1?1:x); }
+
+    // paramètres
+    var MAX_SCALE_M = 6.5, MAX_SCALE_D = 5.0;
+    var BASE_M = 0.72, BASE_D = 0.78;
+    var DIST_M = 1.10, DIST_D = 1.20;
+
+    var prevY = -1, rafId = 0;
+
+    function render(y){
+      var vh  = getVH();
+      var isM = mqMobile && mqMobile.matches;
+      var fin = vh * (isM ? DIST_M : DIST_D);
+
+      var raw     = y / (fin || 1);
+      var clamped = clamp01(raw);
+      var eased   = easeOutCubic(clamped);
+
+      // overshoot contrôlé
+      var over    = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
+      var maxS    = isM ? MAX_SCALE_M : MAX_SCALE_D;
+      var base    = isM ? BASE_M      : BASE_D;
+      var scale   = base + (maxS - base) * over;
+
+      var tyPx    = (isM ? 10 : 7) * (vh / 100) * eased;
+      var opacity = 1 - Math.max(0, raw - 0.75) * 1.7; if (opacity < 0) opacity = 0;
+
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform = t; logo.style.webkitTransform = t;
+      logo.style.opacity   = opacity.toFixed(3);
+
+      // timing de la liste
+      var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+      // fondu fixe bas de l’écran
+      if (fadeFixed){
+        var fadeAlpha = 1 - clamp01((raw - 0.25) / 0.85);
+        fadeFixed.style.opacity = fadeAlpha.toFixed(3);
+      }
+
+      var done = raw > 1.18;
+      hero.classList.toggle('hero-out', done);
+      D.body.classList.toggle('after-hero', done);
+    }
+
+    function tick(){ var y = getY(); if (y !== prevY){ render(y); prevY = y; } rafId = W.requestAnimationFrame(tick); }
+    function recalc(){ prevY = -1; render(getY()); }
+
+    rafId = W.requestAnimationFrame(tick);
+    W.addEventListener('resize', recalc, true);
+    if (W.visualViewport && W.visualViewport.addEventListener){ W.visualViewport.addEventListener('resize', recalc, true); }
+    W.addEventListener('orientationchange', recalc, true);
+    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+    W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+  })();
+
+  /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
   ========================================================== */
   (function drawerGestures(){
@@ -2536,8 +2532,13 @@
       var flags = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
       var i;
       for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
-      if (drawer) for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
-      if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
+      if (drawer){
+        for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
+        drawer.hidden = true; // compat avec index.html
+      }
+      if (overlay){
+        addClass(overlay,'hidden'); overlay.style.display='none'; overlay.hidden = true;
+      }
       if (burger) burger.setAttribute('aria-expanded','false');
       closeTuning();
     }
@@ -2567,10 +2568,7 @@
     tgt.addEventListener('pointerup',  end,   { passive:true });
 
     // overlay ferme
-    if (overlay && !overlay.__ptP6){
-      overlay.__ptP6 = 1;
-      overlay.addEventListener('click', closeDrawer, false);
-    }
+    if (overlay && !overlay.__ptP6){ overlay.__ptP6 = 1; overlay.addEventListener('click', closeDrawer, false); }
     // ESC ferme
     D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
     // ouverture → tuning
@@ -2597,7 +2595,7 @@
       }catch(_){ return (location.hash||'#/'); }
     }
     function markActive(){
-      var menu = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]') || qs('#nav');
+      var menu = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]') || qs('#nav') || qs('#side-menu');
       if (!menu) return;
       var cur = currentPath();
       var links = menu.querySelectorAll ? menu.querySelectorAll('a[href^="#"]') : [];
@@ -2625,8 +2623,7 @@
     function toggleFab(){
       var fab = qs('#fabAccount'); if (!fab) return;
       var cur = currentPath();
-      if (cur === '#/compte') fab.style.display = 'none';
-      else fab.style.display = '';
+      if (cur === '#/compte') fab.style.display = 'none'; else fab.style.display = '';
     }
 
     function run(){ markActive(); focusH1(); toggleFab(); }
@@ -2707,7 +2704,7 @@
       if (rf && !rf.__ptP6){ rf.__ptP6=1; rf.addEventListener('submit', onRegister, false); }
     }
 
-    // si la vue n’existe pas, crée un squelette minimal
+    // squelette minimal si absent
     if (!qs('#view-compte')){
       var v = D.createElement('section'); v.id='view-compte'; v.className='view hidden';
       v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"><div class="card"><div class="specs"><p>Chargement…</p></div></div></div></div>';
@@ -2732,193 +2729,3 @@
   })();
 
 })();
-
-<script>
-/* =========================================================
-   BLOC 7 — HERO qualité + overshoot + timing Android (ES5)
-   - Fixe la source du logo (src/srcset/sizes) => qualité nette
-   - Zoom "overshoot" + fondu tardif, plus court sur Android
-   - Ajoute/assure .hero-fade pour masquer toute séparation
-   - Défensif: ne casse pas tes autres blocs
-========================================================= */
-(function(){
-  'use strict';
-  var D = document, W = window;
-
-  function $(s, r){ return (r||D).querySelector(s); }
-  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
-  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
-
-  var IMG_MAIN     = './icons/icon-384.png';  // point d’entrée net
-  var IMG_FALLBACK = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
-
-  function ensureHeroNodes(){
-    var hero = $('#hero');
-    if (!hero){
-      hero = D.createElement('section');
-      hero.id = 'hero';
-      hero.className = 'hero-full';
-      hero.innerHTML = '<img id="heroLogo" class="hero-logo" alt="Pirates Tools">';
-      D.body.insertBefore(hero, D.body.firstChild || null);
-    }
-    var logo = $('#heroLogo');
-    if (!logo){
-      logo = D.createElement('img');
-      logo.id = 'heroLogo';
-      logo.className = 'hero-logo';
-      logo.alt = 'Pirates Tools';
-      hero.appendChild(logo);
-    }
-    return { hero: hero, logo: logo };
-  }
-
-  function wireLogoSource(logo){
-    if (!logo || hasClass(logo, '__ptSrc')) return;
-    logo.className = (logo.className||'').replace(/\s+$/,'') + ' hero-logo';
-
-    // qualité: met toutes les tailles disponibles
-    try{
-      logo.setAttribute('decoding','async');
-      logo.setAttribute('referrerpolicy','no-referrer');
-      logo.setAttribute('loading','eager');
-      logo.setAttribute('fetchpriority','high');
-    }catch(_){}
-
-    // srcset complet (tes fichiers existent dans /icons/)
-    var srcset = [
-      './icons/icon-180.png 180w',
-      './icons/icon-192.png 192w',
-      './icons/icon-256.png 256w',
-      './icons/icon-384.png 384w',
-      './icons/icon-512.png 512w'
-    ].join(', ');
-    logo.setAttribute('srcset', srcset);
-    logo.setAttribute('sizes', 'min(56vmin, 560px)');
-    if (!logo.getAttribute('src')) logo.setAttribute('src', IMG_MAIN);
-
-    // fallbacks
-    logo.onerror = function(){ this.onerror=null; this.src = IMG_FALLBACK; };
-
-    // anti-flou / rendu GPU pendant le scale
-    logo.style.willChange = 'transform,opacity';
-    logo.style.backfaceVisibility = 'hidden';
-    logo.style.webkitBackfaceVisibility = 'hidden';
-    logo.style.transform = 'translateZ(0)'; // GPU hint
-
-    // fade-in une fois prêt
-    if (logo.complete) addClass(logo, 'on');
-    else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
-
-    addClass(logo, '__ptSrc');
-  }
-
-  function ensureHeroFade(hero){
-    if (!hero) return;
-    var fade = $('.hero-fade', hero) || $('.hero-fade');
-    if (!fade){
-      fade = D.createElement('div');
-      fade.className = 'hero-fade';
-      hero.appendChild(fade);
-    }
-  }
-
-  /* ------------ Overshoot + fondu, paramétrage Android/iOS ------------ */
-  function heroEffectOvershoot(){
-    if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
-
-    var nodes = ensureHeroNodes();
-    var hero = nodes.hero, logo = nodes.logo;
-
-    wireLogoSource(logo);
-    ensureHeroFade(hero);
-
-    // accessibilité: réduit = pas d’anim
-    var mqr = (W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)'));
-    if (mqr && mqr.matches){
-      logo.style.transform = 'translate3d(0,0,0) scale(1)';
-      logo.style.opacity   = '1';
-      return;
-    }
-
-    // heuristique Android (passe derrière un peu plus tôt)
-    var isAndroid = /Android/i.test(W.navigator.userAgent||'');
-
-    var mqMobile = (W.matchMedia && W.matchMedia('(max-width: 768px)'));
-    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-    function getY(){
-      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
-             (D.scrollingElement && D.scrollingElement.scrollTop) ||
-             D.documentElement.scrollTop || D.body.scrollTop || 0;
-    }
-    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-    function clamp01(x){ return x<0?0:(x>1?1:x); }
-
-    // paramètres de progression
-    var MAX_SCALE_M = 6.5;
-    var MAX_SCALE_D = 5.0;
-    var DIST_M      = isAndroid ? 1.00 : 1.10; // Android: un poil plus court
-    var DIST_D      = 1.18;
-
-    var prevY = -1, rafId = 0;
-
-    function render(y){
-      var vh  = getVH();
-      var fin = vh * ((mqMobile && mqMobile.matches) ? DIST_M : DIST_D);
-
-      var raw     = y / (fin || 1);           // non clampé = autorise l’overshoot
-      var clamped = clamp01(raw);
-      var eased   = easeOutCubic(clamped);
-
-      // sur-croissance douce, plafonnée
-      var over     = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
-      var maxScale = (mqMobile && mqMobile.matches) ? MAX_SCALE_M : MAX_SCALE_D;
-      var scale    = 1 + (maxScale - 1) * over;
-
-      var tyPx     = (mqMobile && mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
-
-      // fondu tardif (garde le logo net longtemps)
-      var opacity  = 1 - Math.max(0, raw - 0.75) * 1.7; // commence ~75%
-      if (opacity < 0) opacity = 0;
-
-      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-      logo.style.transform = t; logo.style.webkitTransform = t; logo.style.opacity = opacity.toFixed(3);
-
-      // espace visuel avec contenu (utilisé par la CSS)
-      var gapStart = (mqMobile && mqMobile.matches) ? 22 : 26;
-      var gap = Math.max(0, (1 - clamped) * gapStart);
-      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-      // quand assez loin → on passe sous la page
-      var done = raw > (isAndroid ? 1.05 : 1.12);
-      if (done){ hero.classList.add('hero-out'); D.body.classList.add('after-hero'); }
-      else { hero.classList.remove('hero-out'); D.body.classList.remove('after-hero'); }
-    }
-
-    function tick(){
-      var y = getY();
-      if (y !== prevY){ render(y); prevY = y; }
-      rafId = W.requestAnimationFrame(tick);
-    }
-
-    // boot
-    render(getY());
-    rafId = W.requestAnimationFrame(tick);
-
-    function recalc(){ prevY=-1; render(getY()); }
-    W.addEventListener('resize', recalc, true);
-    if (W.visualViewport && W.visualViewport.addEventListener){
-      W.visualViewport.addEventListener('resize', recalc, true);
-    }
-    W.addEventListener('orientationchange', recalc, true);
-    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
-    W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-  }
-
-  if (D.readyState === 'loading'){
-    D.addEventListener('DOMContentLoaded', heroEffectOvershoot, false);
-  } else {
-    heroEffectOvershoot();
-  }
-})();
-</script>
