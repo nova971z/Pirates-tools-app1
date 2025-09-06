@@ -91,24 +91,56 @@ h3{ font-size: 1.05rem }
 
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
 .hero-full{
-  position: relative; height: 100vh; height: 100svh; height: 100dvh;
-  display: grid; place-items: center; pointer-events: none; isolation: isolate; z-index: 30;
+  position: relative;
+  height: 100vh; height: 100svh; height: 100dvh;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  isolation: isolate;
+  z-index: 30;
 }
-.hero-logo{
-  width: min(78vmin, 900px); max-width: 900px; height: auto;
-  opacity:0; transition: opacity .4s ease;
-  will-change: transform, opacity; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
-  filter: drop-shadow(0 22px 44px rgba(0,0,0,.45));
-}
-.hero-logo.on{opacity:1}
-.hero-fade{
-  position: absolute; inset: auto 0 0 0; height: 26vh;
-  background: linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
-  pointer-events: none; z-index: -1;
-}
-.hero-full.hero-out{ z-index: -1 }
 
+.hero-logo{
+  /* occupe entièrement le cadre, sans halo */
+  display:block;
+  margin:0 auto;
+
+  /* carré responsive (le PNG remplit le cadre) */
+  width: min(56vw, 360px);
+  height: min(56vw, 360px);
+
+  object-fit: cover;
+  object-position: center;
+
+  /* pas d’ornements = plus de contour */
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: none;
+
+  /* animé par heroEffect (scale + translate + fade) */
+  opacity: 0;
+  transition: opacity .4s ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
+}
+
+/* l’image est visible une fois chargée */
+.hero-logo.on{ opacity:1; }
+
+.hero-fade{
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 26vh;
+  background: linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.85) 65%, var(--bg) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* quand le hero est “passé”, on le met sous la page */
+.hero-full.hero-out{ z-index: -1; }
 /* ================= Toolbar / champs ================= */
 .toolbar{
   position:relative; z-index:20; width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
