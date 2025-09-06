@@ -303,56 +303,68 @@
            D.documentElement.scrollTop || D.body.scrollTop || 0;
   }
 
-  // ===== TUNING demandé : plus gros & disparition plus tôt =====
-  var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
-  var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
-  var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
-  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
-  var FADE_START  = 0.40;                       // fondu commence plus tôt
-  var FADE_LEN    = 0.34;                       // fondu plus rapide
-  var DONE_M      = 1.06, DONE_D      = 1.10;   // passe « derrière » plus tôt
-  var OVER_MAX    = 2.6;                        // plafonne l’overshoot
 
-  var vh = getVH(), prevY = -1, rafId = 0;
+// ===== TUNING demandé : plus gros & disparition plus tôt =====
+var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
+var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
+var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
+var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
+var FADE_START  = 0.40;                       // fondu commence plus tôt
+var FADE_LEN    = 0.34;                       // fondu plus rapide
+var DONE_M      = 1.06, DONE_D      = 1.10;   // passe « derrière » plus tôt
+var OVER_MAX    = 2.6;                        // plafonne l’overshoot
 
-  function render(y){
-    var isM   = mqMobile && mqMobile.matches;
-    var finPx = vh * (isM ? DIST_M : DIST_D);
+var vh = getVH(), prevY = -1, rafId = 0;
 
-    var raw      = y / (finPx || 1);          // non clampé → autorise l’overshoot
-    var clamped  = clamp(raw, 0, 1);
-    var eased    = easeOut(clamped);
+function render(y){
+  // sécurité si dépendances absentes
+  if (!heroLogo) return;
 
-    // surcroissance douce au-delà de 1 → disparition complète plus bas
-    var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
-    var base     = isM ? BASE_M : BASE_D;
-    var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale    = base + (maxS - base) * over;
+  var isM   = mqMobile && mqMobile.matches;
+  var finPx = vh * (isM ? DIST_M : DIST_D) || 1;
 
-    var tyPx     = (isM ? 13 : 9) * (vh/100) * eased;
+  // progression (non clampée) → autorise l’overshoot
+  var raw      = y / finPx;
+  var clamped  = clamp(raw, 0, 1);
+  var eased    = easeOut(clamped);
 
-    // opacité : fondu plus tôt/rapide
-    var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+  // surcroissance douce au-delà de 1 → disparition complète plus bas
+  var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
+  var base     = isM ? BASE_M : BASE_D;
+  var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
+  var scale    = base + (maxS - base) * over;
 
-    // flou progressif (début plus tôt)
-    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
-    var blur = blurMax * clamp(raw, 0, 1.15);
+  // translation légère (courte pour garder l’effet de “zoom avant”)
+  var tyPx     = (isM ? 13 : 9) * (vh / 100) * eased;
 
-    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    heroLogo.style.transform = t;
-    heroLogo.style.webkitTransform = t;
-    heroLogo.style.opacity = op.toFixed(3);
-    heroLogo.style.filter  = (blur>0 ? 'blur('+blur.toFixed(2)+'px)' : 'none)';
+  // opacité : fondu plus tôt/rapide
+  var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
 
-    // espace visuel pour la grille sous le hero
-    var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+  // flou progressif (début plus tôt)
+  var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+  var blur    = blurMax * clamp(raw, 0, 1.15);
 
-    // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
-    var done = raw > (isM ? DONE_M : DONE_D);
-    D.body.classList.toggle('after-hero', done);
-    hero.classList.toggle('hero-out', done);
-  }
+  var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
+  heroLogo.style.transform       = t;
+  heroLogo.style.webkitTransform = t;
+  heroLogo.style.opacity         = op.toFixed(3);
+  heroLogo.style.filter          = (blur > 0 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none');
+
+  // espace visuel pour la grille sous le hero
+  var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
+  D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
+
+  // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
+  var done = raw > (isM ? DONE_M : DONE_D);
+  D.body.classList.toggle('after-hero', done);
+  hero.classList.toggle('hero-out', done);
+}
+
+
+
+
+   
+
 
   function tick(){
     var y = scrollY();
