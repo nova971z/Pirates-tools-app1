@@ -13,7 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v94'; // ⬅️ bump à chaque déploiement
+const VERSION        = 'pt-v95'; // ⬅️ bump à chaque déploiement
 const CACHE_STATIC   = `pt-static-${VERSION}`;
 const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
 const CACHE_IMAGES   = `pt-img-${VERSION}`;
