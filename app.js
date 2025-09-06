@@ -2473,66 +2473,86 @@
 })();
 
 
-/* ===== Topbar: enlever la bulle titre + insérer le logo à côté du hamburger ===== */
+/* ===== Topbar hard-fix: retirer tout "Pirates Tools" + logo à côté du hamburger ===== */
 (function () {
   'use strict';
   var D = document;
 
-  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
   function qs(s, r){ return (r||D).querySelector(s); }
+  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+  function txt(el){ return (el && (el.textContent || '').trim()) || ''; }
 
-  function looksLikeBurger(el){
+  function isBurger(el){
     if (!el) return false;
-    var cls = (el.className||'') + ' ' + (el.id||'');
+    var c = (el.className||'') + ' ' + (el.id||'');
     var aria = (el.getAttribute && (el.getAttribute('aria-label')||'')) || '';
-    return /(burger|hamburger|menu)/i.test(cls) || /menu/i.test(aria);
+    return /(burger|hamburger|menu)/i.test(c) || /menu/i.test(aria);
   }
 
-  function removeLeftTitlePill(bar){
-    // cible tout élément de type "pill/chip/badge/btn" contenant "Pirates Tools"
-    var nodes = qsa('a,button,div,span', bar);
+  function isPhoneOrChat(el){
+    var t = txt(el);
+    var c = (el.className||'');
+    return /\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}/.test(t) || /(phone|wa|whats|chat|call)/i.test(c);
+  }
+
+  function removeTitlePills(header){
+    var nodes = qsa('a,button,div,span', header);
     nodes.forEach(function(n){
-      var txt = (n.textContent||'').trim();
+      var t = txt(n);
+      if (!t) return;
+      // tout ce qui ressemble à un titre/badge et contient “Pirates Tools”
       var cls = (n.className||'');
-      if (/pirates\s*tools/i.test(txt) && /(chip|pill|btn|badge|brand|title)/i.test(cls)) {
-        // évite de toucher aux bulles de droite (qui n'ont pas ce texte)
-        try{ n.parentNode.removeChild(n); }catch(_){}
+      var looksLikePill = /(chip|pill|badge|btn|brand|title|site|logo|nav)/i.test(cls);
+      if (/pirates\s*tools/i.test(t) && looksLikePill && !isPhoneOrChat(n)){
+        try{ n.remove(); }catch(_){}
       }
     });
   }
 
-  function ensureLogoNextToBurger(bar){
-    if (qs('.topbar-logo-link', bar)) return; // déjà en place
+  function ensureLogoAfterBurger(header){
+    if (qs('.topbar-logo-link', header)) return; // déjà là
 
-    // trouve le hamburger
-    var burger = qsa('button, a, div', bar).filter(looksLikeBurger)[0] || bar.firstElementChild;
-    // crée le lien/logo
+    // récupérer le hamburger
+    var burger = qsa('button, a, div', header).filter(isBurger)[0] || header.firstElementChild;
+
+    // si le voisin direct est encore un élément texte "Pirates Tools", on le convertit en logo
+    var next = burger && burger.nextElementSibling;
+    if (next && /pirates\s*tools/i.test(txt(next))) {
+      next.className = 'topbar-logo-link';
+      next.id = 'homeLink';
+      next.innerHTML = '<img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" height="28">';
+      return;
+    }
+
+    // sinon on insère un lien logo
     var a = D.createElement('a');
     a.href = '#/';
     a.className = 'topbar-logo-link';
-    a.id = 'homeLink'; // exploité ailleurs pour le retour accueil
+    a.id = 'homeLink';
     a.innerHTML = '<img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" height="28">';
-    if (burger && burger.parentNode){
-      burger.parentNode.insertBefore(a, burger.nextSibling);
-    } else {
-      bar.insertBefore(a, bar.firstChild);
-    }
+    if (burger && burger.parentNode) burger.parentNode.insertBefore(a, burger.nextSibling);
+    else header.insertBefore(a, header.firstChild);
   }
 
-  function patchTopbar(){
-    var bar = qs('#topbar') || qs('.topbar') || qs('header');
-    if (!bar) return;
-    removeLeftTitlePill(bar);
-    ensureLogoNextToBurger(bar);
+  function patch(){
+    var header = qs('#topbar') || qs('.topbar') || qs('header');
+    if (!header) return;
+    removeTitlePills(header);
+    ensureLogoAfterBurger(header);
   }
 
-  if (document.readyState === 'loading'){
-    D.addEventListener('DOMContentLoaded', patchTopbar, false);
+  // patch au boot
+  if (document.readyState === 'loading') {
+    D.addEventListener('DOMContentLoaded', patch, false);
   } else {
-    patchTopbar();
+    patch();
+  }
+
+  // si le thème ré-insère le titre plus tard → on repatch automatiquement
+  var header = qs('#topbar') || qs('.topbar') || qs('header');
+  if (header && !header.__ptObs){
+    header.__ptObs = 1;
+    var obs = new MutationObserver(function(){ patch(); });
+    obs.observe(header, { childList:true, subtree:true, characterData:true });
   }
 })();
-
-
-
-
