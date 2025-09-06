@@ -2295,23 +2295,21 @@
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
 
- 
-   
-   /* ---------- HÉRO unique (Partie 6) : overshoot + blur + fade tôt, HD ---------- */
+ <script>
+/* ---------- HÉRO unique (Partie 6) : overshoot doux + blur avant fade + disparition rapide ---------- */
 (function heroEffectOvershoot(){
   'use strict';
   var W = window, D = document;
 
-  // Ne pas doubler : on marque l'anim comme câblée
-  if (W.__ptHeroWired || W.__ptHeroOvershoot) return;
-  W.__ptHeroWired = 1;
-  W.__ptHeroOvershoot = 1;
+  // Anti double-wiring
+  if (W.__ptHeroWired2) return;
+  W.__ptHeroWired2 = 1;
 
   var hero = D.getElementById('hero');
   var logo = D.getElementById('heroLogo');
   if (!hero || !logo) return;
 
-  /* Qualité image + hints rendu (sans forcer des fichiers absents) */
+  /* Qualité image + rendu */
   try{
     if (logo.tagName === 'IMG') {
       if (!logo.getAttribute('srcset')){
@@ -2329,20 +2327,24 @@
       logo.decoding = 'async';
       logo.loading  = 'eager';
       logo.referrerPolicy = 'no-referrer';
-      logo.onerror = function(){ this.onerror=null; this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7'); };
+      logo.onerror = function(){
+        this.onerror=null;
+        this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
+      };
     }
     logo.style.willChange = 'transform,opacity,filter';
     logo.style.backfaceVisibility = 'hidden';
     logo.style.webkitBackfaceVisibility = 'hidden';
     logo.style.transform = 'translateZ(0)';
+    logo.style.transformOrigin = '50% 50%';
   }catch(_){}
 
-  // Assure le fondu interne si absent
+  // Fond dégradé interne si manquant
   if (!hero.querySelector('.hero-fade')){
     var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
   }
 
-  // Accessibilité : animations réduites → état stable
+  // Respect “réduction animations”
   var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
   if (mqr && mqr.matches){
     var t0 = 'translate3d(0,0,0) scale(1)';
@@ -2354,23 +2356,28 @@
     return;
   }
 
-  // ===== TUNING demandé : plus gros & disparition plus tôt =====
-  var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
-  var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
-  var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
-  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
-  var FADE_START  = 0.40;                      // fondu commence plus tôt
-  var FADE_LEN    = 0.34;                      // fondu plus rapide
-  var DONE_M      = 1.06, DONE_D      = 1.10;  // passe « derrière » plus tôt
-  var OVER_MAX    = 2.6;                       // plafonne l’overshoot
+  /* ===== Réglages (progressif + disparition plus tôt) =====
+     - BLUR démarre AVANT FADE
+     - SCALE croît vite au début mais reste “léger”
+     - DONE bas → bascule derrière tôt pour libérer les bulles
+  */
+  var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;   // zoom final (assez grand mais maîtrisé)
+  var BASE_M      = 1.10, BASE_D      = 1.08;  // départ léger (donne “plus léger plus vite”)
+  var DIST_M      = 0.90, DIST_D      = 0.96;  // distance courte -> disparition rapide
+  var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // flou démarre tôt, monte doucement
+  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // plafond de flou
+  var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fondu plus tôt et plus rapide que le flou
+  var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière très tôt
+  var OVER_MAX    = 2.2;                       // limite overshoot
 
-  // AJOUT : gap réduit pour voir les icônes plus tôt
-  var GAP_M       = 14,   GAP_D       = 18;    // (vh) au lieu de 22/26
+  // Espace visuel pour la grille (réduit)
+  var GAP_M       = 12,   GAP_D       = 16;    // en vh
 
-  // Helpers
+  // Helpers easing
   var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-  function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
   function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function easeOutQuad(t){ return 1 - (1 - t) * (1 - t); } // pour SCALE au démarrage
   function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
   function scrollY(){
     return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
@@ -2384,44 +2391,53 @@
     var isM   = mqMobile && mqMobile.matches;
     var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
 
-    var raw      = y / finPx;                // non clampé → overshoot
-    var clamped  = clamp(raw, 0, 1);
-    var eased    = easeOut(clamped);
+    var raw      = y / finPx;           // progress “réel” (non clampé)
+    var prog01   = clamp(raw, 0, 1);    // progress [0..1]
+    var eased    = easeOutCubic(prog01);
 
-    // surcroissance douce au-delà de 1 → disparition plus bas
-    var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
+    // —— SCALE : croissance “légère mais rapide au début” + overshoot contrôlé
+    var sProg    = clamp(prog01 * 1.10, 0, 1);    // un peu plus vite au début
+    var sEase    = easeOutQuad(sProg);
+    var over     = raw > 1 ? Math.min(raw - 1, OVER_MAX - 1) : 0; // extra au-delà de 1
     var base     = isM ? BASE_M : BASE_D;
-    var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale    = base + (maxS - base) * over;
+    var sMax     = isM ? MAX_SCALE_M : MAX_SCALE_D;
+    var scale    = base + (sMax - base) * (sEase + over * 0.55);  // overshoot adouci
 
-    // translation légère (garde l’effet “zoom avant”)
-    var tyPx     = (isM ? 13 : 9) * (_vh / 100) * eased;
+    // —— Translation douce (renforce l’effet zoom vers le bas)
+    var tyPx     = (isM ? 10 : 8) * (_vh / 100) * eased;
 
-    // opacité : fondu plus tôt/rapide
-    var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+    // —— BLUR : commence AVANT le fondu
+    var blurMax  = isM ? BLUR_MAX_M : BLUR_MAX_D;
+    var blurP    = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
+    var blur     = blurMax * (0.12 + 0.88 * blurP); // petite base pour éviter le “cut” sec
 
-    // flou progressif (début plus tôt)
-    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
-    var blur    = blurMax * clamp(raw, 0, 1.15);
+    // —— FADE : plus tôt & plus court que le blur
+    var fadeP    = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+    var opacity  = 1 - fadeP;
 
-    var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
+    // Applique
+    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
     logo.style.transform       = t;
     logo.style.webkitTransform = t;
-    logo.style.opacity         = op.toFixed(3);
-    logo.style.filter          = (blur > 0 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none');
+    logo.style.opacity         = opacity.toFixed(3);
+    logo.style.filter          = blur>0 ? ('blur('+blur.toFixed(2)+'px)') : 'none';
 
-    // AJOUT : espace visuel (gap) réduit + décroissance plus agressive
-    var gap = Math.max(0, (1 - clamped) * (isM ? GAP_M : GAP_D));
+    // Espace au-dessus de la grille
+    var gap = Math.max(0, (1 - prog01) * (isM ? GAP_M : GAP_D));
     D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-    // AJOUT : quand on a parcouru ~1.06–1.10 → hero passe VRAIMENT sous la page
+    // Bascule “derrière” très tôt pour libérer les bulles
     var done = raw > (isM ? DONE_M : DONE_D);
     if (done){
       D.body.classList.add('after-hero');
       hero.classList.add('hero-out');
-      hero.style.zIndex = -1;               // libère l’interaction sur les icônes
+      hero.style.zIndex = -1;
       hero.style.pointerEvents = 'none';
-      logo.style.opacity = '0';
+      // sécurité : si opacité 0, on fige pour éviter tout flicker
+      if (opacity <= 0.02){
+        logo.style.opacity = '0';
+        logo.style.filter  = 'blur(' + blurMax + 'px)';
+      }
     } else {
       D.body.classList.remove('after-hero');
       hero.classList.remove('hero-out');
@@ -2436,12 +2452,12 @@
     rafId = W.requestAnimationFrame(tick);
   }
 
-  // fade-in quand prêt
+  // Révélation douce une fois l’image prête
   var reveal = function(){ try{ logo.classList.add('on'); }catch(_){ } };
   if (logo.complete) setTimeout(reveal, 0);
   else logo.addEventListener('load', reveal, { once:true });
 
-  // boot
+  // Boot
   render(scrollY());
   rafId = W.requestAnimationFrame(tick);
 
@@ -2454,8 +2470,8 @@
   D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
   W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
   W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-})();   
-   
+})();
+</script>   
    
    /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
