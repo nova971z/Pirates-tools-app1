@@ -122,20 +122,76 @@
   })();
   </script>
 
-  <!-- === HERO === -->
-  <section id="hero" class="hero-full" aria-hidden="true">
-    <img
-      id="heroLogo"
-      class="hero-logo"
-      alt="Pirates Tools"
-      src="./icons/icon-512.png"  <!-- valeur initiale, sera corrigée par le chargeur -->
-      width="512" height="512"
-      decoding="async" loading="eager" referrerpolicy="no-referrer"
-    />
-    <div class="hero-fade" aria-hidden="true"></div>
-  </section>
-  <!-- === /HERO === -->
+ <!-- === HERO (fixed) === -->
+<section id="hero" class="hero-full" aria-hidden="true">
+  <img
+    id="heroLogo"
+    class="hero-logo"
+    alt="Pirates Tools"
+    src="./icons/icon-512.png"
+    srcset="
+      ./icons/icon-180.png 180w,
+      ./icons/icon-192.png 192w,
+      ./icons/icon-256.png 256w,
+      ./icons/icon-384.png 384w,
+      ./icons/icon-512.png 512w"
+    sizes="min(62vmin, 560px)"
+    width="512" height="512"
+    decoding="async" loading="eager" referrerpolicy="no-referrer"
+  />
+  <div class="hero-fade" aria-hidden="true"></div>
+</section>
 
+<script>
+/* HERO loader robuste : essaie plusieurs chemins + anti-cache */
+(function(){
+  'use strict';
+  var REPO_SLUG = 'Pirates-tools-app1'; // change si ton dépôt a un autre nom
+  var img = document.getElementById('heroLogo'); if(!img) return;
+
+  // srcset pour qualité pendant le zoom (au cas où le HTML est modifié plus tard)
+  try{
+    img.setAttribute('srcset',
+      './icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w'
+    );
+    img.setAttribute('sizes', 'min(62vmin, 560px)');
+  }catch(_){}
+
+  function pickWorkingURL(list, ok, fail){
+    var i = -1;
+    function next(){
+      i++;
+      if(i >= list.length){ if(fail) fail(); return; }
+      var url = list[i], p = new Image();
+      p.referrerPolicy = 'no-referrer';
+      p.onload  = function(){ ok(url); };
+      p.onerror = next;
+      p.src = url + (url.indexOf('?')>-1?'&':'?') + 'probe=' + Date.now();
+    }
+    next();
+  }
+  function setImg(url){
+    var ver = (window.__ASSET_VER || '9');
+    img.src = url + (url.indexOf('?')>-1?'&':'?') + 'v=' + ver;
+    if (img.complete) { try{ img.classList.add('on'); }catch(_){ } }
+    else img.addEventListener('load', function(){ try{ img.classList.add('on'); }catch(_){ } }, { once:true });
+  }
+
+  var candidates = [
+    './icons/icon-512.png',
+    './icons/icon-384.png',
+    '/icons/icon-512.png',
+    '/' + REPO_SLUG + '/icons/icon-512.png',
+    '/' + REPO_SLUG + '/icons/icon-384.png'
+  ];
+  pickWorkingURL(candidates, setImg, function(){ /* on garde l'alt si tout échoue */ });
+
+  // si l'attribut src initial échoue immédiatement, on relance les fallbacks
+  img.addEventListener('error', function(){
+    pickWorkingURL(candidates, setImg, function(){});
+  }, { once:true });
+})();
+</script>
   <!-- =================== VUES (SPA) =================== -->
   <main id="app" role="main">
 
