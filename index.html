@@ -8,19 +8,25 @@
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
+  <!-- Couleurs système / PWA -->
+  <meta name="theme-color" content="#0a0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
   <link rel="stylesheet" href="./styles.css" />
 
   <!-- ===== HÉRO : styles nécessaires à l’animation pilotée par app.js ===== -->
   <style id="pt-hero-overshoot-css">
-    :root{ --listGap: 22vh; } /* valeur par défaut, app.js l’anime */
+    :root{ --listGap: 22vh; --heroFadeH: 28vh; } /* valeurs par défaut; app.js anime --listGap */
 
     /* Le hero est au flux avec superposition contrôlée */
     #hero{ position:relative; z-index:0; }
     body.after-hero #hero{ z-index:-1; pointer-events:none; }
 
-    /* Dégradé pour fondre le logo dans le contenu */
+    /* Dégradé pour fondre le logo dans le contenu (aligné sur --heroFadeH) */
     #hero .hero-fade{
-      position:absolute; inset:auto 0 0 0; height:28vh;
+      position:absolute; inset:auto 0 0 0; height:var(--heroFadeH, 28vh);
       background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
       pointer-events:none;
     }
@@ -77,6 +83,9 @@
       decoding="async" loading="eager" referrerpolicy="no-referrer" />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
+
+  <!-- Voile de fond fixe (fallback anti-jonction, stylé dans styles.css) -->
+  <div class="hero-fade-fixed" aria-hidden="true"></div>
 
   <!-- ====== Loader robuste (topbar + hero) : chemins GitHub Pages + anti-cache ====== -->
   <script>
