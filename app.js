@@ -2113,948 +2113,595 @@
 })();
 
 
-
-
 /* =========================================================
-   BLOC #1 — NAVIGATION FIABLE (menu déroulant + dock + tel/WA)
-   - Ferme le menu automatiquement sur clic et sur hashchange
-   - Mappe tous les boutons (menu & dock) vers des routes stables
-   - Rend téléphone/WhatsApp cliquables même sans attributs
-   - ES5-safe, n’override pas vos fonctions existantes
+   PARTIE 5/4 — Nav fiable + FAB Compte + Hero polish + Grille 3 colonnes
+   - Ferme le menu automatiquement (clic + hashchange)
+   - Mappe menu & dock → routes (#/, #/catalogue, #/devis, #/compte, tel, WhatsApp)
+   - Ajoute un FAB Compte (bas-droite) persistant
+   - Hero : raccord fondu + rendu net iPad (sans rebrancher l’anim de la Partie 1)
+   - Home : grille marques en 3 colonnes, bulles “en suspension”
+   - ES5-safe, défensif, pas de double wiring (flags __ptP5*)
 ========================================================= */
 (function(){
   'use strict';
-  var D = document, W = window;
+  if (window.__ptP5Booted) return; window.__ptP5Booted = 1;
 
-  /* --- helpers --- */
+  var D = document, W = window;
+  var PHONE_E164 = W.PHONE_E164 || '+33774230195';
+
+  /* ---------------- Helpers ---------------- */
   function qs(s, r){ return (r||D).querySelector(s); }
   function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
   function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
+  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
+  function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
 
-  /* --- close drawer partout --- */
-  function closeDrawer(){
+  /* ---------------- CSS d’appoint (injection non destructive) ---------------- */
+  (function injectP5CSS(){
+    if (D.getElementById('pt-p5-style')) return;
+    var s = D.createElement('style'); s.id='pt-p5-style';
+    s.textContent =
+      /* Hero : raccord fondu + rendu net iPad */
+      '#hero .hero-fade{position:absolute;inset:auto 0 0 0;height:28vh;' +
+      'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg, #0a0f14) 100%);pointer-events:none;z-index:-1}' +
+      '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
+      'will-change:transform,opacity;transform:translateZ(0);}' +
+      /* Home : grille marques 3 colonnes fixes + bulles suspendues */
+      '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
+      'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
+      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:transparent;border:0;cursor:pointer}' +
+      '#view-home .brand__bubble{display:grid;place-items:center;aspect-ratio:1/1;width:clamp(86px,22vmin,140px);' +
+      'border-radius:50%;background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
+      'backdrop-filter:saturate(120%) blur(4px)}' +
+      '#view-home .brand__logo{max-width:70%;max-height:70%;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}' +
+      '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +
+      /* FAB Compte (bas droite) */
+      '#fabAccount{position:fixed;right:clamp(12px,2.4vmin,18px);bottom:clamp(12px,2.4vmin,18px);' +
+      'z-index:1000;border:0;border-radius:999px;padding:.9rem 1.05rem;background:linear-gradient(135deg,#19d3ff,#49f2c2);' +
+      'color:#001018;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer;display:inline-flex;align-items:center;gap:.55rem}' +
+      '#fabAccount .ico{width:20px;height:20px;display:inline-block;filter:drop-shadow(0 1px 0 rgba(255,255,255,.35))}' +
+      '#fabAccount:hover{transform:translateY(-2px)}' +
+      '#fabAccount:active{transform:translateY(0)}' +
+      '@media (pointer:coarse){#fabAccount{padding:1rem 1.15rem}}';
+    D.head.appendChild(s);
+  })();
+
+  /* ---------------- Menu (drawer) : toggle + auto-close ---------------- */
+  function p5CloseDrawer(){
     try{
       var body = D.body;
-      var drawer = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
-      var backdrop = qs('#drawerBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
-      var classes = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
-      // body flags
-      for (var i=0;i<classes.length;i++){ if (body && body.classList && body.classList.contains(classes[i])) body.classList.remove(classes[i]); }
-      // drawer flags
-      if (drawer && drawer.classList){ for (var j=0;j<classes.length;j++){ if (drawer.classList.contains(classes[j])) drawer.classList.remove(classes[j]); } }
-      if (backdrop){ backdrop.classList.add('hidden'); backdrop.style.display='none'; }
+      var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
+      var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+      var flags  = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
+      var i;
+      if (body) for (i=0;i<flags.length;i++) rmClass(body, flags[i]);
+      if (drawer) for (i=0;i<flags.length;i++) rmClass(drawer, flags[i]);
+      if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
+      var burger = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle');
+      if (burger) burger.setAttribute('aria-expanded','false');
     }catch(_){}
   }
-
+  function p5OpenDrawer(){
+    var body = D.body;
+    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
+    var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+    if (drawer) addClass(drawer,'open');
+    if (body) addClass(body,'menu-open');
+    if (overlay){ rmClass(overlay,'hidden'); overlay.style.display=''; }
+    var burger = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle');
+    if (burger) burger.setAttribute('aria-expanded','true');
+  }
   function wireDrawer(){
-    var drawer   = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
-    var toggle   = qs('#menuBtn') || qs('.hamburger') || qs('.topbar .menu') || qs('[data-menu-toggle]');
-    var backdrop = qs('#drawerBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
+    var toggle = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle') || qs('[data-menu-toggle]');
+    var backdrop = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
 
-    function openDrawer(){
-      var body = D.body;
-      if (drawer && drawer.classList) drawer.classList.add('open');
-      if (body && body.classList) body.classList.add('menu-open');
-      if (backdrop){ backdrop.classList.remove('hidden'); backdrop.style.display=''; }
+    if (toggle && !toggle.__ptP5){
+      toggle.__ptP5 = 1;
+      toggle.addEventListener('click', function(e){ if(e) e.preventDefault(); (hasClass(D.body,'menu-open')||hasClass(drawer,'open'))?p5CloseDrawer():p5OpenDrawer(); }, false);
+      toggle.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch'){ e.preventDefault(); (hasClass(D.body,'menu-open')||hasClass(drawer,'open'))?p5CloseDrawer():p5OpenDrawer(); } }, false);
     }
-
-    if (toggle && !toggle.__ptNav){
-      toggle.__ptNav = 1;
-      toggle.addEventListener('click', function(e){
-        e.preventDefault && e.preventDefault();
-        // toggle
-        var isOpen = (D.body && D.body.classList && D.body.classList.contains('menu-open'))
-                     || (drawer && drawer.classList && drawer.classList.contains('open'));
-        if (isOpen) closeDrawer(); else openDrawer();
-      }, false);
+    if (backdrop && !backdrop.__ptP5){
+      backdrop.__ptP5 = 1;
+      backdrop.addEventListener('click', p5CloseDrawer, false);
     }
-    if (backdrop && !backdrop.__ptNav){
-      backdrop.__ptNav = 1;
-      backdrop.addEventListener('click', closeDrawer, false);
-    }
-    if (drawer && !drawer.__ptNav){
-      drawer.__ptNav = 1;
-      // ferme sur clic d’un item
+    if (drawer && !drawer.__ptP5){
+      drawer.__ptP5 = 1;
       drawer.addEventListener('click', function(e){
-        var a = e.target && e.target.closest ? e.target.closest('a,[data-nav],button,[role="menuitem"]') : null;
-        if (a){ setTimeout(closeDrawer, 30); }
+        var a = e.target && e.target.closest ? e.target.closest('a,[data-nav],[data-route],[role="menuitem"]') : null;
+        if (a){ setTimeout(p5CloseDrawer, 30); }
       }, false);
     }
-    // ferme sur navigation
-    W.addEventListener('hashchange', closeDrawer, false);
+    W.addEventListener('hashchange', function(){ setTimeout(p5CloseDrawer,0); }, false);
   }
 
-  /* --- navigation vers routes + tel/wa --- */
-  var PHONE_E164 = W.PHONE_E164 || '+33774230195';
+  /* ---------------- Routing helpers ---------------- */
   function go(dest){
     if (!dest) return;
-    if (dest.indexOf('#/') === 0){ location.hash = dest; return; }
-    if (dest === 'phone'){
-      location.href = 'tel:' + onlyDigits(PHONE_E164);
-      return;
-    }
-    if (dest === 'wa' || dest === 'whatsapp'){
-      var url = 'https://wa.me/' + onlyDigits(PHONE_E164);
-      W.open(url, '_blank', 'noopener');
-      return;
+    if (dest.indexOf('#/')===0){ location.hash = dest; return; }
+    if (dest === 'phone'){ try{ location.href='tel:'+onlyDigits(PHONE_E164); }catch(_){ W.open('tel:'+onlyDigits(PHONE_E164),'_self'); } return; }
+    if (dest==='wa' || dest==='whatsapp'){
+      var text = (typeof W.cartToWhatsAppText==='function' && (W.CART||[]).length) ? W.cartToWhatsAppText() : ('Bonjour, je souhaite un devis.\n\nLien: '+location.origin+location.pathname+'#/devis\n\nMerci.');
+      W.open('https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(text), '_blank', 'noopener');
     }
   }
-
   function attachNav(el){
-    if (!el || el.__ptNav) return;
-    el.__ptNav = 1;
+    if (!el || el.__ptP5) return; el.__ptP5 = 1;
     el.addEventListener('click', function(e){
-      var r = el.getAttribute('data-nav') || el.getAttribute('href') || '';
-      // Si c’est une ancre std vers hash, laisse faire le navigateur
-      if (r && r.indexOf('#/') === 0){ e.preventDefault(); go(r); return; }
-      if (r === 'phone' || r === 'wa' || r === 'whatsapp'){ e.preventDefault(); go(r); return; }
-      // sinon, si pas de route mais texte connu → mappe automatiquement
+      var r = el.getAttribute('data-nav') || el.getAttribute('data-route') || el.getAttribute('href') || '';
       var t = (el.getAttribute('aria-label') || el.title || el.textContent || '').toLowerCase();
-      if (!r){
-        if (t.indexOf('accueil')>-1 || t === 'home'){ e.preventDefault(); go('#/'); return; }
-        if (t.indexOf('catalogue')>-1){ e.preventDefault(); go('#/catalogue'); return; }
-        if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1){ e.preventDefault(); go('#/devis'); return; }
-        if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1){ e.preventDefault(); go('#/compte'); return; }
-        if (t.indexOf('whatsapp')>-1 || t.indexOf('message')>-1 || t.indexOf('chat')>-1){ e.preventDefault(); go('wa'); return; }
-        if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1){ e.preventDefault(); go('phone'); return; }
+      function mapByText(){
+        if (t.indexOf('accueil')>-1 || t==='home') return '#/';
+        if (t.indexOf('catalogue')>-1) return '#/catalogue';
+        if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1) return '#/devis';
+        if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) return '#/compte';
+        if (t.indexOf('whatsapp')>-1 || t.indexOf('message')>-1 || t.indexOf('chat')>-1) return 'wa';
+        if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) return 'phone';
+        return '';
       }
+      var dest = r ? r : mapByText();
+      if (!dest) return;
+      if (dest.indexOf('#/')===0){ e.preventDefault(); go(dest); }
+      else if (dest==='wa' || dest==='whatsapp' || dest==='phone'){ e.preventDefault(); go(dest); }
     }, false);
   }
 
-  function wireDock(){
-    var dock = qs('#dock');
-    if (!dock) return;
-    var btns = qsa('a,button', dock);
-    for (var i=0;i<btns.length;i++){
-      var b = btns[i];
-      // Si pas de data-nav, estime à partir du libellé
-      if (!b.getAttribute('data-nav')){
-        var t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
-        if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-nav', '#/catalogue');
-        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-nav', '#/devis');
-        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-nav', '#/compte');
-        else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav', 'wa');
-        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav', 'phone');
-      }
-      attachNav(b);
-    }
-  }
-
+  /* ---------------- Menu & Dock wiring ---------------- */
   function wireDrawerLinks(){
-    var drawer = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
+    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
     if (!drawer) return;
     var items = qsa('a,button,[role="menuitem"]', drawer);
     for (var i=0;i<items.length;i++){
       var it = items[i];
-      // Si pas d’attribut, mappe par texte
-      if (!it.getAttribute('href') && !it.getAttribute('data-nav')){
-        var t = (it.textContent || '').toLowerCase();
-        if (t.indexOf('accueil')>-1 || t === 'home') it.setAttribute('href', '#/');
-        else if (t.indexOf('catalogue')>-1) it.setAttribute('href', '#/catalogue');
-        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1) it.setAttribute('href', '#/devis');
-        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) it.setAttribute('href', '#/compte');
-        else if (t.indexOf('whatsapp')>-1 || t.indexOf('message')>-1 || t.indexOf('chat')>-1) it.setAttribute('data-nav', 'wa');
-        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) it.setAttribute('data-nav', 'phone');
+      if (!it.getAttribute('href') && !it.getAttribute('data-nav') && !it.getAttribute('data-route')){
+        var txt = (it.textContent||'').toLowerCase();
+        if (txt.indexOf('accueil')>-1 || txt==='home') it.setAttribute('href','#/');
+        else if (txt.indexOf('catalogue')>-1) it.setAttribute('href','#/catalogue');
+        else if (txt.indexOf('devis')>-1 || txt.indexOf('panier')>-1) it.setAttribute('href','#/devis');
+        else if (txt.indexOf('compte')>-1 || txt.indexOf('profil')>-1) it.setAttribute('href','#/compte');
+        else if (txt.indexOf('whatsapp')>-1 || txt.indexOf('message')>-1) it.setAttribute('data-nav','wa');
+        else if (txt.indexOf('appel')>-1 || txt.indexOf('phone')>-1 || txt.indexOf('téléphone')>-1) it.setAttribute('data-nav','phone');
       }
       attachNav(it);
     }
   }
+  function wireDock(){
+    var dock = qs('#dock'); if (!dock) return;
+    var btns = qsa('a,button,[data-go],[data-route]', dock);
+    var i, b, t;
+    for (i=0;i<btns.length;i++){
+      b = btns[i];
+      if (!b.getAttribute('data-nav') && !b.getAttribute('data-route')){
+        t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
+        if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-route','#/catalogue');
+        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-route','#/devis');
+        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-route','#/compte');
+        else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav','wa');
+        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav','phone');
+      }
+      attachNav(b);
+    }
+    // Sécurité : IDs connus → data-route
+    var map = { dockToolsBtn:'#/catalogue', dockCartBtn:'#/devis', dockAccountBtn:'#/compte', homeLink:'#/' };
+    for (var k in map){ var el = D.getElementById(k); if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', map[k]); attachNav(el); }
+  }
 
-  function bootNav(){
+  /* ---------------- FAB Compte (toujours présent) ---------------- */
+  function ensureFabAccount(){
+    if (D.getElementById('fabAccount')) return;
+    var btn = D.createElement('button');
+    btn.id = 'fabAccount';
+    btn.type = 'button';
+    btn.setAttribute('aria-label','Mon compte');
+    btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg><span>Compte</span>';
+    btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
+    D.body.appendChild(btn);
+  }
+
+  /* ---------------- Hero polish : assure le fade + rend net ---------------- */
+  function polishHero(){
+    var hero = qs('#hero'); if (!hero) return;
+    // injecte le fade si pas présent (sans toucher à l’anim existante)
+    if (!qs('.hero-fade', hero)){
+      var f = D.createElement('div'); f.className='hero-fade'; hero.appendChild(f);
+    }
+    var logo = qs('#heroLogo');
+    if (logo){
+      // haute définition : si ton PNG existe en @2x, tu peux le setter ici si nécessaire
+      // (on laisse la source actuelle, mais on force un rendu net)
+      logo.style.imageRendering = '-webkit-optimize-contrast';
+      logo.style.backfaceVisibility = 'hidden';
+      logo.style.webkitBackfaceVisibility = 'hidden';
+      logo.style.transform = 'translateZ(0)';
+      // s’assurer du fade-in si la classe n’a pas été posée
+      if (logo.complete) setTimeout(function(){ addClass(logo,'on'); }, 0);
+      else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+    }
+  }
+
+  /* ---------------- Compte : route & fallback minimal si besoin ---------------- */
+  function ensureAccountView(){
+    if (D.getElementById('view-compte')) return;
+    var v = D.createElement('section');
+    v.id = 'view-compte'; v.className='view hidden';
+    v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"><div class="card"><div class="specs"><p>Chargement…</p></div></div></div></div>';
+    D.body.appendChild(v);
+  }
+
+  /* ---------------- Boot ---------------- */
+  function boot(){
     wireDrawer();
     wireDrawerLinks();
     wireDock();
+    ensureFabAccount();
+    polishHero();
+    ensureAccountView();
   }
 
-  D.addEventListener('DOMContentLoaded', bootNav, false);
+  if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot, false);
+  else boot();
+
 })();
 
-
-
 /* =========================================================
-   BLOC #2 — HÉRO + LOGO (auto-fix)
-   - (re)crée #hero + #heroLogo si absents
-   - réactive l’effet zoom/fondu au scroll (iOS/Android OK)
-   - ajoute un petit logo cliquable dans la topbar
-   - injecte un style minimal si la CSS n’existe pas
+   PARTIE 6/4 — Héro overshoot + Gestes mobile + Focus H1 + Actifs + Fallback compte
+   - Héro: zoom continu jusqu’à disparition + fondu + raccord visuel
+   - Menu latéral: swipe pour fermer + inertie iOS + anti-overscroll
+   - Navigation: focus H1 après route, aria-current dans le menu
+   - Compte: fallback léger (save/load) + wiring (login/register/accSave)
+   - FAB Compte: auto-cache sur #/compte, visible ailleurs
+   - ES5-safe, défensif (flags anti-doublon)
 ========================================================= */
 (function(){
   'use strict';
-  var D=document, W=window;
-  var IMG_FALLBACK = W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7';
+  if (window.__ptP6Booted) return; window.__ptP6Booted = 1;
 
-  function injectHeroStyle(){
-    if (D.getElementById('pt-hero-style')) return;
-    var s = D.createElement('style');
-    s.id = 'pt-hero-style';
-    s.textContent =
-      '#hero{min-height:72vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}' +
-      '#heroLogo{max-width:60vw;max-height:46vh;will-change:transform,opacity;transform-origin:center center}' +
-      '.hero-out{pointer-events:none}' +
-      '.topbar-logo-link{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none}' +
-      '.topbar-logo-link img{height:28px;width:28px;object-fit:contain;border-radius:6px}';
-    D.head.appendChild(s);
-  }
+  var D = document, W = window;
 
-  function ensureTopbarLogo(){
-    var host = D.querySelector('.topbar') || D.querySelector('header') || D.body;
-    if (!host) return;
-    var link = D.getElementById('homeLink') || D.querySelector('.topbar-logo-link');
-    if (!link){
-      link = D.createElement('a');
-      link.id = 'homeLink';
-      link.className = 'topbar-logo-link';
-      link.href = '#/';
-      // insérer après le bouton menu si présent
-      var menuBtn = D.getElementById('menuBtn') || host.querySelector('.hamburger') || host.firstChild;
-      if (menuBtn && menuBtn.parentNode) menuBtn.parentNode.insertBefore(link, menuBtn.nextSibling);
-      else host.insertBefore(link, host.firstChild);
-    }
-    // assure l’img
-    var img = link.querySelector('img#topbarLogo') || D.getElementById('topbarLogo');
-    if (!img){
-      img = D.createElement('img');
-      img.id = 'topbarLogo';
-      img.alt = 'Pirates Tools';
-      link.insertBefore(img, link.firstChild || null);
-    }
-    img.loading='lazy'; img.decoding='async'; img.referrerPolicy='no-referrer';
-    img.onerror=function(){ this.onerror=null; this.src=IMG_FALLBACK; };
-    if (!img.src) img.src = IMG_FALLBACK;
-    // assure un texte à côté si absent
-    if (!link.querySelector('.brand-text')){
-      var span = D.createElement('span'); span.className='brand-text'; span.textContent='Pirates Tools';
-      link.appendChild(span);
-    }
-  }
+  /* ---------------- Helpers ---------------- */
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
+  function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
+  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
 
-  function ensureHero(){
-    var hero = D.getElementById('hero');
-    if (!hero){
-      hero = D.createElement('section');
-      hero.id = 'hero';
-      hero.className = 'hero';
-      hero.innerHTML = '<div class="hero__stage"><img id="heroLogo" alt="Pirates Tools"></div>';
-      // insérer tout en haut
-      var first = D.body.firstElementChild;
-      D.body.insertBefore(hero, first || null);
-    }
-    var logo = D.getElementById('heroLogo');
-    if (!logo){
-      logo = D.createElement('img');
-      logo.id = 'heroLogo';
-      logo.alt = 'Pirates Tools';
-      (hero.firstElementChild || hero).appendChild(logo);
-    }
-    logo.loading='eager'; logo.decoding='async'; logo.referrerPolicy='no-referrer';
-    logo.onerror=function(){ this.onerror=null; this.src=IMG_FALLBACK; };
-    if (!logo.src) logo.src = IMG_FALLBACK;
-  }
+  /* =========================================================
+     1) HÉRO — overshoot (zoom jusqu’à disparition)
+     (n’override pas l’anim si déjà gérée ailleurs)
+  ========================================================== */
+  (function heroEffectOvershoot(){
+    if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
 
-  function heroEffect(){
-    if (W.__ptHeroWired) return; W.__ptHeroWired = 1;
-    var hero = D.getElementById('hero');
-    var logo = D.getElementById('heroLogo');
+    var hero = qs('#hero');
+    var logo = qs('#heroLogo');
     if (!hero || !logo) return;
 
-    var prefersReduce = (W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    if (prefersReduce){
+    // réduit : stop anim
+    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mqr && mqr.matches){
       logo.style.transform = 'translate3d(0,0,0) scale(1)';
       logo.style.opacity = '1';
       return;
     }
 
-    var mqSmall = W.matchMedia && W.matchMedia('(max-width: 768px)');
+    // fade-in au chargement
+    (function showOnceReady(){
+      if (logo.tagName === 'IMG'){
+        if (logo.complete) addClass(logo,'on');
+        else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+      } else {
+        setTimeout(function(){ addClass(logo,'on'); }, 60);
+      }
+    })();
+
+    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
     function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
     function getY(){
       return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
              (D.scrollingElement && D.scrollingElement.scrollTop) ||
-             D.documentElement.scrollTop || D.body.scrollTop || 0;
+             D.documentElement.scrollTop ||
+             D.body.scrollTop || 0;
     }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function clamp01(x){ return x<0?0:(x>1?1:x); }
 
-    var H = getVH(), prev = -1, rafId = 0;
+    // paramètres (testés iOS/Android)
+    var MAX_SCALE_M = 6.5;  // mobile
+    var MAX_SCALE_D = 5.0;  // desktop
+    var DIST_M      = 1.10; // 110% vh
+    var DIST_D      = 1.20; // 120% vh
+
+    var prevY = -1, rafId = 0;
+
     function render(y){
-      var fin = H * (mqSmall && mqSmall.matches ? 0.70 : 0.85);
-      var raw = Math.max(0, Math.min(1, y / (fin || 1)));
-      var p   = 1 - Math.pow(1 - raw, 3);
-      var maxScale = (mqSmall && mqSmall.matches) ? 3.1 : 2.0;
-      var scale = 1 + (maxScale - 1) * p;
-      var ty = (mqSmall && mqSmall.matches ? 12 : 7) * (H / 100) * p;
-      var opacity = Math.max(0, Math.min(1, 1 - ((mqSmall && mqSmall.matches) ? 1.75 : 1.25) * raw));
-      var t = 'translate3d(0,'+ty.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-      logo.style.transform = t; logo.style.webkitTransform = t; logo.style.opacity = opacity.toFixed(3);
+      var vh  = getVH();
+      var fin = vh * (mqMobile && mqMobile.matches ? DIST_M : DIST_D);
 
-      var gap = (1 - raw) * ((mqSmall && mqSmall.matches) ? 18 : 22);
+      // progression non clampée (autorise l’overshoot)
+      var raw     = y / (fin || 1);
+      var clamped = clamp01(raw);
+      var eased   = easeOutCubic(clamped);
+
+      // overshoot : continue de grandir jusqu’à ~2.2
+      var over = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
+      var maxScale = (mqMobile && mqMobile.matches) ? MAX_SCALE_M : MAX_SCALE_D;
+      var scale    = 1 + (maxScale - 1) * over;
+
+      var tyPx    = (mqMobile && mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
+      var opacity = 1 - Math.max(0, raw - 0.75) * 1.7; // démarre le fondu tard
+      if (opacity < 0) opacity = 0;
+
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform = t; logo.style.webkitTransform = t;
+      logo.style.opacity   = opacity.toFixed(3);
+
+      // timing du contenu dessous (gap “visuel” en vh)
+      var gapStart = (mqMobile && mqMobile.matches) ? 22 : 26;
+      var gap = Math.max(0, (1 - clamped) * gapStart);
       D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
 
-      var done = raw > 0.985;
-      if (done) hero.classList.add('hero-out'); else hero.classList.remove('hero-out');
+      // quand assez loin → passer le hero sous la page
+      var done = raw > 1.12;
+      hero.classList.toggle('hero-out', done);
+      D.body.classList.toggle('after-hero', done);
     }
-    function tick(){ var y = getY(); if (y !== prev){ render(y); prev = y; } rafId = W.requestAnimationFrame(tick); }
 
-    W.addEventListener('resize', function(){ H = getVH(); render(getY()); }, true);
-    if (W.visualViewport && W.visualViewport.addEventListener){
-      W.visualViewport.addEventListener('resize', function(){ H = getVH(); render(getY()); }, true);
+    function tick(){
+      var y = getY();
+      if (y !== prevY){ render(y); prevY = y; }
+      rafId = W.requestAnimationFrame(tick);
     }
-    W.addEventListener('pageshow', function(e){ if (e.persisted){ H = getVH(); render(getY()); } }, true);
+
+    rafId = W.requestAnimationFrame(tick);
+
+    function recalc(){ prevY = -1; render(getY()); }
+    W.addEventListener('resize', recalc, true);
+    if (W.visualViewport && W.visualViewport.addEventListener){
+      W.visualViewport.addEventListener('resize', recalc, true);
+    }
+    W.addEventListener('orientationchange', recalc, true);
+    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+    W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
     W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
 
-    render(getY());
-    rafId = W.requestAnimationFrame(tick);
-  }
-
-  D.addEventListener('DOMContentLoaded', function(){
-    injectHeroStyle();
-    ensureTopbarLogo();
-    ensureHero();
-    heroEffect();
-  }, false);
-})();
-
-
-/* =========================================================
-   BLOC #3 — NAVIGATION (menu + dock) + ACCÈS COMPTE
-   - Ferme le menu après navigation
-   - Fait pointer chaque entrée vers le bon hash
-   - Fait fonctionner les boutons du dock
-   - Assure l'existence de #/compte
-========================================================= */
-(function(){
-  'use strict';
-  var D=document, W=window;
-  var PHONE_E164 = W.PHONE_E164 || '+33774230195';
-
-  /* ---------- Utils ---------- */
-  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
-  function go(hash){
-    try{ location.hash = hash; }catch(_){ location.assign(hash); }
-    closeDrawer();
-  }
-  function closeDrawer(){
-    var body = D.body;
-    var drawer = D.getElementById('drawer') || D.getElementById('sideMenu') || D.querySelector('.drawer') || D.querySelector('[data-drawer]');
-    var overlay = D.getElementById('overlay') || D.querySelector('.overlay') || D.querySelector('[data-overlay]');
-    if (drawer){
-      drawer.classList.remove('open','is-open','active','visible');
-      drawer.setAttribute('aria-hidden','true');
-      if (drawer.style && drawer.style.display==='block') drawer.style.display='';
-    }
-    if (overlay){ overlay.classList.remove('open','is-open','active','visible'); }
-    if (body){ body.classList.remove('menu-open','drawer-open','nav-open','no-scroll'); }
-    var menuBtn = D.getElementById('menuBtn') || D.querySelector('.hamburger');
-    if (menuBtn) menuBtn.setAttribute('aria-expanded','false');
-  }
-
-  /* ---------- Menu (drawer) ---------- */
-  function norm(t){ return String(t||'').trim().toLowerCase(); }
-  function wireDrawer(){
-    var drawer = D.getElementById('drawer') || D.getElementById('sideMenu') || D.querySelector('.drawer') || D.querySelector('[role="dialog"],[role="menu"]');
-    if (!drawer || drawer.__ptWired) return;
-    drawer.__ptWired = 1;
-
-    // Mappe les liens par texte ou data-route
-    drawer.addEventListener('click', function(e){
-      var a = e.target && e.target.closest ? e.target.closest('a,[data-route]') : null;
-      if (!a) return;
-      var route = (a.getAttribute('data-route')||'').toLowerCase();
-      var txt   = norm(a.textContent);
-      var href  = (a.getAttribute('href')||'').toLowerCase();
-
-      // priorité au data-route/href
-      if (route){ e.preventDefault(); return go('#/'+route.replace(/^#\//,'')); }
-      if (href.indexOf('#/')===0){ closeDrawer(); return; }
-
-      // fallback par libellé
-      if (txt.indexOf('accuei')===0) { e.preventDefault(); return go('#/'); }
-      if (txt.indexOf('catalogue')===0){ e.preventDefault(); return go('#/catalogue'); }
-      if (txt.indexOf('devis')===0)    { e.preventDefault(); return go('#/devis'); }
-      if (txt.indexOf('compte')===0)   { e.preventDefault(); return go('#/compte'); }
-    }, false);
-  }
-
-  /* ---------- Dock (boutons du bas) ---------- */
-  function waTextDefault(){
-    var link = location.origin + location.pathname + '#/devis';
-    var u = (typeof W.loadUser==='function') ? W.loadUser() : {};
-    var blocks = [];
-    if (u && u.name)  blocks.push('Nom: '+u.name);
-    if (u && u.email) blocks.push('Email: '+u.email);
-    var contact = blocks.length?('\n\nMes coordonnées:\n'+blocks.join('\n')):'';
-    return 'Bonjour, je souhaite un devis.\n\nLien: '+link+contact+'\n\nMerci.';
-  }
-  function wireDock(){
-    var dock = D.getElementById('dock');
-    if (!dock) return;
-
-    function q(sel){
-      return dock.querySelector(sel) || D.querySelector(sel);
-    }
-    var btnTools = q('#dockToolsBtn') || q('.dock__btn--tools');
-    var btnCart  = q('#dockCartBtn')  || q('.dock__btn--cart');
-    var btnPhone = q('#dockPhoneBtn') || q('.dock__btn--phone');
-    var btnChat  = q('#dockChatBtn')  || q('.dock__btn--chat');
-
-    if (btnTools && !btnTools.__ptWired){
-      btnTools.__ptWired=1;
-      btnTools.addEventListener('click', function(e){ if(e){e.preventDefault();} go('#/catalogue'); }, false);
-    }
-    if (btnCart && !btnCart.__ptWired){
-      btnCart.__ptWired=1;
-      btnCart.addEventListener('click', function(e){ if(e){e.preventDefault();} go('#/devis'); }, false);
-    }
-    if (btnPhone && !btnPhone.__ptWired){
-      btnPhone.__ptWired=1;
-      btnPhone.addEventListener('click', function(e){
-        if (e) e.preventDefault();
-        var tel = 'tel:'+onlyDigits(PHONE_E164);
-        try{ location.href = tel; }catch(_){ window.open(tel,'_self'); }
-      }, false);
-    }
-    if (btnChat && !btnChat.__ptWired){
-      btnChat.__ptWired=1;
-      btnChat.addEventListener('click', function(e){
-        if (e) e.preventDefault();
-        var text = (typeof W.cartToWhatsAppText==='function' && (W.CART||[]).length) ? W.cartToWhatsAppText() : waTextDefault();
-        var url = 'https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(text);
-        window.open(url,'_blank','noopener');
-      }, false);
-    }
-  }
-
-  /* ---------- Accès Compte (assure la vue) ---------- */
-  function ensureAccountEntry(){
-    // crée la section si absente (minimale — la Partie 3 l’enrichit)
-    var view = D.getElementById('view-compte');
-    if (!view){
-      view = D.createElement('section');
-      view.id = 'view-compte';
-      view.className = 'view hidden';
-      view.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"></div></div>';
-      D.body.appendChild(view);
-    }
-    // si un bouton "Compte" existe en haut ou dans le menu, assurer le href
-    var links = [].slice.call(D.querySelectorAll('[data-route="compte"], a[href="#/compte"]'));
-    for (var i=0;i<links.length;i++){
-      if (!links[i].getAttribute('href')) links[i].setAttribute('href','#/compte');
-    }
-  }
-
-  /* ---------- Boot ---------- */
-  function init(){
-    wireDrawer();
-    wireDock();
-    ensureAccountEntry();
-  }
-  D.addEventListener('DOMContentLoaded', init, false);
-  W.addEventListener('hashchange', closeDrawer, false);
-})();
-
-
-/* ===== Topbar hard-fix: retirer tout "Pirates Tools" + logo à côté du hamburger ===== */
-(function () {
-  'use strict';
-  var D = document;
-
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
-  function txt(el){ return (el && (el.textContent || '').trim()) || ''; }
-
-  function isBurger(el){
-    if (!el) return false;
-    var c = (el.className||'') + ' ' + (el.id||'');
-    var aria = (el.getAttribute && (el.getAttribute('aria-label')||'')) || '';
-    return /(burger|hamburger|menu)/i.test(c) || /menu/i.test(aria);
-  }
-
-  function isPhoneOrChat(el){
-    var t = txt(el);
-    var c = (el.className||'');
-    return /\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}/.test(t) || /(phone|wa|whats|chat|call)/i.test(c);
-  }
-
-  function removeTitlePills(header){
-    var nodes = qsa('a,button,div,span', header);
-    nodes.forEach(function(n){
-      var t = txt(n);
-      if (!t) return;
-      // tout ce qui ressemble à un titre/badge et contient “Pirates Tools”
-      var cls = (n.className||'');
-      var looksLikePill = /(chip|pill|badge|btn|brand|title|site|logo|nav)/i.test(cls);
-      if (/pirates\s*tools/i.test(t) && looksLikePill && !isPhoneOrChat(n)){
-        try{ n.remove(); }catch(_){}
-      }
-    });
-  }
-
-  function ensureLogoAfterBurger(header){
-    if (qs('.topbar-logo-link', header)) return; // déjà là
-
-    // récupérer le hamburger
-    var burger = qsa('button, a, div', header).filter(isBurger)[0] || header.firstElementChild;
-
-    // si le voisin direct est encore un élément texte "Pirates Tools", on le convertit en logo
-    var next = burger && burger.nextElementSibling;
-    if (next && /pirates\s*tools/i.test(txt(next))) {
-      next.className = 'topbar-logo-link';
-      next.id = 'homeLink';
-      next.innerHTML = '<img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" height="28">';
-      return;
-    }
-
-    // sinon on insère un lien logo
-    var a = D.createElement('a');
-    a.href = '#/';
-    a.className = 'topbar-logo-link';
-    a.id = 'homeLink';
-    a.innerHTML = '<img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" height="28">';
-    if (burger && burger.parentNode) burger.parentNode.insertBefore(a, burger.nextSibling);
-    else header.insertBefore(a, header.firstChild);
-  }
-
-  function patch(){
-    var header = qs('#topbar') || qs('.topbar') || qs('header');
-    if (!header) return;
-    removeTitlePills(header);
-    ensureLogoAfterBurger(header);
-  }
-
-  // patch au boot
-  if (document.readyState === 'loading') {
-    D.addEventListener('DOMContentLoaded', patch, false);
-  } else {
-    patch();
-  }
-
-  // si le thème ré-insère le titre plus tard → on repatch automatiquement
-  var header = qs('#topbar') || qs('.topbar') || qs('header');
-  if (header && !header.__ptObs){
-    header.__ptObs = 1;
-    var obs = new MutationObserver(function(){ patch(); });
-    obs.observe(header, { childList:true, subtree:true, characterData:true });
-  }
-})();
-
-
-/* =========================================================
-   BLOC 4 — Accès COMPTE + Liens menu garantis
-   - Force les bons href/data-route sur le menu (Accueil/Catalogue/Devis/Compte)
-   - Garantit l’existence de la vue #/compte (fallback si la Partie 3 n’a pas fini)
-   - Ne casse rien : défensif, n’override pas tes fonctions
-========================================================= */
-(function(){
-  'use strict';
-  function $(s, r){ return (r||document).querySelector(s); }
-  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
-
-  /* -------- 1) Normalise les liens du panneau latéral -------- */
-  var menu = $('#sideMenu') || $('#drawer') || $('#menu') || $('.side-menu') || $('.drawer') || null;
-
-  // mappage label -> route
-  var MAP = {
-    'accueil'   : '#/',
-    'catalogue' : '#/catalogue',
-    'devis'     : '#/devis',
-    'compte'    : '#/compte'
-  };
-
-  if (menu){
-    // a) <a> existants → force le bon href
-    $$('.menu a, a', menu).forEach(function(a){
-      var txt = (a.textContent||'').trim().toLowerCase();
-      if (MAP[txt]) a.setAttribute('href', MAP[txt]);
-    });
-    // b) <button> éventuels → ajoute data-route
-    $$('.menu button, button', menu).forEach(function(b){
-      var txt = (b.textContent||'').trim().toLowerCase();
-      if (MAP[txt] && !b.getAttribute('data-route')){
-        b.setAttribute('data-route', MAP[txt].replace('#/',''));
-      }
-    });
-  }
-
-  /* -------- 2) Vue COMPTE de secours (si absente) -------- */
-  if (!document.getElementById('view-compte')) {
-    var s = document.createElement('section');
-    s.id = 'view-compte';
-    s.className = 'view hidden';
-    s.innerHTML =
-      '<div class="container">'+
-        '<h1 tabindex="-1">Mon compte</h1>'+
-        '<p style="color:#9fb4c5;margin:.25rem 0 1rem">Préparez/complétez vos infos pour accélérer les devis.</p>'+
-        '<div id="accContent"><div class="card"><div class="specs"><p>Interface en cours de chargement…</p></div></div></div>'+
-      '</div>';
-    document.body.appendChild(s);
-  }
-
-  /* -------- 3) Raccourci éventuel "goAccountBtn" -------- */
-  var goAcc = $('#goAccountBtn');
-  if (goAcc && !goAcc.__ptW){
-    goAcc.__ptW = 1;
-    goAcc.addEventListener('click', function(e){
-      e.preventDefault();
-      location.hash = '#/compte';
-    }, false);
-  }
-
-  /* -------- 4) Arrivées directes sur #/compte -------- */
-  function tryRenderAccount(){
-    try{
-      if (typeof window.renderAccountView === 'function'){ window.renderAccountView(); }
-      if (typeof window.showView === 'function'){ window.showView('compte'); }
-      if (typeof window.focusView === 'function'){ window.focusView('compte'); }
-    }catch(_){}
-  }
-  if ((location.hash||'').indexOf('#/compte') === 0){
-    // si les produits/JS des autres parties n’ont pas fini, on retente un peu plus tard
-    setTimeout(tryRenderAccount, 0);
-    window.addEventListener('pt:userChanged', tryRenderAccount, { once:true });
-  }
-})();
-
-
-/* =========================================================
-   BLOC 5 — Navigation UX++ (menu auto-close, focus H1, actifs)
-   - Ferme le menu latéral à chaque navigation
-   - Met à jour aria-current dans le menu
-   - Focus le H1 après changement de route
-   - Dock: délégation de navigation fiable
-   - ES5-safe, ne casse pas les blocs précédents
-========================================================= */
-(function(){
-  'use strict';
-  function $(s, r){ return (r||document).querySelector(s); }
-  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
-
-  /* --------- Sélection défensive des éléments du menu --------- */
-  var drawer = $('#sideMenu') || $('#drawer') || $('#menu') || $('.side-menu') || $('.drawer') || $('#nav');
-  var burger = $('#menuBtn') || $('.topbar-burger') || $('#burgerBtn') || $('.menu-toggle');
-  var backdrop = $('#menuBackdrop') || (drawer ? $('.menu-backdrop', drawer) || $('.backdrop', drawer) : null);
-
-  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
-  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
-  function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
-
-  function drawerIsOpen(){
-    if (!drawer) return false;
-    return hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active') || drawer.getAttribute('aria-hidden') === 'false';
-  }
-  function openDrawer(){
-    if (!drawer) return;
-    addClass(drawer,'open'); addClass(drawer,'is-open'); addClass(drawer,'active');
-    drawer.setAttribute('aria-hidden','false');
-    if (burger) burger.setAttribute('aria-expanded','true');
-    if (backdrop) addClass(backdrop,'show');
-    // focus premier lien
-    try{ var a = drawer.querySelector('a,button,[tabindex]'); if (a) a.focus(); }catch(_){}
-  }
-  function closeDrawer(){
-    if (!drawer) return;
-    rmClass(drawer,'open'); rmClass(drawer,'is-open'); rmClass(drawer,'active');
-    drawer.setAttribute('aria-hidden','true');
-    if (burger) burger.setAttribute('aria-expanded','false');
-    if (backdrop) rmClass(backdrop,'show');
-    try{ if (burger && burger.focus) burger.focus(); }catch(_){}
-  }
-  function toggleDrawer(){ drawerIsOpen() ? closeDrawer() : openDrawer(); }
-
-  if (burger && !burger.__ptW){
-    burger.__ptW = 1;
-    burger.addEventListener('click', function(e){ e.preventDefault(); toggleDrawer(); }, false);
-    burger.addEventListener('pointerup', function(e){ if (e.pointerType==='touch'){ e.preventDefault(); toggleDrawer(); } }, false);
-  }
-  if (backdrop && !backdrop.__ptW){
-    backdrop.__ptW = 1;
-    backdrop.addEventListener('click', function(){ closeDrawer(); }, false);
-  }
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' || e.keyCode === 27) closeDrawer(); }, false);
-
-  /* --------- Navigation dans le menu: auto-close + route --------- */
-  if (drawer && !drawer.__ptNav){
-    drawer.__ptNav = 1;
-    drawer.addEventListener('click', function(e){
-      var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
-      var b = e.target && e.target.closest ? e.target.closest('button[data-route]') : null;
-
-      if (a){
-        // Laisse la navigation hash se faire, on ferme le menu
-        setTimeout(closeDrawer, 0);
-        return; // on ne bloque pas le comportement par défaut
-      }
-      if (b){
-        var route = b.getAttribute('data-route') || '';
-        if (route){ location.hash = '#/' + route.replace(/^#\//,''); setTimeout(closeDrawer, 0); }
-      }
-    }, false);
-  }
-
-  /* --------- Mise à jour aria-current dans le menu --------- */
-  function getRoutePath(){
-    try{
-      var p = (typeof window.parseHash === 'function') ? window.parseHash() : { view:'', path:'#/' };
-      var v = (p && p.view) || '';
-      if (!v || v==='home') return '#/';
-      return '#/' + v;
-    }catch(_){ return (location.hash||'#/'); }
-  }
-  function markActiveLink(){
-    if (!drawer) return;
-    var cur = getRoutePath();
-    var links = drawer.querySelectorAll ? drawer.querySelectorAll('a[href^="#"]') : [];
-    for (var i=0;i<links.length;i++){
-      var href = links[i].getAttribute('href') || '';
-      if (href === cur) links[i].setAttribute('aria-current','page');
-      else links[i].removeAttribute('aria-current');
-    }
-  }
-
-  /* --------- Focus H1 après navigation --------- */
-  function focusCurrentH1(){
-    try{
-      var p = (typeof window.parseHash === 'function') ? window.parseHash() : { view:'' };
-      if (typeof window.focusView === 'function'){ window.focusView(p.view||''); return; }
-      var id = p.view ? ('view-' + p.view) : 'view-home';
-      var scope = document.getElementById(id);
-      var h1 = scope ? scope.querySelector('h1') : null;
-      if (h1){
-        h1.setAttribute('tabindex','-1');
-        try{ h1.focus({preventScroll:true}); }catch(_){}
-        setTimeout(function(){ h1.removeAttribute('tabindex'); }, 280);
-      }
-    }catch(_){}
-  }
-
-  /* --------- Dock (bas) — délégation de navigation fiable --------- */
-  var dock = document.getElementById('dock');
-  if (dock && !dock.__ptNav){
-    dock.__ptNav = 1;
-    dock.addEventListener('click', function(e){
-      var btn = e.target && e.target.closest ? e.target.closest('[data-route],[data-go]') : null;
-      if (btn){
-        var r = btn.getAttribute('data-route') || btn.getAttribute('data-go') || '';
-        if (r){
-          if (r.indexOf('#/')===0){ location.hash = r; }
-          else { location.hash = '#/' + r.replace(/^#\//,''); }
-          e.preventDefault();
-        }
-      }
-    }, false);
-  }
-  // si des IDs connus existent, on leur donne un data-route par sûreté
-  var id2route = {
-    dockToolsBtn:   '#/catalogue',
-    dockCartBtn:    '#/devis',
-    dockAccountBtn: '#/compte',
-    homeLink:       '#/'
-  };
-  for (var k in id2route){
-    var el = document.getElementById(k);
-    if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', id2route[k]);
-  }
-
-  /* --------- Synchronisation sur changement de route --------- */
-  function afterRoute(){
-    try{ markActiveLink(); }catch(_){}
-    try{ closeDrawer(); }catch(_){}
-    try{ focusCurrentH1(); }catch(_){}
-  }
-
-  window.addEventListener('hashchange', function(){ setTimeout(afterRoute, 0); }, false);
-  document.addEventListener('DOMContentLoaded', function(){ setTimeout(afterRoute, 0); }, false);
-})();
-
-/* =========================================================
-   BLOC 6 — Mobile polish + gestes + héros fluide (ES5-safe)
-   - Héro: fade-in .on quand l'image est prête + fix 100vh mobile
-   - Menu latéral: swipe pour fermer + inertie iOS + anti-overscroll
-   - Défensif: n'écrase pas les fonctions existantes des blocs 1–5
-========================================================= */
-(function(){
-  'use strict';
-
-  function $(s, r){ return (r||document).querySelector(s); }
-  function on(el, ev, fn, opts){ if (el && !el.__pt6) el.__pt6 = {}; if (el && !el.__pt6[ev]){ el.__pt6[ev] = 1; el.addEventListener(ev, fn, opts||false); } }
-
-   
-   /* ------------ HERO Overshoot: zoom jusqu’à disparition + fondu + timing vues ------------ */
-(function heroEffectOvershoot(){
-  'use strict';
-  var hero = document.getElementById('hero');
-  var logo = document.getElementById('heroLogo');
-  if (!hero || !logo) return;
-
-  var mqMobile = window.matchMedia('(max-width: 768px)');
-  var mqr      = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  // paramètres (tu peux ajuster légèrement si tu veux)
-  var MAX_SCALE_M = 6.5;   // mobile: jusqu’à ~6.5x
-  var MAX_SCALE_D = 4.8;   // desktop: jusqu’à ~4.8x
-  var DIST_M      = 1.10;  // distance de scroll (en vh) avant “fin” mobile  (~110% viewport)
-  var DIST_D      = 1.20;  // distance de scroll desktop (~120% viewport)
-
-  function getVH(){ return (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1; }
-  function getY(){
-    return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
-           (document.scrollingElement && document.scrollingElement.scrollTop) ||
-           document.documentElement.scrollTop ||
-           document.body.scrollTop || 0;
-  }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function clamp01(x){ return x < 0 ? 0 : (x > 1 ? 1 : x); }
-
-  // fade-in du visuel au chargement
-  (function showLogoOnceReady(){
-    if (logo.tagName === 'IMG'){
-      if (logo.complete)               logo.classList.add('on');
-      else logo.addEventListener('load', function(){ logo.classList.add('on'); }, { once:true });
-    } else {
-      setTimeout(function(){ logo.classList.add('on'); }, 60);
+    // assure présence du fondu si pas dans le HTML/CSS
+    if (!qs('.hero-fade', hero)){
+      var f = D.createElement('div'); f.className='hero-fade'; hero.appendChild(f);
     }
   })();
 
-  // mode réduit: logo fixe + visible
-  if (mqr.matches){
-    var t0 = 'translate3d(0,0,0) scale(1)';
-    logo.style.transform = t0; logo.style.webkitTransform = t0; logo.style.opacity = '1';
-    document.documentElement.style.setProperty('--listGap', '20vh');
-    document.body.classList.remove('after-hero');
-    hero.classList.remove('hero-out');
-    return;
-  }
+  /* =========================================================
+     2) MENU latéral — inertie iOS + swipe to close
+  ========================================================== */
+  (function drawerGestures(){
+    if (W.__ptDrawerGestures) return; W.__ptDrawerGestures = 1;
 
-  var prevY = -1, rafId = 0;
+    var body    = D.body;
+    var drawer  = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]') || qs('#side-menu');
+    var overlay = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop') || qs('#menu-overlay');
+    var burger  = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle') || qs('#menu-toggle');
 
-  function render(y){
-    var vh = getVH();
-    var fin = vh * (mqMobile.matches ? DIST_M : DIST_D);
-
-    // progression non clampée (pour autoriser l’overshoot)
-    var raw = y / (fin || 1);
-    var clamped = clamp01(raw);
-    var eased   = easeOutCubic(clamped);
-
-    // sur-croissance (overshoot) jusqu’à ~2.25x la progression “1”
-    var over = raw < 0 ? 0 : (raw > 2.25 ? 2.25 : raw);
-    var maxScale = mqMobile.matches ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale = 1 + (maxScale - 1) * over;
-
-    // légère translation vers le bas pendant la montée
-    var tyPx = (mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
-
-    // fondu tardif (on garde le logo bien visible longtemps)
-    var opacity = 1 - Math.max(0, raw - 0.75) * 1.6; // commence à 75%, fini proche de 0 après 1.35
-    if (opacity < 0) opacity = 0;
-
-    var t = 'translate3d(0,' + tyPx.toFixed(2) + 'px,0) scale(' + scale.toFixed(3) + ')';
-    logo.style.transform = t;
-    logo.style.webkitTransform = t;
-    logo.style.opacity = opacity.toFixed(3);
-
-    // Espace entre hero et liste (pour le “timing” avec le contenu dessous)
-    var gapStart = mqMobile.matches ? 22 : 26;
-    var gap = Math.max(0, (1 - clamped) * gapStart);
-    document.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
-
-    // Quand l’overshoot est bien engagé, on passe le hero sous la page
-    var done = raw > 1.12; // ~112% de la hauteur écran
-    document.body.classList.toggle('after-hero', done);
-    hero.classList.toggle('hero-out', done);
-  }
-
-  function tick(){
-    var y = getY();
-    if (y !== prevY){ render(y); prevY = y; }
-    rafId = requestAnimationFrame(tick);
-  }
-
-  rafId = requestAnimationFrame(tick);
-
-  function recalc(){ prevY = -1; render(getY()); }
-  window.addEventListener('resize',            recalc, true);
-  if (window.visualViewport && window.visualViewport.addEventListener){
-    window.visualViewport.addEventListener('resize', recalc, true);
-  }
-  window.addEventListener('orientationchange', recalc, true);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) recalc(); }, true);
-  window.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-  window.addEventListener('pagehide', function(){ cancelAnimationFrame(rafId); }, true);
-
-  render(getY());
-})();
-
-   
-  /* --------------- MENU LATÉRAL — inertie + swipe to close --------------- */
-  (function(){
-    // Sélecteurs natifs de ton HTML
-    var body    = document.body;
-    var drawer  = $('#side-menu');
-    var overlay = $('#menu-overlay');
-    var burger  = $('#menu-toggle');
-
-    // Fermeture safe (n'écrase pas le micro-script déjà présent)
-    function ptCloseDrawer(){
-      try {
-        body.classList.remove('menu-open');
-        if (overlay) overlay.hidden = true;
-        if (drawer)  drawer.hidden  = true;
-        if (burger)  burger.setAttribute('aria-expanded','false');
-        // anti-overscroll (on restaure)
-        if (drawer){ drawer.style.touchAction = ''; drawer.style.webkitOverflowScrolling = ''; }
-        body.style.overscrollBehaviorY = '';
-      } catch(_){}
-    }
-
-    // Améliorations iOS: inertie + overscroll containment quand ouvert
-    function applyOpenTuning(){
+    function openTuning(){
       try{
-        if (!drawer) return;
-        drawer.style.touchAction = 'pan-y';
-        drawer.style.webkitOverflowScrolling = 'touch';
+        if (drawer){
+          drawer.style.touchAction = 'pan-y';
+          drawer.style.webkitOverflowScrolling = 'touch';
+        }
         body.style.overscrollBehaviorY = 'contain';
       }catch(_){}
     }
-
-    // Écoute le micro-script existant → si on ouvre via le bouton, on applique la tuning
-    if (burger && !burger.__pt6hook){
-      burger.__pt6hook = 1;
-      on(burger, 'click', function(){ setTimeout(applyOpenTuning, 0); }, { passive:true });
-      on(burger, 'pointerup', function(){ setTimeout(applyOpenTuning, 0); }, { passive:true });
+    function closeTuning(){
+      try{
+        if (drawer){
+          drawer.style.touchAction = '';
+          drawer.style.webkitOverflowScrolling = '';
+        }
+        body.style.overscrollBehaviorY = '';
+      }catch(_){}
     }
 
-    // Swipe-to-close: drag vers la gauche à l’intérieur du drawer
-    var sx = 0, sy = 0, moving = false;
+    function isOpen(){
+      return (drawer && (hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active'))) ||
+             hasClass(body,'menu-open');
+    }
+    function closeDrawer(){
+      var flags = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
+      var i;
+      for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
+      if (drawer) for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
+      if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
+      if (burger) burger.setAttribute('aria-expanded','false');
+      closeTuning();
+    }
+
+    // swipe-to-close
+    var sx=0, sy=0, moving=false;
     function start(e){
       var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
       sx = t.clientX; sy = t.clientY; moving = true;
     }
     function move(e){
-      if (!moving) return;
+      if (!moving || !isOpen()) return;
       var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
-      var dx = t.clientX - sx;
-      var dy = t.clientY - sy;
-      // geste horizontal net vers la gauche
+      var dx = t.clientX - sx; var dy = t.clientY - sy;
       if (dx < -48 && Math.abs(dx) > Math.abs(dy)*1.4){
-        moving = false;
-        ptCloseDrawer();
+        moving = false; closeDrawer();
       }
     }
     function end(){ moving = false; }
 
-    var swipeTarget = drawer || document;
-    on(swipeTarget, 'touchstart', start, { passive:true });
-    on(swipeTarget, 'touchmove',  move,  { passive:true });
-    on(swipeTarget, 'touchend',   end,   { passive:true });
-    on(swipeTarget, 'pointerdown', start, { passive:true });
-    on(swipeTarget, 'pointermove',  move,  { passive:true });
-    on(swipeTarget, 'pointerup',    end,   { passive:true });
+    var tgt = drawer || D;
+    tgt.addEventListener('touchstart', start, { passive:true });
+    tgt.addEventListener('touchmove',  move,  { passive:true });
+    tgt.addEventListener('touchend',   end,   { passive:true });
+    tgt.addEventListener('pointerdown',start, { passive:true });
+    tgt.addEventListener('pointermove',move,  { passive:true });
+    tgt.addEventListener('pointerup',  end,   { passive:true });
 
-    // L'overlay ferme déjà via ton micro-script; double-sécurisation :
-    if (overlay && !overlay.__pt6close){
-      overlay.__pt6close = 1;
-      on(overlay, 'click', ptCloseDrawer, { passive:true });
+    // overlay ferme
+    if (overlay && !overlay.__ptP6){
+      overlay.__ptP6 = 1;
+      overlay.addEventListener('click', closeDrawer, false);
+    }
+    // ESC ferme
+    D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
+    // ouverture → tuning
+    if (burger && !burger.__ptP6){
+      burger.__ptP6 = 1;
+      burger.addEventListener('click', function(){ setTimeout(openTuning,0); }, false);
+      burger.addEventListener('pointerup', function(){ setTimeout(openTuning,0); }, false);
+    }
+    // navigation → ferme
+    W.addEventListener('hashchange', function(){ setTimeout(closeDrawer, 0); }, false);
+  })();
+
+  /* =========================================================
+     3) NAV — focus H1 + lien actif (aria-current)
+  ========================================================== */
+  (function navA11y(){
+    if (W.__ptNavA11y) return; W.__ptNavA11y = 1;
+
+    function currentPath(){
+      try{
+        var p = (typeof W.parseHash === 'function') ? W.parseHash() : { view:'' };
+        if (!p.view || p.view==='home') return '#/';
+        return '#/'+p.view;
+      }catch(_){ return (location.hash||'#/'); }
+    }
+    function markActive(){
+      var menu = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]') || qs('#nav');
+      if (!menu) return;
+      var cur = currentPath();
+      var links = menu.querySelectorAll ? menu.querySelectorAll('a[href^="#"]') : [];
+      var i, href;
+      for (i=0;i<links.length;i++){
+        href = links[i].getAttribute('href') || '';
+        if (href === cur){ links[i].setAttribute('aria-current','page'); addClass(links[i],'is-active'); }
+        else { links[i].removeAttribute('aria-current'); rmClass(links[i],'is-active'); }
+      }
+    }
+    function focusH1(){
+      try{
+        var p = (typeof W.parseHash === 'function') ? W.parseHash() : { view:'' };
+        if (typeof W.focusView === 'function') { W.focusView(p.view||''); return; }
+        var id = p.view ? ('view-'+p.view) : 'view-home';
+        var scope = D.getElementById(id);
+        var h1 = scope ? scope.querySelector('h1') : null;
+        if (h1){
+          h1.setAttribute('tabindex','-1');
+          try{ h1.focus({preventScroll:true}); }catch(_){}
+          setTimeout(function(){ h1.removeAttribute('tabindex'); }, 260);
+        }
+      }catch(_){}
+    }
+    function toggleFab(){
+      var fab = qs('#fabAccount'); if (!fab) return;
+      var cur = currentPath();
+      if (cur === '#/compte') fab.style.display = 'none';
+      else fab.style.display = '';
     }
 
-    // Ferme automatiquement le menu quand la route change (sécurité supplémentaire)
-    on(window, 'hashchange', function(){ setTimeout(ptCloseDrawer, 0); }, { passive:true });
+    function run(){ markActive(); focusH1(); toggleFab(); }
+    W.addEventListener('hashchange', function(){ setTimeout(run,0); }, false);
+    if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', function(){ setTimeout(run,0); }, false);
+    else setTimeout(run,0);
+  })();
+
+  /* =========================================================
+     4) COMPTE — fallback léger (save/load + wiring basique)
+  ========================================================== */
+  (function accountFallback(){
+    if (W.__ptAccFallback) return; W.__ptAccFallback = 1;
+
+    var KEY = W.USER_KEY || 'pt_user_v1';
+
+    // Fallbacks si la Partie 3 n’a pas encore tout fourni
+    if (typeof W.loadUser !== 'function'){
+      W.loadUser = function(){
+        try{ var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'}; }
+        catch(_){ return {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'}; }
+      };
+    }
+    if (typeof W.saveUser !== 'function'){
+      W.saveUser = function(u){
+        try{
+          if (!u || typeof u!=='object') return;
+          localStorage.setItem(KEY, JSON.stringify(u));
+          try{ W.dispatchEvent(new CustomEvent('pt:userChanged', { detail:u })); }catch(_){}
+        }catch(_){}
+      };
+    }
+
+    function wireSimpleForms(){
+      var accSave = qs('#accSave');
+      var accForm = qs('#accForm') || qs('#accountForm');
+
+      function grab(){
+        var u = W.loadUser();
+        var n = qs('#accName'), e = qs('#accEmail'), p = qs('#accPhone'), a = qs('#accAddr');
+        if (n) u.name  = String(n.value||'').trim();
+        if (e) u.email = String(e.value||'').trim();
+        if (p) u.phone = String(p.value||'').trim();
+        if (a) u.addr  = String(a.value||'').trim();
+        return u;
+      }
+      function save(e){
+        if (e && e.preventDefault) e.preventDefault();
+        var u = grab();
+        if (!u.name && u.email) u.name = u.email.split('@')[0];
+        W.saveUser(u);
+        if (typeof W.toast==='function') W.toast('Compte enregistré','success');
+      }
+
+      if (accForm && !accForm.__ptP6){ accForm.__ptP6=1; accForm.addEventListener('submit', save, false); }
+      if (accSave && !accSave.__ptP6){ accSave.__ptP6=1; accSave.addEventListener('click', save, false); }
+
+      // login/register (fallback ultra simple)
+      var lf = qs('#loginForm'), rf = qs('#registerForm');
+      function onLogin(e){
+        if (e && e.preventDefault) e.preventDefault();
+        var email = (qs('#loginEmail')||{}).value || '';
+        var pwd   = (qs('#loginPwd')  ||{}).value || '';
+        if (!email || email.indexOf('@')===-1 || !pwd){ if (W.toast) W.toast('Identifiants invalides','info'); return; }
+        var u = W.loadUser(); u.email = email; if (!u.name) u.name = email.split('@')[0]; W.saveUser(u);
+        if (W.toast) W.toast('Connecté','success'); location.hash = '#/compte';
+      }
+      function onRegister(e){
+        if (e && e.preventDefault) e.preventDefault();
+        var name  = (qs('#regName') ||{}).value || '';
+        var email = (qs('#regEmail')||{}).value || '';
+        var pwd   = (qs('#regPwd')  ||{}).value || '';
+        if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){ if (W.toast) W.toast('Champs incomplets (MDP ≥ 6)','info'); return; }
+        var u = W.loadUser(); u.name = name; u.email = email; W.saveUser(u);
+        if (W.toast) W.toast('Compte créé (démo)','success'); location.hash = '#/compte';
+      }
+      if (lf && !lf.__ptP6){ lf.__ptP6=1; lf.addEventListener('submit', onLogin, false); }
+      if (rf && !rf.__ptP6){ rf.__ptP6=1; rf.addEventListener('submit', onRegister, false); }
+    }
+
+    // si la vue n’existe pas, crée un squelette minimal
+    if (!qs('#view-compte')){
+      var v = D.createElement('section'); v.id='view-compte'; v.className='view hidden';
+      v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"><div class="card"><div class="specs"><p>Chargement…</p></div></div></div></div>';
+      D.body.appendChild(v);
+    }
+
+    if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', wireSimpleForms, false);
+    else wireSimpleForms();
+  })();
+
+  /* =========================================================
+     5) FAB Compte — présent partout sauf sur #/compte
+  ========================================================== */
+  (function fabVisibility(){
+    function cur(){ var h=(location.hash||'').toLowerCase(); return h ? h : '#/'; }
+    function apply(){
+      var fab = qs('#fabAccount'); if (!fab) return;
+      if (cur().indexOf('#/compte')===0) fab.style.display='none'; else fab.style.display='';
+    }
+    W.addEventListener('hashchange', function(){ setTimeout(apply,0); }, false);
+    if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', apply, false); else apply();
   })();
 
 })();
