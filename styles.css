@@ -92,43 +92,47 @@ h3{ font-size: 1.05rem }
 /* ================= HERO (zoom + fondu, iOS/Android OK) ================= */
 .hero-full{
   position: relative;
+  /* hauteurs modernes + fallbacks */
   height: 100vh; height: 100svh; height: 100dvh;
   display: grid;
   place-items: center;
   pointer-events: none;
   isolation: isolate;
   z-index: 30;
+  /* évite que le logo passe sous l'encoche/barre iOS */
+  padding-top: max(0px, env(safe-area-inset-top));
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
 }
 
 .hero-logo{
-  /* occupe entièrement le cadre, sans halo */
-  display:block;
-  margin:0 auto;
-
-  /* carré responsive (le PNG remplit le cadre) */
-  width: min(56vw, 360px);
-  height: min(56vw, 360px);
-
-  object-fit: cover;
-  object-position: center;
-
-  /* pas d’ornements = plus de contour */
+  /* occupe entièrement le cadre, sans halo ni bordure */
+  display: block;
+  margin: 0 auto;
   background: transparent;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   filter: none;
 
-  /* animé par heroEffect (scale + translate + fade) */
+  /* carré responsive : net sur tous écrans */
+  width: clamp(180px, 56vmin, 560px);
+  max-width: min(92vw, 560px);
+  height: auto;             /* laisse le navigateur calculer la hauteur via le ratio */
+  aspect-ratio: 1 / 1;      /* garantit la forme carrée du conteneur */
+  object-fit: contain;      /* le PNG remplit le carré sans recadrage */
+  object-position: center;
+
+  /* rendu/performances pendant l’anim (heroEffect) */
   opacity: 0;
   transition: opacity .4s ease;
   will-change: transform, opacity;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
   transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  image-rendering: -webkit-optimize-contrast;
 }
 
-/* l’image est visible une fois chargée */
-.hero-logo.on{ opacity:1; }
+/* l’image devient visible quand elle est prête */
+.hero-logo.on{ opacity: 1; }
 
 .hero-fade{
   position: absolute;
@@ -139,8 +143,18 @@ h3{ font-size: 1.05rem }
   z-index: -1;
 }
 
-/* quand le hero est “passé”, on le met sous la page */
+/* quand le hero est “passé”, on le place sous la page */
 .hero-full.hero-out{ z-index: -1; }
+
+/* paysage très bas (smartphones couchés) : réduit un peu la taille */
+@media (max-height: 480px){
+  .hero-logo{
+    width: clamp(140px, 40vmin, 420px);
+  }
+}
+
+
+
 /* ================= Toolbar / champs ================= */
 .toolbar{
   position:relative; z-index:20; width:min(1100px,92vw); margin:0 auto 1rem; padding:.4rem 0;
