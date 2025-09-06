@@ -931,6 +931,137 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }
   }
 
+  /* ===== Extension catalogue (brand → types) appelée par PARTIE 4 ===== */
+  function computeTypesForBrand(brandLower){
+    brandLower = String(brandLower||'').toLowerCase();
+    var counts = {}, labels = {};
+    var i, m, k;
+
+    // Priorité aux catégories ; sinon badge/tags
+    for (i=0;i<window.MODELS.length;i++){
+      m = window.MODELS[i] || {};
+      var b1 = (m.brand||'').toLowerCase();
+      var b2 = (m.brand_key||'').toLowerCase();
+      if (!brandLower || (b1!==brandLower && b2!==brandLower)) continue;
+
+      // Catégorie (primaire)
+      if (m.category){
+        k = String(m.category).toLowerCase();
+        counts[k] = (counts[k]||0)+1; if (labels[k]==null) labels[k] = String(m.category);
+      }
+    }
+    // Si aucune catégorie, on tombe sur badge + tags
+    var hasCats = Object.keys(counts).length>0;
+    if (!hasCats){
+      for (i=0;i<window.MODELS.length;i++){
+        m = window.MODELS[i] || {};
+        var bb1 = (m.brand||'').toLowerCase();
+        var bb2 = (m.brand_key||'').toLowerCase();
+        if (!brandLower || (bb1!==brandLower && bb2!==brandLower)) continue;
+
+        if (m.badge){
+          k = String(m.badge).toLowerCase();
+          counts[k] = (counts[k]||0)+1; if (labels[k]==null) labels[k] = String(m.badge);
+        }
+        if (Array.isArray(m.tags)){
+          for (var t=0;t<m.tags.length;t++){
+            var tg = String(m.tags[t]||'').trim();
+            if (!tg) continue;
+            k = tg.toLowerCase();
+            counts[k] = (counts[k]||0)+1; if (labels[k]==null) labels[k] = tg;
+          }
+        }
+      }
+    }
+
+    var out = []; for (k in counts) if (Object.prototype.hasOwnProperty.call(counts,k)) out.push({key:k,label:labels[k],count:counts[k]});
+    out.sort(function(a,b){ return b.count - a.count; });
+    return out;
+  }
+
+  function renderBrandTypesGrid(brandLower){
+    var root = document.getElementById('catList'); if (!root) return;
+    var types = computeTypesForBrand(brandLower);
+    if (!types.length){
+      // Rien de spécifique : on garde l’affichage global
+      renderCatalogue();
+      return;
+    }
+    root.innerHTML = types.map(function(c){
+      return ''+
+        '<article class="card type-card" data-type="'+c.key+'">'+
+        '  <div class="head"><h3 class="title">'+c.label+'</h3><span class="badge">Type</span></div>'+
+        '  <div class="specs"><p style="margin:0">'+c.count+' produit'+(c.count>1?'s':'')+'</p></div>'+
+        '  <div class="actions"><button class="btn primary" data-type-go="'+c.key+'">Voir</button></div>'+
+        '</article>';
+    }).join('');
+    if (!root.__ptTypeWired){
+      root.__ptTypeWired = 1;
+      root.addEventListener('click', function(e){
+        var el = e.target && e.target.closest ? e.target.closest('[data-type-go], .type-card') : null;
+        if (!el) return;
+        var typeLower = (el.getAttribute('data-type-go')||el.getAttribute('data-type')||'').toLowerCase();
+        if (!typeLower) return;
+        applyBrandTypeFilter(brandLower, typeLower);
+      }, false);
+    }
+  }
+
+  function applyBrandTypeFilter(brandLower, typeLower){
+    syncDomRefs();
+    // On force la recherche plein-texte sur la marque (q) + select sur le type (t)
+    var typeMatch = findSelectMatch(tagEl, typeLower);
+    if (searchEl) searchEl.value = brandLower || '';
+    if (tagEl)    tagEl.value    = typeMatch || typeLower || '';
+    if (typeof window.applyFilters==='function') window.applyFilters();
+
+    // Met à jour l’URL pour partage/navigation
+    var h = '#/catalogue?brand=' + encodeURIComponent(brandLower||'');
+    if (typeLower) h += '&type=' + encodeURIComponent(typeLower);
+    if ((location.hash||'') !== h) location.hash = h;
+
+    // Scroll vers la liste
+    setTimeout(function(){
+      var listNode=document.getElementById('list');
+      if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 80);
+  }
+
+  function handleRouteCatalogue_Extended(){
+    var p = window.parseHash ? window.parseHash() : {view:'',query:{}};
+    if (p.view !== 'catalogue') return;
+
+    syncDomRefs();
+    updateTagSelectOptions(); // s’assure que le select est rempli
+
+    var brand = (p.query && p.query.brand) ? String(p.query.brand).toLowerCase() : '';
+    var type  = (p.query && (p.query.type || p.query.tag)) ? String(p.query.type || p.query.tag).toLowerCase() : '';
+
+    if (brand){
+      // Rendu des types pour la marque
+      renderBrandTypesGrid(brand);
+
+      // Applique le filtre combiné (brand + type si fourni)
+      if (type){
+        applyBrandTypeFilter(brand, type);
+      }else{
+        // brand seul → filtre sur brand (q) et clear select
+        var brandMatch = findSelectMatch(tagEl, brand);
+        if (searchEl) searchEl.value = brand;
+        if (tagEl)    tagEl.value    = brandMatch || '';
+        if (typeof window.applyFilters==='function') window.applyFilters();
+      }
+    } else {
+      // comportement par défaut
+      renderCatalogue();
+      if (p.query) { // garde compat si la PARTIE 4 n’a pas encore hydraté
+        hydrateFiltersFromQuery(p.query);
+      }
+    }
+  }
+  // Expose pour la PARTIE 4
+  window.handleRouteCatalogue_Extended = window.handleRouteCatalogue_Extended || handleRouteCatalogue_Extended;
+
   /* =========================================================
      D) CHARGEMENT PRODUITS + FILTRES
   ========================================================== */
@@ -1183,7 +1314,6 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   window.renderList     = window.renderList     || renderList;
 
 })();
-
 
 /* =========================================================
    PARTIE 3 — Compte + Création de compte (local) + Fidélité
