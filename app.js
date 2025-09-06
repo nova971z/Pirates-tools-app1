@@ -224,6 +224,7 @@
     if (dock) dock.classList.add('dock--visible');
   })();
 
+
 /* ---------- HÉRO : zoom overshoot ++, blur, HD (iOS/Android safe) ---------- */
 (function heroEffect(){
   'use strict';
@@ -242,7 +243,8 @@
       if (heroLogo.tagName === 'IMG') {
         var cur = heroLogo.getAttribute('src') || '';
         if (!cur || /icon-180\.png$/i.test(cur)) heroLogo.setAttribute('src','./icons/icon-512.png');
-        // IMPORTANT: n’inclure que ce qui existe dans /icons/
+
+        // uniquement les tailles présentes dans /icons/
         heroLogo.setAttribute('srcset',
           './icons/icon-180.png 180w, '+
           './icons/icon-192.png 192w, '+
@@ -255,15 +257,11 @@
         heroLogo.loading  = 'eager';
         heroLogo.referrerPolicy = 'no-referrer';
 
-        // fallback sans écraser un onerror déjà posé par le HTML
-        var hasInlineOnError = !!heroLogo.getAttribute('onerror');
-        if (!hasInlineOnError && !heroLogo.__ptOnErr){
+        // fallback sans écraser un onerror inline éventuel
+        if (!heroLogo.getAttribute('onerror') && !heroLogo.__ptOnErr){
           heroLogo.__ptOnErr = 1;
           heroLogo.addEventListener('error', function(){
-            // roue de secours locale fiable
-            if (heroLogo.src.indexOf('icon-384.png') === -1) {
-              heroLogo.src = './icons/icon-384.png';
-            }
+            if (heroLogo.src.indexOf('icon-384.png') === -1) heroLogo.src = './icons/icon-384.png';
           }, { once:true });
         }
       }
@@ -274,6 +272,7 @@
     heroLogo.style.webkitBackfaceVisibility = 'hidden';
     heroLogo.style.imageRendering = '-webkit-optimize-contrast';
     heroLogo.style.transform = 'translateZ(0)';
+    heroLogo.style.transformOrigin = 'center center';
   })();
 
   // Assure le fondu interne si absent (masque la jonction bas du hero)
@@ -304,11 +303,15 @@
            D.documentElement.scrollTop || D.body.scrollTop || 0;
   }
 
-  // Paramètres (gros au départ + overshoot élevé + blur progressif)
-  var MAX_SCALE_M = 8.0, MAX_SCALE_D = 6.5;   // zoom final très important
-  var BASE_M = 1.30,   BASE_D = 1.18;         // taille de départ (plus gros à l’ouverture)
-  var DIST_M = 1.25,   DIST_D = 1.35;         // distance en hauteurs d’écran
-  var BLUR_MAX_M = 16, BLUR_MAX_D = 12;       // flou max (iOS/Android OK)
+  // ===== TUNING demandé : plus gros & disparition plus tôt =====
+  var MAX_SCALE_M = 9.6,  MAX_SCALE_D = 7.4;   // zoom final plus important
+  var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
+  var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
+  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
+  var FADE_START  = 0.40;                       // fondu commence plus tôt
+  var FADE_LEN    = 0.34;                       // fondu plus rapide
+  var DONE_M      = 1.06, DONE_D      = 1.10;   // passe « derrière » plus tôt
+  var OVER_MAX    = 2.6;                        // plafonne l’overshoot
 
   var vh = getVH(), prevY = -1, rafId = 0;
 
@@ -316,23 +319,22 @@
     var isM   = mqMobile && mqMobile.matches;
     var finPx = vh * (isM ? DIST_M : DIST_D);
 
-    var raw      = y / (finPx || 1);          // non clampé → autorise l’overshoot (raw > 1)
+    var raw      = y / (finPx || 1);          // non clampé → autorise l’overshoot
     var clamped  = clamp(raw, 0, 1);
     var eased    = easeOut(clamped);
 
     // surcroissance douce au-delà de 1 → disparition complète plus bas
-    var over     = raw < 0 ? 0 : (raw > 2.4 ? 2.4 : raw);
+    var over     = raw < 0 ? 0 : (raw > OVER_MAX ? OVER_MAX : raw);
     var base     = isM ? BASE_M : BASE_D;
     var maxS     = isM ? MAX_SCALE_M : MAX_SCALE_D;
     var scale    = base + (maxS - base) * over;
 
-    var tyPx     = (isM ? 12 : 8) * (vh/100) * eased;
+    var tyPx     = (isM ? 13 : 9) * (vh/100) * eased;
 
-    // opacité : garder net longtemps, puis fondu rapide
-    var startFade = 0.60;
-    var op = 1 - clamp((raw - startFade) / 0.40, 0, 1); // 60%→100%
+    // opacité : fondu plus tôt/rapide
+    var op = 1 - clamp((raw - FADE_START) / FADE_LEN, 0, 1);
 
-    // flou progressif (sensation de profondeur)
+    // flou progressif (début plus tôt)
     var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
     var blur = blurMax * clamp(raw, 0, 1.15);
 
@@ -340,14 +342,14 @@
     heroLogo.style.transform = t;
     heroLogo.style.webkitTransform = t;
     heroLogo.style.opacity = op.toFixed(3);
-    heroLogo.style.filter  = (blur>0 ? 'blur('+blur.toFixed(2)+'px)' : 'none');
+    heroLogo.style.filter  = (blur>0 ? 'blur('+blur.toFixed(2)+'px)' : 'none)';
 
     // espace visuel pour la grille sous le hero
     var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
     D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
 
-    // quand on a parcouru ~120% → le hero passe sous la page
-    var done = raw > 1.20;
+    // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
+    var done = raw > (isM ? DONE_M : DONE_D);
     D.body.classList.toggle('after-hero', done);
     hero.classList.toggle('hero-out', done);
   }
@@ -376,7 +378,8 @@
   D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
   W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
   W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-})();   
+})();
+   
   /* ---------- Grille marques : toutes les marques visibles ---------- */
   var BRAND_META = {
     dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.Dewalt.png' },
