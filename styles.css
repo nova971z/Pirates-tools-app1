@@ -122,13 +122,17 @@ h3{ font-size: 1.05rem }
   object-fit: contain;      /* le PNG remplit le carré sans recadrage */
   object-position: center;
 
-  /* rendu/performances pendant l’anim (heroEffect) */
+  /* rendu/performances pendant l’anim (heroEffectOvershoot) */
   opacity: 0;
   transition: opacity .4s ease;
   will-change: transform, opacity;
   transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  image-rendering: -webkit-optimize-contrast;
+
+  /* ✅ ajouts pour l’overshoot et la qualité multi-navigateurs */
+  transform-origin: center center;      /* zoom bien centré */
+  image-rendering: auto;                /* rendu net cross-browser */
+  image-rendering: -webkit-optimize-contrast; /* Safari/iOS */
 }
 
 /* l’image devient visible quand elle est prête */
@@ -153,7 +157,10 @@ h3{ font-size: 1.05rem }
   }
 }
 
-
+/* accessibilité – animations réduites */
+@media (prefers-reduced-motion: reduce){
+  .hero-logo{ transition: none; }
+}
 
 /* ================= Toolbar / champs ================= */
 .toolbar{
