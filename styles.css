@@ -642,3 +642,56 @@ header .site-title,
 header .brand-title,
 header .nav-title,
 header .title-pill { display:none !important; }
+
+
+
+/* ====== Footer ====== */
+:root{ --dockH: 64px; } /* ajuste si ton .dock est plus haut */
+.footer{
+  background:#0b1218;
+  border-top:1px solid #1e2a35;
+  color:#9fb4c5;
+  padding:1rem var(--container-pad,1rem);
+}
+.footer .container{
+  max-width:1100px; margin:0 auto;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem;
+}
+.footer p{ margin:0; }
+.footer-links a{
+  color:#9fb4c5; text-decoration:none; margin-right:.75rem;
+}
+.footer-links a:hover{ color:#e6edf5; }
+body{ padding-bottom: calc(var(--dockH) + 16px); } /* pour que le contenu ne passe pas sous le dock */
+
+/* ====== Grille marques (3 colonnes fixes) ====== */
+.brand-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+  padding: 10px 0 18px;
+}
+.brand{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:.55rem;
+  background:#0f1a22; border:1px solid #1e2a35; border-radius:12px; padding:16px;
+  transition: transform .12s ease;
+}
+.brand:active{ transform: scale(.98); }
+.brand__bubble{
+  width: 86px; height: 86px; border-radius:50%;
+  background:#0b1218;
+  display:grid; place-items:center; overflow:hidden;
+}
+.brand__logo{
+  width: 78%; height: 78%; object-fit: contain; image-rendering:auto;
+}
+.brand__label{
+  font-weight:600; color:#d9e3ec; font-size:.95rem; line-height:1.1;
+}
+/* si l’écran est minuscule, on réduit les bulles mais on garde 3 colonnes */
+@media (max-width: 360px){
+  .brand__bubble{ width:72px; height:72px; }
+  .brand{ padding:12px; }
+  .brand__label{ font-size:.9rem; }
+}
