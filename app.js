@@ -390,12 +390,13 @@ window.PT.firstDefined = firstDefined;
 window.PT.setSafeImg = setSafeImg;
 
 
-
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
    - Gère #/catalogue, #/produit/:id, #/devis
    - Panier persistant + WhatsApp devis
+   - Cohérente avec Partie 1 (loadProducts/MODELS/pt:productsLoaded)
+   - Expose les APIs utilisées par Parties 3 & 4
 ========================================================= */
 
 (function(){
@@ -444,11 +445,31 @@ window.PT.setSafeImg = setSafeImg;
   window.MODELS = Array.isArray(window.MODELS) ? window.MODELS : [];
   window.CART   = Array.isArray(window.CART)   ? window.CART   : [];
 
+  // Réfs DOM (réévaluées à la volée)
   var listEl   = document.getElementById('list');
   var searchEl = document.getElementById('q');
   var tagEl    = document.getElementById('tag');
   var dock     = document.getElementById('dock');
   var dockCount= document.getElementById('dockCount');
+
+  function syncDomRefs(){
+    listEl   = document.getElementById('list');
+    searchEl = document.getElementById('q');
+    tagEl    = document.getElementById('tag');
+    dock     = document.getElementById('dock');
+    dockCount= document.getElementById('dockCount');
+  }
+
+  /* Utilitaires */
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+
+  function formatPriceCents(priceCents, currency){
+    if (priceCents == null) return '';
+    var txt = '';
+    try{ txt = (priceCents/100).toLocaleString('fr-FR', {style:'currency', currency: currency||'EUR'}); }
+    catch(_){ txt = (priceCents/100).toFixed(2) + ' ' + (currency||'EUR'); }
+    return txt;
+  }
 
   /* =========================================================
      A) PANIER — persistance + utilitaires
@@ -490,7 +511,7 @@ window.PT.setSafeImg = setSafeImg;
   }
 
   function groupCart(){
-    var map = {};
+    var map = {}; // ES5-safe
     for (var i=0;i<window.CART.length;i++){
       var p = window.CART[i];
       var k = keyOf(p);
@@ -500,6 +521,19 @@ window.PT.setSafeImg = setSafeImg;
     var out = [];
     for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) out.push(map[k]);
     return out;
+  }
+
+  function findProductByKey(key){
+    if (!key) return null;
+    var k = String(key).toLowerCase();
+    for (var i=0;i<window.MODELS.length;i++){
+      var m = window.MODELS[i];
+      var id  = String(m && m.id  != null ? m.id  : '').toLowerCase();
+      var sku = String(m && m.sku != null ? m.sku : '').toLowerCase();
+      var ttl = String(m && m.title!= null ? m.title: '').toLowerCase();
+      if (id===k || sku===k || ttl===k) return m;
+    }
+    return null;
   }
 
   function addToCart(keyOrId, qty){
@@ -527,11 +561,14 @@ window.PT.setSafeImg = setSafeImg;
       var arr = [];
       if (u && u.name)  arr.push('Nom: ' + u.name);
       if (u && u.email) arr.push('Email: ' + u.email);
+      if (u && u.phone) arr.push('Téléphone: ' + u.phone);
+      if (u && u.addr)  arr.push('Adresse: ' + u.addr);
       contact = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
     }catch(_){}
     var link = location.origin + location.pathname + '#/devis';
     return 'Bonjour, je souhaite un devis pour:\n' + lines.join('\n') + '\n\nLien: ' + link + contact + '\n\nMerci.';
   }
+  window.cartToWhatsAppText = window.cartToWhatsAppText || cartToWhatsAppText;
 
   /* =========================================================
      B) PRODUITS — rendu liste + PDP + JSON-LD
@@ -600,6 +637,7 @@ window.PT.setSafeImg = setSafeImg;
   function clearProductJsonLD(){
     var s = document.getElementById('jsonld-product'); if (s) s.remove();
   }
+  window.clearProductJsonLD = window.clearProductJsonLD || clearProductJsonLD;
 
   function productToHTML(m){
     var title = window.fallback(m.title, (window.fallback(m.brand,'') + (m.brand?' ':'') + window.fallback(m.sku,''))).trim();
@@ -613,10 +651,7 @@ window.PT.setSafeImg = setSafeImg;
       : (m && typeof m.price === 'number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
     var priceHtml = '';
     if (priceCents != null){
-      var priceText = '';
-      try{ priceText = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
-      catch(_){ priceText = (priceCents/100).toFixed(2)+' '+currency; }
-      priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+priceText+'</div>';
+      priceHtml = '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+formatPriceCents(priceCents, currency)+'</div>';
     }
 
     return ''
@@ -636,6 +671,7 @@ window.PT.setSafeImg = setSafeImg;
     var btns = root.querySelectorAll ? root.querySelectorAll('[data-add]') : [];
     for (var i=0;i<btns.length;i++){
       (function(btn){
+        if (btn.__ptWired) return; btn.__ptWired = 1;
         btn.addEventListener('click', function(e){
           e.stopPropagation();
           var id = btn.getAttribute('data-add');
@@ -653,19 +689,6 @@ window.PT.setSafeImg = setSafeImg;
     }
   }
 
-  function findProductByKey(key){
-    if (!key) return null;
-    var k = String(key).toLowerCase();
-    for (var i=0;i<window.MODELS.length;i++){
-      var m = window.MODELS[i];
-      var id  = String(m && m.id  != null ? m.id  : '').toLowerCase();
-      var sku = String(m && m.sku != null ? m.sku : '').toLowerCase();
-      var ttl = String(m && m.title!= null ? m.title: '').toLowerCase();
-      if (id===k || sku===k || ttl===k) return m;
-    }
-    return null;
-  }
-
   function renderList(data){
     var root = document.getElementById('list');
     if (!root) return;
@@ -676,6 +699,7 @@ window.PT.setSafeImg = setSafeImg;
     var cards = root.querySelectorAll ? root.querySelectorAll('.card[data-id]') : [];
     for (var i=0;i<cards.length;i++){
       (function(card){
+        if (card.__ptWired) return; card.__ptWired = 1;
         card.addEventListener('click', function(e){
           if (e.target && e.target.closest && e.target.closest('[data-add]')) return;
           var id = card.getAttribute('data-id'); if (!id) return;
@@ -686,6 +710,7 @@ window.PT.setSafeImg = setSafeImg;
 
     bindAddToCart(data);
   }
+  window.renderList = window.renderList || renderList;
 
   function renderPDP(product){
     var view = document.getElementById('view-produit');
@@ -749,10 +774,7 @@ window.PT.setSafeImg = setSafeImg;
       priceEl.style.fontWeight = '700';
       if (elDesc && elDesc.parentNode){ elDesc.parentNode.insertBefore(priceEl, elDesc.nextSibling); }
     }
-    if (priceCents != null){
-      try{ priceEl.textContent = (priceCents/100).toLocaleString('fr-FR',{style:'currency',currency:currency}); }
-      catch(_){ priceEl.textContent = (priceCents/100).toFixed(2)+' '+currency; }
-    } else { priceEl.textContent = ''; }
+    priceEl.textContent = (priceCents != null) ? formatPriceCents(priceCents, currency) : '';
 
     // specs
     var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs) ? product.specs : []);
@@ -798,10 +820,12 @@ window.PT.setSafeImg = setSafeImg;
     try{
       var u = (typeof window.loadUser === 'function') ? window.loadUser() : null;
       var arr = []; if (u && u.name) arr.push('Nom: '+u.name); if (u && u.email) arr.push('Email: '+u.email);
+      if (u && u.phone) arr.push('Téléphone: '+u.phone);
+      if (u && u.addr)  arr.push('Adresse: '+u.addr);
       contactSuffix = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
     }catch(_){}
     var textPDP = 'Bonjour, je souhaite un devis pour:\n• ' + sku + ' – ' + title + '\n\nLien: ' + productLink + contactSuffix + '\n\nMerci.';
-    var phone = PHONE_E164.replace('+','');
+    var phone = onlyDigits(PHONE_E164);
     if (btnWa) btnWa.href = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(textPDP);
 
     if (btnShare){
@@ -830,12 +854,12 @@ window.PT.setSafeImg = setSafeImg;
     if (elRel){
       var relHTML = '';
       for (var i=0;i<related.length;i++){
-        var m = related[i];
+        var rm = related[i];
         relHTML += ''
-          + '<article class="card" data-id="'+(m.id || m.sku || m.title)+'">'
-          + '  <div class="head"><h3 class="title">'+(m.title || (m.brand||'')+' '+(m.sku||''))+'</h3>' + ((m.badge||'')?'<span class="badge">'+m.badge+'</span>':'') + '</div>'
-          + '  <div class="specs"><p style="margin:0">'+(m.desc || m.description || '')+'</p></div>'
-          + '  <div class="actions"><button class="btn primary" data-add="'+(m.id || m.sku || m.title)+'">Ajouter au panier</button></div>'
+          + '<article class="card" data-id="'+(rm.id || rm.sku || rm.title)+'">'
+          + '  <div class="head"><h3 class="title">'+(rm.title || (rm.brand||'')+' '+(rm.sku||''))+'</h3>' + ((rm.badge||'')?'<span class="badge">'+rm.badge+'</span>':'') + '</div>'
+          + '  <div class="specs"><p style="margin:0">'+(rm.desc || rm.description || '')+'</p></div>'
+          + '  <div class="actions"><button class="btn primary" data-add="'+(rm.id || rm.sku || rm.title)+'">Ajouter au panier</button></div>'
           + '</article>';
       }
       elRel.innerHTML = relHTML;
@@ -855,29 +879,68 @@ window.PT.setSafeImg = setSafeImg;
 
     injectProductJsonLD(product);
   }
+  window.renderPDP = window.renderPDP || renderPDP;
 
   /* =========================================================
-     C) CATALOGUE — catégories auto + rendu
+     C) CATALOGUE — catégories auto + rendu + tags <select>
   ========================================================== */
   function buildCategories(){
-    var map = new Map();
+    var counts = {};     // keyLower -> count
+    var labels = {};     // keyLower -> label (casing d’origine)
     for (var i=0;i<window.MODELS.length;i++){
       var m = window.MODELS[i];
       var raw = (m.category || m.badge || m.brand || '').toString().trim();
       if (!raw) continue;
       var key = raw.toLowerCase();
-      var prev = map.get(key);
-      map.set(key, { key:key, label:raw, count:(prev ? prev.count : 0) + 1 });
+      counts[key] = (counts[key]||0) + 1;
+      if (labels[key]==null) labels[key] = raw;
     }
-    return Array.from(map.values()).sort(function(a,b){ return b.count - a.count; });
+    var out = [];
+    for (var k in counts) if (Object.prototype.hasOwnProperty.call(counts,k)){
+      out.push({ key:k, label:labels[k], count:counts[k] });
+    }
+    out.sort(function(a,b){ return b.count - a.count; });
+    return out;
+  }
+
+  function buildTagOptions(){
+    var seen = {}; var opts = [];
+    function pushOnce(label){
+      if (!label) return;
+      var key = String(label).toLowerCase();
+      if (seen[key]) return; seen[key]=1;
+      opts.push({ key:key, label:label });
+    }
+    for (var i=0;i<window.MODELS.length;i++){
+      var m = window.MODELS[i];
+      pushOnce(m.brand);
+      pushOnce(m.category);
+      pushOnce(m.badge);
+      if (Array.isArray(m.tags)) for (var t=0;t<m.tags.length;t++) pushOnce(m.tags[t]);
+    }
+    opts.sort(function(a,b){ return a.label.localeCompare(b.label); });
+    return opts;
+  }
+
+  function updateTagSelectOptions(){
+    syncDomRefs();
+    if (!tagEl) return;
+    var html = '<option value="">Tous</option>';
+    var opts = buildTagOptions();
+    for (var i=0;i<opts.length;i++){
+      html += '<option value="'+opts[i].key+'">'+opts[i].label+'</option>';
+    }
+    tagEl.innerHTML = html;
   }
 
   function findSelectMatch(select, keyLower){
     if (!select) return null;
     var opts = Array.prototype.slice.call(select.options || []);
     for (var i=0;i<opts.length;i++){
-      var o = opts[i]; var val = (o.value||o.textContent||'').toLowerCase();
-      if (val === keyLower) return (o.value || o.textContent);
+      var o = opts[i];
+      var v = (o.value||'').toLowerCase();
+      var t = (o.textContent||'').toLowerCase();
+      if (v === keyLower || t === keyLower) return (o.value || o.textContent);
     }
     return null;
   }
@@ -899,6 +962,7 @@ window.PT.setSafeImg = setSafeImg;
       : '<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>';
 
     function go(keyLower){
+      syncDomRefs();
       var matchVal = findSelectMatch(tagEl, keyLower);
       if (tagEl){ tagEl.value = matchVal || ''; }
       if (searchEl){ searchEl.value = matchVal ? '' : keyLower; }
@@ -910,12 +974,15 @@ window.PT.setSafeImg = setSafeImg;
       }, 80);
     }
 
-    root.addEventListener('click', function(e){
-      var btn  = e.target && e.target.closest ? e.target.closest('[data-cat-go]') : null;
-      var card = e.target && e.target.closest ? e.target.closest('.cat-card')    : null;
-      if (btn) return go(btn.getAttribute('data-cat-go'));
-      if (card) return go(card.getAttribute('data-cat'));
-    }, false);
+    if (!root.__ptWired){
+      root.__ptWired = 1;
+      root.addEventListener('click', function(e){
+        var btn  = e.target && e.target.closest ? e.target.closest('[data-cat-go]') : null;
+        var card = e.target && e.target.closest ? e.target.closest('.cat-card')    : null;
+        if (btn) return go(btn.getAttribute('data-cat-go'));
+        if (card) return go(card.getAttribute('data-cat'));
+      }, false);
+    }
   }
 
   /* =========================================================
@@ -932,8 +999,8 @@ window.PT.setSafeImg = setSafeImg;
     // loader minimal si absent
     fetch('./products.json', { cache:'no-store' })
       .then(function(r){ return r.json(); })
-      .then(function(json){ window.MODELS = Array.isArray(json) ? json : (json.products || []); done(); })
-      .catch(function(){ window.MODELS = []; done(); });
+      .then(function(json){ window.MODELS = Array.isArray(json) ? json : (json.products || []); try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){ } done(); })
+      .catch(function(){ window.MODELS = []; try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){ } done(); });
   }
 
   // debounce safe ES5
@@ -944,6 +1011,7 @@ window.PT.setSafeImg = setSafeImg;
   }
 
   window.applyFilters = window.applyFilters || debounce(function(){
+    syncDomRefs();
     var q = ((searchEl && searchEl.value) || '').trim().toLowerCase();
     var t = ((tagEl && tagEl.value)    || '').trim().toLowerCase();
 
@@ -961,8 +1029,33 @@ window.PT.setSafeImg = setSafeImg;
     renderList(filtered);
   }, 120);
 
-  if (searchEl) searchEl.addEventListener('input', window.applyFilters, true);
-  if (tagEl)    tagEl.addEventListener('change', window.applyFilters, true);
+  function wireFilterInputs(){
+    syncDomRefs();
+    if (searchEl && !searchEl.__ptWired){ searchEl.__ptWired=1; searchEl.addEventListener('input', window.applyFilters, true); }
+    if (tagEl && !tagEl.__ptWired){ tagEl.__ptWired=1; tagEl.addEventListener('change', window.applyFilters, true); }
+  }
+
+  function hydrateFiltersFromQuery(qs){
+    if (!qs) return;
+    syncDomRefs();
+    var brand = (qs.brand||'').toString().toLowerCase();
+    var type  = (qs.type || qs.tag || '').toString().toLowerCase();
+    var q     = (qs.q || '').toString();
+
+    var target = brand || type || '';
+    if (target){
+      var matchVal = findSelectMatch(tagEl, target);
+      if (tagEl) tagEl.value = matchVal || '';
+      if (searchEl) searchEl.value = matchVal ? '' : target;
+      if (typeof window.applyFilters === 'function') window.applyFilters();
+      return;
+    }
+    if (q){
+      if (searchEl) searchEl.value = q;
+      if (tagEl) tagEl.value = '';
+      if (typeof window.applyFilters === 'function') window.applyFilters();
+    }
+  }
 
   /* =========================================================
      E) DEVIS — vue minimale (WhatsApp) + hooks
@@ -1026,7 +1119,7 @@ window.PT.setSafeImg = setSafeImg;
       sendBtn.addEventListener('click', function(){
         var msg = encodeURIComponent(cartToWhatsAppText());
         if (!msg) return;
-        window.open('https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + msg, '_blank', 'noopener');
+        window.open('https://wa.me/' + onlyDigits(PHONE_E164) + '?text=' + msg, '_blank', 'noopener');
         window.toast('Devis ouvert dans WhatsApp', 'success'); window.announce('Devis ouvert dans WhatsApp');
       }, false);
     }
@@ -1074,13 +1167,16 @@ window.PT.setSafeImg = setSafeImg;
         if (!document.getElementById('list')){
           var cont = document.getElementById('view-catalogue') || (function(){
             var s = document.createElement('section'); s.id='view-catalogue'; s.className='view';
-            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div id="list" class="list"></div></div>';
+            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div class="toolbar"><input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)"><select id="tag" class="select"><option value="">Tous</option></select></div><div id="list" class="list"></div></div>';
             document.body.appendChild(s); return s;
           })();
           var l = cont.querySelector('#list'); if (!l){ var d=document.createElement('div'); d.id='list'; d.className='list'; cont.appendChild(d); }
         }
+        syncDomRefs();
+        updateTagSelectOptions();
+        wireFilterInputs();
         renderCatalogue();
-        renderList(window.MODELS);
+        if (parsed && parsed.query){ hydrateFiltersFromQuery(parsed.query); } else { renderList(window.MODELS); }
         window.focusView('catalogue');
       });
       return;
@@ -1088,10 +1184,10 @@ window.PT.setSafeImg = setSafeImg;
 
     if (view === 'produit'){
       showViewSafely('produit');
-      var key = decodeURIComponent(segs[0] || '');
+      var key = decodeURIComponent(segs[0] || (parsed.query && parsed.query.id) || '');
       ensureProductsLoaded(function(){
         var p = findProductByKey(key);
-        if (!p && window.MODELS.length){ // fallback: id direct si c'est un index
+        if (!p && window.MODELS.length){ // fallback: comparaison directe si c'est un id/sans casse
           for (var i=0;i<window.MODELS.length;i++){
             var m = window.MODELS[i];
             if ((m.id||m.sku||m.title)==key){ p=m; break; }
@@ -1100,7 +1196,9 @@ window.PT.setSafeImg = setSafeImg;
         if (!p){
           // message minimal
           var host = document.getElementById('view-produit');
-          if (host){ host.innerHTML = '<div class="container"><p>Produit introuvable.</p></div>'; }
+          if (host){
+            host.innerHTML = '<div class="container"><p>Produit introuvable. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
+          }
           return;
         }
         renderPDP(p);
@@ -1134,7 +1232,21 @@ window.PT.setSafeImg = setSafeImg;
     }
   }
 
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', route, false);
+
+  // Réagit si les produits arrivent après (cohérence avec Part 1)
+  window.addEventListener('pt:productsLoaded', function(){
+    var p = window.parseHash();
+    if (p.view === 'catalogue'){
+      // Rafraîchir options + liste
+      syncDomRefs();
+      updateTagSelectOptions();
+      wireFilterInputs();
+      if (p && p.query){ hydrateFiltersFromQuery(p.query); } else { renderList(window.MODELS); }
+      renderCatalogue();
+    }
+  }, false);
+
   document.addEventListener('DOMContentLoaded', function(){
     ensureProductsLoaded(function(models){
       // si on arrive direct sur /catalogue sans DOM prêt
@@ -1143,37 +1255,45 @@ window.PT.setSafeImg = setSafeImg;
           var s = document.getElementById('view-catalogue');
           if (!s){
             s = document.createElement('section'); s.id='view-catalogue'; s.className='view';
-            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div id="list" class="list"></div></div>';
+            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div class="toolbar"><input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)"><select id="tag" class="select"><option value="">Tous</option></select></div><div id="list" class="list"></div></div>';
             document.body.appendChild(s);
           }
         }
+        syncDomRefs();
+        updateTagSelectOptions();
+        wireFilterInputs();
         renderCatalogue();
         renderList(models);
       }
       route();
     });
-  });
+  }, false);
 
   // actions dock → devis (si présent)
   var dockCartBtn = document.getElementById('dockCartBtn');
-  if (dockCartBtn) dockCartBtn.addEventListener('click', function(){ location.hash = '#/devis'; }, false);
-  if (dockCount)   dockCount.addEventListener('click',   function(){ location.hash = '#/devis'; }, false);
+  if (dockCartBtn && !dockCartBtn.__ptWired){ dockCartBtn.__ptWired = 1; dockCartBtn.addEventListener('click', function(){ location.hash = '#/devis'; }, false); }
+  if (dockCount   && !dockCount.__ptWired){   dockCount.__ptWired   = 1; dockCount.addEventListener('click',   function(){ location.hash = '#/devis'; }, false); }
+
+  // Expose minimal API pour Parties 3–4
+  window.findProductByKey = window.findProductByKey || findProductByKey;
 
 })();
+
 
 /* =========================================================
    PARTIE 3 — Compte + Création de compte (local) + Fidélité
    - Route: #/compte
    - Persistance locale: USER_KEY (default: 'pt_user_v1')
-   - Expose window.loadUser / window.saveUser
+   - Expose window.loadUser / window.saveUser / window.computeTier / window.defaultUser
    - Intégration avec Devis/WhatsApp (cartToWhatsAppText lit loadUser)
    - ES5-safe, n'écrase pas les fonctions existantes
+   - Compatible avec la PARTIE 1 (accHello/accContent) et PARTIE 4 (router principal)
 ========================================================= */
 (function(){
   'use strict';
 
   /* ---------- Guards/compat ---------- */
-  var USER_KEY = window.USER_KEY || 'pt_user_v1';
+  var USER_KEY   = window.USER_KEY   || 'pt_user_v1';
   var PHONE_E164 = window.PHONE_E164 || '+33774230195';
 
   if (typeof window.toast    !== 'function') window.toast    = function(){};
@@ -1208,6 +1328,8 @@ window.PT.setSafeImg = setSafeImg;
   }
   if (typeof window.focusView !== 'function') window.focusView = function(){};
 
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+
   /* =========================================================
      A) Modèle utilisateur (chargement / sauvegarde)
   ========================================================== */
@@ -1222,7 +1344,6 @@ window.PT.setSafeImg = setSafeImg;
       newsletter: false
     };
   }
-
   function computeTier(points){
     points = +points || 0;
     if (points >= 600) return 'Gold';
@@ -1245,9 +1366,16 @@ window.PT.setSafeImg = setSafeImg;
   function saveUser(u){
     try{
       if (!u || typeof u !== 'object') return;
+      // normalisation
+      u.name   = (u.name||'').trim();
+      u.email  = (u.email||'').trim();
+      u.phone  = (u.phone||'').trim();
+      u.addr   = (u.addr||'').trim();
       u.points = Math.max(0, Math.round(+u.points||0));
       u.tier   = computeTier(u.points);
+
       localStorage.setItem(USER_KEY, JSON.stringify(u));
+
       try{ window.dispatchEvent(new CustomEvent('pt:userChanged', { detail:u })); }catch(_){}
       window.toast('Compte enregistré', 'success');
       window.announce('Compte enregistré');
@@ -1255,55 +1383,75 @@ window.PT.setSafeImg = setSafeImg;
   }
 
   // expose global pour intégration (devis/whatsapp…)
-  if (typeof window.loadUser !== 'function') window.loadUser = loadUser;
-  if (typeof window.saveUser !== 'function') window.saveUser = saveUser;
+  if (typeof window.loadUser     !== 'function') window.loadUser     = loadUser;
+  if (typeof window.saveUser     !== 'function') window.saveUser     = saveUser;
+  if (typeof window.computeTier  !== 'function') window.computeTier  = computeTier;
+  if (typeof window.defaultUser  !== 'function') window.defaultUser  = defaultUser;
 
   /* =========================================================
-     B) Vue & UI (création si absente)
+     B) Vue & UI (création si absente ou injection dans accContent)
   ========================================================== */
+  function accountInnerHTML(){
+    return ''
+      + '<div class="card">'
+      + '  <div class="head"><h3 class="title">Informations</h3><span class="badge">Profil</span></div>'
+      + '  <div class="specs" style="display:grid;gap:.6rem">'
+      + '    <label>Nom / Prénom<br><input id="accName" class="search" type="text" placeholder="Ex: Alex Pirate"></label>'
+      + '    <label>Email<br><input id="accEmail" class="search" type="email" inputmode="email" placeholder="exemple@mail.com"></label>'
+      + '    <label>Téléphone<br><input id="accPhone" class="search" type="tel" inputmode="tel" placeholder="+33 6…"></label>'
+      + '    <label>Adresse<br><textarea id="accAddr" class="search" rows="2" placeholder="Adresse postale"></textarea></label>'
+      + '    <label style="display:flex;align-items:center;gap:.5rem"><input id="accNews" type="checkbox"> S’abonner aux nouveautés</label>'
+      + '  </div>'
+      + '  <div class="actions">'
+      + '    <button class="btn primary" id="accSave">Enregistrer</button>'
+      + '    <button class="btn" id="accClear">Se déconnecter / Réinitialiser</button>'
+      + '  </div>'
+      + '</div>'
+      + '<div class="card">'
+      + '  <div class="head"><h3 class="title">Fidélité</h3><span class="badge">Avantages</span></div>'
+      + '  <div class="specs">'
+      + '    <div class="meter">'
+      + '      <div class="meter__rail"><div id="accFill" class="meter__fill"></div><div id="accCursor" class="meter__cursor" style="left:0%"></div></div>'
+      + '      <input id="accSlider" type="range" min="0" max="1000" step="10" value="0">'
+      + '      <div class="meter__scale"><span id="accTier">Bronze</span><span><strong id="accPoints">0</strong> pts</span></div>'
+      + '    </div>'
+      + '  </div>'
+      + '  <div class="actions">'
+      + '    <button class="btn" id="accToDevis">Voir mon devis</button>'
+      + '    <a class="btn btn-wa" id="accWA" target="_blank" rel="noopener">WhatsApp</a>'
+      + '  </div>'
+      + '</div>';
+  }
+
   function ensureAccountView(){
     var view = document.getElementById('view-compte');
-    if (view) return view;
-
-    view = document.createElement('section');
-    view.id = 'view-compte';
-    view.className = 'view hidden';
-    view.innerHTML =
-      '<div class="container">'+
-        '<h1 tabindex="-1">Mon compte</h1>'+
-
-        '<div class="card">'+
-          '<div class="head"><h3 class="title">Informations</h3><span class="badge">Profil</span></div>'+
-          '<div class="specs" style="display:grid;gap:.6rem">'+
-            '<label>Nom / Prénom<br><input id="accName" class="search" type="text" placeholder="Ex: Alex Pirate"></label>'+
-            '<label>Email<br><input id="accEmail" class="search" type="email" inputmode="email" placeholder="exemple@mail.com"></label>'+
-            '<label>Téléphone<br><input id="accPhone" class="search" type="tel" inputmode="tel" placeholder="+33 6…"></label>'+
-            '<label>Adresse<br><textarea id="accAddr" class="search" rows="2" placeholder="Adresse postale"></textarea></label>'+
-            '<label style="display:flex;align-items:center;gap:.5rem"><input id="accNews" type="checkbox"> S’abonner aux nouveautés</label>'+
-          '</div>'+
-          '<div class="actions">'+
-            '<button class="btn primary" id="accSave">Enregistrer</button>'+
-            '<button class="btn" id="accClear">Se déconnecter / Réinitialiser</button>'+
-          '</div>'+
-        '</div>'+
-
-        '<div class="card">'+
-          '<div class="head"><h3 class="title">Fidélité</h3><span class="badge">Avantages</span></div>'+
-          '<div class="specs">'+
-            '<div class="meter">'+
-              '<div class="meter__rail"><div id="accFill" class="meter__fill"></div><div id="accCursor" class="meter__cursor" style="left:0%"></div></div>'+
-              '<input id="accSlider" type="range" min="0" max="1000" step="10" value="0">'+
-              '<div class="meter__scale"><span id="accTier">Bronze</span><span><strong id="accPoints">0</strong> pts</span></div>'+
-            '</div>'+
-          '</div>'+
-          '<div class="actions">'+
-            '<button class="btn" id="accToDevis">Voir mon devis</button>'+
-            '<a class="btn btn-wa" id="accWA" target="_blank" rel="noopener">WhatsApp</a>'+
-          '</div>'+
-        '</div>'+
-
-      '</div>';
-    document.body.appendChild(view);
+    if (!view){
+      view = document.createElement('section');
+      view.id = 'view-compte';
+      view.className = 'view hidden';
+      view.innerHTML =
+        '<div class="container">'
+        +  '<h1 tabindex="-1">Mon compte</h1>'
+        +  '<p id="accHello" style="margin:.25rem 0 1rem;color:#9fb4c5">Bienvenue. Renseignez vos informations pour accélérer les devis.</p>'
+        +  '<div id="accContent"></div>'
+        + '</div>';
+      document.body.appendChild(view);
+    }
+    // Injecte notre UI si absente
+    var content = view.querySelector('#accContent');
+    if (content){
+      if (!content.__ptInjected){
+        content.__ptInjected = 1;
+        content.innerHTML = accountInnerHTML();
+      }
+    } else {
+      // Pas de conteneur dédié → vérifie si nos champs existent déjà, sinon injecte à la fin
+      if (!view.querySelector('#accName')){
+        var box = document.createElement('div');
+        box.innerHTML = accountInnerHTML();
+        view.appendChild(box);
+      }
+    }
     return view;
   }
 
@@ -1313,6 +1461,23 @@ window.PT.setSafeImg = setSafeImg;
   function validateEmail(s){
     s = String(s||'').trim();
     return !!(s && s.indexOf('@')>0 && s.indexOf('.')>0);
+  }
+
+  function buildWAProfileLink(u){
+    var base = 'Bonjour, voici mes coordonnées:'
+      + '\n• Nom: '   + (u.name  || '')
+      + '\n• Email: ' + (u.email || '')
+      + (u.phone ? '\n• Tel: '   + u.phone : '')
+      + (u.addr  ? '\n• Adresse: '+u.addr  : '')
+      + '\n\nMerci.';
+    return 'https://wa.me/' + onlyDigits(PHONE_E164) + '?text=' + encodeURIComponent(base);
+  }
+
+  function updateHello(u){
+    var hello = document.getElementById('accHello');
+    if (!hello) return;
+    var name = (u && u.name) ? (' ' + u.name) : '';
+    hello.textContent = 'Bienvenue' + name + '. Gérez votre compte ou envoyez vos coordonnées via WhatsApp.';
   }
 
   function updateLoyaltyUI(u){
@@ -1347,18 +1512,11 @@ window.PT.setSafeImg = setSafeImg;
     if (news)  news.checked= !!u.newsletter;
 
     updateLoyaltyUI(u);
+    updateHello(u);
 
     // Met à jour le lien WhatsApp profil (avec infos)
     var wa = document.getElementById('accWA');
-    if (wa){
-      var base = 'Bonjour, voici mes coordonnées:'
-        + '\n• Nom: '   + (u.name  || '')
-        + '\n• Email: ' + (u.email || '')
-        + '\n• Tel: '   + (u.phone || '')
-        + (u.addr ? '\n• Adresse: '+u.addr : '')
-        + '\n\nMerci.';
-      wa.href = 'https://wa.me/' + PHONE_E164.replace('+','') + '?text=' + encodeURIComponent(base);
-    }
+    if (wa) wa.href = buildWAProfileLink(u);
   }
 
   function grabUserFromForm(){
@@ -1386,6 +1544,8 @@ window.PT.setSafeImg = setSafeImg;
     var clearBtn = document.getElementById('accClear');
     var toDevis  = document.getElementById('accToDevis');
     var slider   = document.getElementById('accSlider');
+    var inputs   = [document.getElementById('accName'), document.getElementById('accEmail'),
+                    document.getElementById('accPhone'), document.getElementById('accAddr'), document.getElementById('accNews')];
 
     if (saveBtn && !saveBtn.__wired){
       saveBtn.__wired = 1;
@@ -1396,8 +1556,10 @@ window.PT.setSafeImg = setSafeImg;
           try{ document.getElementById('accEmail').focus(); }catch(_){}
           return;
         }
+        // déduit le nom si vide mais email présent
+        if (!u.name && u.email){ u.name = u.email.split('@')[0]; }
         saveUser(u);
-        updateLoyaltyUI(u);
+        populateAccountForm(u);
       }, false);
     }
     if (clearBtn && !clearBtn.__wired){
@@ -1417,11 +1579,26 @@ window.PT.setSafeImg = setSafeImg;
     if (slider && !slider.__wired){
       slider.__wired = 1;
       slider.addEventListener('input', function(){
-        var u = loadUser(); u.points = Math.max(0, parseInt(slider.value,10)||0); u.tier = computeTier(u.points);
+        var u = loadUser();
+        u.points = Math.max(0, parseInt(slider.value,10)||0);
+        u.tier = computeTier(u.points);
         updateLoyaltyUI(u);
       }, false);
       slider.addEventListener('change', function(){
         var u = grabUserFromForm(); saveUser(u); // persiste le nouveau niveau
+      }, false);
+    }
+
+    // mise à jour du lien WhatsApp en live
+    for (var i=0;i<inputs.length;i++){
+      var el = inputs[i];
+      if (!el || el.__wired) continue;
+      el.__wired = 1;
+      var evt = (el.id === 'accNews') ? 'change' : 'input';
+      el.addEventListener(evt, function(){
+        var u = grabUserFromForm();
+        var wa = document.getElementById('accWA');
+        if (wa) wa.href = buildWAProfileLink(u);
       }, false);
     }
   }
@@ -1439,12 +1616,19 @@ window.PT.setSafeImg = setSafeImg;
   function routeCompte(){
     var parsed = window.parseHash();
     if (parsed.view !== 'compte') return;
+
+    // si PARTIE 4 expose setPageMeta, on l'utilise
+    if (typeof window.setPageMeta === 'function'){
+      try{ window.setPageMeta('Mon compte • Pirates Tools', 'Gérez vos informations et avantages fidélité.'); }catch(_){}
+    }
+
     window.showView('compte');     // masque autres vues si showView dispo
     renderAccountView();
     window.focusView('compte');
   }
 
   window.addEventListener('hashchange', routeCompte, false);
+
   document.addEventListener('DOMContentLoaded', function(){
     // prépare la vue au boot, utile si on arrive directement sur #/compte
     if ((location.hash||'').indexOf('#/compte') === 0){
@@ -1463,13 +1647,23 @@ window.PT.setSafeImg = setSafeImg;
     goAccountBtn.__wired = 1;
     goAccountBtn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
   }
+
+  // Si d'autres parties veulent réagir au changement utilisateur, l’event est déjà émis dans saveUser.
+  // Ici on l’écoute juste pour rafraîchir l’UI si besoin (ex: autre onglet modifie le profil).
+  if (!window.__ptUserChangeWired){
+    window.__ptUserChangeWired = 1;
+    window.addEventListener('pt:userChanged', function(e){
+      try{ populateAccountForm(e && e.detail ? e.detail : loadUser()); }catch(_){}
+    }, false);
+  }
 })();
 
 /* =========================================================
    PARTIE 4 — Router principal + Vues fail-safe + SEO
    - Crée/synchronise: #/ (home), #/catalogue, #/produit/:id, #/devis, #/compte
-   - Ne duplique rien: n’overrides pas vos fonctions existantes
+   - Ne duplique rien: n’override pas vos fonctions existantes
    - Attend les produits si nécessaire avant de rendre la PDP
+   - ES5-safe (pas d’arrows, pas d’optional chaining)
 ========================================================= */
 (function(){
   'use strict';
@@ -1505,9 +1699,52 @@ window.PT.setSafeImg = setSafeImg;
       if (want) want.classList.remove('hidden');
     };
   }
-  if (typeof W.focusView !== 'function') W.focusView = function(){};
-  if (typeof W.setPageMeta !== 'function') W.setPageMeta = function(){};
-  if (typeof W.resetPageMeta !== 'function') W.resetPageMeta = function(){};
+  if (typeof W.focusView !== 'function') {
+    W.focusView = function(key){
+      var id = key ? ('view-' + key) : null;
+      var scope = id ? D.getElementById(id) : null;
+      var h1 = scope ? scope.querySelector('h1') : null;
+      if (h1){
+        h1.setAttribute('tabindex','-1');
+        try{ h1.focus({preventScroll:true}); }catch(_){}
+        setTimeout(function(){ h1.removeAttribute('tabindex'); }, 280);
+      }
+    };
+  }
+
+  // SEO helpers (n’override pas s’ils existent déjà)
+  if (typeof W.setPageMeta !== 'function') {
+    W.setPageMeta = function(title, desc){
+      try{
+        if (title) document.title = String(title);
+        var mDesc = D.querySelector('meta[name="description"]');
+        if (!mDesc){ mDesc = D.createElement('meta'); mDesc.setAttribute('name','description'); D.head.appendChild(mDesc); }
+        if (desc!=null) mDesc.setAttribute('content', String(desc));
+
+        var ogT = D.querySelector('meta[property="og:title"]');
+        if (!ogT){ ogT = D.createElement('meta'); ogT.setAttribute('property','og:title'); D.head.appendChild(ogT); }
+        ogT.setAttribute('content', document.title || '');
+
+        var ogD = D.querySelector('meta[property="og:description"]');
+        if (!ogD){ ogD = D.createElement('meta'); ogD.setAttribute('property','og:description'); D.head.appendChild(ogD); }
+        ogD.setAttribute('content', (desc || ''));
+
+        var ogU = D.querySelector('meta[property="og:url"]');
+        if (!ogU){ ogU = D.createElement('meta'); ogU.setAttribute('property','og:url'); D.head.appendChild(ogU); }
+        ogU.setAttribute('content', location.href);
+      }catch(_){}
+    };
+  }
+  if (typeof W.resetPageMeta !== 'function') {
+    W.resetPageMeta = function(){
+      try{
+        document.title = 'Pirates Tools';
+        var mDesc = D.querySelector('meta[name="description"]');
+        if (mDesc) mDesc.setAttribute('content','Outils professionnels : catalogue, devis rapide et conseils.');
+        W.setPageMeta(document.title, (mDesc && mDesc.getAttribute('content')) || '');
+      }catch(_){}
+    };
+  }
   if (typeof W.toast !== 'function') W.toast = function(){};
 
   /* =========================================================
@@ -1549,38 +1786,35 @@ window.PT.setSafeImg = setSafeImg;
     return view;
   }
 
-  
   function ensureProduitView(){
-  var view = D.getElementById('view-produit');
-  if (view) return view;
-  view = D.createElement('section');
-  view.id = 'view-produit';
-  view.className = 'view hidden';
-  view.innerHTML =
-    '<div id="pdp" class="container pdp">'+
-      '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
-      '<div class="pdp__grid">'+
-        '<div class="pdp__media"><img id="pdpImg" alt="" /></div>'+
-        '<div class="pdp__info">'+
-          '<h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>'+
-          '<div id="pdpTag" class="pdp__tag"></div>'+
-          '<p id="pdpDesc" class="pdp__desc"></p>'+
-          '<ul id="pdpSpecs" class="pdp__specs"></ul>'+
-          '<div class="actions">'+
-            '<button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>'+
-            '<a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>'+
-            '<button id="pdpShare" class="btn" type="button">Partager</button>'+
+    var view = D.getElementById('view-produit');
+    if (view) return view;
+    view = D.createElement('section');
+    view.id = 'view-produit';
+    view.className = 'view hidden';
+    view.innerHTML =
+      '<div id="pdp" class="container pdp">'+
+        '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
+        '<div class="pdp__grid">'+
+          '<div class="pdp__media"><img id="pdpImg" alt=""></div>'+
+          '<div class="pdp__info">'+
+            '<h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>'+
+            '<div id="pdpTag" class="pdp__tag"></div>'+
+            '<p id="pdpDesc" class="pdp__desc"></p>'+
+            '<ul id="pdpSpecs" class="pdp__specs"></ul>'+
+            '<div class="actions">'+
+              '<button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>'+
+              '<a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>'+
+              '<button id="pdpShare" class="btn" type="button">Partager</button>'+
+            '</div>'+
           '</div>'+
         '</div>'+
-      '</div>'+
-      '<div class="pdp__related" id="pdpRelated"></div>'+
-    '</div>';
-  D.body.appendChild(view);
-  return view;
-}
-  
-  
-  
+        '<div class="pdp__related" id="pdpRelated"></div>'+
+      '</div>';
+    D.body.appendChild(view);
+    return view;
+  }
+
   function ensureDevisView(){
     var view = D.getElementById('view-devis');
     if (view) return view;
@@ -1626,7 +1860,6 @@ window.PT.setSafeImg = setSafeImg;
   function withProducts(cb){
     var ready = (W.MODELS && W.MODELS.length) ? true : false;
     if (ready) { try{ cb(); }catch(_){ } return; }
-    // Si une fonction loadProducts existe, on la appelle et enchaîne
     if (typeof W.loadProducts === 'function') {
       try{
         var p = W.loadProducts();
@@ -1636,12 +1869,36 @@ window.PT.setSafeImg = setSafeImg;
         }
       }catch(_){}
     }
-    // Dernier recours: attendre l’event pt:productsLoaded (déjà émis ailleurs)
+    // Dernier recours: attendre l’event pt:productsLoaded
     var once = function(){
       W.removeEventListener('pt:productsLoaded', once);
       try{ cb(); }catch(_){}
     };
     W.addEventListener('pt:productsLoaded', once);
+  }
+
+  // Remplit <select id="tag"> avec des tags/brands/categories (si vide)
+  function hydrateTagSelect(){
+    var sel = D.getElementById('tag');
+    if (!sel || sel.__ptHydrated) return;
+    var seen = {};
+    var add = function(lbl){
+      lbl = (lbl==null?'':String(lbl)).trim();
+      if (!lbl) return;
+      var key = lbl.toLowerCase();
+      if (seen[key]) return; seen[key] = 1;
+      var opt = D.createElement('option'); opt.value = lbl; opt.textContent = lbl;
+      sel.appendChild(opt);
+    };
+    var i, m;
+    for (i=0;i<(W.MODELS||[]).length;i++){
+      m = W.MODELS[i]||{};
+      add(m.brand);
+      add(m.category);
+      add(m.badge);
+      if (m.tags && m.tags.length){ for (var j=0;j<m.tags.length;j++){ add(m.tags[j]); } }
+    }
+    sel.__ptHydrated = true;
   }
 
   /* =========================================================
@@ -1650,7 +1907,14 @@ window.PT.setSafeImg = setSafeImg;
   function renderHome(){
     W.showView('home');
     if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
-    // si une grille marques dynamique existe, elle s’est déjà rendue
+    // sécurité: si la grille marques n’est pas encore rendue, on la (re)rend au besoin
+    withProducts(function(){
+      try{
+        if (W.PT && typeof W.PT.renderBrandGridFromProducts === 'function') {
+          W.PT.renderBrandGridFromProducts(W.MODELS||[]);
+        }
+      }catch(_){}
+    });
     W.focusView('home');
   }
 
@@ -1658,10 +1922,12 @@ window.PT.setSafeImg = setSafeImg;
     ensureCatalogueView();
     W.showView('catalogue');
     if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
-    // Laisse le routeur “brand/type” existant compléter si présent
-    if (typeof W.handleRouteCatalogue_Extended === 'function') {
-      try { W.handleRouteCatalogue_Extended(); } catch(_){}
-    }
+    withProducts(function(){
+      try{ hydrateTagSelect(); }catch(_){}
+      if (typeof W.handleRouteCatalogue_Extended === 'function') {
+        try { W.handleRouteCatalogue_Extended(); } catch(_){}
+      }
+    });
     W.focusView('catalogue');
   }
 
@@ -1695,15 +1961,13 @@ window.PT.setSafeImg = setSafeImg;
         var wrap = D.getElementById('pdp');
         if (!wrap) wrap = D.getElementById('view-produit');
         if (wrap){
-          wrap.scrollIntoView({behavior:'smooth', block:'start'});
+          if (wrap.scrollIntoView) wrap.scrollIntoView({behavior:'smooth', block:'start'});
           var box = D.createElement('div');
           box.className = 'card';
           box.innerHTML =
             '<div class="head"><h3 class="title">Produit introuvable</h3></div>'+
             '<div class="specs"><p style="margin:0">Référence inconnue. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
-          // remplace le contenu visible
           var container = wrap.querySelector('.container') || wrap;
-          // retire l’existant minimal si présent
           var rel = D.getElementById('pdpRelated'); if (rel) rel.innerHTML = '';
           var info = D.getElementById('pdpTitle');  if (info) info.textContent = '—';
           container.appendChild(box);
@@ -1739,7 +2003,6 @@ window.PT.setSafeImg = setSafeImg;
     if (v === 'produit')                return renderProduitRoute();
     if (v === 'devis')                  return renderDevisRoute();
     if (v === 'compte') {               // compte est géré par PARTIE 3 (routeCompte)
-      // On laisse la PARTIE 3 rendre la vue, mais on sécurise l’existence
       var s = D.getElementById('view-compte') ? 'compte' : 'home';
       W.showView(s);
       return;
@@ -1770,61 +2033,83 @@ window.PT.setSafeImg = setSafeImg;
     var logo = D.getElementById('homeLink') || D.querySelector('.topbar-logo-link');
     if (logo && !logo.__ptWired){
       logo.__ptWired = 1;
-      var go = function(e){ e.preventDefault(); location.hash=''; W.scrollTo({top:0,behavior:'smooth'}); };
+      var go = function(e){ if (e && e.preventDefault) e.preventDefault(); location.hash=''; if (W.scrollTo){ W.scrollTo({top:0,behavior:'smooth'}); } };
       logo.addEventListener('click', go, false);
-      logo.addEventListener('pointerup', function(e){ if (e.pointerType==='touch') go(e); }, false);
+      logo.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch') go(e); }, false);
     }
   })();
 })();
-</script>
 
-
-/* ===== Auth (front-only) : vues #/login & #/register ===== */
+/* ===== Auth (front-only) : vues #/login & #/register =====
+   - ES5-safe
+   - Utilise saveUser/loadUser globaux si déjà exposés par la PARTIE 3
+========================================================= */
 (function(){
+  'use strict';
   var D = document;
+
   function qs(s, r){ return (r||D).querySelector(s); }
   function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
 
   function showView(id){
-    qsa('.view').forEach(function(v){ v.classList.add('hidden'); });
+    var views = qsa('.view');
+    for (var i=0;i<views.length;i++){ views[i].classList.add('hidden'); }
     var v = qs(id);
-    if (v){ v.classList.remove('hidden'); var h1=qs('h1',v); if(h1){h1.setAttribute('tabindex','-1'); try{h1.focus({preventScroll:true});}catch(_){} } }
+    if (v){
+      v.classList.remove('hidden');
+      var h1 = qs('h1', v);
+      if (h1){ h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ } }
+    }
   }
 
-  function saveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
-  function loadUser(){ try{ var r=localStorage.getItem('pt_user_v1'); return r?JSON.parse(r):null; }catch(_){ return null; } }
+  // Fallbacks si PARTIE 3 absente
+  function _fallbackSaveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
+  function _fallbackLoadUser(){ try{ var r=localStorage.getItem('pt_user_v1'); return r?JSON.parse(r):null; }catch(_){ return null; } }
+  function saveUser(u){ return (typeof window.saveUser==='function') ? window.saveUser(u) : _fallbackSaveUser(u); }
+  function loadUser(){ return (typeof window.loadUser==='function') ? window.loadUser() : (_fallbackLoadUser() || {}); }
 
   function onLoginSubmit(e){
-    e.preventDefault();
-    var email = (qs('#loginEmail')||{}).value||'';
-    var pwd   = (qs('#loginPwd')||{}).value||'';
-    if (!email || email.indexOf('@')===-1 || !pwd){ window.toast && toast('Identifiants invalides', 'info'); return; }
+    if (e && e.preventDefault) e.preventDefault();
+    var emailEl = qs('#loginEmail'); var pwdEl = qs('#loginPwd');
+    var email = emailEl && emailEl.value ? String(emailEl.value) : '';
+    var pwd   = pwdEl   && pwdEl.value   ? String(pwdEl.value)   : '';
+    if (!email || email.indexOf('@')===-1 || !pwd){
+      if (window.toast) window.toast('Identifiants invalides', 'info');
+      return;
+    }
     var u = loadUser() || {};
     u.email = email;
-    u.name  = u.name || email.split('@')[0];
+    if (!u.name){ u.name = email.split('@')[0]; }
     saveUser(u);
-    window.toast && toast('Connecté', 'success'); window.announce && announce('Connecté');
+    if (window.toast)   window.toast('Connecté', 'success');
+    if (window.announce)window.announce('Connecté');
     location.hash = '#/compte';
   }
 
   function onRegisterSubmit(e){
-    e.preventDefault();
-    var name  = (qs('#regName')||{}).value||'';
-    var email = (qs('#regEmail')||{}).value||'';
-    var pwd   = (qs('#regPwd')||{}).value||'';
+    if (e && e.preventDefault) e.preventDefault();
+    var nameEl  = qs('#regName');
+    var emailEl = qs('#regEmail');
+    var pwdEl   = qs('#regPwd');
+
+    var name  = nameEl  && nameEl.value  ? String(nameEl.value)  : '';
+    var email = emailEl && emailEl.value ? String(emailEl.value) : '';
+    var pwd   = pwdEl   && pwdEl.value   ? String(pwdEl.value)   : '';
+
     if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){
-      window.toast && toast('Veuillez remplir tous les champs (MDP ≥ 6)', 'info'); return;
+      if (window.toast) window.toast('Veuillez remplir tous les champs (MDP ≥ 6)', 'info');
+      return;
     }
     var u = loadUser() || {};
     u.name  = name; u.email = email;
     saveUser(u);
-    window.toast && toast('Compte créé (mode démo)', 'success');
+    if (window.toast) window.toast('Compte créé (mode démo)', 'success');
     location.hash = '#/compte';
   }
 
   function wireAuthForms(){
-    var lf = qs('#loginForm');    if (lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit); }
-    var rf = qs('#registerForm'); if (rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit); }
+    var lf = qs('#loginForm');    if (lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit, false); }
+    var rf = qs('#registerForm'); if (rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit, false); }
   }
 
   function onHash(){
@@ -1833,27 +2118,34 @@ window.PT.setSafeImg = setSafeImg;
     if (h.indexOf('#/register')===0){ wireAuthForms(); showView('#view-register'); return; }
   }
 
-  window.addEventListener('hashchange', onHash);
-  document.addEventListener('DOMContentLoaded', function(){ wireAuthForms(); onHash(); });
+  window.addEventListener('hashchange', onHash, false);
+  document.addEventListener('DOMContentLoaded', function(){ wireAuthForms(); onHash(); }, false);
 })();
 
-/* --- Compat form id (#accForm | #accountForm) + save btn --- */
+/* --- Compat form id (#accForm | #accountForm) + save btn (ES5) --- */
 (function () {
+  'use strict';
   var D = document;
   function qs(s, r){return (r||D).querySelector(s);}
-  function on(el, ev, fn){ if (el && !el.__w){ el.__w=1; el.addEventListener(ev, fn);} }
+  function on(el, ev, fn){ if (el && !el.__w){ el.__w=1; el.addEventListener(ev, fn, false);} }
+
+  // Utilise saveUser global si dispo (PARTIE 3), sinon fallback local
+  function _fallbackSaveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
+  function saveUser(u){ return (typeof window.saveUser==='function') ? window.saveUser(u) : _fallbackSaveUser(u); }
 
   var form = qs('#accForm') || qs('#accountForm');
   var btnSave = qs('#accSave');
 
   function saveLocal(){
+    var nameEl  = qs('#accName');
+    var emailEl = qs('#accEmail');
     var u = {
-      name:  (qs('#accName')  || {}).value?.trim()  || '',
-      email: (qs('#accEmail') || {}).value?.trim()  || ''
+      name:  nameEl  && nameEl.value  ? String(nameEl.value).trim()  : '',
+      email: emailEl && emailEl.value ? String(emailEl.value).trim() : ''
     };
-    try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){}
+    saveUser(u);
   }
 
-  if (form) on(form, 'submit', function(e){ e.preventDefault(); saveLocal(); });
-  if (btnSave) on(btnSave, 'click', function(e){ e.preventDefault(); saveLocal(); });
+  if (form)   on(form,   'submit', function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
+  if (btnSave)on(btnSave,'click',  function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
 })();
