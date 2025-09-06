@@ -2333,3 +2333,146 @@
     heroEffect();
   }, false);
 })();
+
+
+/* =========================================================
+   BLOC #3 — NAVIGATION (menu + dock) + ACCÈS COMPTE
+   - Ferme le menu après navigation
+   - Fait pointer chaque entrée vers le bon hash
+   - Fait fonctionner les boutons du dock
+   - Assure l'existence de #/compte
+========================================================= */
+(function(){
+  'use strict';
+  var D=document, W=window;
+  var PHONE_E164 = W.PHONE_E164 || '+33774230195';
+
+  /* ---------- Utils ---------- */
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+  function go(hash){
+    try{ location.hash = hash; }catch(_){ location.assign(hash); }
+    closeDrawer();
+  }
+  function closeDrawer(){
+    var body = D.body;
+    var drawer = D.getElementById('drawer') || D.getElementById('sideMenu') || D.querySelector('.drawer') || D.querySelector('[data-drawer]');
+    var overlay = D.getElementById('overlay') || D.querySelector('.overlay') || D.querySelector('[data-overlay]');
+    if (drawer){
+      drawer.classList.remove('open','is-open','active','visible');
+      drawer.setAttribute('aria-hidden','true');
+      if (drawer.style && drawer.style.display==='block') drawer.style.display='';
+    }
+    if (overlay){ overlay.classList.remove('open','is-open','active','visible'); }
+    if (body){ body.classList.remove('menu-open','drawer-open','nav-open','no-scroll'); }
+    var menuBtn = D.getElementById('menuBtn') || D.querySelector('.hamburger');
+    if (menuBtn) menuBtn.setAttribute('aria-expanded','false');
+  }
+
+  /* ---------- Menu (drawer) ---------- */
+  function norm(t){ return String(t||'').trim().toLowerCase(); }
+  function wireDrawer(){
+    var drawer = D.getElementById('drawer') || D.getElementById('sideMenu') || D.querySelector('.drawer') || D.querySelector('[role="dialog"],[role="menu"]');
+    if (!drawer || drawer.__ptWired) return;
+    drawer.__ptWired = 1;
+
+    // Mappe les liens par texte ou data-route
+    drawer.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('a,[data-route]') : null;
+      if (!a) return;
+      var route = (a.getAttribute('data-route')||'').toLowerCase();
+      var txt   = norm(a.textContent);
+      var href  = (a.getAttribute('href')||'').toLowerCase();
+
+      // priorité au data-route/href
+      if (route){ e.preventDefault(); return go('#/'+route.replace(/^#\//,'')); }
+      if (href.indexOf('#/')===0){ closeDrawer(); return; }
+
+      // fallback par libellé
+      if (txt.indexOf('accuei')===0) { e.preventDefault(); return go('#/'); }
+      if (txt.indexOf('catalogue')===0){ e.preventDefault(); return go('#/catalogue'); }
+      if (txt.indexOf('devis')===0)    { e.preventDefault(); return go('#/devis'); }
+      if (txt.indexOf('compte')===0)   { e.preventDefault(); return go('#/compte'); }
+    }, false);
+  }
+
+  /* ---------- Dock (boutons du bas) ---------- */
+  function waTextDefault(){
+    var link = location.origin + location.pathname + '#/devis';
+    var u = (typeof W.loadUser==='function') ? W.loadUser() : {};
+    var blocks = [];
+    if (u && u.name)  blocks.push('Nom: '+u.name);
+    if (u && u.email) blocks.push('Email: '+u.email);
+    var contact = blocks.length?('\n\nMes coordonnées:\n'+blocks.join('\n')):'';
+    return 'Bonjour, je souhaite un devis.\n\nLien: '+link+contact+'\n\nMerci.';
+  }
+  function wireDock(){
+    var dock = D.getElementById('dock');
+    if (!dock) return;
+
+    function q(sel){
+      return dock.querySelector(sel) || D.querySelector(sel);
+    }
+    var btnTools = q('#dockToolsBtn') || q('.dock__btn--tools');
+    var btnCart  = q('#dockCartBtn')  || q('.dock__btn--cart');
+    var btnPhone = q('#dockPhoneBtn') || q('.dock__btn--phone');
+    var btnChat  = q('#dockChatBtn')  || q('.dock__btn--chat');
+
+    if (btnTools && !btnTools.__ptWired){
+      btnTools.__ptWired=1;
+      btnTools.addEventListener('click', function(e){ if(e){e.preventDefault();} go('#/catalogue'); }, false);
+    }
+    if (btnCart && !btnCart.__ptWired){
+      btnCart.__ptWired=1;
+      btnCart.addEventListener('click', function(e){ if(e){e.preventDefault();} go('#/devis'); }, false);
+    }
+    if (btnPhone && !btnPhone.__ptWired){
+      btnPhone.__ptWired=1;
+      btnPhone.addEventListener('click', function(e){
+        if (e) e.preventDefault();
+        var tel = 'tel:'+onlyDigits(PHONE_E164);
+        try{ location.href = tel; }catch(_){ window.open(tel,'_self'); }
+      }, false);
+    }
+    if (btnChat && !btnChat.__ptWired){
+      btnChat.__ptWired=1;
+      btnChat.addEventListener('click', function(e){
+        if (e) e.preventDefault();
+        var text = (typeof W.cartToWhatsAppText==='function' && (W.CART||[]).length) ? W.cartToWhatsAppText() : waTextDefault();
+        var url = 'https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(text);
+        window.open(url,'_blank','noopener');
+      }, false);
+    }
+  }
+
+  /* ---------- Accès Compte (assure la vue) ---------- */
+  function ensureAccountEntry(){
+    // crée la section si absente (minimale — la Partie 3 l’enrichit)
+    var view = D.getElementById('view-compte');
+    if (!view){
+      view = D.createElement('section');
+      view.id = 'view-compte';
+      view.className = 'view hidden';
+      view.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div id="accContent"></div></div>';
+      D.body.appendChild(view);
+    }
+    // si un bouton "Compte" existe en haut ou dans le menu, assurer le href
+    var links = [].slice.call(D.querySelectorAll('[data-route="compte"], a[href="#/compte"]'));
+    for (var i=0;i<links.length;i++){
+      if (!links[i].getAttribute('href')) links[i].setAttribute('href','#/compte');
+    }
+  }
+
+  /* ---------- Boot ---------- */
+  function init(){
+    wireDrawer();
+    wireDock();
+    ensureAccountEntry();
+  }
+  D.addEventListener('DOMContentLoaded', init, false);
+  W.addEventListener('hashchange', closeDrawer, false);
+})();
+
+
+
+
+
