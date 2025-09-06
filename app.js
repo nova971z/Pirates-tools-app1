@@ -2732,3 +2732,193 @@
   })();
 
 })();
+
+<script>
+/* =========================================================
+   BLOC 7 — HERO qualité + overshoot + timing Android (ES5)
+   - Fixe la source du logo (src/srcset/sizes) => qualité nette
+   - Zoom "overshoot" + fondu tardif, plus court sur Android
+   - Ajoute/assure .hero-fade pour masquer toute séparation
+   - Défensif: ne casse pas tes autres blocs
+========================================================= */
+(function(){
+  'use strict';
+  var D = document, W = window;
+
+  function $(s, r){ return (r||D).querySelector(s); }
+  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
+  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
+
+  var IMG_MAIN     = './icons/icon-384.png';  // point d’entrée net
+  var IMG_FALLBACK = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
+
+  function ensureHeroNodes(){
+    var hero = $('#hero');
+    if (!hero){
+      hero = D.createElement('section');
+      hero.id = 'hero';
+      hero.className = 'hero-full';
+      hero.innerHTML = '<img id="heroLogo" class="hero-logo" alt="Pirates Tools">';
+      D.body.insertBefore(hero, D.body.firstChild || null);
+    }
+    var logo = $('#heroLogo');
+    if (!logo){
+      logo = D.createElement('img');
+      logo.id = 'heroLogo';
+      logo.className = 'hero-logo';
+      logo.alt = 'Pirates Tools';
+      hero.appendChild(logo);
+    }
+    return { hero: hero, logo: logo };
+  }
+
+  function wireLogoSource(logo){
+    if (!logo || hasClass(logo, '__ptSrc')) return;
+    logo.className = (logo.className||'').replace(/\s+$/,'') + ' hero-logo';
+
+    // qualité: met toutes les tailles disponibles
+    try{
+      logo.setAttribute('decoding','async');
+      logo.setAttribute('referrerpolicy','no-referrer');
+      logo.setAttribute('loading','eager');
+      logo.setAttribute('fetchpriority','high');
+    }catch(_){}
+
+    // srcset complet (tes fichiers existent dans /icons/)
+    var srcset = [
+      './icons/icon-180.png 180w',
+      './icons/icon-192.png 192w',
+      './icons/icon-256.png 256w',
+      './icons/icon-384.png 384w',
+      './icons/icon-512.png 512w'
+    ].join(', ');
+    logo.setAttribute('srcset', srcset);
+    logo.setAttribute('sizes', 'min(56vmin, 560px)');
+    if (!logo.getAttribute('src')) logo.setAttribute('src', IMG_MAIN);
+
+    // fallbacks
+    logo.onerror = function(){ this.onerror=null; this.src = IMG_FALLBACK; };
+
+    // anti-flou / rendu GPU pendant le scale
+    logo.style.willChange = 'transform,opacity';
+    logo.style.backfaceVisibility = 'hidden';
+    logo.style.webkitBackfaceVisibility = 'hidden';
+    logo.style.transform = 'translateZ(0)'; // GPU hint
+
+    // fade-in une fois prêt
+    if (logo.complete) addClass(logo, 'on');
+    else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+
+    addClass(logo, '__ptSrc');
+  }
+
+  function ensureHeroFade(hero){
+    if (!hero) return;
+    var fade = $('.hero-fade', hero) || $('.hero-fade');
+    if (!fade){
+      fade = D.createElement('div');
+      fade.className = 'hero-fade';
+      hero.appendChild(fade);
+    }
+  }
+
+  /* ------------ Overshoot + fondu, paramétrage Android/iOS ------------ */
+  function heroEffectOvershoot(){
+    if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
+
+    var nodes = ensureHeroNodes();
+    var hero = nodes.hero, logo = nodes.logo;
+
+    wireLogoSource(logo);
+    ensureHeroFade(hero);
+
+    // accessibilité: réduit = pas d’anim
+    var mqr = (W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)'));
+    if (mqr && mqr.matches){
+      logo.style.transform = 'translate3d(0,0,0) scale(1)';
+      logo.style.opacity   = '1';
+      return;
+    }
+
+    // heuristique Android (passe derrière un peu plus tôt)
+    var isAndroid = /Android/i.test(W.navigator.userAgent||'');
+
+    var mqMobile = (W.matchMedia && W.matchMedia('(max-width: 768px)'));
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function getY(){
+      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || D.body.scrollTop || 0;
+    }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function clamp01(x){ return x<0?0:(x>1?1:x); }
+
+    // paramètres de progression
+    var MAX_SCALE_M = 6.5;
+    var MAX_SCALE_D = 5.0;
+    var DIST_M      = isAndroid ? 1.00 : 1.10; // Android: un poil plus court
+    var DIST_D      = 1.18;
+
+    var prevY = -1, rafId = 0;
+
+    function render(y){
+      var vh  = getVH();
+      var fin = vh * ((mqMobile && mqMobile.matches) ? DIST_M : DIST_D);
+
+      var raw     = y / (fin || 1);           // non clampé = autorise l’overshoot
+      var clamped = clamp01(raw);
+      var eased   = easeOutCubic(clamped);
+
+      // sur-croissance douce, plafonnée
+      var over     = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
+      var maxScale = (mqMobile && mqMobile.matches) ? MAX_SCALE_M : MAX_SCALE_D;
+      var scale    = 1 + (maxScale - 1) * over;
+
+      var tyPx     = (mqMobile && mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
+
+      // fondu tardif (garde le logo net longtemps)
+      var opacity  = 1 - Math.max(0, raw - 0.75) * 1.7; // commence ~75%
+      if (opacity < 0) opacity = 0;
+
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform = t; logo.style.webkitTransform = t; logo.style.opacity = opacity.toFixed(3);
+
+      // espace visuel avec contenu (utilisé par la CSS)
+      var gapStart = (mqMobile && mqMobile.matches) ? 22 : 26;
+      var gap = Math.max(0, (1 - clamped) * gapStart);
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+      // quand assez loin → on passe sous la page
+      var done = raw > (isAndroid ? 1.05 : 1.12);
+      if (done){ hero.classList.add('hero-out'); D.body.classList.add('after-hero'); }
+      else { hero.classList.remove('hero-out'); D.body.classList.remove('after-hero'); }
+    }
+
+    function tick(){
+      var y = getY();
+      if (y !== prevY){ render(y); prevY = y; }
+      rafId = W.requestAnimationFrame(tick);
+    }
+
+    // boot
+    render(getY());
+    rafId = W.requestAnimationFrame(tick);
+
+    function recalc(){ prevY=-1; render(getY()); }
+    W.addEventListener('resize', recalc, true);
+    if (W.visualViewport && W.visualViewport.addEventListener){
+      W.visualViewport.addEventListener('resize', recalc, true);
+    }
+    W.addEventListener('orientationchange', recalc, true);
+    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+    W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+  }
+
+  if (D.readyState === 'loading'){
+    D.addEventListener('DOMContentLoaded', heroEffectOvershoot, false);
+  } else {
+    heroEffectOvershoot();
+  }
+})();
+</script>
