@@ -58,22 +58,64 @@
   })();
   </script>
 
-  <!-- === HERO (final) === -->
-  <section id="hero" class="hero-full" aria-hidden="true">
-    <img
-      id="heroLogo"
-      class="hero-logo"
-      src="./icons/icon-512.png"
-      srcset="./icons/icon-180.png 180w, ./icons/icon-192.png 192w, ./icons/icon-256.png 256w, ./icons/icon-384.png 384w, ./icons/icon-512.png 512w"
-      sizes="min(62vmin, 560px)"
-      alt="Pirates Tools"
-      width="512" height="512"
-      decoding="async" loading="eager" referrerpolicy="no-referrer" fetchpriority="high"
-    />
-    <div class="hero-fade" aria-hidden="true"></div>
-  </section>
-  <!-- === /HERO === -->
+<!-- === HERO (fix: chemins + qualité + bust-cache) === -->
+<section id="hero" class="hero-full" aria-hidden="true">
+  <img
+    id="heroLogo"
+    class="hero-logo"
+    alt="Pirates Tools"
+    src="./icons/icon-512.png?v=8"
+    srcset="
+      ./icons/icon-180.png 180w,
+      ./icons/icon-192.png 192w,
+      ./icons/icon-256.png 256w,
+      ./icons/icon-384.png 384w,
+      ./icons/icon-512.png 512w"
+    sizes="min(62vmin, 560px)"
+    width="512" height="512"
+    decoding="async" loading="eager" referrerpolicy="no-referrer"
+    onerror="this.onerror=null;this.src='./icons/icon-384.png?v=8';"
+  />
+  <div class="hero-fade" aria-hidden="true"></div>
+</section>  <!-- === /HERO === -->
+<script>
+/* HERO loader robuste : essaye plusieurs chemins + contourne le cache SW */
+(function secureHeroImage(){
+  var img = document.getElementById('heroLogo'); if(!img) return;
 
+  // Chemins possibles selon où GitHub Pages sert le site
+  var base = location.pathname.split('/')[1] || ''; // ex: "Pirates-tools-app1"
+  var candidates = [
+    './icons/icon-512.png',
+    './icons/icon-384.png',
+    '/icons/icon-512.png',
+    base ? ('/' + base + '/icons/icon-512.png') : ''
+  ].filter(Boolean);
+
+  function tryNext(){
+    if(!candidates.length) return; // on laisse l'alt si tout échoue
+    var url = candidates.shift();
+    var test = new Image();
+    test.referrerPolicy = 'no-referrer';
+    test.onload = function(){
+      var ver = (window.__ASSET_VER || '8');
+      var finalUrl = url + (url.indexOf('?')>-1 ? '&' : '?') + 'v=' + ver;
+      img.src = finalUrl;
+      if (img.complete) requestAnimationFrame(function(){ img.classList.add('on'); });
+      else img.addEventListener('load', function(){ img.classList.add('on'); }, { once:true });
+    };
+    test.onerror = tryNext;
+    test.src = url + '?probe=' + Date.now(); // évite le cache
+  }
+
+  // Si l’URL initiale est déjà cassée, on enchaîne les fallbacks
+  img.addEventListener('error', tryNext, { once:true });
+  // Et on lance une vérif immédiate (utile si la première URL est en cache SW)
+  tryNext();
+})();
+</script> 
+  
+  
   <!-- =================== VUES (SPA) =================== -->
   <main id="app" role="main">
 
