@@ -2475,191 +2475,208 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
 
 /* =========================================================
-   1) HÉRO — overshoot doux + blur AVANT fade + disparition rapide
-   • logo net au départ (scale 1.00 + pas de blur)
-   • blur ne démarre qu’après le scroll
-   • z-index / pointer-events gérés automatiquement
+   1) HÉRO — overshoot doux + base 1:1 + perf mobile
+   - Logo net au départ (scale 1.00, pas de blur initial)
+   - Blur allégé et désactivé sur iOS (perf)
+   - RAF actif seulement quand le héros est visible
+   - Stop automatique hors Home (#/catalogue, #/devis, …)
 ========================================================= */
 (function heroEffectOvershoot(){
   'use strict';
-  if (W.__ptHeroWired2) return;
-  W.__ptHeroWired2 = 1;
+  if (window.__ptHeroWired3) return; window.__ptHeroWired3 = 1;
+
+  var W = window, D = document;
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
+  function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
 
   var hero = D.getElementById('hero') || qs('.hero-full');
   var logo = D.getElementById('heroLogo') || qs('.hero-logo');
   if (!hero || !logo) return;
 
-  // CSS de secours pour le fondu interne
-  (function injectHeroFadeCSS(){
+  /* — CSS sécurité pour le fondu */
+  (function(){
     if (D.getElementById('pt-hero-fade-css')) return;
-    var s = D.createElement('style'); s.id = 'pt-hero-fade-css';
-    s.textContent =
-      '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
-      'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
+    var s = D.createElement('style'); s.id='pt-hero-fade-css';
+    s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
+                    'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
     D.head.appendChild(s);
   })();
 
-  // Qualité image + rendu
+  /* — Image : qualité et erreurs */
   try{
-    if (logo.tagName === 'IMG') {
+    if (logo.tagName==='IMG'){
       if (!logo.getAttribute('srcset')){
         logo.setAttribute('srcset',
-          './icons/icon-180.png 180w, '+
-          './icons/icon-192.png 192w, '+
-          './icons/icon-256.png 256w, '+
-          './icons/icon-384.png 384w, '+
+          './icons/icon-180.png 180w,'+
+          './icons/icon-192.png 192w,'+
+          './icons/icon-256.png 256w,'+
+          './icons/icon-384.png 384w,'+
           './icons/icon-512.png 512w'
         );
       }
-      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin, 560px)');
-      logo.decoding = 'async';
-      logo.loading  = 'eager';
-      logo.referrerPolicy = 'no-referrer';
-      logo.onerror = function(){ this.onerror=null; this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7'); };
+      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
+      logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
+      logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
     }
-    logo.style.willChange = 'transform,opacity,filter';
-    logo.style.backfaceVisibility = 'hidden';
-    logo.style.webkitBackfaceVisibility = 'hidden';
-    logo.style.transform = 'translateZ(0)';
-    logo.style.transformOrigin = '50% 50%';
+    logo.style.willChange='transform,opacity,filter';
+    logo.style.backfaceVisibility='hidden';
+    logo.style.webkitBackfaceVisibility='hidden';
+    logo.style.transform='translateZ(0)';
+    logo.style.transformOrigin='50% 50%';
   }catch(_){}
 
-  // Fond dégradé interne si manquant
   if (!hero.querySelector('.hero-fade')){
-    var f = D.createElement('div'); f.className = 'hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
+    var f=D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
   }
 
-  // Respect “réduction animations”
+  /* — Réduction animation : pas d’effet, propre */
   var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
   if (mqr && mqr.matches){
-    var t0 = 'translate3d(0,0,0) scale(1)';
-    logo.style.transform = t0;
-    logo.style.webkitTransform = t0;
-    logo.style.opacity = '1';
-    logo.style.filter  = 'none';
-    try{ logo.classList.add('on'); }catch(_){}
+    var t0='translate3d(0,0,0) scale(1)';
+    logo.style.transform=t0; logo.style.webkitTransform=t0; logo.style.opacity='1'; logo.style.filter='none';
+    try{ addClass(logo,'on'); }catch(_){}
     addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-    hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
-    D.documentElement.style.setProperty('--listGap', '0vh');
+    hero.style.zIndex=-1; hero.style.pointerEvents='none';
+    D.documentElement.style.setProperty('--listGap','0vh');
     return;
   }
 
-  /* ===== Réglages ===== */
+  /* ===== Réglages (base 1:1) ===== */
   var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;  // zoom final
-  var BASE_M      = 1.00, BASE_D      = 1.00; // logo 1:1 au départ (net)
-  var DIST_M      = 0.90, DIST_D      = 0.96; // distance courte → disparition rapide
-  var BLUR_START  = 0.22, BLUR_LEN    = 0.38; // blur avant fade
-  var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;   // plafond blur
-  var FADE_START  = 0.30, FADE_LEN    = 0.26; // fade tôt & court
-  var DONE_M      = 0.94, DONE_D      = 0.98; // passe derrière très tôt
-  var OVER_MAX    = 2.2;                      // limite overshoot
-  var GAP_M       = 12,   GAP_D       = 16;   // vh — espace au-dessus des bulles
+  var BASE_M      = 1.00, BASE_D      = 1.00;  // logo 1:1 au départ
+  var DIST_M      = 0.90, DIST_D      = 0.96;  // disparaît vite
+  var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // blur avant fade
+  var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;     // blur allégé (perf)
+  var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fade court
+  var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière tôt
+  var OVER_MAX    = 2.2;
+  var GAP_M       = 12,   GAP_D       = 16;
 
-  // Helpers easing/scroll
+  // iOS : blur coûte cher → on le coupe
+  var ua = (navigator.userAgent||'').toLowerCase();
+  var isIOS = /iphone|ipad|ipod/.test(ua);
+  var USE_BLUR = !isIOS && (typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)'));
+
+  /* — Helpers */
   var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
   function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1 - t) * (1 - t); } // pour SCALE au démarrage
+  function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
   function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
   function scrollY(){
-    return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+    return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
            (D.scrollingElement && D.scrollingElement.scrollTop) ||
            D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
   }
+  function isHome(){
+    var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0);
+  }
 
-  var _vh = getVH(), prevY = -1, rafId = 0;
+  var _vh=getVH(), prevY=-1, rafId=0, io=null, running=false;
 
   function render(y){
-    var isM   = mqMobile && mqMobile.matches;
+    var isM = mqMobile && mqMobile.matches;
     var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
 
-    var raw      = y / finPx;           // progress “réel” (non clampé)
-    var prog01   = clamp(raw, 0, 1);    // progress [0..1]
-    var eased    = easeOutCubic(prog01);
+    var raw    = y / finPx;
+    var prog01 = clamp(raw,0,1);
+    var eased  = easeOutCubic(prog01);
 
-    // SCALE : croissance “légère mais rapide au début” + overshoot adouci
-    var sProg    = clamp(prog01 * 1.10, 0, 1);
-    var sEase    = easeOutQuad(sProg);
-    var over     = raw > 1 ? Math.min(raw - 1, OVER_MAX - 1) : 0; // extra > 1
-    var base     = isM ? BASE_M : BASE_D;
-    var sMax     = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale    = base + (sMax - base) * (sEase + over * 0.55); // overshoot contrôlé
+    var sProg = clamp(prog01*1.10,0,1);
+    var sEase = easeOutQuad(sProg);
+    var over  = raw>1 ? Math.min(raw-1, OVER_MAX-1) : 0;
+    var base  = isM ? BASE_M : BASE_D;
+    var sMax  = isM ? MAX_SCALE_M : MAX_SCALE_D;
+    var scale = base + (sMax - base) * (sEase + over*0.55);
 
-    // Translation douce
-    var tyPx     = (isM ? 10 : 8) * (_vh / 100) * eased;
+    var tyPx  = (isM?10:8) * (_vh/100) * eased;
 
-    // BLUR : 0px tant que le scroll n’a pas commencé
-    var blurMax  = isM ? BLUR_MAX_M : BLUR_MAX_D;
-    var blurP    = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
-    var blur     = blurMax * blurP;
+    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+    var blurP   = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
+    var blur    = USE_BLUR ? (blurMax * (0.12 + 0.88*blurP)) : 0;
 
-    // FADE plus tôt & plus court
-    var fadeP    = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
-    var opacity  = 1 - fadeP;
+    var fadeP   = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+    var opacity = 1 - fadeP;
 
-    // Applique transform/opacity/blur
     var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform       = t;
+    logo.style.transform = t;
     logo.style.webkitTransform = t;
-    logo.style.opacity         = opacity.toFixed(3);
-    logo.style.filter          = blur>0 ? ('blur('+blur.toFixed(2)+'px)') : 'none';
+    logo.style.opacity = opacity.toFixed(3);
+    logo.style.filter  = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
 
-    // Espace au-dessus de la grille (accueil)
     var gap = Math.max(0, (1 - prog01) * (isM ? GAP_M : GAP_D));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
+    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
 
-    // Bascule “derrière” très tôt pour libérer les bulles
     var done = raw > (isM ? DONE_M : DONE_D);
     if (done){
-      addClass(D.body,'after-hero');
-      addClass(hero,'hero-out');
-      hero.style.zIndex = -1;
-      hero.style.pointerEvents = 'none';
+      addClass(D.body,'after-hero'); addClass(hero,'hero-out');
+      hero.style.zIndex=-1; hero.style.pointerEvents='none';
       if (opacity <= 0.02){
-        logo.style.opacity = '0';
-        logo.style.filter  = 'blur(' + blurMax + 'px)';
+        logo.style.opacity='0';
+        if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)';
       }
+      stopRAF(); // on n’anime plus une fois terminé
     } else {
-      rmClass(D.body,'after-hero');
-      rmClass(hero,'hero-out');
-      hero.style.zIndex = '';
-      hero.style.pointerEvents = '';
+      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+      hero.style.zIndex=''; hero.style.pointerEvents='';
     }
   }
 
   function tick(){
+    if (!running) return;
     var y = scrollY();
     if (y !== prevY){ render(y); prevY = y; }
     rafId = W.requestAnimationFrame(tick);
   }
 
-  // Révélation douce : force net au départ
-  var reveal = function(){
-    try{
-      logo.classList.add('on');
-      logo.style.filter = 'none';
-    }catch(_){}
-  };
-  if (logo.complete) setTimeout(reveal, 0);
-  else logo.addEventListener('load', reveal, { once:true });
-
-  // Boot
-  render(scrollY());
-  rafId = W.requestAnimationFrame(tick);
-
-  var recalc = function(){ _vh = getVH(); render(scrollY()); };
-  W.addEventListener('resize', recalc, true);
-  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-    W.visualViewport.addEventListener('resize', recalc, true);
+  function startRAF(){
+    if (running) return; running=true;
+    prevY=-1; render(scrollY());
+    rafId = W.requestAnimationFrame(tick);
   }
-  W.addEventListener('orientationchange', recalc, true);
-  D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
-  W.addEventListener('pageshow', function(e){ if (e && e.persisted) recalc(); }, true);
-  W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-})();   
+  function stopRAF(){
+    running=false;
+    if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
+  }
 
-   
+  var reveal=function(){ try{ addClass(logo,'on'); }catch(_){ } };
+  if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
 
+  // Démarre uniquement sur la Home
+  function applyRunState(){
+    if (isHome()){
+      // on relance seulement si le héros est visible
+      if ('IntersectionObserver' in W){
+        if (io) io.disconnect();
+        io = new IntersectionObserver(function(entries){
+          var e = entries && entries[0];
+          if (e && e.isIntersecting) startRAF(); else stopRAF();
+        }, {root:null,threshold:0});
+        io.observe(hero);
+      } else {
+        startRAF();
+      }
+    } else {
+      stopRAF();
+    }
+  }
+
+  // Boot + évènements
+  var recalc=function(){ _vh=getVH(); if (running) render(scrollY()); };
+  W.addEventListener('resize',recalc,{passive:true});
+  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+    W.visualViewport.addEventListener('resize',recalc,{passive:true});
+  }
+  W.addEventListener('orientationchange',recalc,true);
+  D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
+  W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
+  W.addEventListener('pagehide',function(){ stopRAF(); },true);
+  W.addEventListener('hashchange',function(){ setTimeout(applyRunState,0); },false);
+
+  // Lancement
+  applyRunState();
+})();
   
   /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
