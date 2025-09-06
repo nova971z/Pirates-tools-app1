@@ -19,15 +19,15 @@
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
-      <a id="homeLink" class="topbar-logo-link" href="#">
-        <!-- Placeholder transparent pour éviter l’icône “?” -->
+      <a id="homeLink" class="topbar-logo-link" href="#/">
+        <!-- Placeholder transparent le temps que le loader pose la vraie source -->
         <img
           id="topbarLogo"
           class="topbar-logo"
           src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
           alt="Pirates Tools"
           width="140" height="40"
-          decoding="async" loading="eager" fetchpriority="high" />
+          decoding="async" loading="eager" fetchpriority="high" referrerpolicy="no-referrer" />
       </a>
     </div>
 
@@ -46,12 +46,12 @@
       alt="Pirates Tools"
       src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
       width="512" height="512"
-      decoding="async" loading="eager" />
+      decoding="async" loading="eager" referrerpolicy="no-referrer" />
     <div class="hero-fade" aria-hidden="true"></div>
   </section>
   <!-- === /HERO === -->
 
-  <!-- ====== Loader robuste (topbar + hero) : chemins GitHub Pages + cache-busting ====== -->
+  <!-- ====== Loader robuste (topbar + hero) : chemins GitHub Pages + anti-cache ====== -->
   <script>
   (function(){
     'use strict';
@@ -102,10 +102,10 @@
           var b = bases[i];
           var brand = b + 'images/pirates-tools-logo.png';
           pickWorkingURL([brand], function(u){
-            setImg(topImg, u, 'v=7');
-            // pas de srcset pour le logo marque
+            setImg(topImg, u, 'v=7'); // ta version de logo
+            // pas de srcset pour le logo marque (évite re-échantillonnage)
           }, function(){
-            // Fallback icône avec srcset
+            // Fallback icône + srcset
             var icon = b + 'icons/icon-384.png';
             pickWorkingURL([icon], function(u){
               setImg(topImg, u);
@@ -128,7 +128,6 @@
           var b = bases[i];
           var candidates = [ b+'icons/icon-512.png', b+'icons/icon-384.png' ];
           pickWorkingURL(candidates, function(u){
-            // srcset/sizes hautes définitions
             heroImg.setAttribute('srcset',
               b+'icons/icon-180.png 180w, '+
               b+'icons/icon-192.png 192w, '+
@@ -147,7 +146,6 @@
 
         // si l'URL se casse ensuite, on retente
         heroImg.addEventListener('error', function(){
-          // relance une résolution depuis le début
           var parts = location.pathname.split('/').filter(Boolean);
           var repo  = parts.length ? parts[0] : '';
           var baseRepo = repo ? ('/' + repo + '/') : '/';
@@ -170,6 +168,16 @@
           })(0);
         }, { once:true });
       }
+
+      // --- Dock « Compte » → navigation (#/compte) si non câblé côté app.js ---
+      (function wireDockAccount(){
+        var btn = D.getElementById('dockAccountBtn');
+        if (!btn || btn.__wired) return;
+        btn.__wired = 1;
+        btn.addEventListener('click', function(){
+          try{ location.hash = '#/compte'; }catch(_){}
+        }, false);
+      })();
     });
   })();
   </script>
