@@ -2370,108 +2370,135 @@
      1) HÉRO — overshoot (zoom jusqu’à disparition)
      (n’override pas l’anim si déjà gérée ailleurs)
   ========================================================== */
-  (function heroEffectOvershoot(){
-    if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
+  /* ------------ HERO Overshoot: net iOS + fondu fixe + overshoot ----------- */
+(function heroEffectOvershoot(){
+  var W = window, D = document;
+  if (W.__ptHeroOvershoot) return; W.__ptHeroOvershoot = 1;
 
-    var hero = qs('#hero');
-    var logo = qs('#heroLogo');
-    if (!hero || !logo) return;
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
 
-    // réduit : stop anim
-    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mqr && mqr.matches){
-      logo.style.transform = 'translate3d(0,0,0) scale(1)';
-      logo.style.opacity = '1';
-      return;
-    }
+  var hero = qs('#hero');
+  var logo = qs('#heroLogo');
+  if (!hero || !logo) return;
 
-    // fade-in au chargement
-    (function showOnceReady(){
-      if (logo.tagName === 'IMG'){
-        if (logo.complete) addClass(logo,'on');
-        else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
-      } else {
-        setTimeout(function(){ addClass(logo,'on'); }, 60);
-      }
-    })();
+  /* 1) HD pour éviter la bouillie au zoom (surtout iOS) */
+  if (logo.tagName === 'IMG'){
+    try{
+      var src = logo.getAttribute('src') || '';
+      if (!src || /icon-180\.png$/i.test(src)) logo.setAttribute('src', './icons/icon-512.png');
+      logo.setAttribute('srcset',
+        './icons/icon-1024.png 1024w, '+
+        './icons/icon-512.png 512w, '+
+        './icons/icon-384.png 384w, '+
+        './icons/icon-256.png 256w, '+
+        './icons/icon-192.png 192w, '+
+        './icons/icon-180.png 180w'
+      );
+      logo.setAttribute('sizes', '(max-width:768px) 62vmin, 820px');
+      logo.decoding = 'async';
+      logo.loading  = 'eager';
+    }catch(_){}
+  }
 
-    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-    function getY(){
-      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
-             (D.scrollingElement && D.scrollingElement.scrollTop) ||
-             D.documentElement.scrollTop ||
-             D.body.scrollTop || 0;
-    }
-    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-    function clamp01(x){ return x<0?0:(x>1?1:x); }
+  /* 2) Fondu fixe bas d’écran (supprime la coupure) */
+  var fadeFixed = D.getElementById('heroFadeFixed');
+  if (!fadeFixed){
+    fadeFixed = D.createElement('div');
+    fadeFixed.id = 'heroFadeFixed';
+    fadeFixed.className = 'hero-fade-fixed';
+    D.body.appendChild(fadeFixed);
+  }
+  // fondu interne si oublié dans le HTML
+  if (!qs('.hero-fade', hero)){
+    var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
+  }
 
-    // paramètres (testés iOS/Android)
-    var MAX_SCALE_M = 6.5;  // mobile
-    var MAX_SCALE_D = 5.0;  // desktop
-    var DIST_M      = 1.10; // 110% vh
-    var DIST_D      = 1.20; // 120% vh
+  /* 3) Réduit : pas d’anim */
+  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mqr && mqr.matches){
+    var t0 = 'translate3d(0,0,0) scale(1)';
+    logo.style.transform = t0; logo.style.webkitTransform = t0;
+    logo.style.opacity = '1';
+    if (fadeFixed) fadeFixed.style.opacity = '0';
+    return;
+  }
 
-    var prevY = -1, rafId = 0;
-
-    function render(y){
-      var vh  = getVH();
-      var fin = vh * (mqMobile && mqMobile.matches ? DIST_M : DIST_D);
-
-      // progression non clampée (autorise l’overshoot)
-      var raw     = y / (fin || 1);
-      var clamped = clamp01(raw);
-      var eased   = easeOutCubic(clamped);
-
-      // overshoot : continue de grandir jusqu’à ~2.2
-      var over = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
-      var maxScale = (mqMobile && mqMobile.matches) ? MAX_SCALE_M : MAX_SCALE_D;
-      var scale    = 1 + (maxScale - 1) * over;
-
-      var tyPx    = (mqMobile && mqMobile.matches ? 10 : 7) * (vh / 100) * eased;
-      var opacity = 1 - Math.max(0, raw - 0.75) * 1.7; // démarre le fondu tard
-      if (opacity < 0) opacity = 0;
-
-      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-      logo.style.transform = t; logo.style.webkitTransform = t;
-      logo.style.opacity   = opacity.toFixed(3);
-
-      // timing du contenu dessous (gap “visuel” en vh)
-      var gapStart = (mqMobile && mqMobile.matches) ? 22 : 26;
-      var gap = Math.max(0, (1 - clamped) * gapStart);
-      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-      // quand assez loin → passer le hero sous la page
-      var done = raw > 1.12;
-      hero.classList.toggle('hero-out', done);
-      D.body.classList.toggle('after-hero', done);
-    }
-
-    function tick(){
-      var y = getY();
-      if (y !== prevY){ render(y); prevY = y; }
-      rafId = W.requestAnimationFrame(tick);
-    }
-
-    rafId = W.requestAnimationFrame(tick);
-
-    function recalc(){ prevY = -1; render(getY()); }
-    W.addEventListener('resize', recalc, true);
-    if (W.visualViewport && W.visualViewport.addEventListener){
-      W.visualViewport.addEventListener('resize', recalc, true);
-    }
-    W.addEventListener('orientationchange', recalc, true);
-    D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
-    W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
-    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
-
-    // assure présence du fondu si pas dans le HTML/CSS
-    if (!qs('.hero-fade', hero)){
-      var f = D.createElement('div'); f.className='hero-fade'; hero.appendChild(f);
-    }
+  /* 4) Fade-in une fois prêt */
+  (function showOnceReady(){
+    if (logo.tagName === 'IMG'){
+      if (logo.complete) addClass(logo,'on');
+      else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+    } else { setTimeout(function(){ addClass(logo,'on'); }, 60); }
   })();
 
-  /* =========================================================
+  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
+  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+  function getY(){
+    return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+           (D.scrollingElement && D.scrollingElement.scrollTop) ||
+           D.documentElement.scrollTop || D.body.scrollTop || 0;
+  }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function clamp01(x){ return x<0?0:(x>1?1:x); }
+
+  // paramètres (qualité + overshoot)
+  var MAX_SCALE_M = 6.5, MAX_SCALE_D = 5.0;  // taille finale
+  var BASE_M = 0.72, BASE_D = 0.78;          // START < 1 → piqué ++
+  var DIST_M = 1.10, DIST_D = 1.20;          // distance de scroll (en vh)
+
+  var prevY = -1, rafId = 0;
+
+  function render(y){
+    var vh  = getVH();
+    var isM = mqMobile && mqMobile.matches;
+    var fin = vh * (isM ? DIST_M : DIST_D);
+
+    var raw     = y / (fin || 1);                 // progression non clampée
+    var clamped = clamp01(raw);
+    var eased   = easeOutCubic(clamped);
+
+    // overshoot: continue de grandir au-delà de 1
+    var over    = raw < 0 ? 0 : (raw > 2.2 ? 2.2 : raw);
+    var maxS    = isM ? MAX_SCALE_M : MAX_SCALE_D;
+    var base    = isM ? BASE_M : BASE_D;
+    var scale   = base + (maxS - base) * over;
+
+    var tyPx    = (isM ? 10 : 7) * (vh / 100) * eased;
+    var opacity = 1 - Math.max(0, raw - 0.75) * 1.7; if (opacity < 0) opacity = 0;
+
+    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+    logo.style.transform = t; logo.style.webkitTransform = t;
+    logo.style.opacity   = opacity.toFixed(3);
+
+    // gap pour le contenu dessous (timing visuel)
+    var gapStart = isM ? 22 : 26;
+    var gap = Math.max(0, (1 - clamped) * gapStart);
+    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+    // fondu fixe : masque la jonction
+    if (fadeFixed){
+      var fadeAlpha = 1 - clamp01((raw - 0.25) / 0.85); // disparaît progressivement
+      fadeFixed.style.opacity = fadeAlpha.toFixed(3);
+    }
+
+    // quand assez loin → héro sous la page
+    var done = raw > 1.18;
+    hero.classList.toggle('hero-out', done);
+    D.body.classList.toggle('after-hero', done);
+  }
+
+  function tick(){ var y = getY(); if (y !== prevY){ render(y); prevY = y; } rafId = W.requestAnimationFrame(tick); }
+  function recalc(){ prevY = -1; render(getY()); }
+
+  rafId = W.requestAnimationFrame(tick);
+  W.addEventListener('resize', recalc, true);
+  if (W.visualViewport && W.visualViewport.addEventListener){ W.visualViewport.addEventListener('resize', recalc, true); }
+  W.addEventListener('orientationchange', recalc, true);
+  D.addEventListener('visibilitychange', function(){ if (!D.hidden) recalc(); }, true);
+  W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+  W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+})();  /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
   ========================================================== */
   (function drawerGestures(){
