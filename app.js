@@ -2473,6 +2473,66 @@
 })();
 
 
+/* ===== Topbar: enlever la bulle titre + insérer le logo à côté du hamburger ===== */
+(function () {
+  'use strict';
+  var D = document;
+
+  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+  function qs(s, r){ return (r||D).querySelector(s); }
+
+  function looksLikeBurger(el){
+    if (!el) return false;
+    var cls = (el.className||'') + ' ' + (el.id||'');
+    var aria = (el.getAttribute && (el.getAttribute('aria-label')||'')) || '';
+    return /(burger|hamburger|menu)/i.test(cls) || /menu/i.test(aria);
+  }
+
+  function removeLeftTitlePill(bar){
+    // cible tout élément de type "pill/chip/badge/btn" contenant "Pirates Tools"
+    var nodes = qsa('a,button,div,span', bar);
+    nodes.forEach(function(n){
+      var txt = (n.textContent||'').trim();
+      var cls = (n.className||'');
+      if (/pirates\s*tools/i.test(txt) && /(chip|pill|btn|badge|brand|title)/i.test(cls)) {
+        // évite de toucher aux bulles de droite (qui n'ont pas ce texte)
+        try{ n.parentNode.removeChild(n); }catch(_){}
+      }
+    });
+  }
+
+  function ensureLogoNextToBurger(bar){
+    if (qs('.topbar-logo-link', bar)) return; // déjà en place
+
+    // trouve le hamburger
+    var burger = qsa('button, a, div', bar).filter(looksLikeBurger)[0] || bar.firstElementChild;
+    // crée le lien/logo
+    var a = D.createElement('a');
+    a.href = '#/';
+    a.className = 'topbar-logo-link';
+    a.id = 'homeLink'; // exploité ailleurs pour le retour accueil
+    a.innerHTML = '<img class="topbar-logo" src="./images/pirates-tools-logo.png?v=7" alt="Pirates Tools" height="28">';
+    if (burger && burger.parentNode){
+      burger.parentNode.insertBefore(a, burger.nextSibling);
+    } else {
+      bar.insertBefore(a, bar.firstChild);
+    }
+  }
+
+  function patchTopbar(){
+    var bar = qs('#topbar') || qs('.topbar') || qs('header');
+    if (!bar) return;
+    removeLeftTitlePill(bar);
+    ensureLogoNextToBurger(bar);
+  }
+
+  if (document.readyState === 'loading'){
+    D.addEventListener('DOMContentLoaded', patchTopbar, false);
+  } else {
+    patchTopbar();
+  }
+})();
+
 
 
 
