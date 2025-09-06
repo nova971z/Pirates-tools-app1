@@ -2439,7 +2439,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 /* =========================================================
    PARTIE 6/4 — Héro overshoot + Gestes mobile + Focus H1 + Actifs + Fallback compte
    - ES5-safe, défensif, aucun double wiring
-   - IMPORTANT: ce bloc remplace l'ancien + neutralise le "BLOC 7" s'il était injecté
+   - IMPORTANT: remplace l'ancien + neutralise le "BLOC 7" s'il était injecté
 ========================================================= */
 (function(){
   'use strict';
@@ -2450,11 +2450,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   /* ---- Neutralisation douce de l'ancien "BLOC 7" s'il existe ---- */
   (function neutralizeOldBlock7(){
     try{
-      // drapeau global éventuel
       if (W.__ptP7Booted) W.__ptP7Booted = 0;
       if (W.__ptBlock7Enabled) W.__ptBlock7Enabled = 0;
-
-      // retire un style/banière potentiellement injectés par l’ancien bloc
       var ids = ['pt-block7-css','block7-css','updateBanner','ptLegacyHeroCSS'];
       for (var i=0;i<ids.length;i++){
         var el = D.getElementById(ids[i]);
@@ -2468,215 +2465,219 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
   function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
-  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
+  function hasClass(el, c){ return !!(el && el.classList && el.classList.contains(c)); }
 
+  /* =========================================================
+     1) HÉRO — overshoot doux + base 1:1 + perf mobile
+     - Logo net au départ (scale 1.00, pas de blur initial)
+     - Blur allégé et désactivé sur iOS/iPadOS (perf)
+     - RAF actif seulement quand le héros est visible & sur la Home
+  ========================================================== */
+  (function heroEffectOvershoot(){
+    'use strict';
+    if (window.__ptHeroWired3) return; window.__ptHeroWired3 = 1;
 
+    var hero = D.getElementById('hero') || qs('.hero-full');
+    var logo = D.getElementById('heroLogo') || qs('.hero-logo');
+    if (!hero || !logo) return;
 
+    /* CSS de secours pour le fondu */
+    (function(){
+      if (D.getElementById('pt-hero-fade-css')) return;
+      var s = D.createElement('style'); s.id='pt-hero-fade-css';
+      s.textContent =
+        '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
+        'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
+      D.head.appendChild(s);
+    })();
 
-/* =========================================================
-   1) HÉRO — overshoot doux + base 1:1 + perf mobile
-   - Logo net au départ (scale 1.00, pas de blur initial)
-   - Blur allégé et désactivé sur iOS (perf)
-   - RAF actif seulement quand le héros est visible
-   - Stop automatique hors Home (#/catalogue, #/devis, …)
-========================================================= */
-(function heroEffectOvershoot(){
-  'use strict';
-  if (window.__ptHeroWired3) return; window.__ptHeroWired3 = 1;
-
-  var W = window, D = document;
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
-  function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
-
-  var hero = D.getElementById('hero') || qs('.hero-full');
-  var logo = D.getElementById('heroLogo') || qs('.hero-logo');
-  if (!hero || !logo) return;
-
-  /* — CSS sécurité pour le fondu */
-  (function(){
-    if (D.getElementById('pt-hero-fade-css')) return;
-    var s = D.createElement('style'); s.id='pt-hero-fade-css';
-    s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
-                    'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
-    D.head.appendChild(s);
-  })();
-
-  /* — Image : qualité et erreurs */
-  try{
-    if (logo.tagName==='IMG'){
-      if (!logo.getAttribute('srcset')){
-        logo.setAttribute('srcset',
-          './icons/icon-180.png 180w,'+
-          './icons/icon-192.png 192w,'+
-          './icons/icon-256.png 256w,'+
-          './icons/icon-384.png 384w,'+
-          './icons/icon-512.png 512w'
-        );
+    /* Image : qualité + sécurité chemins inchangés */
+    try{
+      if (logo.tagName === 'IMG'){
+        if (!logo.getAttribute('srcset')){
+          logo.setAttribute('srcset',
+            './icons/icon-180.png 180w,'+
+            './icons/icon-192.png 192w,'+
+            './icons/icon-256.png 256w,'+
+            './icons/icon-384.png 384w,'+
+            './icons/icon-512.png 512w'
+          );
+        }
+        if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
+        logo.decoding = 'async';
+        logo.loading  = 'eager';
+        logo.referrerPolicy = 'no-referrer';
+        logo.onerror = function(){
+          this.onerror = null;
+          this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7');
+        };
       }
-      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
-      logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
-      logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
+      logo.style.willChange = 'transform,opacity,filter';
+      logo.style.backfaceVisibility = 'hidden';
+      logo.style.webkitBackfaceVisibility = 'hidden';
+      logo.style.transform = 'translateZ(0)';
+      logo.style.transformOrigin = '50% 50%';
+      logo.style.filter = 'none';
+      logo.style.opacity = '1';
+    }catch(_){}
+
+    /* Fond dégradé si manquant */
+    if (!hero.querySelector('.hero-fade')){
+      var f = D.createElement('div'); f.className = 'hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
     }
-    logo.style.willChange='transform,opacity,filter';
-    logo.style.backfaceVisibility='hidden';
-    logo.style.webkitBackfaceVisibility='hidden';
-    logo.style.transform='translateZ(0)';
-    logo.style.transformOrigin='50% 50%';
-  }catch(_){}
 
-  if (!hero.querySelector('.hero-fade')){
-    var f=D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
-  }
+    /* Réduction d’animations : on fige proprement */
+    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mqr && mqr.matches){
+      var t0 = 'translate3d(0,0,0) scale(1)';
+      logo.style.transform = t0;
+      logo.style.webkitTransform = t0;
+      logo.style.opacity = '1';
+      logo.style.filter = 'none';
+      try{ addClass(logo,'on'); }catch(_){}
+      addClass(hero,'hero-out'); addClass(D.body,'after-hero');
+      hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
+      D.documentElement.style.setProperty('--listGap','0vh');
+      return;
+    }
 
-  /* — Réduction animation : pas d’effet, propre */
-  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mqr && mqr.matches){
-    var t0='translate3d(0,0,0) scale(1)';
-    logo.style.transform=t0; logo.style.webkitTransform=t0; logo.style.opacity='1'; logo.style.filter='none';
-    try{ addClass(logo,'on'); }catch(_){}
-    addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-    hero.style.zIndex=-1; hero.style.pointerEvents='none';
-    D.documentElement.style.setProperty('--listGap','0vh');
-    return;
-  }
+    /* Réglages (base 1:1) */
+    var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;  // zoom final
+    var BASE_M      = 1.00, BASE_D      = 1.00;  // logo net au départ
+    var DIST_M      = 0.90, DIST_D      = 0.96;  // disparition assez rapide
+    var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // blur avant fade
+    var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;     // blur allégé (perf)
+    var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fade court
+    var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière tôt
+    var GAP_M       = 12,   GAP_D       = 16;    // espace au-dessus des bulles
 
-  /* ===== Réglages (base 1:1) ===== */
-  var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;  // zoom final
-  var BASE_M      = 1.00, BASE_D      = 1.00;  // logo 1:1 au départ
-  var DIST_M      = 0.90, DIST_D      = 0.96;  // disparaît vite
-  var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // blur avant fade
-  var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;     // blur allégé (perf)
-  var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fade court
-  var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière tôt
-  var OVER_MAX    = 2.2;
-  var GAP_M       = 12,   GAP_D       = 16;
+    /* iOS / iPadOS : blur coûte cher → on le coupe */
+    var ua = (navigator.userAgent || '').toLowerCase();
+    var isIOS = /iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints > 1);
+    var canFilter = (typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
+                    ('filter' in (D.documentElement && D.documentElement.style || {})) ||
+                    ('webkitFilter' in (D.documentElement && D.documentElement.style || {}));
+    var USE_BLUR = !isIOS && !!canFilter;
 
-  // iOS : blur coûte cher → on le coupe
-  var ua = (navigator.userAgent||'').toLowerCase();
-  var isIOS = /iphone|ipad|ipod/.test(ua);
-  var USE_BLUR = !isIOS && (typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)'));
+    /* Helpers */
+    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
+    function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function scrollTop(){
+      return (typeof W.pageYOffset==='number' ? W.pageYOffset : 0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
+    }
+    function isHome(){
+      var h = (location.hash||'');
+      return (!h || h === '#/' || h.indexOf('#/home') === 0);
+    }
 
-  /* — Helpers */
-  var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
-  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-  function scrollY(){
-    return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
-           (D.scrollingElement && D.scrollingElement.scrollTop) ||
-           D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
-  }
-  function isHome(){
-    var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0);
-  }
+    var _vh = getVH(), prevY = -1, rafId = 0, io = null, running = false;
 
-  var _vh=getVH(), prevY=-1, rafId=0, io=null, running=false;
+    function render(y){
+      var isM   = mqMobile && mqMobile.matches;
+      var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
 
-  function render(y){
-    var isM = mqMobile && mqMobile.matches;
-    var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
+      var raw    = y / finPx;
+      var p      = clamp(raw, 0, 1);
+      var eased  = easeOutCubic(p);
 
-    var raw    = y / finPx;
-    var prog01 = clamp(raw,0,1);
-    var eased  = easeOutCubic(prog01);
+      /* SCALE doux (pas d'overshoot pour éviter les à-coups) */
+      var sProg = clamp(p * 1.10, 0, 1);
+      var sEase = easeOutQuad(sProg);
+      var base  = isM ? BASE_M : BASE_D;
+      var sMax  = isM ? MAX_SCALE_M : MAX_SCALE_D;
+      var scale = base + (sMax - base) * sEase;
 
-    var sProg = clamp(prog01*1.10,0,1);
-    var sEase = easeOutQuad(sProg);
-    var over  = raw>1 ? Math.min(raw-1, OVER_MAX-1) : 0;
-    var base  = isM ? BASE_M : BASE_D;
-    var sMax  = isM ? MAX_SCALE_M : MAX_SCALE_D;
-    var scale = base + (sMax - base) * (sEase + over*0.55);
+      var tyPx  = (isM ? 10 : 8) * (_vh / 100) * eased;
 
-    var tyPx  = (isM?10:8) * (_vh/100) * eased;
+      /* BLUR avant FADE (coupé sur iOS) */
+      var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+      var blurP   = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
+      var blur    = USE_BLUR ? (blurMax * blurP) : 0;
 
-    var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
-    var blurP   = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
-    var blur    = USE_BLUR ? (blurMax * (0.12 + 0.88*blurP)) : 0;
+      var fadeP   = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
+      var opacity = 1 - fadeP;
 
-    var fadeP   = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
-    var opacity = 1 - fadeP;
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform       = t;
+      logo.style.webkitTransform = t;
+      logo.style.opacity         = opacity.toFixed(3);
+      logo.style.filter          = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
 
-    var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform = t;
-    logo.style.webkitTransform = t;
-    logo.style.opacity = opacity.toFixed(3);
-    logo.style.filter  = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
+      /* Espace au-dessus de la grille d’accueil */
+      var gap = Math.max(0, (1 - p) * (isM ? GAP_M : GAP_D));
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-    var gap = Math.max(0, (1 - prog01) * (isM ? GAP_M : GAP_D));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-    var done = raw > (isM ? DONE_M : DONE_D);
-    if (done){
-      addClass(D.body,'after-hero'); addClass(hero,'hero-out');
-      hero.style.zIndex=-1; hero.style.pointerEvents='none';
-      if (opacity <= 0.02){
-        logo.style.opacity='0';
-        if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)';
+      /* Quand c’est fini → passe derrière + arrête RAF */
+      var done = raw > (isM ? DONE_M : DONE_D);
+      if (done){
+        addClass(D.body,'after-hero'); addClass(hero,'hero-out');
+        hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
+        if (opacity <= 0.02){
+          logo.style.opacity = '0';
+          if (USE_BLUR) logo.style.filter = 'blur(' + blurMax + 'px)';
+        }
+        stopRAF();
+      } else {
+        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+        hero.style.zIndex = ''; hero.style.pointerEvents = '';
       }
-      stopRAF(); // on n’anime plus une fois terminé
-    } else {
-      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-      hero.style.zIndex=''; hero.style.pointerEvents='';
     }
-  }
 
-  function tick(){
-    if (!running) return;
-    var y = scrollY();
-    if (y !== prevY){ render(y); prevY = y; }
-    rafId = W.requestAnimationFrame(tick);
-  }
+    function tick(){
+      if (!running) return;
+      var y = scrollTop();
+      if (y !== prevY){ render(y); prevY = y; }
+      rafId = W.requestAnimationFrame(tick);
+    }
+    function startRAF(){
+      if (running) return;
+      running = true; prevY = -1; render(scrollTop());
+      rafId = W.requestAnimationFrame(tick);
+    }
+    function stopRAF(){
+      running = false;
+      if (rafId){ W.cancelAnimationFrame(rafId); rafId = 0; }
+    }
 
-  function startRAF(){
-    if (running) return; running=true;
-    prevY=-1; render(scrollY());
-    rafId = W.requestAnimationFrame(tick);
-  }
-  function stopRAF(){
-    running=false;
-    if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
-  }
+    /* Révélation douce une fois l’image prête */
+    var reveal = function(){ try{ addClass(logo,'on'); }catch(_){ } };
+    if (logo.complete) setTimeout(reveal,0);
+    else logo.addEventListener('load', reveal, { once:true });
 
-  var reveal=function(){ try{ addClass(logo,'on'); }catch(_){ } };
-  if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
-
-  // Démarre uniquement sur la Home
-  function applyRunState(){
-    if (isHome()){
-      // on relance seulement si le héros est visible
+    function applyRunState(){
+      if (!isHome()){ stopRAF(); return; }
       if ('IntersectionObserver' in W){
         if (io) io.disconnect();
         io = new IntersectionObserver(function(entries){
           var e = entries && entries[0];
           if (e && e.isIntersecting) startRAF(); else stopRAF();
-        }, {root:null,threshold:0});
+        }, { root:null, threshold:0 });
         io.observe(hero);
       } else {
         startRAF();
       }
-    } else {
-      stopRAF();
     }
-  }
 
-  // Boot + évènements
-  var recalc=function(){ _vh=getVH(); if (running) render(scrollY()); };
-  W.addEventListener('resize',recalc,{passive:true});
-  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-    W.visualViewport.addEventListener('resize',recalc,{passive:true});
-  }
-  W.addEventListener('orientationchange',recalc,true);
-  D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
-  W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
-  W.addEventListener('pagehide',function(){ stopRAF(); },true);
-  W.addEventListener('hashchange',function(){ setTimeout(applyRunState,0); },false);
+    /* Boot + évènements */
+    var recalc = function(){ _vh = getVH(); if (running) render(scrollTop()); };
+    W.addEventListener('resize',          recalc, { passive:true });
+    if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+      W.visualViewport.addEventListener('resize', recalc, { passive:true });
+    }
+    W.addEventListener('orientationchange', recalc, true);
+    D.addEventListener('visibilitychange',  function(){ if(!D.hidden) recalc(); }, true);
+    W.addEventListener('pageshow',          function(e){ if (e && e.persisted) recalc(); }, true);
+    W.addEventListener('pagehide',          function(){ stopRAF(); }, true);
+    W.addEventListener('hashchange',        function(){ setTimeout(applyRunState,0); }, false);
 
-  // Lancement
-  applyRunState();
-})();
-  
+    applyRunState();
+  })();
+
   /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
      • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
@@ -2718,7 +2719,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
       if (drawer){
         for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
-        drawer.hidden = true; // compat index.html
+        drawer.hidden = true;
       }
       if (overlay){
         addClass(overlay,'hidden'); overlay.style.display='none'; overlay.hidden = true;
@@ -2751,17 +2752,14 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     tgt.addEventListener('pointermove',move,  { passive:true });
     tgt.addEventListener('pointerup',  end,   { passive:true });
 
-    // overlay ferme
     if (overlay && !overlay.__ptP6){ overlay.__ptP6 = 1; overlay.addEventListener('click', closeDrawer, false); }
-    // ESC ferme
     D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
-    // ouverture → tuning (micro-script d’ouverture déjà dans l’index)
+
     if (burger && !burger.__ptP6){
       burger.__ptP6 = 1;
-      burger.addEventListener('click', function(){ setTimeout(openTuning,0); }, false);
-      burger.addEventListener('pointerup', function(){ setTimeout(openTuning,0); }, false);
+      burger.addEventListener('click',      function(){ setTimeout(openTuning,0); }, false);
+      burger.addEventListener('pointerup',  function(){ setTimeout(openTuning,0); }, false);
     }
-    // navigation → ferme
     W.addEventListener('hashchange', function(){ setTimeout(closeDrawer, 0); }, false);
   })();
 
@@ -2824,11 +2822,14 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
     var KEY = W.USER_KEY || 'pt_user_v1';
 
-    // Fallbacks si la Partie 3 n’a pas encore tout fourni
     if (typeof W.loadUser !== 'function'){
       W.loadUser = function(){
-        try{ var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'}; }
-        catch(_){ return {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'}; }
+        try{
+          var raw = localStorage.getItem(KEY);
+          return raw ? JSON.parse(raw) : {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
+        }catch(_){
+          return {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
+        }
       };
     }
     if (typeof W.saveUser !== 'function'){
@@ -2865,7 +2866,6 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       if (accForm && !accForm.__ptP6){ accForm.__ptP6=1; accForm.addEventListener('submit', save, false); }
       if (accSave && !accSave.__ptP6){ accSave.__ptP6=1; accSave.addEventListener('click', save, false); }
 
-      // login/register (fallback ultra simple)
       var lf = qs('#loginForm'), rf = qs('#registerForm');
       function onLogin(e){
         if (e && e.preventDefault) e.preventDefault();
@@ -2888,7 +2888,6 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       if (rf && !rf.__ptP6){ rf.__ptP6=1; rf.addEventListener('submit', onRegister, false); }
     }
 
-    // Squelette minimal si absent
     if (!qs('#view-compte')){
       var v = D.createElement('section'); v.id='view-compte'; v.className='view hidden';
       v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div class="card"><div class="specs"><p>Chargement…</p></div></div></div>';
