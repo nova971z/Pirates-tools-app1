@@ -37,22 +37,33 @@
   </header>
 
   <!-- =================== HERO =================== -->
-  <section id="hero" class="hero-full" aria-hidden="true">
-    <!-- image remplacée par SVG inline -->
-    <svg id="heroLogo" class="hero-logo" viewBox="0 0 140 40" role="img" aria-label="">
-      <defs>
-        <linearGradient id="pt-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#0bd1ff"/><stop offset="1" stop-color="#49f2c2"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="140" height="40" rx="8" ry="8" fill="url(#pt-grad)"></rect>
-      <text x="50%" y="50%" font-size="18" font-weight="700" text-anchor="middle"
-            dominant-baseline="middle" fill="#001018"
-            font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial">Pirates&nbsp;Tools</text>
-    </svg>
-    <div class="hero-fade"></div>
-  </section>
-
+ 
+<section id="hero" class="hero hero-full" aria-hidden="true">
+  <img
+    id="heroLogo"
+    class="hero-logo"
+    src="./icons/icon-180.png"
+    alt="Pirates Tools"
+    width="256"
+    height="256"
+    decoding="async"
+    loading="eager"
+    style="
+      display:block;
+      margin:0 auto;
+      width:min(44vw,256px);
+      height:auto;
+      aspect-ratio:1/1;
+      border-radius:50%;
+      object-fit:contain;
+      background:transparent;
+      box-shadow:0 12px 40px rgba(0,0,0,.35);
+    "
+  />
+  <div class="hero-fade" aria-hidden="true"></div>
+</section> 
+  
+  
   <!-- =================== VUES (SPA) =================== -->
   <main id="app" role="main">
 
