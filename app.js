@@ -1,6 +1,6 @@
 /* =========================================================
    Pirates Tools — app.js (Partie 1/4)
-   Boot SPA + Helpers + Home + Marques + Loader produits
+   Boot SPA + Helpers + Home + Marques + Loader produits + Hero overshoot
    - ES5-safe (pas d'arrows / optional chaining)
    - Tolérant (products.json vide/absent => OK)
    - N'écrase rien : n'installe un helper global QUE s'il manque
@@ -138,7 +138,7 @@
     };
   }
 
-  /* ---------- Vue home/catalogue/devis/compte (fallbacks DOM) ---------- */
+  /* ---------- Vues fallback DOM ---------- */
   function ensureView(id, html){
     var v = document.getElementById(id);
     if (!v){
@@ -210,7 +210,6 @@
 
   /* ---------- Dock : s'assure que le bouton panier ouvre #/devis ---------- */
   (function(){
-    var dock = document.getElementById('dock');
     var dockCount = document.getElementById('dockCount');
     var dockCartBtn = document.getElementById('dockCartBtn');
     if (dockCartBtn && !dockCartBtn.__wired){
@@ -221,45 +220,120 @@
       dockCount.__wired = 1;
       dockCount.addEventListener('click', function(){ location.hash = '#/devis'; }, false);
     }
+    var dock = document.getElementById('dock');
     if (dock) dock.classList.add('dock--visible');
   })();
 
-  /* ---------- Grille marques ---------- */
+  /* ---------- HÉRO : zoom overshoot + fondu ---------- */
+  (function heroEffect(){
+    if (window.__ptHeroWired) return; // évite double wiring
+    var hero = document.getElementById('hero');
+    var heroLogo = document.getElementById('heroLogo');
+    if (!hero || !heroLogo) return;
+
+    // quand l’image est prête → fade-in
+    var reveal = function(){ heroLogo.classList.add('on'); };
+    if (heroLogo.complete) setTimeout(reveal, 0);
+    else heroLogo.addEventListener('load', reveal, { once:true });
+
+    var mqMobile = window.matchMedia('(max-width: 768px)');
+    var mqr     = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var easeOut = function(t){ return 1 - Math.pow(1 - t, 3); };
+
+    function getVH(){ return (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 1; }
+    function scrollY(){
+      return (typeof window.pageYOffset === 'number' ? window.pageYOffset : 0) ||
+             (document.scrollingElement && document.scrollingElement.scrollTop) ||
+             document.documentElement.scrollTop ||
+             document.body.scrollTop || 0;
+    }
+
+    var vh = getVH(), prevY = -1, rafId = 0;
+
+    function render(y){
+      // Fin d’anim + overshoot : continuer jusqu’à 120% de la hauteur
+      var finPx = vh * (mqMobile.matches ? 1.20 : 1.15);
+      var raw = Math.max(0, Math.min(1, y / (finPx || 1)));
+      var p   = easeOut(raw);
+
+      // Overshoot plus fort sur mobile
+      var maxScale = mqMobile.matches ? 4.2 : 3.2;
+      var scale    = 1 + (maxScale - 1) * p;
+
+      var tyPx     = (mqMobile.matches ? 10 : 6) * (vh / 100) * p;
+      var opacity  = Math.max(0, Math.min(1, 1 - (mqMobile.matches ? 1.75 : 1.35) * raw));
+
+      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      heroLogo.style.transform = t;
+      heroLogo.style.webkitTransform = t;
+      heroLogo.style.opacity = opacity.toFixed(3);
+
+      // gap pour la grille qui remonte élégamment
+      var gap = (1 - raw) * (mqMobile.matches ? 18 : 22);
+      document.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+      var done = raw > 0.985; // on “passe” le hero
+      document.body.classList.toggle('after-hero', done);
+      hero.classList.toggle('hero-out', done);
+    }
+
+    function tick(){ var y = scrollY(); if (y !== prevY){ render(y); prevY = y; } rafId = requestAnimationFrame(tick); }
+
+    if (mqr.matches){
+      var t0 = 'translate3d(0,0,0) scale(1)';
+      heroLogo.style.transform = t0; heroLogo.style.webkitTransform = t0; heroLogo.style.opacity='1';
+      document.documentElement.style.setProperty('--listGap', '18vh');
+      document.body.classList.remove('after-hero'); hero.classList.remove('hero-out');
+    } else {
+      rafId = requestAnimationFrame(tick);
+      var recalc = function(){ vh = getVH(); render(scrollY()); };
+      window.addEventListener('resize', recalc, true);
+      if (window.visualViewport && typeof window.visualViewport.addEventListener==='function'){
+        window.visualViewport.addEventListener('resize', recalc, true);
+      }
+      window.addEventListener('orientationchange', recalc, true);
+      document.addEventListener('visibilitychange', function(){ if (!document.hidden) recalc(); }, true);
+      window.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
+      window.addEventListener('pagehide', function(){ cancelAnimationFrame(rafId); }, true);
+      render(scrollY());
+    }
+
+    window.__ptHeroWired = 1;
+  })();
+
+  /* ---------- Grille marques : toutes les marques visibles ---------- */
   var BRAND_META = {
-    dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.dewalt.png' },
-    milwaukee: { label:'Milwaukee', logo:'./images/brands/Logo.milwaukee.png' },
-    makita:    { label:'Makita',    logo:'./images/brands/Logo.makita.png' },
-    festool:   { label:'Festool',   logo:'./images/brands/Logo.festool.png' },
-    flex:      { label:'FLEX',      logo:'./images/brands/Logo.flex.png' },
-    wera:      { label:'Wera',      logo:'./images/brands/Logo.wera.png' },
-    stanley:   { label:'Stanley',   logo:'./images/brands/Logo.stanley.png' },
-    facom:     { label:'Facom',     logo:'./images/brands/Logo.facom.png' }
+    dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.Dewalt.png' },
+    milwaukee: { label:'Milwaukee', logo:'./images/brands/Logo.Milwaukee.png' },
+    makita:    { label:'Makita',    logo:'./images/brands/Logo.Makita.png' },
+    festool:   { label:'Festool',   logo:'./images/brands/Logo.Festool.png' },
+    flex:      { label:'FLEX',      logo:'./images/brands/Logo.Flex.png' },
+    wera:      { label:'Wera',      logo:'./images/brands/Logo.Wera.png' },
+    stanley:   { label:'Stanley',   logo:'./images/brands/Logo.Stanley.png' },
+    facom:     { label:'Facom',     logo:'./images/brands/Logo.Facom.png' }
   };
 
   function computeBrands(products){
+    // initialise à 0 pour afficher même sans produits
     var counts = {};
+    for (var k in BRAND_META) if (Object.prototype.hasOwnProperty.call(BRAND_META,k)) counts[k] = 0;
     for (var i=0;i<(products||[]).length;i++){
-      var p = products[i];
-      var k = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
-      if (!k || !BRAND_META[k]) continue;
-      counts[k] = (counts[k]||0)+1;
+      var p = products[i]; var key = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
+      if (key && counts.hasOwnProperty(key)) counts[key] += 1;
     }
-    var keys = Object.keys(counts).sort(function(a,b){ return BRAND_META[a].label.localeCompare(BRAND_META[b].label); });
     var out = [];
-    for (var j=0;j<keys.length;j++){
-      var key = keys[j]; var meta = BRAND_META[key];
-      out.push({ key:key, label:meta.label, logo:meta.logo, count:counts[key] });
+    for (var k2 in BRAND_META){
+      if (!Object.prototype.hasOwnProperty.call(BRAND_META,k2)) continue;
+      var meta = BRAND_META[k2];
+      out.push({ key:k2, label:meta.label, logo:meta.logo, count:counts[k2]||0 });
     }
+    out.sort(function(a,b){ return a.label.localeCompare(b.label); });
     return out;
   }
 
   function renderBrandGridFromProducts(products){
     var host = document.getElementById('brandGrid'); if (!host) return;
     var brands = computeBrands(products);
-    if (!brands.length){
-      host.innerHTML = '<div class="card" style="padding:.8rem">Aucune marque disponible.</div>';
-      return;
-    }
     var html = '';
     for (var i=0;i<brands.length;i++){
       var b = brands[i];
@@ -277,10 +351,13 @@
   // Navigation grille → #/catalogue?brand=xxx
   (function(){
     var host = document.getElementById('brandGrid'); if (!host) return;
+    if (host.__ptWired) return; host.__ptWired = 1;
+
     host.addEventListener('pointerdown', function(e){
       var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
       if (!el) return; el.style.transform='scale(0.98)'; setTimeout(function(){ el.style.transform=''; }, 160);
     }, false);
+
     host.addEventListener('click', function(e){
       var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
       if (!btn) return;
