@@ -75,7 +75,10 @@ h3{ font-size:1.05rem }
 }
 #menu-toggle .bar{ width:100%; height:3px; border-radius:2px; background:#fff; opacity:.95; transition:.25s }
 .topbar-logo-link{ display:inline-flex; align-items:center; margin-left:.5rem; -webkit-tap-highlight-color:transparent }
-.topbar-logo{ display:block; height:28px; width:auto; object-fit:contain }
+.topbar-logo{
+  display:block; height:28px; width:auto; object-fit:contain;
+  image-rendering:-webkit-optimize-contrast; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:translateZ(0);
+}
 
 /* Appels rapides */
 .cta{ margin-left:auto; display:flex; align-items:center; gap:10px; flex:0 1 auto; min-width:0 }
@@ -181,7 +184,6 @@ body.after-hero::after{ opacity:1 }
 }
 
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
-/* L’espace au-dessus de la grille d’accueil suit --listGap (animé par app.js) */
 #view-home .container{
   margin-top: var(--listGap, 22vh);
   transition: margin-top .22s ease-out;
@@ -530,19 +532,20 @@ body.after-hero::after{ opacity:1 }
 .brand__label{ font-weight:800; font-size:.95rem; color:#eef4fa }
 .brand__bubble{
   position:relative; width:92px; height:92px; border-radius:50%;
-  display:grid; place-items:center; overflow:hidden;
+  display:block; overflow:hidden; /* clip strict */
   background:rgba(255,255,255,.08); border:1px solid var(--border);
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
   transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+  /* clip iOS parfait */
+  -webkit-mask-image:-webkit-radial-gradient(white, black); mask-image:radial-gradient(white, white);
 }
-.brand__bubble::before{
-  content:""; position:absolute; inset:-8px; border-radius:50%;
-  background:radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
-  filter:blur(10px); opacity:.55; z-index:-1;
-}
+/* >>> Logos plein cadre, zéro marge <<< */
 .brand__bubble img, .brand__img, .brand__logo{
-  width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  position:absolute; inset:0; width:100%; height:100%; display:block;
+  max-width:none; max-height:none;
+  object-fit:cover; object-position:center;
+  image-rendering:-webkit-optimize-contrast; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
 }
 .brand:focus-visible .brand__bubble,
 .brand:hover .brand__bubble{
@@ -576,9 +579,12 @@ body.after-hero::after{ opacity:1 }
   margin:.6rem 0 1rem !important; padding:.5rem 0 0 !important;
 }
 #brandGrid .brand{ width:auto !important; flex:initial !important }
-#brandGrid .brand__bubble{ width:86px !important; height:86px !important }
+#brandGrid .brand__bubble{ width:86px !important; height:86px !important; overflow:hidden; -webkit-mask-image:-webkit-radial-gradient(white, black); mask-image:radial-gradient(white, white) }
 #brandGrid .brand__bubble img, #brandGrid .brand__img, #brandGrid .brand__logo{
-  width:64%; height:64%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  position:absolute; inset:0; width:100%; height:100%; display:block !important;
+  max-width:none; max-height:none;
+  object-fit:cover; object-position:center;
+  image-rendering:-webkit-optimize-contrast; filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
 }
 #brandGrid .brand__label{
   font-weight:800; font-size:.95rem; color:#eef4fa;
