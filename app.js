@@ -2293,16 +2293,25 @@
 
   /* ---------------- FAB Compte (toujours présent) ---------------- */
   function ensureFabAccount(){
-    if (D.getElementById('fabAccount')) return;
-    var btn = D.createElement('button');
-    btn.id = 'fabAccount';
-    btn.type = 'button';
-    btn.setAttribute('aria-label','Mon compte');
-    btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg><span>Compte</span>';
-    btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
-    D.body.appendChild(btn);
-  }
+  if (document.getElementById('fabAccount')) return;
+  // Si un bouton compte existe dans le dock, on ne crée PAS le FAB.
+  if (document.querySelector('#dock .dock__btn--account')) return;
 
+  var btn = document.createElement('button');
+  btn.id = 'fabAccount';
+  btn.type = 'button';
+  btn.setAttribute('aria-label','Mon compte');
+  btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg><span>Compte</span>';
+  btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
+  document.body.appendChild(btn);
+}
+
+// Si le dock a déjà un bouton Compte, on supprime un éventuel FAB existant
+(function killFabIfDockHasAccount(){
+  var fab = document.getElementById('fabAccount');
+  if (fab && document.querySelector('#dock .dock__btn--account')) fab.remove();
+})();
+   
   /* ---------------- Hero polish : assure le fade + rend net ---------------- */
   function polishHero(){
     var hero = qs('#hero'); if (!hero) return;
