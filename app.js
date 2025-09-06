@@ -1767,3 +1767,83 @@ window.PT.handleRoute = handleRoute;
   })();
 })();
 </script>
+
+
+/* ===== Auth (front-only) : vues #/login & #/register ===== */
+(function(){
+  var D = document;
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+
+  function showView(id){
+    qsa('.view').forEach(function(v){ v.classList.add('hidden'); });
+    var v = qs(id);
+    if (v){ v.classList.remove('hidden'); var h1=qs('h1',v); if(h1){h1.setAttribute('tabindex','-1'); try{h1.focus({preventScroll:true});}catch(_){} } }
+  }
+
+  function saveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
+  function loadUser(){ try{ var r=localStorage.getItem('pt_user_v1'); return r?JSON.parse(r):null; }catch(_){ return null; } }
+
+  function onLoginSubmit(e){
+    e.preventDefault();
+    var email = (qs('#loginEmail')||{}).value||'';
+    var pwd   = (qs('#loginPwd')||{}).value||'';
+    if (!email || email.indexOf('@')===-1 || !pwd){ window.toast && toast('Identifiants invalides', 'info'); return; }
+    var u = loadUser() || {};
+    u.email = email;
+    u.name  = u.name || email.split('@')[0];
+    saveUser(u);
+    window.toast && toast('Connecté', 'success'); window.announce && announce('Connecté');
+    location.hash = '#/compte';
+  }
+
+  function onRegisterSubmit(e){
+    e.preventDefault();
+    var name  = (qs('#regName')||{}).value||'';
+    var email = (qs('#regEmail')||{}).value||'';
+    var pwd   = (qs('#regPwd')||{}).value||'';
+    if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){
+      window.toast && toast('Veuillez remplir tous les champs (MDP ≥ 6)', 'info'); return;
+    }
+    var u = loadUser() || {};
+    u.name  = name; u.email = email;
+    saveUser(u);
+    window.toast && toast('Compte créé (mode démo)', 'success');
+    location.hash = '#/compte';
+  }
+
+  function wireAuthForms(){
+    var lf = qs('#loginForm');    if (lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit); }
+    var rf = qs('#registerForm'); if (rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit); }
+  }
+
+  function onHash(){
+    var h = (location.hash||'').toLowerCase();
+    if (h.indexOf('#/login')===0){ wireAuthForms(); showView('#view-login'); return; }
+    if (h.indexOf('#/register')===0){ wireAuthForms(); showView('#view-register'); return; }
+  }
+
+  window.addEventListener('hashchange', onHash);
+  document.addEventListener('DOMContentLoaded', function(){ wireAuthForms(); onHash(); });
+})();
+
+/* --- Compat form id (#accForm | #accountForm) + save btn --- */
+(function () {
+  var D = document;
+  function qs(s, r){return (r||D).querySelector(s);}
+  function on(el, ev, fn){ if (el && !el.__w){ el.__w=1; el.addEventListener(ev, fn);} }
+
+  var form = qs('#accForm') || qs('#accountForm');
+  var btnSave = qs('#accSave');
+
+  function saveLocal(){
+    var u = {
+      name:  (qs('#accName')  || {}).value?.trim()  || '',
+      email: (qs('#accEmail') || {}).value?.trim()  || ''
+    };
+    try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){}
+  }
+
+  if (form) on(form, 'submit', function(e){ e.preventDefault(); saveLocal(); });
+  if (btnSave) on(btnSave, 'click', function(e){ e.preventDefault(); saveLocal(); });
+})();
