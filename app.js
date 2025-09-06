@@ -2210,47 +2210,46 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
 
-  /* ---------------- CSS d’appoint (injection non destructive) ---------------- */
-  (function injectP5CSS(){
-    if (D.getElementById('pt-p5-style')) return;
-    var s = D.createElement('style'); s.id='pt-p5-style';
-    s.textContent =
-      /* Hero : raccord fondu + rendu net iPad */
-      '#hero .hero-fade{position:absolute;inset:auto 0 0 0;height:28vh;' +
-      'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg, #0a0f14) 100%);pointer-events:none;z-index:-1}' +
-      '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
-      'will-change:transform,opacity;transform:translateZ(0);}' +
-      /* Home : grille marques 3 colonnes + bulles plein cadre (zero gap) */
-      '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
-      'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
+ /* ---------------- CSS d’appoint (injection non destructive) ---------------- */
+(function injectP5CSS(){
+  var D=document;
+  if (D.getElementById('pt-p5-style')) return;
+  var s = D.createElement('style'); s.id='pt-p5-style';
+  s.textContent =
+    /* Hero : conteneur relatif + fondu en bas (au-dessus du bg) */
+    '#hero,.hero-full{position:relative}' +
+    '#hero .hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
+    'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg,#0a0f14) 100%);}' +
 
-      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:transparent;border:0;cursor:pointer}' +
+    /* Logo hero : net au départ, rendu propre iOS */
+    '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
+    'will-change:transform,opacity;transform:translateZ(0);}' +
 
-      /* Bulle = conteneur circulaire, clip parfait iOS inclus */
-      '#view-home .brand__bubble{position:relative;display:block;aspect-ratio:1/1;width:clamp(86px,22vmin,140px);' +
-      'border-radius:50%;overflow:hidden;padding:0;' +
-      'background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
-      'backdrop-filter:saturate(120%) blur(4px);' +
-      '-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white);}' +
+    /* Home : grille 3 colonnes */
+    '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
+    'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
 
-      /* Logo = couvre 100% de la bulle, sans aucune marge */
-      '#view-home .brand__logo{position:absolute;inset:0;width:100%;height:100%;display:block;' +
-      'max-width:none;max-height:none;object-fit:cover;object-position:center;' +
-      'image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;}' +
+    '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer}' +
 
-      '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}'       
-     
-     /* FAB Compte (bas droite) */
-      '#fabAccount{position:fixed;right:clamp(12px,2.4vmin,18px);bottom:clamp(12px,2.4vmin,18px);' +
-      'z-index:1000;border:0;border-radius:999px;padding:.9rem 1.05rem;background:linear-gradient(135deg,#19d3ff,#49f2c2);' +
-      'color:#001018;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer;display:inline-flex;align-items:center;gap:.55rem}' +
-      '#fabAccount .ico{width:20px;height:20px;display:inline-block;filter:drop-shadow(0 1px 0 rgba(255,255,255,.35))}' +
-      '#fabAccount:hover{transform:translateY(-2px)}' +
-      '#fabAccount:active{transform:translateY(0)}' +
-      '@media (pointer:coarse){#fabAccount{padding:1rem 1.15rem}}';
-    D.head.appendChild(s);
-  })();
+    /* Bulle parfaitement circulaire + clipping sûr iOS */
+    '#view-home .brand__bubble{position:relative;display:block;width:clamp(96px,22vmin,140px);aspect-ratio:1/1;' +
+    'border-radius:50%;overflow:hidden;padding:0;background:rgba(255,255,255,.02);' +
+    'box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
+    'backdrop-filter:saturate(120%) blur(4px);-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white);}' +
 
+    /* Logo = 100% de la bulle, zéro marge, pas d’ombre qui décale */
+    '#view-home .brand__logo{position:absolute;inset:0;display:block;width:100%;height:100%;' +
+    'max-width:none;max-height:none;margin:0;padding:0;border:0;filter:none;' +
+    'object-fit:cover;object-position:center;image-rendering:-webkit-optimize-contrast;}' +
+
+    '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +
+
+    /* Douceur de scroll globale */
+    'html{scroll-behavior:smooth}body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}';
+  D.head.appendChild(s);
+})();
+
+   
   /* ---------------- Menu (drawer) : toggle + auto-close ---------------- */
   function p5CloseDrawer(){
     try{
