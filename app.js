@@ -226,71 +226,91 @@
 
 
   /* ---------- Grille marques : toutes les marques visibles ---------- */
-  var BRAND_META = {
-    dewalt:    { label:'DeWALT',    logo:'./images/brands/Logo.Dewalt.png' },
-    milwaukee: { label:'Milwaukee', logo:'./images/brands/Logo.Milwaukee.png' },
-    makita:    { label:'Makita',    logo:'./images/brands/Logo.Makita.png' },
-    festool:   { label:'Festool',   logo:'./images/brands/Logo.Festool.png' },
-    flex:      { label:'FLEX',      logo:'./images/brands/Logo.Flex.png' },
-    wera:      { label:'Wera',      logo:'./images/brands/Logo.Wera.png' },
-    stanley:   { label:'Stanley',   logo:'./images/brands/Logo.Stanley.png' },
-    facom:     { label:'Facom',     logo:'./images/brands/Logo.Facom.png' }
+/* 1) Référentiel des logos, conforme aux fichiers présents dans /images/brands/
+      (chemins propres + cache-busting) */
+var BRAND_META = (function(){
+  var ver  = (window.__ASSET_VER || '10');
+  // chemin relatif = OK sur GitHub Pages (repo ou racine)
+  var base = './images/brands/';
+  function url(file){ return base + file + '?v=' + ver; }
+  return {
+    dewalt:    { label:'DeWALT',    logo: url('dewalt.png')    },
+    milwaukee: { label:'Milwaukee', logo: url('milwaukee.png') }, // s’affichera en fallback si le fichier n’est pas encore poussé
+    makita:    { label:'Makita',    logo: url('makita.png')    },
+    festool:   { label:'Festool',   logo: url('festool.png')   },
+    flex:      { label:'FLEX',      logo: url('flex.png')      },
+    wera:      { label:'Wera',      logo: url('wera.png')      },
+    stanley:   { label:'Stanley',   logo: url('stanley.png')   },
+    facom:     { label:'Facom',     logo: url('facom.jpg')     } // <-- JPG d’après ta liste
   };
+})();
 
-  function computeBrands(products){
-    // initialise à 0 pour afficher même sans produits
-    var counts = {};
-    for (var k in BRAND_META) if (Object.prototype.hasOwnProperty.call(BRAND_META,k)) counts[k] = 0;
-    for (var i=0;i<(products||[]).length;i++){
-      var p = products[i]; var key = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
-      if (key && counts.hasOwnProperty(key)) counts[key] += 1;
-    }
-    var out = [];
-    for (var k2 in BRAND_META){
-      if (!Object.prototype.hasOwnProperty.call(BRAND_META,k2)) continue;
-      var meta = BRAND_META[k2];
-      out.push({ key:k2, label:meta.label, logo:meta.logo, count:counts[k2]||0 });
-    }
-    out.sort(function(a,b){ return a.label.localeCompare(b.label); });
-    return out;
+/* 2) Comptage optionnel par marque (même si products.json est vide,
+      on affiche quand même toutes les bulles) */
+function computeBrands(products){
+  var counts = {};
+  for (var k in BRAND_META) if (Object.prototype.hasOwnProperty.call(BRAND_META,k)) counts[k] = 0;
+  for (var i=0;i<(products||[]).length;i++){
+    var p = products[i];
+    var key = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
+    if (key && counts.hasOwnProperty(key)) counts[key] += 1;
   }
-
-  function renderBrandGridFromProducts(products){
-    var host = document.getElementById('brandGrid'); if (!host) return;
-    var brands = computeBrands(products);
-    var html = '';
-    for (var i=0;i<brands.length;i++){
-      var b = brands[i];
-      html += ''
-        + '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">'
-        + '  <span class="brand__bubble"><img class="brand__logo" alt="'+b.label+'" src="'+b.logo+'" onerror="this.src=\''+window.IMG_FALLBACK+'\'"></span>'
-        + '  <span class="brand__label">'+b.label+'</span>'
-        + '</button>';
-    }
-    host.innerHTML = html;
+  var out = [];
+  for (var k2 in BRAND_META){
+    if (!Object.prototype.hasOwnProperty.call(BRAND_META,k2)) continue;
+    var meta = BRAND_META[k2];
+    out.push({ key:k2, label:meta.label, logo:meta.logo, count:counts[k2]||0 });
   }
-  window.PT = window.PT || {};
-  window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
+  out.sort(function(a,b){ return a.label.localeCompare(b.label); });
+  return out;
+}
 
-  // Navigation grille → #/catalogue?brand=xxx
-  (function(){
-    var host = document.getElementById('brandGrid'); if (!host) return;
-    if (host.__ptWired) return; host.__ptWired = 1;
+/* 3) Rendu des bulles */
+function renderBrandGridFromProducts(products){
+  var host = document.getElementById('brandGrid'); if (!host) return;
+  var brands = computeBrands(products);
+  var html = '';
+  for (var i=0;i<brands.length;i++){
+    var b = brands[i];
+    html += ''
+      + '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">'
+      + '  <span class="brand__bubble">'
+      + '    <img class="brand__logo" alt="'+b.label+'"'
+      + '         src="'+b.logo+'"'
+      + '         decoding="async" loading="lazy" referrerpolicy="no-referrer"'
+      + '         onerror="this.onerror=null; this.src=\''+(window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7')+'\';">'
+      + '  </span>'
+      + '  <span class="brand__label">'+b.label+'</span>'
+      + '</button>';
+  }
+  host.innerHTML = html;
+}
+window.PT = window.PT || {};
+window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
-    host.addEventListener('pointerdown', function(e){
-      var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
-      if (!el) return; el.style.transform='scale(0.98)'; setTimeout(function(){ el.style.transform=''; }, 160);
-    }, false);
+/* 4) Navigation des bulles → #/catalogue?brand=xxx */
+(function(){
+  var host = document.getElementById('brandGrid'); if (!host) return;
+  if (host.__ptWired) return; host.__ptWired = 1;
 
-    host.addEventListener('click', function(e){
-      var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
-      if (!btn) return;
-      var key = btn.getAttribute('data-brand')||'';
-      if (!key) return;
-      location.hash = '#/catalogue?brand='+encodeURIComponent(key);
-    }, false);
-  })();
+  host.addEventListener('pointerdown', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
+    if (!el) return;
+    el.style.transform='scale(0.98)';
+    setTimeout(function(){ el.style.transform=''; }, 160);
+  }, false);
 
+  host.addEventListener('click', function(e){
+    var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+    if (!btn) return;
+    var key = btn.getAttribute('data-brand')||'';
+    if (!key) return;
+    location.hash = '#/catalogue?brand='+encodeURIComponent(key);
+  }, false);
+})();
+
+
+   
   /* ---------- Chargement produits (mémoisé & tolérant) ---------- */
   function loadProducts(){
     if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length){
@@ -377,7 +397,6 @@
   window.PT.showView = window.showView;
   window.PT.focusView = window.focusView;
 })();
-
 
 
 /* =========================================================
