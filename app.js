@@ -2191,3 +2191,145 @@
 
   D.addEventListener('DOMContentLoaded', bootNav, false);
 })();
+
+
+
+/* =========================================================
+   BLOC #2 — HÉRO + LOGO (auto-fix)
+   - (re)crée #hero + #heroLogo si absents
+   - réactive l’effet zoom/fondu au scroll (iOS/Android OK)
+   - ajoute un petit logo cliquable dans la topbar
+   - injecte un style minimal si la CSS n’existe pas
+========================================================= */
+(function(){
+  'use strict';
+  var D=document, W=window;
+  var IMG_FALLBACK = W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7';
+
+  function injectHeroStyle(){
+    if (D.getElementById('pt-hero-style')) return;
+    var s = D.createElement('style');
+    s.id = 'pt-hero-style';
+    s.textContent =
+      '#hero{min-height:72vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}' +
+      '#heroLogo{max-width:60vw;max-height:46vh;will-change:transform,opacity;transform-origin:center center}' +
+      '.hero-out{pointer-events:none}' +
+      '.topbar-logo-link{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none}' +
+      '.topbar-logo-link img{height:28px;width:28px;object-fit:contain;border-radius:6px}';
+    D.head.appendChild(s);
+  }
+
+  function ensureTopbarLogo(){
+    var host = D.querySelector('.topbar') || D.querySelector('header') || D.body;
+    if (!host) return;
+    var link = D.getElementById('homeLink') || D.querySelector('.topbar-logo-link');
+    if (!link){
+      link = D.createElement('a');
+      link.id = 'homeLink';
+      link.className = 'topbar-logo-link';
+      link.href = '#/';
+      // insérer après le bouton menu si présent
+      var menuBtn = D.getElementById('menuBtn') || host.querySelector('.hamburger') || host.firstChild;
+      if (menuBtn && menuBtn.parentNode) menuBtn.parentNode.insertBefore(link, menuBtn.nextSibling);
+      else host.insertBefore(link, host.firstChild);
+    }
+    // assure l’img
+    var img = link.querySelector('img#topbarLogo') || D.getElementById('topbarLogo');
+    if (!img){
+      img = D.createElement('img');
+      img.id = 'topbarLogo';
+      img.alt = 'Pirates Tools';
+      link.insertBefore(img, link.firstChild || null);
+    }
+    img.loading='lazy'; img.decoding='async'; img.referrerPolicy='no-referrer';
+    img.onerror=function(){ this.onerror=null; this.src=IMG_FALLBACK; };
+    if (!img.src) img.src = IMG_FALLBACK;
+    // assure un texte à côté si absent
+    if (!link.querySelector('.brand-text')){
+      var span = D.createElement('span'); span.className='brand-text'; span.textContent='Pirates Tools';
+      link.appendChild(span);
+    }
+  }
+
+  function ensureHero(){
+    var hero = D.getElementById('hero');
+    if (!hero){
+      hero = D.createElement('section');
+      hero.id = 'hero';
+      hero.className = 'hero';
+      hero.innerHTML = '<div class="hero__stage"><img id="heroLogo" alt="Pirates Tools"></div>';
+      // insérer tout en haut
+      var first = D.body.firstElementChild;
+      D.body.insertBefore(hero, first || null);
+    }
+    var logo = D.getElementById('heroLogo');
+    if (!logo){
+      logo = D.createElement('img');
+      logo.id = 'heroLogo';
+      logo.alt = 'Pirates Tools';
+      (hero.firstElementChild || hero).appendChild(logo);
+    }
+    logo.loading='eager'; logo.decoding='async'; logo.referrerPolicy='no-referrer';
+    logo.onerror=function(){ this.onerror=null; this.src=IMG_FALLBACK; };
+    if (!logo.src) logo.src = IMG_FALLBACK;
+  }
+
+  function heroEffect(){
+    if (W.__ptHeroWired) return; W.__ptHeroWired = 1;
+    var hero = D.getElementById('hero');
+    var logo = D.getElementById('heroLogo');
+    if (!hero || !logo) return;
+
+    var prefersReduce = (W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (prefersReduce){
+      logo.style.transform = 'translate3d(0,0,0) scale(1)';
+      logo.style.opacity = '1';
+      return;
+    }
+
+    var mqSmall = W.matchMedia && W.matchMedia('(max-width: 768px)');
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function getY(){
+      return (typeof W.pageYOffset === 'number' ? W.pageYOffset : 0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || D.body.scrollTop || 0;
+    }
+
+    var H = getVH(), prev = -1, rafId = 0;
+    function render(y){
+      var fin = H * (mqSmall && mqSmall.matches ? 0.70 : 0.85);
+      var raw = Math.max(0, Math.min(1, y / (fin || 1)));
+      var p   = 1 - Math.pow(1 - raw, 3);
+      var maxScale = (mqSmall && mqSmall.matches) ? 3.1 : 2.0;
+      var scale = 1 + (maxScale - 1) * p;
+      var ty = (mqSmall && mqSmall.matches ? 12 : 7) * (H / 100) * p;
+      var opacity = Math.max(0, Math.min(1, 1 - ((mqSmall && mqSmall.matches) ? 1.75 : 1.25) * raw));
+      var t = 'translate3d(0,'+ty.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform = t; logo.style.webkitTransform = t; logo.style.opacity = opacity.toFixed(3);
+
+      var gap = (1 - raw) * ((mqSmall && mqSmall.matches) ? 18 : 22);
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+      var done = raw > 0.985;
+      if (done) hero.classList.add('hero-out'); else hero.classList.remove('hero-out');
+    }
+    function tick(){ var y = getY(); if (y !== prev){ render(y); prev = y; } rafId = W.requestAnimationFrame(tick); }
+
+    W.addEventListener('resize', function(){ H = getVH(); render(getY()); }, true);
+    if (W.visualViewport && W.visualViewport.addEventListener){
+      W.visualViewport.addEventListener('resize', function(){ H = getVH(); render(getY()); }, true);
+    }
+    W.addEventListener('pageshow', function(e){ if (e.persisted){ H = getVH(); render(getY()); } }, true);
+    W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
+
+    render(getY());
+    rafId = W.requestAnimationFrame(tick);
+  }
+
+  D.addEventListener('DOMContentLoaded', function(){
+    injectHeroStyle();
+    ensureTopbarLogo();
+    ensureHero();
+    heroEffect();
+  }, false);
+})();
