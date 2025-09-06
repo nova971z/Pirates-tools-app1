@@ -2034,3 +2034,160 @@
   if (form)   on(form,   'submit', function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
   if (btnSave)on(btnSave,'click',  function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
 })();
+
+
+
+
+/* =========================================================
+   BLOC #1 — NAVIGATION FIABLE (menu déroulant + dock + tel/WA)
+   - Ferme le menu automatiquement sur clic et sur hashchange
+   - Mappe tous les boutons (menu & dock) vers des routes stables
+   - Rend téléphone/WhatsApp cliquables même sans attributs
+   - ES5-safe, n’override pas vos fonctions existantes
+========================================================= */
+(function(){
+  'use strict';
+  var D = document, W = window;
+
+  /* --- helpers --- */
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+
+  /* --- close drawer partout --- */
+  function closeDrawer(){
+    try{
+      var body = D.body;
+      var drawer = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
+      var backdrop = qs('#drawerBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+      var classes = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
+      // body flags
+      for (var i=0;i<classes.length;i++){ if (body && body.classList && body.classList.contains(classes[i])) body.classList.remove(classes[i]); }
+      // drawer flags
+      if (drawer && drawer.classList){ for (var j=0;j<classes.length;j++){ if (drawer.classList.contains(classes[j])) drawer.classList.remove(classes[j]); } }
+      if (backdrop){ backdrop.classList.add('hidden'); backdrop.style.display='none'; }
+    }catch(_){}
+  }
+
+  function wireDrawer(){
+    var drawer   = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
+    var toggle   = qs('#menuBtn') || qs('.hamburger') || qs('.topbar .menu') || qs('[data-menu-toggle]');
+    var backdrop = qs('#drawerBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+
+    function openDrawer(){
+      var body = D.body;
+      if (drawer && drawer.classList) drawer.classList.add('open');
+      if (body && body.classList) body.classList.add('menu-open');
+      if (backdrop){ backdrop.classList.remove('hidden'); backdrop.style.display=''; }
+    }
+
+    if (toggle && !toggle.__ptNav){
+      toggle.__ptNav = 1;
+      toggle.addEventListener('click', function(e){
+        e.preventDefault && e.preventDefault();
+        // toggle
+        var isOpen = (D.body && D.body.classList && D.body.classList.contains('menu-open'))
+                     || (drawer && drawer.classList && drawer.classList.contains('open'));
+        if (isOpen) closeDrawer(); else openDrawer();
+      }, false);
+    }
+    if (backdrop && !backdrop.__ptNav){
+      backdrop.__ptNav = 1;
+      backdrop.addEventListener('click', closeDrawer, false);
+    }
+    if (drawer && !drawer.__ptNav){
+      drawer.__ptNav = 1;
+      // ferme sur clic d’un item
+      drawer.addEventListener('click', function(e){
+        var a = e.target && e.target.closest ? e.target.closest('a,[data-nav],button,[role="menuitem"]') : null;
+        if (a){ setTimeout(closeDrawer, 30); }
+      }, false);
+    }
+    // ferme sur navigation
+    W.addEventListener('hashchange', closeDrawer, false);
+  }
+
+  /* --- navigation vers routes + tel/wa --- */
+  var PHONE_E164 = W.PHONE_E164 || '+33774230195';
+  function go(dest){
+    if (!dest) return;
+    if (dest.indexOf('#/') === 0){ location.hash = dest; return; }
+    if (dest === 'phone'){
+      location.href = 'tel:' + onlyDigits(PHONE_E164);
+      return;
+    }
+    if (dest === 'wa' || dest === 'whatsapp'){
+      var url = 'https://wa.me/' + onlyDigits(PHONE_E164);
+      W.open(url, '_blank', 'noopener');
+      return;
+    }
+  }
+
+  function attachNav(el){
+    if (!el || el.__ptNav) return;
+    el.__ptNav = 1;
+    el.addEventListener('click', function(e){
+      var r = el.getAttribute('data-nav') || el.getAttribute('href') || '';
+      // Si c’est une ancre std vers hash, laisse faire le navigateur
+      if (r && r.indexOf('#/') === 0){ e.preventDefault(); go(r); return; }
+      if (r === 'phone' || r === 'wa' || r === 'whatsapp'){ e.preventDefault(); go(r); return; }
+      // sinon, si pas de route mais texte connu → mappe automatiquement
+      var t = (el.getAttribute('aria-label') || el.title || el.textContent || '').toLowerCase();
+      if (!r){
+        if (t.indexOf('accueil')>-1 || t === 'home'){ e.preventDefault(); go('#/'); return; }
+        if (t.indexOf('catalogue')>-1){ e.preventDefault(); go('#/catalogue'); return; }
+        if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1){ e.preventDefault(); go('#/devis'); return; }
+        if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1){ e.preventDefault(); go('#/compte'); return; }
+        if (t.indexOf('whatsapp')>-1 || t.indexOf('message')>-1 || t.indexOf('chat')>-1){ e.preventDefault(); go('wa'); return; }
+        if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1){ e.preventDefault(); go('phone'); return; }
+      }
+    }, false);
+  }
+
+  function wireDock(){
+    var dock = qs('#dock');
+    if (!dock) return;
+    var btns = qsa('a,button', dock);
+    for (var i=0;i<btns.length;i++){
+      var b = btns[i];
+      // Si pas de data-nav, estime à partir du libellé
+      if (!b.getAttribute('data-nav')){
+        var t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
+        if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-nav', '#/catalogue');
+        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-nav', '#/devis');
+        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-nav', '#/compte');
+        else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav', 'wa');
+        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav', 'phone');
+      }
+      attachNav(b);
+    }
+  }
+
+  function wireDrawerLinks(){
+    var drawer = qs('#drawer') || qs('.drawer') || qs('[data-drawer]');
+    if (!drawer) return;
+    var items = qsa('a,button,[role="menuitem"]', drawer);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      // Si pas d’attribut, mappe par texte
+      if (!it.getAttribute('href') && !it.getAttribute('data-nav')){
+        var t = (it.textContent || '').toLowerCase();
+        if (t.indexOf('accueil')>-1 || t === 'home') it.setAttribute('href', '#/');
+        else if (t.indexOf('catalogue')>-1) it.setAttribute('href', '#/catalogue');
+        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1) it.setAttribute('href', '#/devis');
+        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) it.setAttribute('href', '#/compte');
+        else if (t.indexOf('whatsapp')>-1 || t.indexOf('message')>-1 || t.indexOf('chat')>-1) it.setAttribute('data-nav', 'wa');
+        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) it.setAttribute('data-nav', 'phone');
+      }
+      attachNav(it);
+    }
+  }
+
+  function bootNav(){
+    wireDrawer();
+    wireDrawerLinks();
+    wireDock();
+  }
+
+  D.addEventListener('DOMContentLoaded', bootNav, false);
+})();
