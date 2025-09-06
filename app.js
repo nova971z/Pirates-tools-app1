@@ -2295,7 +2295,9 @@
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
 
-  /* ---------- HÉRO unique (Partie 6) : overshoot + blur + fade tôt, HD ---------- */
+ 
+   
+   /* ---------- HÉRO unique (Partie 6) : overshoot + blur + fade tôt, HD ---------- */
 (function heroEffectOvershoot(){
   'use strict';
   var W = window, D = document;
@@ -2357,10 +2359,13 @@
   var BASE_M      = 1.42, BASE_D      = 1.28;  // taille de départ (plus gros)
   var DIST_M      = 1.02, DIST_D      = 1.08;  // distance plus courte → plus vite
   var BLUR_MAX_M  = 18,   BLUR_MAX_D  = 14;    // flou max
-  var FADE_START  = 0.40;                       // fondu commence plus tôt
-  var FADE_LEN    = 0.34;                       // fondu plus rapide
-  var DONE_M      = 1.06, DONE_D      = 1.10;   // passe « derrière » plus tôt
-  var OVER_MAX    = 2.6;                        // plafonne l’overshoot
+  var FADE_START  = 0.40;                      // fondu commence plus tôt
+  var FADE_LEN    = 0.34;                      // fondu plus rapide
+  var DONE_M      = 1.06, DONE_D      = 1.10;  // passe « derrière » plus tôt
+  var OVER_MAX    = 2.6;                       // plafonne l’overshoot
+
+  // AJOUT : gap réduit pour voir les icônes plus tôt
+  var GAP_M       = 14,   GAP_D       = 18;    // (vh) au lieu de 22/26
 
   // Helpers
   var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
@@ -2405,14 +2410,24 @@
     logo.style.opacity         = op.toFixed(3);
     logo.style.filter          = (blur > 0 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none');
 
-    // espace visuel pour la grille sous le hero
-    var gap = Math.max(0, (1 - clamped) * (isM ? 22 : 26));
+    // AJOUT : espace visuel (gap) réduit + décroissance plus agressive
+    var gap = Math.max(0, (1 - clamped) * (isM ? GAP_M : GAP_D));
     D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-    // quand on a parcouru ~1.06–1.10 → le hero passe sous la page
+    // AJOUT : quand on a parcouru ~1.06–1.10 → hero passe VRAIMENT sous la page
     var done = raw > (isM ? DONE_M : DONE_D);
-    D.body.classList.toggle('after-hero', done);
-    hero.classList.toggle('hero-out', done);
+    if (done){
+      D.body.classList.add('after-hero');
+      hero.classList.add('hero-out');
+      hero.style.zIndex = -1;               // libère l’interaction sur les icônes
+      hero.style.pointerEvents = 'none';
+      logo.style.opacity = '0';
+    } else {
+      D.body.classList.remove('after-hero');
+      hero.classList.remove('hero-out');
+      hero.style.zIndex = '';
+      hero.style.pointerEvents = '';
+    }
   }
 
   function tick(){
@@ -2440,7 +2455,9 @@
   W.addEventListener('pageshow', function(e){ if (e.persisted) recalc(); }, true);
   W.addEventListener('pagehide', function(){ W.cancelAnimationFrame(rafId); }, true);
 })();   
-  /* =========================================================
+   
+   
+   /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
   ========================================================== */
   (function drawerGestures(){
