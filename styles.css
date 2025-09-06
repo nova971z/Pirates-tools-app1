@@ -102,63 +102,99 @@ h3{ font-size:1.05rem }
 @media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } .btn.btn-call{ font-size:12.5px; padding:.34rem .6rem; max-width:54vw } }
 
 /* ========== 04) HÉRO (structure, qualité, fondus) ========== */
-/* compatible avec #hero/#heroLogo ET .hero-full/.hero-logo */
+/* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo  */
+:root{
+  /* Valeurs par défaut si absentes ailleurs */
+  --bg: #0a0f14;
+  --heroFadeH: 28vh;
+}
+
 #hero, .hero-full{
-  position:relative;
-  height:100vh; height:100svh; height:100dvh;
-  display:grid; place-items:center; pointer-events:none; isolation:isolate;
-  background:transparent; z-index:30;
-  padding-top:max(0px, env(safe-area-inset-top));
-  padding-bottom:max(0px, env(safe-area-inset-bottom));
+  position: relative;
+  height: 100vh; height: 100svh; height: 100dvh;
+  display: grid; place-items: center;
+  pointer-events: none; isolation: isolate;
+  background: transparent; z-index: 30;
+  padding-top: max(0px, env(safe-area-inset-top));
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+  overflow: visible; /* laisse le logo dépasser pendant le zoom */
 }
+
+/* Logo plus gros à l’ouverture + rendu net pendant le scale */
 #heroLogo, .hero-logo{
-  display:block; margin:0 auto; background:transparent; border:0; border-radius:0; box-shadow:none; filter:none;
-  width:clamp(180px, 56vmin, 560px); max-width:min(92vw,560px);
-  height:auto; aspect-ratio:1/1; object-fit:contain; object-position:center;
-  transform-origin:center center; transform:translateZ(0);
-  image-rendering:auto; image-rendering:-webkit-optimize-contrast; /* Safari */
-  will-change:transform, opacity; backface-visibility:hidden; -webkit-backface-visibility:hidden;
-  opacity:0; transition:opacity .4s ease; /* JS ajoute .on */
+  display: block;
+  margin: 0 auto;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  width: clamp(256px, 66vmin, 900px);       /* ++ taille par défaut */
+  max-width: min(92vw, 900px);
+  height: auto; aspect-ratio: 1/1;
+  object-fit: contain; object-position: center;
+  transform-origin: center center; transform: translateZ(0);
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast; /* Safari lisse mieux */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  filter: none;
+  opacity: 0; transition: opacity .4s ease;  /* .on est ajoutée par le JS */
 }
-/* version HD (limite l’aliasing pendant le zoom) */
-@media (min-width:280px){
-  #heroLogo, .hero-logo{ width:clamp(420px, 62vmin, 820px) }
-}
-#heroLogo.on, .hero-logo.on{ opacity:1 }
 
-/* fondu interne collé au bas du hero */
+/* palier HD — garde de la marge sur écrans un peu plus larges */
+@media (min-width: 280px){
+  #heroLogo, .hero-logo{ width: clamp(420px, 62vmin, 820px) }
+}
+#heroLogo.on, .hero-logo.on{ opacity: 1; }
+
+/* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
-  position:absolute; left:0; right:0; bottom:-1px;
-  height:var(--heroFadeH); pointer-events:none; z-index:-1;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.85) 65%, var(--bg) 100%);
-  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
-          mask-image:linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+  position: absolute; left: 0; right: 0; bottom: -1px;
+  height: var(--heroFadeH); pointer-events: none; z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,.85) 65%,
+    var(--bg) 100%
+  );
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+          mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
 }
-/* fondu global fixe (de secours) */
+
+/* Fondu global fixe de secours (au-dessus du contenu) */
 .hero-fade-fixed{
-  position:fixed; left:0; right:0; bottom:0; height:28vh; pointer-events:none; z-index:12; opacity:1;
-  transition:opacity .35s ease;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.82) 60%, var(--bg) 100%);
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: 28vh; pointer-events: none; z-index: 12; opacity: 1;
+  transition: opacity .35s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(10,15,20,0) 0%,
+    rgba(10,15,20,.82) 60%,
+    var(--bg) 100%
+  );
 }
-.after-hero .hero-fade-fixed{ opacity:0 }
+.after-hero .hero-fade-fixed{ opacity: 0; }
 
-/* quand le hero est “passé”, on le met sous la page */
-.hero-full.hero-out, #hero.hero-out{ z-index:-1 }
+/* Quand le hero est “passé”, on le met sous la page */
+.hero-full.hero-out, #hero.hero-out{ z-index: -1; }
+.hero-out .hero-logo{ pointer-events: none; }
 
-/* sécurité anti-ligne entre hero et contenu (voile global) */
+/* Sécurité anti-ligne entre hero et contenu (voile global) */
 body::after{
-  content:""; position:fixed; left:0; right:0; top:calc(100vh - var(--heroFadeH));
-  height:var(--heroFadeH); pointer-events:none; z-index:29;
-  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, var(--bg) 85%, var(--bg) 100%);
-  opacity:0; transition:opacity .25s ease;
+  content: "";
+  position: fixed; left: 0; right: 0; top: calc(100vh - var(--heroFadeH));
+  height: var(--heroFadeH); pointer-events: none; z-index: 29;
+  background: linear-gradient(180deg, rgba(10,15,20,0) 0%, var(--bg) 85%, var(--bg) 100%);
+  opacity: 0; transition: opacity .25s ease;
 }
-body.after-hero::after{ opacity:1 }
+body.after-hero::after{ opacity: 1; }
 
 /* Paysage très bas (smartphones couchés) */
-@media (max-height:480px){ #heroLogo, .hero-logo{ width:clamp(140px, 40vmin, 420px) } }
-/* Accessibilité – animations réduites */
-@media (prefers-reduced-motion:reduce){ .hero-logo{ transition:none } }
+@media (max-height: 480px){
+  #heroLogo, .hero-logo{ width: clamp(140px, 40vmin, 420px) }
+}
 
+/* Accessibilité – animations réduites */
+@media (prefers-reduced-motion: reduce){
+  .hero-logo{ transition: none; filter: none !important; }
+}
 /* ========== 05) TOOLBAR & CHAMPS ========== */
 .toolbar{
   position:relative; z-index:20; width:min(var(--container-w),92vw); margin:0 auto 1rem; padding:.4rem 0;
