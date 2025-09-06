@@ -1,6 +1,8 @@
 /* =========================================================
-  Pirates Tools — styles.css (HARMONISÉ v2)
-  ✅ Tous les blocs présents, sélecteurs unifiés, ordre fiable.
+  Pirates Tools — styles.css (HARMONISÉ v3)
+  • Aligné avec app.js (overshoot + blur avant fade + disparition rapide)
+  • z-index/pointer-events sûrs quand le hero “passe derrière”
+  • --listGap animé par app.js pour libérer les bulles sur l’accueil
 ========================================================= */
 
 /* ========== 01) THÈME & VARIABLES GLOBALES ========== */
@@ -16,8 +18,8 @@
   --container-w:1100px;
 
   /* Hero / layout dynamiques (pilotés par JS) */
-  --listGap:26vh;
-  --heroFadeH:26vh; /* remplacé par clamp() si supporté */
+  --listGap:22vh;            /* app.js anime cette valeur */
+  --heroFadeH:26vh;          /* ajusté plus bas si clamp() dispo */
 
   /* Dock & safe areas */
   --dock-bottom:14px; --dockH:64px;
@@ -102,100 +104,90 @@ h3{ font-size:1.05rem }
 @media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } .btn.btn-call{ font-size:12.5px; padding:.34rem .6rem; max-width:54vw } }
 
 /* ========== 04) HÉRO (structure, qualité, fondus) ========== */
-/* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo  */
-:root{
-  /* Valeurs par défaut si absentes ailleurs */
-  --bg: #0a0f14;
-  --heroFadeH: 28vh;
-}
-
+/* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo */
 #hero, .hero-full{
   position: relative;
   height: 100vh; height: 100svh; height: 100dvh;
   display: grid; place-items: center;
-  pointer-events: none; isolation: isolate;
+  pointer-events: none; /* laisse passer les clics sur les bulles */
+  isolation: isolate;
   background: transparent; z-index: 30;
   padding-top: max(0px, env(safe-area-inset-top));
   padding-bottom: max(0px, env(safe-area-inset-bottom));
-  overflow: visible; /* laisse le logo dépasser pendant le zoom */
+  overflow: visible; /* le logo peut dépasser pendant le zoom */
 }
 
-/* Logo plus gros à l’ouverture + rendu net pendant le scale */
+/* Quand le hero est “passé”, on le met vraiment sous la page */
+.hero-full.hero-out, #hero.hero-out{ z-index:-1; }
+.hero-out .hero-logo{ pointer-events:none; }
+body.after-hero #hero{ z-index:-1; pointer-events:none; } /* ceinture + bretelles */
+
+/* Logo HD + rendu net pendant le scale (classe .on posée par le loader/app.js) */
 #heroLogo, .hero-logo{
-  display: block;
-  margin: 0 auto;
-  background: transparent; border: 0; border-radius: 0; box-shadow: none;
-  width: clamp(256px, 66vmin, 900px);       /* ++ taille par défaut */
+  display:block; margin:0 auto; background:transparent; border:0; border-radius:0; box-shadow:none;
+  width: clamp(256px, 66vmin, 900px);
   max-width: min(92vw, 900px);
-  height: auto; aspect-ratio: 1/1;
-  object-fit: contain; object-position: center;
-  transform-origin: center center; transform: translateZ(0);
-  image-rendering: auto;
-  image-rendering: -webkit-optimize-contrast; /* Safari lisse mieux */
-  will-change: transform, opacity, filter;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  filter: none;
-  opacity: 0; transition: opacity .4s ease;  /* .on est ajoutée par le JS */
+  height:auto; aspect-ratio:1/1; object-fit:contain; object-position:center;
+  transform-origin:50% 50%; transform:translateZ(0);
+  image-rendering:auto; image-rendering:-webkit-optimize-contrast;
+  will-change:transform,opacity,filter;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  filter:none;
+  opacity:.001; transition:opacity .25s ease-out;
 }
-
-/* palier HD — garde de la marge sur écrans un peu plus larges */
-@media (min-width: 280px){
-  #heroLogo, .hero-logo{ width: clamp(420px, 62vmin, 820px) }
-}
-#heroLogo.on, .hero-logo.on{ opacity: 1; }
+#heroLogo.on, .hero-logo.on{ opacity:1 }
 
 /* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
-  position: absolute; left: 0; right: 0; bottom: -1px;
-  height: var(--heroFadeH); pointer-events: none; z-index: -1;
-  background: linear-gradient(
+  position:absolute; left:0; right:0; bottom:-1px;
+  height:var(--heroFadeH); pointer-events:none; z-index:-1;
+  background:linear-gradient(
     180deg,
     rgba(10,15,20,0) 0%,
     rgba(10,15,20,.85) 65%,
     var(--bg) 100%
   );
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
-          mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
+          mask-image:linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
 }
 
-/* Fondu global fixe de secours (au-dessus du contenu) */
+/* Voile fixe de secours (non requis mais utile si CSS seul) */
 .hero-fade-fixed{
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: 28vh; pointer-events: none; z-index: 12; opacity: 1;
-  transition: opacity .35s ease;
-  background: linear-gradient(
-    180deg,
-    rgba(10,15,20,0) 0%,
-    rgba(10,15,20,.82) 60%,
-    var(--bg) 100%
-  );
+  position:fixed; left:0; right:0; bottom:0;
+  height:28vh; pointer-events:none; z-index:12; opacity:1;
+  transition:opacity .35s ease;
+  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.82) 60%, var(--bg) 100%);
 }
-.after-hero .hero-fade-fixed{ opacity: 0; }
-
-/* Quand le hero est “passé”, on le met sous la page */
-.hero-full.hero-out, #hero.hero-out{ z-index: -1; }
-.hero-out .hero-logo{ pointer-events: none; }
+.after-hero .hero-fade-fixed{ opacity:0 }
 
 /* Sécurité anti-ligne entre hero et contenu (voile global) */
 body::after{
-  content: "";
-  position: fixed; left: 0; right: 0; top: calc(100vh - var(--heroFadeH));
-  height: var(--heroFadeH); pointer-events: none; z-index: 29;
-  background: linear-gradient(180deg, rgba(10,15,20,0) 0%, var(--bg) 85%, var(--bg) 100%);
-  opacity: 0; transition: opacity .25s ease;
+  content:"";
+  position:fixed; left:0; right:0; top:calc(100vh - var(--heroFadeH));
+  height:var(--heroFadeH); pointer-events:none; z-index:29;
+  background:linear-gradient(180deg, rgba(10,15,20,0) 0%, var(--bg) 85%, var(--bg) 100%);
+  opacity:0; transition:opacity .25s ease;
 }
-body.after-hero::after{ opacity: 1; }
+body.after-hero::after{ opacity:1 }
 
 /* Paysage très bas (smartphones couchés) */
-@media (max-height: 480px){
-  #heroLogo, .hero-logo{ width: clamp(140px, 40vmin, 420px) }
+@media (max-height:480px){
+  #heroLogo, .hero-logo{ width:clamp(140px, 40vmin, 420px) }
 }
 
 /* Accessibilité – animations réduites */
 @media (prefers-reduced-motion: reduce){
-  .hero-logo{ transition: none; filter: none !important; }
+  .hero-logo{ transition:none; filter:none !important; }
 }
-/* ========== 05) TOOLBAR & CHAMPS ========== */
+
+/* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
+/* L’espace au-dessus de la grille d’accueil suit --listGap (animé par app.js) */
+#view-home .container{
+  margin-top: var(--listGap, 22vh);
+  transition: margin-top .22s ease-out;
+}
+
+/* ========== 06) TOOLBAR & CHAMPS ========== */
 .toolbar{
   position:relative; z-index:20; width:min(var(--container-w),92vw); margin:0 auto 1rem; padding:.4rem 0;
   display:grid; grid-template-columns:1fr 140px; gap:.6rem;
@@ -219,7 +211,7 @@ body.after-hero::after{ opacity: 1; }
 }
 @media (max-width:680px){ .toolbar{ grid-template-columns:1fr; gap:.5rem } }
 
-/* ========== 06) LISTES & CARTES ========== */
+/* ========== 07) LISTES & CARTES ========== */
 .list{ display:grid; gap:1rem; position:relative; z-index:10 }
 .list::before{ content:""; display:block; height:var(--listGap); transition:height .22s ease-out }
 .card{
@@ -249,7 +241,7 @@ body.after-hero::after{ opacity: 1; }
 /* Perf */
 .card, .cat-card{ content-visibility:auto; contain-intrinsic-size:320px }
 
-/* ========== 07) AVIS ========== */
+/* ========== 08) AVIS ========== */
 .ratings{
   margin:2rem auto 1rem; width:min(var(--container-w),92vw);
   background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
@@ -258,7 +250,7 @@ body.after-hero::after{ opacity: 1; }
 .ratings h2{ margin:0 0 .5rem; font-size:1.05rem }
 .ratings__list{ margin:0; padding-left:1.1rem }
 
-/* ========== 08) CHIPS ========== */
+/* ========== 09) CHIPS ========== */
 .chip{
   display:inline-flex; align-items:center; gap:.4rem;
   padding:.42rem .9rem; border-radius:9999px; overflow:hidden;
@@ -272,7 +264,7 @@ body.after-hero::after{ opacity: 1; }
   display:inline-flex; align-items:center; gap:.4rem;
 }
 
-/* ========== 09) SITE LINKS ========== */
+/* ========== 10) SITE LINKS ========== */
 .site-links{
   width:min(var(--container-w),92vw); margin:1rem auto 1.25rem;
   display:flex; gap:.35rem; flex-wrap:wrap; justify-content:center;
@@ -284,7 +276,7 @@ body.after-hero::after{ opacity: 1; }
 .site-links .chip:hover{ background:rgba(255,255,255,.08) }
 @media (max-width:420px){ .site-links{ gap:.28rem; padding:.44rem .55rem } .site-links .chip{ font-size:.88rem; padding:.28rem .54rem } }
 
-/* ========== 10) FOOTER (alias .foot + .footer) ========== */
+/* ========== 11) FOOTER (alias .foot + .footer) ========== */
 .footer, .foot{
   background:#0b1218; border-top:1px solid #1e2a35; color:#9fb4c5;
   padding:1rem var(--container-pad,1rem); width:100%;
@@ -297,7 +289,7 @@ body.after-hero::after{ opacity: 1; }
 .footer-links a{ color:#9fb4c5; text-decoration:none; margin-right:.75rem }
 .footer-links a:hover{ color:#e6edf5 }
 
-/* ========== 11) DOCK (mobile) ========== */
+/* ========== 12) DOCK (mobile) ========== */
 .dock{
   position:fixed; left:50%;
   bottom:calc(var(--dock-bottom) + constant(safe-area-inset-bottom,0px));
@@ -334,11 +326,11 @@ body.after-hero::after{ opacity: 1; }
   90%,100%{ transform:translateZ(0) scale(1) rotate(0) }
 }
 
-/* ========== 12) VUES / ROUTER ========== */
+/* ========== 13) VUES / ROUTER ========== */
 .view{ width:min(var(--container-w),92vw); margin:0 auto 1.2rem }
 .view.hidden{ display:none !important }
 
-/* ========== 13) PDP (fiche produit) ========== */
+/* ========== 14) PDP (fiche produit) ========== */
 .pdp{ padding:.5rem 0 1.2rem }
 .pdp__grid{ display:grid; gap:1.2rem; grid-template-columns:1.2fr 1fr }
 .pdp__media{
@@ -363,7 +355,7 @@ body.after-hero::after{ opacity: 1; }
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 @media (max-width:960px){ .pdp__grid{ grid-template-columns:1fr } }
 
-/* ========== 14) CATALOGUE (cat-cards) ========== */
+/* ========== 15) CATALOGUE (cat-cards) ========== */
 .cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
 .cat-card{
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
@@ -372,10 +364,10 @@ body.after-hero::after{ opacity: 1; }
 }
 .cat-card:hover{ transform:translateY(-2px); border-color:rgba(25,211,255,.45); box-shadow:0 12px 28px rgba(0,0,0,.38) }
 
-/* ========== 15) DEVIS ========== */
+/* ========== 16) DEVIS ========== */
 #devisList .card .btn{ padding:.45rem .7rem }
 
-/* ========== 16) JAUGE FIDÉLITÉ ========== */
+/* ========== 17) JAUGE FIDÉLITÉ ========== */
 .meter{ display:grid; gap:.4rem }
 .meter__rail{
   position:relative; height:14px; border-radius:999px; overflow:hidden;
@@ -406,7 +398,7 @@ body.after-hero::after{ opacity: 1; }
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
 
-/* ========== 17) TOASTS ========== */
+/* ========== 18) TOASTS ========== */
 #toasts{
   position:fixed; z-index:120; right:12px;
   bottom:calc(var(--dock-bottom) + env(safe-area-inset-bottom,0px) + 62px);
@@ -426,7 +418,7 @@ body.after-hero::after{ opacity: 1; }
 @keyframes toast-out{ to{ transform:translateY(8px); opacity:0 } }
 @media (max-width:480px){ #toasts{ right:8px; width:min(94vw,420px) } }
 
-/* ========== 18) A11Y ========== */
+/* ========== 19) A11Y ========== */
 .sr-only, #sr-live{
   position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
@@ -436,7 +428,7 @@ body.after-hero::after{ opacity: 1; }
 }
 .skip-link:focus{ top:8px; outline:2px solid var(--brand) }
 
-/* ========== 19) RESPONSIF GÉNÉRIQUE ========== */
+/* ========== 20) RESPONSIF GÉNÉRIQUE ========== */
 @media (max-width:768px){
   .btn{ padding:.54rem .8rem }
   .ratings{ margin:1.4rem auto .6rem }
@@ -444,7 +436,7 @@ body.after-hero::after{ opacity: 1; }
   #list, #contact{ scroll-margin-top:84px }
 }
 
-/* ========== 20) BANNIÈRES (update / install / net) ========== */
+/* ========== 21) BANNIÈRES (update / install / net) ========== */
 #updateBanner{
   position:fixed; left:50%; transform:translateX(-50%);
   bottom:calc(96px + env(safe-area-inset-bottom,0px));
@@ -478,7 +470,7 @@ body.after-hero::after{ opacity: 1; }
   color:#e6edf5; display:none;
 }
 
-/* ========== 21) ANIM “EXIT” & REDUCED MOTION ========== */
+/* ========== 22) ANIM “EXIT” & REDUCED MOTION ========== */
 @keyframes exitLeft{ to{ transform:translateX(-60px); opacity:0; filter:blur(2px) } }
 @keyframes exitRight{ to{ transform:translateX(60px); opacity:0; filter:blur(2px) } }
 .tool--exit-left{ animation:exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change:transform,opacity }
@@ -490,7 +482,7 @@ body.after-hero::after{ opacity: 1; }
   .tool--exit-left,.tool--exit-right{ animation:none; opacity:0 }
 }
 
-/* ========== 22) OVERLAY + MENU LATÉRAL (bulles) ========== */
+/* ========== 23) OVERLAY + MENU LATÉRAL (bulles) ========== */
 #menu-overlay{
   position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.68); backdrop-filter:blur(2px); display:none;
 }
@@ -522,7 +514,7 @@ body.after-hero::after{ opacity: 1; }
 #side-menu .app-link:active .app-bubble{ transform:scale(0.96) }
 @media (max-width:360px){ #side-menu{ padding-left:14px; gap:24px } #side-menu .app-bubble{ width:60px; height:60px } #side-menu .app-label{ font-size:.82rem } }
 
-/* ========== 23) MARQUES — grille unifiée + HOTFIX JS ========== */
+/* ========== 24) MARQUES — grille unifiée + HOTFIX JS ========== */
 /* Base responsive */
 .brand-grid{
   display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
@@ -576,7 +568,7 @@ body.after-hero::after{ opacity: 1; }
 }
 @media (max-width:420px){ .brand__bubble{ width:84px; height:84px } .brand__label{ font-size:.9rem } }
 
-/* HOTFIX pour #brandGrid généré en JS (garde-les bulles propres) */
+/* HOTFIX pour #brandGrid généré en JS (garde les bulles propres) */
 #brandGrid.brand-grid{
   display:grid !important;
   grid-template-columns:repeat(auto-fit, minmax(120px,1fr)) !important;
@@ -597,7 +589,7 @@ body.after-hero::after{ opacity: 1; }
   #brandGrid .brand__label{ font-size:.9rem }
 }
 
-/* ========== 24) PATCHES & ANCRAGES ========== */
+/* ========== 25) PATCHES & ANCRAGES ========== */
 /* Chips toujours pilule (Safari) */
 .chip{ -webkit-mask-image:-webkit-radial-gradient(white, black) }
 /* iOS A2HS au-dessus du dock */
@@ -607,7 +599,7 @@ body.after-hero::after{ opacity: 1; }
 /* Ancrages confortables */
 #list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top:84px }
 
-/* ========== 25) STABILITÉ HÉRO (rappels) ========== */
+/* ========== 26) STABILITÉ HÉRO (rappels) ========== */
 .hero-full{ z-index:30 }
 .hero-full.hero-out{ z-index:-1 }
 #heroLogo, .hero-logo{ will-change:transform, opacity }
