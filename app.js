@@ -2299,13 +2299,29 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 /* =========================================================
    PARTIE 6/4 — Héro overshoot + Gestes mobile + Focus H1 + Actifs + Fallback compte
    - ES5-safe, défensif, aucun double wiring
-   - IMPORTANT: ce bloc remplace l'ancien + supprime le "BLOC 7" du fichier
+   - IMPORTANT: ce bloc remplace l'ancien + neutralise le "BLOC 7" s'il était injecté
 ========================================================= */
 (function(){
   'use strict';
   if (window.__ptP6Booted) return; window.__ptP6Booted = 1;
 
   var W = window, D = document;
+
+  /* ---- Neutralisation douce de l'ancien "BLOC 7" s'il existe ---- */
+  (function neutralizeOldBlock7(){
+    try{
+      // drapeau global éventuel
+      if (W.__ptP7Booted) W.__ptP7Booted = 0;
+      if (W.__ptBlock7Enabled) W.__ptBlock7Enabled = 0;
+
+      // retire un style/banière potentiellement injectés par l’ancien bloc
+      var ids = ['pt-block7-css','block7-css','updateBanner','ptLegacyHeroCSS'];
+      for (var i=0;i<ids.length;i++){
+        var el = D.getElementById(ids[i]);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }
+    }catch(_){}
+  })();
 
   /* ---------------- Helpers ---------------- */
   function qs(s, r){ return (r||D).querySelector(s); }
@@ -2329,6 +2345,16 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     var hero = D.getElementById('hero') || qs('.hero-full');
     var logo = D.getElementById('heroLogo') || qs('.hero-logo');
     if (!hero || !logo) return;
+
+    // CSS de secours pour le fondu interne, si la feuille principale manque
+    (function injectHeroFadeCSS(){
+      if (D.getElementById('pt-hero-fade-css')) return;
+      var s = D.createElement('style'); s.id = 'pt-hero-fade-css';
+      s.textContent = '' +
+        '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
+        'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
+      D.head.appendChild(s);
+    })();
 
     // Qualité image + rendu (sans casser le loader)
     try{
