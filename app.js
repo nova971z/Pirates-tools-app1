@@ -2870,11 +2870,16 @@
     W.focusView('devis');
   }
 
-  function renderCompteRoute(){
-    // Déléguer à P3 si dispo
-    if (PT && typeof PT.handleRouteAccount==='function'){
-      try{ PT.handleRouteAccount(); return; }catch(_){}
-    }
+
+function renderCompteRoute(){
+  if (window.PT && window.PT.auth && !window.PT.auth.isLoggedIn()){
+    location.hash = '#/login';
+    return;
+  }
+  if (PT && typeof PT.handleRouteAccount==='function'){ try{ PT.handleRouteAccount(); return; }catch(_){ } }
+  window.showView('compte'); updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' }); window.focusView('compte');
+}
+   
     // Fallback minimal si P3 absent
     W.showView('compte');
     updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' });
