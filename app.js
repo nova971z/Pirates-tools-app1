@@ -14,6 +14,16 @@
   function $(sel, root){ return (root||document).querySelector(sel); }
   function $$(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
 
+  /* ---------- Append “body-safe” (évite body null) ---------- */
+  function appendToBodySafe(el){
+    if (!el) return;
+    if (document.body){ document.body.appendChild(el); }
+    else {
+      var once = function(){ document.removeEventListener('DOMContentLoaded', once, false); document.body.appendChild(el); };
+      document.addEventListener('DOMContentLoaded', once, false);
+    }
+  }
+
   /* ---------- Globals / constantes ---------- */
   if (typeof window.IMG_FALLBACK !== 'string'){
     window.IMG_FALLBACK = './images/pirates-tools-logo.png?v=7';
@@ -42,7 +52,7 @@
         host = document.createElement('div');
         host.id = 'toasts';
         host.setAttribute('aria-live','polite');
-        document.body.appendChild(host);
+        appendToBodySafe(host);
       }
       var n = document.createElement('div');
       n.className = 'toast' + (kind ? (' toast--'+kind) : '');
@@ -59,7 +69,7 @@
         live.id='sr-live';
         live.className='sr-only';
         live.setAttribute('aria-live','polite');
-        document.body.appendChild(live);
+        appendToBodySafe(live);
       }
       live.textContent = msg || '';
     };
@@ -154,12 +164,13 @@
     };
   }
 
-  /* ---------- Vues fallback DOM ---------- */
+  /* ---------- Vues fallback DOM (safe) ---------- */
   function ensureView(id, html){
     var v = document.getElementById(id);
     if (!v){
       v = document.createElement('section'); v.id = id; v.className = 'view hidden';
-      v.innerHTML = html; document.body.appendChild(v);
+      v.innerHTML = html;
+      appendToBodySafe(v);
     }
     return v;
   }
@@ -223,7 +234,7 @@
   if (!document.getElementById('pdp')){
     var a = document.createElement('a');
     a.id='pdp'; a.className='sr-only'; a.setAttribute('aria-hidden','true');
-    document.body.appendChild(a);
+    appendToBodySafe(a);
   }
 
   /* ---------- Dock : s'assure que le bouton panier ouvre #/devis ---------- */
@@ -241,7 +252,6 @@
     var dock = document.getElementById('dock');
     if (dock) dock.classList.add('dock--visible');
   })();
-
 
   /* ---------- Grille marques : toutes les marques visibles ---------- */
   // 1) Référentiel des logos
@@ -274,12 +284,11 @@
   }
   function labelToKey(label){
     var n = normKey(label);
-    // tente la correspondance avec les labels et les keys déclarés
     for (var k in BRAND_META){
       if (!Object.prototype.hasOwnProperty.call(BRAND_META,k)) continue;
       if (n === normKey(BRAND_META[k].label) || n === normKey(k)) return k;
     }
-    return ''; // pas reconnu
+    return '';
   }
 
   // 2) Comptage par marque (fallback brand_key -> brand)
@@ -294,7 +303,6 @@
       var fromLabel = (p.brand!=null) ? String(p.brand) : '';
       var key = fromKey ? normKey(fromKey) : labelToKey(fromLabel);
 
-      // si brand_key ne mappe pas directement, essaie via label
       if (key && !counts.hasOwnProperty(key)){
         key = labelToKey(fromKey || fromLabel);
       }
@@ -313,7 +321,29 @@
     return out;
   }
 
-  // 3) Rendu des bulles (src posé via setSafeImg pour https+fallback)
+  // 3) Rendu des bulles (+ wiring immédiat, idempotent)
+  function wireBrandGrid(host){
+    if (!host || host.__ptWired) return;
+    host.__ptWired = 1;
+
+    var pressFx = function(e){
+      var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
+      if (!el) return;
+      el.style.transform='scale(0.98)';
+      setTimeout(function(){ el.style.transform=''; }, 160);
+    };
+    host.addEventListener('pointerdown', pressFx, false);
+    host.addEventListener('mousedown',  pressFx, false);
+
+    host.addEventListener('click', function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+      if (!btn) return;
+      var key = btn.getAttribute('data-brand')||'';
+      if (!key) return;
+      location.hash = '#/catalogue?brand='+encodeURIComponent(key);
+    }, false);
+  }
+
   function renderBrandGridFromProducts(products){
     var host = document.getElementById('brandGrid'); if (!host) return;
     var brands = computeBrands(products);
@@ -338,33 +368,12 @@
       window.setSafeImg(im, src, im.getAttribute('alt')||'');
       im.removeAttribute('data-src');
     }
+
+    // wiring (tap → #/catalogue?brand=xxx)
+    wireBrandGrid(host);
   }
   window.PT = window.PT || {};
   window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
-
-  // 4) Navigation des bulles → #/catalogue?brand=xxx
-  (function(){
-    var host = document.getElementById('brandGrid'); if (!host) return;
-    if (host.__ptWired) return; host.__ptWired = 1;
-
-    var pressFx = function(e){
-      var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
-      if (!el) return;
-      el.style.transform='scale(0.98)';
-      setTimeout(function(){ el.style.transform=''; }, 160);
-    };
-    host.addEventListener('pointerdown', pressFx, false);
-    host.addEventListener('mousedown', pressFx, false); // fallback
-
-    host.addEventListener('click', function(e){
-      var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
-      if (!btn) return;
-      var key = btn.getAttribute('data-brand')||'';
-      if (!key) return;
-      location.hash = '#/catalogue?brand='+encodeURIComponent(key);
-    }, false);
-  })();
-
 
   /* ---------- Chargement produits (mémoisé & tolérant) ---------- */
   function loadProducts(){
@@ -398,7 +407,6 @@
         return [];
       });
   }
-  // Expose pour Part 2/3/4
   if (typeof window.loadProducts !== 'function') window.loadProducts = loadProducts;
   window.PT.loadProducts = loadProducts;
 
@@ -407,19 +415,12 @@
     var p = window.parseHash();
     if (!p.view || p.view==='home' || p.view==='/'){
       window.showView('home'); window.resetPageMeta();
-
-      // hydrate la grille marques (mémo + fetch si besoin)
       loadProducts().then(function(arr){ renderBrandGridFromProducts(arr); });
-
       window.focusView('home');
       return;
     }
     if (p.view==='catalogue'){
-      window.showView('catalogue');
-      window.resetPageMeta();
-      window.focusView('catalogue');
-      // Si une extension catalogue existe (Partie 2/4), elle peut réagir elle-même
-      return;
+      window.showView('catalogue'); window.resetPageMeta(); window.focusView('catalogue'); return;
     }
     // Les autres vues sont rendues par les autres parties
   }
@@ -491,6 +492,8 @@
 })();
 
 
+
+
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
@@ -499,7 +502,6 @@
    - Cohérente avec la Partie 1 (loadProducts/MODELS/pt:productsLoaded)
    - Expose les APIs utilisées par Parties 3 & 4
 ========================================================= */
-
 (function(){
   'use strict';
 
@@ -512,15 +514,14 @@
   }
   if (typeof window.toast !== 'function')    window.toast = function(){};
   if (typeof window.announce !== 'function') window.announce = function(){};
-  if (typeof window.notifyCartAdded !== 'function'){
-    window.notifyCartAdded = function(title){ window.toast('« '+(title||'Article')+' » ajouté au devis','success'); };
-  }
   if (typeof window.setSafeImg !== 'function'){
     window.setSafeImg = function(img, src, alt){
       if (!img) return;
+      img.loading = img.loading || 'lazy';
+      img.decoding = 'async';
       img.alt = alt||'';
-      img.onerror = function(){ img.src = (window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
-      img.src = src|| (window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7');
+      img.onerror = function(){ img.onerror=null; img.src = (window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
+      img.src = src || (window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7');
     };
   }
   if (typeof window.parseHash !== 'function'){
@@ -528,6 +529,7 @@
       var h = location.hash || '#/';
       var parts = h.split('?');
       var path  = parts[0] || '#/';
+      var view  = path.replace('#/','').split('/')[0] || '';
       var query = {};
       if (parts[1]){
         var kv = parts[1].split('&');
@@ -538,27 +540,50 @@
           if (k) query[k] = v;
         }
       }
-      return { path:path, view:path.replace('#/','').split('/')[0]||'', query:query, raw:h };
+      return { path:path, view:view, query:query, raw:h };
     };
   }
   if (typeof window.focusView !== 'function') window.focusView = function(){};
   if (typeof window.showView  !== 'function'){
     window.showView = function(key){
       var ids = ['home','catalogue','produit','devis','compte'];
-      for (var i=0;i<ids.length;i++){ var el=document.getElementById('view-'+ids[i]); if(el) el.classList.add('hidden'); }
+      for (var i=0;i<ids.length;i++){
+        var el=document.getElementById('view-'+ids[i]); if(el) el.classList.add('hidden');
+      }
       var want = document.getElementById('view-'+key); if (want) want.classList.remove('hidden');
+    };
+  }
+  if (typeof window.setPageMeta !== 'function'){
+    window.setPageMeta = function(title, desc){
+      try{
+        if (title) document.title = String(title);
+        if (desc!=null){
+          var m = document.querySelector('meta[name="description"]');
+          if (!m){ m = document.createElement('meta'); m.setAttribute('name','description'); document.head.appendChild(m); }
+          m.setAttribute('content', String(desc));
+        }
+      }catch(_){}
+    };
+  }
+  if (typeof window.resetPageMeta !== 'function'){
+    window.resetPageMeta = function(){
+      try{
+        document.title = 'Pirates Tools • Outillage pro (PWA)';
+        var m = document.querySelector('meta[name="description"]');
+        if (m) m.setAttribute('content','Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).');
+      }catch(_){}
     };
   }
 
   /* ---------- Globals compat ---------- */
-  var PHONE_E164  = window.PHONE_E164  || '+33774230195';
-  var IMG_FALLBACK= window.IMG_FALLBACK|| './images/pirates-tools-logo.png?v=7';
-  var STORE_KEY   = window.STORE_KEY   || 'pt_cart_v1';
+  var PHONE_E164   = window.PHONE_E164   || '+33774230195';
+  var IMG_FALLBACK = window.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7';
+  var STORE_KEY    = window.STORE_KEY    || 'pt_cart_v1';
 
   window.MODELS = Array.isArray(window.MODELS) ? window.MODELS : [];
   window.CART   = Array.isArray(window.CART)   ? window.CART   : [];
 
-  // refs DOM
+  // refs DOM (rafraîchis à la demande)
   var listEl, searchEl, tagEl, dock, dockCount;
   function syncDomRefs(){
     listEl    = document.getElementById('list');
@@ -594,6 +619,7 @@
   function saveCart(){
     try{ localStorage.setItem(STORE_KEY, JSON.stringify(window.CART)); }catch(_){}
     updateDock();
+    // Rafraîchit la vue Devis si visible
     if (((location.hash||'').toLowerCase()).indexOf('#/devis')===0 && typeof renderCartView==='function'){
       try{ renderCartView(); }catch(_){}
     }
@@ -625,15 +651,15 @@
     if (!key) return null;
     var k = String(key).toLowerCase();
     for (var i=0;i<window.MODELS.length;i++){
-      var m = window.MODELS[i];
-      var id  = String(m && m.id  != null ? m.id  : '').toLowerCase();
-      var sku = String(m && m.sku != null ? m.sku : '').toLowerCase();
-      var ttl = String(m && m.title!= null ? m.title: '').toLowerCase();
+      var m = window.MODELS[i] || {};
+      var id  = String(m.id  != null ? m.id  : '').toLowerCase();
+      var sku = String(m.sku != null ? m.sku : '').toLowerCase();
+      var ttl = String(m.title!= null ? m.title: '').toLowerCase();
       if (k===id || k===sku || k===ttl) return m;
     }
     return null;
   }
-  window.findProductByKey = window.findProductByKey || findProductByKey;
+  if (typeof window.findProductByKey !== 'function') window.findProductByKey = findProductByKey;
 
   function addToCart(keyOrId, qty){
     qty = Math.max(1, Number(qty||1));
@@ -642,7 +668,7 @@
     for (var i=0;i<qty;i++) window.CART.push(p);
     saveCart(); window.notifyCartAdded(p.title||p.sku||'Article');
   }
-  window.addToCart = window.addToCart || addToCart;
+  if (typeof window.addToCart !== 'function') window.addToCart = addToCart;
 
   function cartToWhatsAppText(){
     var grouped = groupCart();
@@ -666,7 +692,7 @@
     var link = location.origin + location.pathname + '#/devis';
     return 'Bonjour, je souhaite un devis pour:\n' + lines.join('\n') + '\n\nLien: ' + link + contact + '\n\nMerci.';
   }
-  window.cartToWhatsAppText = window.cartToWhatsAppText || cartToWhatsAppText;
+  if (typeof window.cartToWhatsAppText !== 'function') window.cartToWhatsAppText = cartToWhatsAppText;
 
   /* =========================================================
      B) PRODUITS — JSON-LD + rendu liste & PDP
@@ -720,8 +746,7 @@
     try{
       var id='jsonld-product';
       var old = document.getElementById(id);
-      if (old && old.parentNode) old.parentNode.removeChild(old); // ES5-safe
-
+      if (old && old.parentNode) old.parentNode.removeChild(old);
       var json = buildProductJsonLD(p); if(!json) return;
       var s=document.createElement('script'); s.type='application/ld+json'; s.id=id; s.textContent=JSON.stringify(json);
       document.head.appendChild(s);
@@ -729,9 +754,9 @@
   }
   function clearProductJsonLD(){
     var s=document.getElementById('jsonld-product');
-    if (s && s.parentNode) s.parentNode.removeChild(s); // ES5-safe
+    if (s && s.parentNode) s.parentNode.removeChild(s);
   }
-  window.clearProductJsonLD = window.clearProductJsonLD || clearProductJsonLD;
+  if (typeof window.clearProductJsonLD !== 'function') window.clearProductJsonLD = clearProductJsonLD;
 
   function productToHTML(m){
     var title = window.fallback(m.title, (window.fallback(m.brand,'') + (m.brand?' ':'') + window.fallback(m.sku,''))).trim();
@@ -780,6 +805,7 @@
 
   function renderList(data){
     var root = document.getElementById('list'); if(!root) return;
+    root.setAttribute('aria-busy','true');
     data = Array.isArray(data) ? data : [];
     root.innerHTML = data.map(productToHTML).join('\n');
 
@@ -795,8 +821,9 @@
       })(cards[i]);
     }
     bindAddToCart(data);
+    root.setAttribute('aria-busy','false');
   }
-  window.renderList = window.renderList || renderList;
+  if (typeof window.renderList !== 'function') window.renderList = renderList;
 
   function renderPDP(product){
     var view = document.getElementById('view-produit');
@@ -951,9 +978,13 @@
       }
     }
 
+    // SEO : titre + description
+    if (typeof window.setPageMeta==='function'){
+      window.setPageMeta(title+' • Pirates Tools', desc || title);
+    }
     injectProductJsonLD(product);
   }
-  window.renderPDP = window.renderPDP || renderPDP;
+  if (typeof window.renderPDP !== 'function') window.renderPDP = renderPDP;
 
   /* =========================================================
      C) CATALOGUE — catégories auto + rendu + filtres
@@ -961,7 +992,7 @@
   function buildCategories(){
     var counts = {}, labels = {};
     for (var i=0;i<window.MODELS.length;i++){
-      var m = window.MODELS[i];
+      var m = window.MODELS[i] || {};
       var raw = (m.category || m.badge || m.brand || '').toString().trim();
       if (!raw) continue;
       var key = raw.toLowerCase();
@@ -978,7 +1009,7 @@
       if (!label) return; var key=String(label).toLowerCase(); if (seen[key]) return; seen[key]=1; opts.push({key:key,label:label});
     }
     for (var i=0;i<window.MODELS.length;i++){
-      var m=window.MODELS[i];
+      var m=window.MODELS[i] || {};
       pushOnce(m.brand); pushOnce(m.category); pushOnce(m.badge);
       if (Array.isArray(m.tags)) for (var t=0;t<m.tags.length;t++) pushOnce(m.tags[t]);
     }
@@ -1021,7 +1052,10 @@
       if (searchEl) searchEl.value = matchVal ? '' : keyLower;
       if (typeof window.applyFilters==='function') window.applyFilters();
       location.hash = '#/catalogue';
-      setTimeout(function(){ var listNode=document.getElementById('list'); if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
+      setTimeout(function(){
+        var listNode=document.getElementById('list');
+        if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 80);
     }
     if (!root.__ptWired){
       root.__ptWired=1;
@@ -1047,13 +1081,11 @@
       var b2 = (m.brand_key||'').toLowerCase();
       if (!brandLower || (b1!==brandLower && b2!==brandLower)) continue;
 
-      // Catégorie (primaire)
       if (m.category){
         k = String(m.category).toLowerCase();
         counts[k] = (counts[k]||0)+1; if (labels[k]==null) labels[k] = String(m.category);
       }
     }
-    // Si aucune catégorie, on tombe sur badge + tags
     var hasCats = Object.keys(counts).length>0;
     if (!hasCats){
       for (i=0;i<window.MODELS.length;i++){
@@ -1086,7 +1118,6 @@
     var root = document.getElementById('catList'); if (!root) return;
     var types = computeTypesForBrand(brandLower);
     if (!types.length){
-      // Rien de spécifique : on garde l’affichage global
       renderCatalogue();
       return;
     }
@@ -1112,18 +1143,15 @@
 
   function applyBrandTypeFilter(brandLower, typeLower){
     syncDomRefs();
-    // On force la recherche plein-texte sur la marque (q) + select sur le type (t)
     var typeMatch = findSelectMatch(tagEl, typeLower);
     if (searchEl) searchEl.value = brandLower || '';
     if (tagEl)    tagEl.value    = typeMatch || typeLower || '';
     if (typeof window.applyFilters==='function') window.applyFilters();
 
-    // Met à jour l’URL pour partage/navigation
     var h = '#/catalogue?brand=' + encodeURIComponent(brandLower||'');
     if (typeLower) h += '&type=' + encodeURIComponent(typeLower);
     if ((location.hash||'') !== h) location.hash = h;
 
-    // Scroll vers la liste
     setTimeout(function(){
       var listNode=document.getElementById('list');
       if (listNode && listNode.scrollIntoView) listNode.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1135,35 +1163,28 @@
     if (p.view !== 'catalogue') return;
 
     syncDomRefs();
-    updateTagSelectOptions(); // s’assure que le select est rempli
+    if (typeof window.resetPageMeta==='function') window.resetPageMeta();
+    updateTagSelectOptions();
 
     var brand = (p.query && p.query.brand) ? String(p.query.brand).toLowerCase() : '';
     var type  = (p.query && (p.query.type || p.query.tag)) ? String(p.query.type || p.query.tag).toLowerCase() : '';
 
     if (brand){
-      // Rendu des types pour la marque
       renderBrandTypesGrid(brand);
-
-      // Applique le filtre combiné (brand + type si fourni)
       if (type){
         applyBrandTypeFilter(brand, type);
       }else{
-        // brand seul → filtre sur brand (q) et clear select
         var brandMatch = findSelectMatch(tagEl, brand);
         if (searchEl) searchEl.value = brand;
         if (tagEl)    tagEl.value    = brandMatch || '';
         if (typeof window.applyFilters==='function') window.applyFilters();
       }
     } else {
-      // comportement par défaut
       renderCatalogue();
-      if (p.query) { // garde compat si la PARTIE 4 n’a pas encore hydraté
-        hydrateFiltersFromQuery(p.query);
-      }
+      if (p.query) { hydrateFiltersFromQuery(p.query); }
     }
   }
-  // Expose pour la PARTIE 4
-  window.handleRouteCatalogue_Extended = window.handleRouteCatalogue_Extended || handleRouteCatalogue_Extended;
+  if (typeof window.handleRouteCatalogue_Extended !== 'function') window.handleRouteCatalogue_Extended = handleRouteCatalogue_Extended;
 
   /* =========================================================
      D) CHARGEMENT PRODUITS + FILTRES
@@ -1177,8 +1198,16 @@
     }
     fetch('./products.json',{cache:'no-store'})
       .then(function(r){ return r.json(); })
-      .then(function(json){ window.MODELS = Array.isArray(json) ? json : (json.products||[]); try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){ } done(); })
-      .catch(function(){ window.MODELS=[]; try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){ } done(); });
+      .then(function(json){
+        window.MODELS = Array.isArray(json) ? json : (json && Array.isArray(json.products) ? json.products : []);
+        try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+        done();
+      })
+      .catch(function(){
+        window.MODELS=[];
+        try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+        done();
+      });
   }
 
   function debounce(fn, wait){
@@ -1186,22 +1215,28 @@
     var t=0; return function(){ var args=arguments; clearTimeout(t); t=setTimeout(function(){ fn.apply(null,args); }, wait); };
   }
 
-  window.applyFilters = window.applyFilters || debounce(function(){
-    syncDomRefs();
-    var q = ((searchEl&&searchEl.value)||'').trim().toLowerCase();
-    var t = ((tagEl&&tagEl.value)||'').trim().toLowerCase();
-    var filtered = window.MODELS.filter(function(m){
-      var hay = [
-        window.fallback(m.title,''), window.fallback(m.sku,''), window.fallback(m.brand,''),
-        window.fallback(m.category,''), window.fallback(m.desc, window.fallback(m.description,'')),
-        (Array.isArray(m.tags)?m.tags.join(' '):''), window.fallback(m.badge,'')
-      ].join(' ').toLowerCase();
-      var okQ = !q || hay.indexOf(q)!==-1;
-      var okT = !t || hay.indexOf(t)!==-1;
-      return okQ && okT;
-    });
-    renderList(filtered);
-  }, 120);
+  if (typeof window.applyFilters !== 'function'){
+    window.applyFilters = debounce(function(){
+      syncDomRefs();
+      var q = ((searchEl&&searchEl.value)||'').trim().toLowerCase();
+      var t = ((tagEl&&tagEl.value)||'').trim().toLowerCase();
+      var root = document.getElementById('list'); if (root) root.setAttribute('aria-busy','true');
+
+      var filtered = window.MODELS.filter(function(m){
+        var hay = [
+          window.fallback(m.title,''), window.fallback(m.sku,''), window.fallback(m.brand,''),
+          window.fallback(m.category,''), window.fallback(m.desc, window.fallback(m.description,'')),
+          (Array.isArray(m.tags)?m.tags.join(' '):''), window.fallback(m.badge,'')
+        ].join(' ').toLowerCase();
+        var okQ = !q || hay.indexOf(q)!==-1;
+        var okT = !t || hay.indexOf(t)!==-1;
+        return okQ && okT;
+      });
+      renderList(filtered);
+
+      if (root) root.setAttribute('aria-busy','false');
+    }, 120);
+  }
 
   function wireFilterInputs(){
     syncDomRefs();
@@ -1298,7 +1333,7 @@
       }, false);
     }
   }
-  window.renderCartView = window.renderCartView || renderCartView;
+  if (typeof window.renderCartView !== 'function') window.renderCartView = renderCartView;
 
   /* =========================================================
      F) ROUTER — #/catalogue, #/produit/:id, #/devis
@@ -1319,13 +1354,22 @@
 
     if (view === 'catalogue'){
       showViewSafely('catalogue');
+      if (typeof window.resetPageMeta==='function') window.resetPageMeta();
       ensureProductsLoaded(function(){
         // bootstrap minimal si nécessaire
         if (!document.getElementById('list')){
           var s = document.getElementById('view-catalogue');
           if (!s){
             s = document.createElement('section'); s.id='view-catalogue'; s.className='view';
-            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div class="toolbar"><input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)"><select id="tag" class="select"><option value="">Tous</option></select></div><div id="list" class="list"></div></div>';
+            s.innerHTML = '<div class="container">'+
+                          '<h1 tabindex="-1">Catalogue</h1>'+
+                          '<div id="catList" class="cat-list" style="margin-bottom:1rem"></div>'+
+                          '<div class="toolbar">'+
+                          '<input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)">'+
+                          '<select id="tag" class="select"><option value="">Tous</option></select>'+
+                          '</div>'+
+                          '<div id="list" class="list" aria-live="polite" aria-busy="false"></div>'+
+                          '</div>';
             document.body.appendChild(s);
           } else if (!s.querySelector('#list')){
             var d=document.createElement('div'); d.id='list'; d.className='list'; s.appendChild(d);
@@ -1350,8 +1394,12 @@
           for (var i=0;i<window.MODELS.length;i++){ var m=window.MODELS[i]; if ((m.id||m.sku||m.title)==key){ p=m; break; } }
         }
         if (!p){
-          var host=document.getElementById('view-produit');
-          if (host) host.innerHTML = '<div class="container"><p>Produit introuvable. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
+          var host=document.getElementById('view-produit') || document.createElement('section');
+          host.id='view-produit'; host.className='view';
+          host.innerHTML = '<div class="container"><p>Produit introuvable. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
+          if (!host.parentNode) document.body.appendChild(host);
+          if (typeof window.resetPageMeta==='function') window.resetPageMeta();
+          clearProductJsonLD();
           return;
         }
         renderPDP(p);
@@ -1362,10 +1410,11 @@
 
     if (view === 'devis'){
       showViewSafely('devis');
+      if (typeof window.resetPageMeta==='function') window.resetPageMeta();
       var v = document.getElementById('view-devis');
       if (!v){
         v=document.createElement('section'); v.id='view-devis'; v.className='view';
-        v.innerHTML = '<div class="container"><h1 tabindex="-1">Devis</h1><div class="card"><div class="specs" id="devisList"></div><div class="actions"><button class="btn" id="devisClear">Vider</button><button class="btn primary" id="devisSend">Envoyer sur WhatsApp</button></div></div></div>';
+        v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon devis</h1><div class="card"><div class="specs" id="devisList"></div><div class="actions"><button class="btn primary" id="devisSend">Envoyer le devis (WhatsApp)</button><button class="btn" id="devisClear">Vider</button></div></div></div>';
         document.body.appendChild(v);
       }
       renderCartView(); window.focusView('devis');
@@ -1373,6 +1422,11 @@
     }
   }
   window.addEventListener('hashchange', route, false);
+
+  // Quitte PDP → nettoie SEO JSON-LD et réinitialise meta si besoin
+  window.addEventListener('hashchange', function(){
+    var p = window.parseHash(); if (p.view!=='produit'){ clearProductJsonLD(); if (typeof window.resetPageMeta==='function') window.resetPageMeta(); }
+  }, false);
 
   // Rafraîchir la vue catalogue quand les produits arrivent
   window.addEventListener('pt:productsLoaded', function(){
@@ -1391,7 +1445,7 @@
           var s=document.getElementById('view-catalogue');
           if (!s){
             s=document.createElement('section'); s.id='view-catalogue'; s.className='view';
-            s.innerHTML = '<div class="container"><h1>Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div class="toolbar"><input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)"><select id="tag" class="select"><option value="">Tous</option></select></div><div id="list" class="list"></div></div>';
+            s.innerHTML = '<div class="container"><h1 tabindex="-1">Catalogue</h1><div id="catList" class="cat-list" style="margin-bottom:1rem"></div><div class="toolbar"><input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)"><select id="tag" class="select"><option value="">Tous</option></select></div><div id="list" class="list" aria-live="polite" aria-busy="false"></div></div>';
             document.body.appendChild(s);
           }
         }
@@ -1412,13 +1466,17 @@
   })();
 
   // Expose minimal API pour Parties 3–4
-  window.renderCartView = window.renderCartView || renderCartView;
-  window.renderPDP      = window.renderPDP      || renderPDP;
-  window.renderList     = window.renderList     || renderList;
+  if (typeof window.renderCartView === 'undefined') window.renderCartView = renderCartView;
+  if (typeof window.renderPDP      === 'undefined') window.renderPDP      = renderPDP;
+  if (typeof window.renderList     === 'undefined') window.renderList     = renderList;
+
+  // Espace de noms PT (cohérence Part 1)
+  window.PT = window.PT || {};
+  window.PT.applyFilters = window.applyFilters;
+  window.PT.renderList   = window.renderList;
+  window.PT.renderPDP    = window.renderPDP;
 
 })();
-
-
 
 
 
@@ -1429,10 +1487,11 @@
    - Expose: window.loadUser / window.saveUser / window.computeTier / window.defaultUser
    - Intégration WhatsApp (cartToWhatsAppText lit loadUser)
    - ES5-safe, n'écrase pas les fonctions existantes
-   - Compatible PARTIE 1 (accHello/accContent) & PARTIE 2 (devis)
+   - Compatible PARTIE 1, 2, 4, 5, 6A/6B
 ========================================================= */
 (function(){
   'use strict';
+  if (window.__ptP3Booted) return; window.__ptP3Booted = 1;
 
   /* ---------- Guards / compat ---------- */
   var USER_KEY   = window.USER_KEY   || 'pt_user_v1';
@@ -1475,10 +1534,7 @@
      A) Modèle utilisateur (chargement / sauvegarde)
   ========================================================== */
   function defaultUser(){
-    return {
-      name:'', email:'', phone:'', addr:'',
-      points:0, tier:'Bronze', newsletter:false
-    };
+    return { name:'', email:'', phone:'', addr:'', points:0, tier:'Bronze', newsletter:false };
   }
   function computeTier(points){
     points = +points || 0;
@@ -1514,7 +1570,7 @@
     }catch(_){}
   }
 
-  // Expose global
+  // Expose global (sans override si déjà présents)
   if (typeof window.loadUser    !== 'function') window.loadUser    = loadUser;
   if (typeof window.saveUser    !== 'function') window.saveUser    = saveUser;
   if (typeof window.computeTier !== 'function') window.computeTier = computeTier;
@@ -1665,7 +1721,8 @@
     var inputs   = [document.getElementById('accName'), document.getElementById('accEmail'),
                     document.getElementById('accPhone'), document.getElementById('accAddr'), document.getElementById('accNews')];
 
-    if (saveBtn && !saveBtn.__wired){
+    // IMPORTANT: évite le double wiring avec la PARTIE 6B (qui marque __ptP6B)
+    if (saveBtn && !saveBtn.__wired && !saveBtn.__ptP6B){
       saveBtn.__wired = 1;
       saveBtn.addEventListener('click', function(){
         var u = grabUserFromForm();
@@ -1742,7 +1799,7 @@
     if ((location.hash||'').indexOf('#/compte') === 0){
       renderAccountView(); window.showView('compte'); window.focusView('compte');
     } else {
-      ensureAccountView(); // prépare la section pour un futur accès
+      ensureAccountView();
     }
   }, false);
 
@@ -1762,7 +1819,9 @@
   }
 })();
 
-/* =========================================================
+
+
+/*=========================================================
    PARTIE 4 — Router principal + Vues fail-safe + SEO
    - Crée/synchronise: #/ (home), #/catalogue, #/produit/:id, #/devis, #/compte
    - Ne duplique rien: n’override pas vos fonctions existantes
@@ -1771,12 +1830,11 @@
 ========================================================= */
 (function(){
   'use strict';
+  if (window.__ptP4Booted) return; window.__ptP4Booted = 1;
 
-  /* ---------- Guards ---------- */
-  var D = document;
-  var W = window;
+  var W = window, D = document;
 
-  // Fallbacks utilitaires (si non présents)
+  /* ---------- Guards utilitaires (définis UNIQUEMENT si absents) ---------- */
   if (typeof W.parseHash !== 'function') {
     W.parseHash = function(){
       var h = location.hash || '#/';
@@ -1792,7 +1850,7 @@
           if (k) query[k] = v;
         }
       }
-      return { path: path, view: path.replace('#/','').split('/')[0]||'', query: query, raw: h };
+      return { path:path, view:path.replace('#/','').split('/')[0]||'', query:query, raw:h };
     };
   }
   if (typeof W.showView !== 'function') {
@@ -1805,18 +1863,16 @@
   }
   if (typeof W.focusView !== 'function') {
     W.focusView = function(key){
-      var id = key ? ('view-' + key) : null;
+      var id = key ? ('view-'+key) : '';
       var scope = id ? D.getElementById(id) : null;
       var h1 = scope ? scope.querySelector('h1') : null;
       if (h1){
         h1.setAttribute('tabindex','-1');
-        try{ h1.focus({preventScroll:true}); }catch(_){}
-        setTimeout(function(){ h1.removeAttribute('tabindex'); }, 280);
+        try{ h1.focus({preventScroll:true}); }catch(_){ try{ h1.focus(); }catch(__){} }
+        setTimeout(function(){ try{ h1.removeAttribute('tabindex'); }catch(_){ } }, 280);
       }
     };
   }
-
-  // SEO helpers (n’override pas s’ils existent déjà)
   if (typeof W.setPageMeta !== 'function') {
     W.setPageMeta = function(title, desc){
       try{
@@ -1842,41 +1898,31 @@
   if (typeof W.resetPageMeta !== 'function') {
     W.resetPageMeta = function(){
       try{
-        document.title = 'Pirates Tools';
-        var mDesc = D.querySelector('meta[name="description"]');
-        if (mDesc) mDesc.setAttribute('content','Outils professionnels : catalogue, devis rapide et conseils.');
-        W.setPageMeta(document.title, (mDesc && mDesc.getAttribute('content')) || '');
+        document.title = 'Pirates Tools • Outillage pro (PWA)';
+        var m = D.querySelector('meta[name="description"]');
+        if (m) m.setAttribute('content','Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp).');
+        W.setPageMeta(document.title, (m && m.getAttribute('content')) || '');
       }catch(_){}
     };
   }
   if (typeof W.toast !== 'function') W.toast = function(){};
 
-  /* =========================================================
-     A) Vues — créer si absentes (home peut déjà exister)
-  ========================================================== */
+  /* ---------- Vues fail-safe (créées SEULEMENT si absentes) ---------- */
   function ensureHomeView(){
-    var view = D.getElementById('view-home');
-    if (view) return view;
-    view = D.createElement('section');
-    view.id = 'view-home';
-    view.className = 'view';
-    view.innerHTML =
+    var v = D.getElementById('view-home'); if (v) return v;
+    v = D.createElement('section'); v.id='view-home'; v.className='view';
+    v.innerHTML =
       '<div class="container">'+
         '<h1 tabindex="-1">Bienvenue</h1>'+
         '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>'+
         '<div id="brandGrid" class="brand-grid" role="list"></div>'+
       '</div>';
-    D.body.appendChild(view);
-    return view;
+    D.body.appendChild(v); return v;
   }
-
   function ensureCatalogueView(){
-    var view = D.getElementById('view-catalogue');
-    if (view) return view;
-    view = D.createElement('section');
-    view.id = 'view-catalogue';
-    view.className = 'view hidden';
-    view.innerHTML =
+    var v = D.getElementById('view-catalogue'); if (v) return v;
+    v = D.createElement('section'); v.id='view-catalogue'; v.className='view hidden';
+    v.innerHTML =
       '<div class="container">'+
         '<h1 tabindex="-1">Catalogue</h1>'+
         '<div class="toolbar">'+
@@ -1886,17 +1932,12 @@
         '<div id="catList" class="cat-list" aria-label="Catégories"></div>'+
         '<div id="list" class="list" aria-live="polite" aria-busy="false"></div>'+
       '</div>';
-    D.body.appendChild(view);
-    return view;
+    D.body.appendChild(v); return v;
   }
-
   function ensureProduitView(){
-    var view = D.getElementById('view-produit');
-    if (view) return view;
-    view = D.createElement('section');
-    view.id = 'view-produit';
-    view.className = 'view hidden';
-    view.innerHTML =
+    var v = D.getElementById('view-produit'); if (v) return v;
+    v = D.createElement('section'); v.id='view-produit'; v.className='view hidden';
+    v.innerHTML =
       '<div id="pdp" class="container pdp">'+
         '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
         '<div class="pdp__grid">'+
@@ -1915,17 +1956,12 @@
         '</div>'+
         '<div class="pdp__related" id="pdpRelated"></div>'+
       '</div>';
-    D.body.appendChild(view);
-    return view;
+    D.body.appendChild(v); return v;
   }
-
   function ensureDevisView(){
-    var view = D.getElementById('view-devis');
-    if (view) return view;
-    view = D.createElement('section');
-    view.id = 'view-devis';
-    view.className = 'view hidden';
-    view.innerHTML =
+    var v = D.getElementById('view-devis'); if (v) return v;
+    v = D.createElement('section'); v.id='view-devis'; v.className='view hidden';
+    v.innerHTML =
       '<div class="container">'+
         '<h1 tabindex="-1">Mon devis</h1>'+
         '<div class="card">'+
@@ -1937,11 +1973,8 @@
           '</div>'+
         '</div>'+
       '</div>';
-    D.body.appendChild(view);
-    return view;
+    D.body.appendChild(v); return v;
   }
-
-  // Login / Register (fail-safe minimal)
   function ensureAuthViews(){
     var v1 = D.getElementById('view-login');
     if (!v1){
@@ -1976,80 +2009,61 @@
     }
   }
 
-  // S’assure que les vues minimales existent
-  ensureHomeView();
-  ensureCatalogueView();
-  ensureProduitView();
-  ensureDevisView();
-  ensureAuthViews();
+  // Installe les vues manquantes (non destructif)
+  ensureHomeView(); ensureCatalogueView(); ensureProduitView(); ensureDevisView(); ensureAuthViews();
 
-  /* =========================================================
-     B) Helpers route/produits
-  ========================================================== */
-  function getProductIdFromHash(){
-    var h = location.hash || '';
-    // formats supportés: #/produit/ID  ou  #/produit?id=ID
-    var m = h.match(/^#\/produit\/(.+?)$/);
-    if (m && m[1]) return decodeURIComponent(m[1]);
-    var parsed = W.parseHash();
-    if (parsed && parsed.query && parsed.query.id) return parsed.query.id;
-    return '';
-  }
-
-  // Attend les produits si nécessaire puis exécute cb()
+  /* ---------- Produits / attente ---------- */
   function withProducts(cb){
-    var ready = (W.MODELS && W.MODELS.length) ? true : false;
-    if (ready) { try{ cb(); }catch(_){ } return; }
-    if (typeof W.loadProducts === 'function') {
-      try{
-        var p = W.loadProducts();
-        if (p && typeof p.then === 'function') {
-          p.then(function(){ try{ cb(); }catch(_){}; }).catch(function(){ try{ cb(); }catch(_){}; });
-          return;
-        }
-      }catch(_){}
+    var ready = (W.MODELS && W.MODELS.length) ? 1 : 0;
+    if (ready){ try{ cb(); }catch(_){ } return; }
+    if (typeof W.loadProducts === 'function'){
+      var p; try{ p = W.loadProducts(); }catch(_){}
+      if (p && typeof p.then==='function'){
+        p.then(function(){ try{ cb(); }catch(_){ } })
+         .catch(function(){ try{ cb(); }catch(_){ } });
+        return;
+      }
     }
-    // Dernier recours: attendre l’event pt:productsLoaded
-    var once = function(){
-      W.removeEventListener('pt:productsLoaded', once);
-      try{ cb(); }catch(_){}
-    };
-    W.addEventListener('pt:productsLoaded', once);
+    // Dernier recours : évènement
+    var once = function(){ W.removeEventListener('pt:productsLoaded', once); try{ cb(); }catch(_){ } };
+    W.addEventListener('pt:productsLoaded', once, false);
   }
 
-  // Remplit <select id="tag"> avec des tags/brands/categories (si vide)
+  /* ---------- Hydrate <select id="tag"> si vide ---------- */
   function hydrateTagSelect(){
     var sel = D.getElementById('tag');
     if (!sel || sel.__ptHydrated) return;
     var seen = {};
-    var add = function(lbl){
-      lbl = (lbl==null?'':String(lbl)).trim();
-      if (!lbl) return;
-      var key = lbl.toLowerCase();
-      if (seen[key]) return; seen[key] = 1;
-      var opt = D.createElement('option'); opt.value = lbl; opt.textContent = lbl;
-      sel.appendChild(opt);
-    };
+    function add(lbl){
+      lbl = (lbl==null?'':String(lbl)).trim(); if (!lbl) return;
+      var key = lbl.toLowerCase(); if (seen[key]) return; seen[key]=1;
+      var o = D.createElement('option'); o.value = lbl; o.textContent = lbl; sel.appendChild(o);
+    }
     var i, m;
     for (i=0;i<(W.MODELS||[]).length;i++){
       m = W.MODELS[i]||{};
-      add(m.brand);
-      add(m.category);
-      add(m.badge);
-      if (m.tags && m.tags.length){ for (var j=0;j<m.tags.length;j++){ add(m.tags[j]); } }
+      add(m.brand); add(m.category); add(m.badge);
+      if (m.tags && m.tags.length){ for (var j=0;j<m.tags.length;j++) add(m.tags[j]); }
     }
-    sel.__ptHydrated = true;
+    sel.__ptHydrated = 1;
   }
 
-  /* =========================================================
-     C) Router principal
-  ========================================================== */
+  /* ---------- Helpers route ---------- */
+  function getProductIdFromHash(){
+    var h = location.hash || '';
+    var m = h.match(/^#\/produit\/(.+?)$/);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+    var parsed = W.parseHash();
+    return (parsed && parsed.query && parsed.query.id) ? parsed.query.id : '';
+  }
+
+  /* ---------- Rendus par route ---------- */
   function renderHome(){
     W.showView('home');
-    if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
+    if (typeof W.resetPageMeta==='function') W.resetPageMeta();
     withProducts(function(){
       try{
-        if (W.PT && typeof W.PT.renderBrandGridFromProducts === 'function') {
+        if (W.PT && typeof W.PT.renderBrandGridFromProducts==='function'){
           W.PT.renderBrandGridFromProducts(W.MODELS||[]);
         }
       }catch(_){}
@@ -2058,153 +2072,127 @@
   }
 
   function renderCatalogueRoute(){
-    ensureCatalogueView();
-    W.showView('catalogue');
-    if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
+    ensureCatalogueView(); W.showView('catalogue');
+    if (typeof W.resetPageMeta==='function') W.resetPageMeta();
     withProducts(function(){
       try{ hydrateTagSelect(); }catch(_){}
-      if (typeof W.handleRouteCatalogue_Extended === 'function') {
-        try { W.handleRouteCatalogue_Extended(); } catch(_){}
+      if (typeof W.handleRouteCatalogue_Extended==='function'){
+        try{ W.handleRouteCatalogue_Extended(); }catch(_){}
       }
     });
     W.focusView('catalogue');
   }
 
   function renderProduitRoute(){
-    ensureProduitView();
-    W.showView('produit');
+    ensureProduitView(); W.showView('produit');
     withProducts(function(){
-      var id = getProductIdFromHash();
-      var m = null;
+      var id = getProductIdFromHash(); var m = null;
       if (id && W.MODELS && W.MODELS.length){
         var lid = String(id).toLowerCase();
         for (var i=0;i<W.MODELS.length;i++){
-          var x = W.MODELS[i];
-          var a = (x.id!=null? String(x.id).toLowerCase() : '');
-          var b = (x.sku!=null? String(x.sku).toLowerCase() : '');
-          var c = (x.title!=null? String(x.title).toLowerCase() : '');
-          if (lid===a || lid===b || lid===c) { m = x; break; }
+          var x=W.MODELS[i]||{};
+          var a=(x.id!=null?String(x.id).toLowerCase():'');
+          var b=(x.sku!=null?String(x.sku).toLowerCase():'');
+          var c=(x.title!=null?String(x.title).toLowerCase():'');
+          if (lid===a || lid===b || lid===c){ m=x; break; }
         }
       }
-      if (m && typeof W.renderPDP === 'function'){
+      if (m && typeof W.renderPDP==='function'){
         try{
           W.renderPDP(m);
-          if (typeof W.setPageMeta === 'function') {
-            var title = (m.title || ((m.brand||'')+' '+(m.sku||''))).trim();
-            var desc  = (m.seo && m.seo.description) || m.desc || m.description || 'Fiche produit Pirates Tools';
+          if (typeof W.setPageMeta==='function'){
+            var title=(m.title||((m.brand||'')+' '+(m.sku||''))).trim();
+            var desc =(m.seo && m.seo.description) || m.desc || m.description || 'Fiche produit Pirates Tools';
             W.setPageMeta(title+' • Pirates Tools', desc);
           }
         }catch(_){}
       } else {
-        // Not found
-        var wrap = D.getElementById('pdp');
-        if (!wrap) wrap = D.getElementById('view-produit');
+        var wrap = D.getElementById('pdp') || D.getElementById('view-produit');
         if (wrap){
           if (wrap.scrollIntoView) wrap.scrollIntoView({behavior:'smooth', block:'start'});
-          var box = D.createElement('div');
-          box.className = 'card';
-          box.innerHTML =
-            '<div class="head"><h3 class="title">Produit introuvable</h3></div>'+
-            '<div class="specs"><p style="margin:0">Référence inconnue. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
-          var container = wrap.querySelector('.container') || wrap;
-          var rel = D.getElementById('pdpRelated'); if (rel) rel.innerHTML = '';
-          var info = D.getElementById('pdpTitle');  if (info) info.textContent = '—';
-          container.appendChild(box);
+          var box = D.createElement('div'); box.className='card';
+          box.innerHTML = '<div class="head"><h3 class="title">Produit introuvable</h3></div>'+
+                          '<div class="specs"><p style="margin:0">Référence inconnue. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
+          (wrap.querySelector('.container')||wrap).appendChild(box);
+          var rel = D.getElementById('pdpRelated'); if (rel) rel.innerHTML='';
+          var t   = D.getElementById('pdpTitle');   if (t)   t.textContent='—';
         }
-        if (typeof W.clearProductJsonLD === 'function') W.clearProductJsonLD();
-        if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
+        if (typeof W.clearProductJsonLD==='function') W.clearProductJsonLD();
+        if (typeof W.resetPageMeta==='function')      W.resetPageMeta();
       }
       W.focusView('produit');
     });
   }
 
   function renderDevisRoute(){
-    ensureDevisView();
-    W.showView('devis');
-    if (typeof W.resetPageMeta === 'function') W.resetPageMeta();
-    if (typeof W.renderCartView === 'function') {
-      try { W.renderCartView(); } catch(_){}
-    }
+    ensureDevisView(); W.showView('devis');
+    if (typeof W.resetPageMeta==='function') W.resetPageMeta();
+    if (typeof W.renderCartView==='function'){ try{ W.renderCartView(); }catch(_){ } }
     W.focusView('devis');
   }
 
+  /* ---------- Router principal ---------- */
   function handleRoute(){
-    var parsed = W.parseHash();
-    var v = parsed.view;
+    var p = W.parseHash(); var v = p.view;
 
-    // Nettoie le JSON-LD produit si on quitte la PDP
-    if (v !== 'produit' && typeof W.clearProductJsonLD === 'function') {
-      try{ W.clearProductJsonLD(); }catch(_){}
+    // Quitte la PDP → nettoie JSON-LD si exposé par la Partie 2
+    if (v!=='produit' && typeof W.clearProductJsonLD==='function'){ try{ W.clearProductJsonLD(); }catch(_){} }
+
+    if (!v || v==='home' || v==='') return renderHome();
+    if (v==='catalogue')            return renderCatalogueRoute();
+    if (v==='produit')              return renderProduitRoute();
+    if (v==='devis')                return renderDevisRoute();
+    if (v==='compte'){
+      // La Partie 3 gère le contenu de compte ; on n’affiche que la vue si elle existe
+      W.showView(D.getElementById('view-compte') ? 'compte' : 'home'); return;
     }
+    if (v==='login'){ W.showView('login'); W.focusView('login'); return; }
+    if (v==='register'){ W.showView('register'); W.focusView('register'); return; }
 
-    if (!v || v === '' || v === 'home') return renderHome();
-    if (v === 'catalogue')              return renderCatalogueRoute();
-    if (v === 'produit')                return renderProduitRoute();
-    if (v === 'devis')                  return renderDevisRoute();
-    if (v === 'compte') {               // compte est géré par PARTIE 3
-      var s = D.getElementById('view-compte') ? 'compte' : 'home';
-      W.showView(s);
-      return;
-    }
-    if (v === 'login'){ W.showView('login'); W.focusView('login'); return; }
-    if (v === 'register'){ W.showView('register'); W.focusView('register'); return; }
-
-    // Fallback → home
+    // Fallback
     renderHome();
   }
 
-  W.addEventListener('hashchange', handleRoute, false);
-  D.addEventListener('DOMContentLoaded', handleRoute, false);
+  if (!W.__ptP4Routed){
+    W.__ptP4Routed = 1;
+    W.addEventListener('hashchange', handleRoute, false);
+    D.addEventListener('DOMContentLoaded', handleRoute, false);
+    W.addEventListener('pt:productsLoaded', function(){ try{ handleRoute(); }catch(_){ } }, false);
+  }
 
-  // Si les produits arrivent plus tard, on revalide la route (utile pour PDP direct)
-  W.addEventListener('pt:productsLoaded', function(){ try{ handleRoute(); }catch(_){}; }, false);
-
-  /* =========================================================
-     D) Améliorations optionnelles (non destructives)
-  ========================================================== */
-  // 1) Titre simple par vue si pas en PDP
+  /* ---------- Améliorations optionnelles non destructives ---------- */
   W.addEventListener('hashchange', function(){
-    var parsed = W.parseHash();
-    if (parsed.view === 'catalogue')  W.setPageMeta('Catalogue • Pirates Tools', 'Parcourez nos produits pro.');
-    if (parsed.view === 'devis')      W.setPageMeta('Mon devis • Pirates Tools', 'Votre sélection et total estimé.');
-    if (!parsed.view || parsed.view === 'home') W.resetPageMeta();
+    var p = W.parseHash();
+    if (p.view==='catalogue') W.setPageMeta('Catalogue • Pirates Tools', 'Parcourez nos produits pro.');
+    if (p.view==='devis')     W.setPageMeta('Mon devis • Pirates Tools', 'Votre sélection et total estimé.');
+    if (!p.view || p.view==='home') W.resetPageMeta();
   }, false);
 
-  // 2) Lien topbar “logo” → home (si absent)
   (function(){
     var logo = D.getElementById('homeLink') || D.querySelector('.topbar-logo-link');
-    if (logo && !logo.__ptWired){
-      logo.__ptWired = 1;
-      var go = function(e){ if (e && e.preventDefault) e.preventDefault(); location.hash=''; if (W.scrollTo){ W.scrollTo({top:0,behavior:'smooth'}); } };
+    if (logo && !logo.__ptP4){
+      logo.__ptP4 = 1;
+      var go=function(e){ if(e&&e.preventDefault)e.preventDefault(); location.hash=''; if (W.scrollTo) W.scrollTo({top:0,behavior:'smooth'}); };
       logo.addEventListener('click', go, false);
-      logo.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch') go(e); }, false);
+      logo.addEventListener('pointerup', function(e){ if(e && e.pointerType==='touch') go(e); }, false);
     }
   })();
 })();
-
-/* ===== Auth (front-only) : vues #/login & #/register =====
-   - ES5-safe
-   - Utilise saveUser/loadUser globaux si déjà exposés par la PARTIE 3
-========================================================= */
+  
+/* ===== Auth (front-only) : #/login & #/register — ES5, non destructif ===== */
 (function(){
   'use strict';
-  var D = document;
+  if (window.__ptP4AuthBooted) return; window.__ptP4AuthBooted = 1;
 
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
+  var D=document;
+  function qs(s,r){return (r||D).querySelector(s);}
+  function qsa(s,r){return Array.prototype.slice.call((r||D).querySelectorAll(s));}
 
   function showView(id){
-    var views = qsa('.view');
-    for (var i=0;i<views.length;i++){ views[i].classList.add('hidden'); }
-    var v = qs(id);
-    if (v){
-      v.classList.remove('hidden');
-      var h1 = qs('h1', v);
-      if (h1){ h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ } }
-    }
+    var views=qsa('.view'); for(var i=0;i<views.length;i++) views[i].classList.add('hidden');
+    var v=qs(id); if(v){ v.classList.remove('hidden'); var h1=qs('h1',v); if(h1){ h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ } setTimeout(function(){ try{ h1.removeAttribute('tabindex'); }catch(_){ } },260);} }
   }
 
-  // Fallbacks si PARTIE 3 absente
   function _fallbackSaveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
   function _fallbackLoadUser(){ try{ var r=localStorage.getItem('pt_user_v1'); return r?JSON.parse(r):null; }catch(_){ return null; } }
   function saveUser(u){ return (typeof window.saveUser==='function') ? window.saveUser(u) : _fallbackSaveUser(u); }
@@ -2212,84 +2200,54 @@
 
   function onLoginSubmit(e){
     if (e && e.preventDefault) e.preventDefault();
-    var emailEl = qs('#loginEmail'); var pwdEl = qs('#loginPwd');
-    var email = emailEl && emailEl.value ? String(emailEl.value) : '';
-    var pwd   = pwdEl   && pwdEl.value   ? String(pwdEl.value)   : '';
-    if (!email || email.indexOf('@')===-1 || !pwd){
-      if (window.toast) window.toast('Identifiants invalides', 'info');
-      return;
-    }
-    var u = loadUser() || {};
-    u.email = email;
-    if (!u.name){ u.name = email.split('@')[0]; }
-    saveUser(u);
-    if (window.toast)   window.toast('Connecté', 'success');
-    if (window.announce)window.announce('Connecté');
-    location.hash = '#/compte';
+    var email=(qs('#loginEmail')||{}).value||''; var pwd=(qs('#loginPwd')||{}).value||'';
+    if (!email || email.indexOf('@')===-1 || !pwd){ if(window.toast) window.toast('Identifiants invalides','info'); return; }
+    var u=loadUser()||{}; u.email=email; if(!u.name) u.name=email.split('@')[0]; saveUser(u);
+    if(window.toast) window.toast('Connecté','success'); if(window.announce) window.announce('Connecté'); location.hash='#/compte';
   }
-
   function onRegisterSubmit(e){
     if (e && e.preventDefault) e.preventDefault();
-    var nameEl  = qs('#regName');
-    var emailEl = qs('#regEmail');
-    var pwdEl   = qs('#regPwd');
-
-    var name  = nameEl  && nameEl.value  ? String(nameEl.value)  : '';
-    var email = emailEl && emailEl.value ? String(emailEl.value) : '';
-    var pwd   = pwdEl   && pwdEl.value   ? String(pwdEl.value)   : '';
-
-    if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){
-      if (window.toast) window.toast('Veuillez remplir tous les champs (MDP ≥ 6)', 'info');
-      return;
-    }
-    var u = loadUser() || {};
-    u.name  = name; u.email = email;
-    saveUser(u);
-    if (window.toast) window.toast('Compte créé (mode démo)', 'success');
-    location.hash = '#/compte';
+    var name=(qs('#regName')||{}).value||''; var email=(qs('#regEmail')||{}).value||''; var pwd=(qs('#regPwd')||{}).value||'';
+    if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){ if(window.toast) window.toast('Veuillez remplir tous les champs (MDP ≥ 6)','info'); return; }
+    var u=loadUser()||{}; u.name=name; u.email=email; saveUser(u);
+    if(window.toast) window.toast('Compte créé (mode démo)','success'); location.hash='#/compte';
   }
 
-  function wireAuthForms(){
-    var lf = qs('#loginForm');    if (lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit, false); }
-    var rf = qs('#registerForm'); if (rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit, false); }
+  function wire(){
+    var lf=qs('#loginForm'); if(lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit, false); }
+    var rf=qs('#registerForm'); if(rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit, false); }
   }
-
   function onHash(){
-    var h = (location.hash||'').toLowerCase();
-    if (h.indexOf('#/login')===0){ wireAuthForms(); showView('#view-login'); return; }
-    if (h.indexOf('#/register')===0){ wireAuthForms(); showView('#view-register'); return; }
+    var h=(location.hash||'').toLowerCase();
+    if (h.indexOf('#/login')===0){ wire(); showView('#view-login'); return; }
+    if (h.indexOf('#/register')===0){ wire(); showView('#view-register'); return; }
   }
-
   window.addEventListener('hashchange', onHash, false);
-  document.addEventListener('DOMContentLoaded', function(){ wireAuthForms(); onHash(); }, false);
+  document.addEventListener('DOMContentLoaded', function(){ wire(); onHash(); }, false);
 })();
 
-/* --- Compat form id (#accForm | #accountForm) + save btn (ES5) --- */
+/* --- Compat form id (#accForm | #accountForm) + save btn (ES5, non destructif) --- */
 (function () {
   'use strict';
-  var D = document;
-  function qs(s, r){return (r||D).querySelector(s);}
-  function on(el, ev, fn){ if (el && !el.__w){ el.__w=1; el.addEventListener(ev, fn, false);} }
+  if (window.__ptP4AccCompat) return; window.__ptP4AccCompat = 1;
 
-  // Utilise saveUser global si dispo (PARTIE 3), sinon fallback local
+  var D=document;
+  function qs(s,r){return (r||D).querySelector(s);}
+  function on(el,ev,fn){ if(el && !el.__w){ el.__w=1; el.addEventListener(ev,fn,false);} }
+
   function _fallbackSaveUser(u){ try{ localStorage.setItem('pt_user_v1', JSON.stringify(u)); }catch(_){ } }
   function saveUser(u){ return (typeof window.saveUser==='function') ? window.saveUser(u) : _fallbackSaveUser(u); }
 
   var form = qs('#accForm') || qs('#accountForm');
-  var btnSave = qs('#accSave');
+  var btn  = qs('#accSave');
 
   function saveLocal(){
-    var nameEl  = qs('#accName');
-    var emailEl = qs('#accEmail');
-    var u = {
-      name:  nameEl  && nameEl.value  ? String(nameEl.value).trim()  : '',
-      email: emailEl && emailEl.value ? String(emailEl.value).trim() : ''
-    };
+    var nameEl=qs('#accName'); var emailEl=qs('#accEmail');
+    var u={ name:(nameEl&&nameEl.value?String(nameEl.value).trim():''), email:(emailEl&&emailEl.value?String(emailEl.value).trim():'') };
     saveUser(u);
   }
-
-  if (form)   on(form,   'submit', function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
-  if (btnSave)on(btnSave,'click',  function(e){ if (e && e.preventDefault) e.preventDefault(); saveLocal(); });
+  if (form) on(form,'submit', function(e){ if(e&&e.preventDefault) e.preventDefault(); saveLocal(); });
+  if (btn)  on(btn, 'click',  function(e){ if(e&&e.preventDefault) e.preventDefault(); saveLocal(); });
 })();
 
 
@@ -2298,7 +2256,7 @@
    - Ferme le menu automatiquement (clic + hashchange)
    - Mappe menu & dock → routes (#/, #/catalogue, #/devis, #/compte, tel, WhatsApp)
    - Ajoute un FAB Compte (bas-droite) persistant
-   - Hero : raccord fondu + rendu net iPad (sans rebrancher l’anim de la Partie 1)
+   - Hero : raccord fondu + rendu net iPad (sans rebrancher l’anim de la Partie 6A)
    - Home : grille marques en 3 colonnes, bulles “en suspension”
    - ES5-safe, défensif, pas de double wiring (flags __ptP5*)
 ========================================================= */
@@ -2313,84 +2271,86 @@
   function qs(s, r){ return (r||D).querySelector(s); }
   function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
   function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
-  function hasClass(el, c){ return el && el.classList && el.classList.contains(c); }
+  function hasClass(el, c){ return !!(el && el.classList && el.classList.contains(c)); }
   function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
 
- /* ---------------- CSS d’appoint (injection non destructive) ---------------- */
-(function injectP5CSS(){
-  var D=document;
-  if (D.getElementById('pt-p5-style')) return;
-  var s = D.createElement('style'); s.id='pt-p5-style';
-  s.textContent =
-    /* Hero : conteneur relatif + fondu en bas (au-dessus du bg) */
-    '#hero,.hero-full{position:relative}' +
-    '#hero .hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
-    'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg,#0a0f14) 100%);}' +
+  /* ---------------- CSS d’appoint (injection non destructive) ---------------- */
+  (function injectP5CSS(){
+    if (D.getElementById('pt-p5-style')) return;
+    var s = D.createElement('style'); s.id='pt-p5-style';
+    s.textContent =
+      /* Hero : conteneur relatif + fondu en bas (au-dessus du bg) */
+      '#hero,.hero-full{position:relative}' +
+      '#hero .hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;' +
+      'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg,#0a0f14) 100%);}' +
 
-    /* Logo hero : net au départ, rendu propre iOS */
-    '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
-    'will-change:transform,opacity;transform:translateZ(0);}' +
+      /* Logo hero : net au départ, rendu propre iOS */
+      '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;' +
+      'will-change:transform,opacity;transform:translateZ(0);}' +
 
-    /* Home : grille 3 colonnes */
-    '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
-    'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
+      /* Home : grille 3 colonnes */
+      '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
+      'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
 
-    '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer}' +
+      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer}' +
 
-    /* Bulle parfaitement circulaire + clipping sûr iOS */
-    '#view-home .brand__bubble{position:relative;display:block;width:clamp(96px,22vmin,140px);aspect-ratio:1/1;' +
-    'border-radius:50%;overflow:hidden;padding:0;background:rgba(255,255,255,.02);' +
-    'box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
-    'backdrop-filter:saturate(120%) blur(4px);-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white);}' +
+      /* Bulle parfaitement circulaire + clipping sûr iOS */
+      '#view-home .brand__bubble{position:relative;display:block;width:clamp(96px,22vmin,140px);aspect-ratio:1/1;' +
+      'border-radius:50%;overflow:hidden;padding:0;background:rgba(255,255,255,.02);' +
+      'box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
+      'backdrop-filter:saturate(120%) blur(4px);-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white);}' +
 
-    /* Logo = 100% de la bulle, zéro marge, pas d’ombre qui décale */
-    '#view-home .brand__logo{position:absolute;inset:0;display:block;width:100%;height:100%;' +
-    'max-width:none;max-height:none;margin:0;padding:0;border:0;filter:none;' +
-    'object-fit:cover;object-position:center;image-rendering:-webkit-optimize-contrast;}' +
+      /* Logo = 100% de la bulle, zéro marge, pas d’ombre qui décale */
+      '#view-home .brand__logo{position:absolute;inset:0;display:block;width:100%;height:100%;' +
+      'max-width:none;max-height:none;margin:0;padding:0;border:0;filter:none;' +
+      'object-fit:cover;object-position:center;image-rendering:-webkit-optimize-contrast;}' +
 
-    '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +
+      '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +
 
-    /* Douceur de scroll globale */
-    'html{scroll-behavior:smooth}body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}';
-  D.head.appendChild(s);
-})();
+      /* Douceur de scroll globale */
+      'html{scroll-behavior:smooth}body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}';
+    D.head.appendChild(s);
+  })();
 
-   
   /* ---------------- Menu (drawer) : toggle + auto-close ---------------- */
   function p5CloseDrawer(){
     try{
-      var body = D.body;
-      var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
-      var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+      var body   = D.body;
+      var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
+      var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
       var flags  = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
       var i;
-      if (body) for (i=0;i<flags.length;i++) rmClass(body, flags[i]);
+      if (body)   for (i=0;i<flags.length;i++) rmClass(body, flags[i]);
       if (drawer) for (i=0;i<flags.length;i++) rmClass(drawer, flags[i]);
       if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
-      var burger = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle');
+      var burger = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle');
       if (burger) burger.setAttribute('aria-expanded','false');
     }catch(_){}
   }
   function p5OpenDrawer(){
-    var body = D.body;
-    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
-    var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+    var body   = D.body;
+    var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
+    var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
     if (drawer) addClass(drawer,'open');
     if (body) addClass(body,'menu-open');
     if (overlay){ rmClass(overlay,'hidden'); overlay.style.display=''; }
-    var burger = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle');
+    var burger = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle');
     if (burger) burger.setAttribute('aria-expanded','true');
   }
   function wireDrawer(){
-    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
-    var toggle = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle') || qs('[data-menu-toggle]');
-    var backdrop = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop');
+    var drawer   = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
+    var toggle   = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle') || qs('[data-menu-toggle]');
+    var backdrop = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
 
     if (toggle && !toggle.__ptP5){
       toggle.__ptP5 = 1;
-      toggle.addEventListener('click', function(e){ if(e) e.preventDefault(); (hasClass(D.body,'menu-open')||hasClass(drawer,'open'))?p5CloseDrawer():p5OpenDrawer(); }, false);
-      toggle.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch'){ e.preventDefault(); (hasClass(D.body,'menu-open')||hasClass(drawer,'open'))?p5CloseDrawer():p5OpenDrawer(); } }, false);
+      var onclick = function(e){
+        if (e) e.preventDefault();
+        (hasClass(D.body,'menu-open')||hasClass(drawer,'open')) ? p5CloseDrawer() : p5OpenDrawer();
+      };
+      toggle.addEventListener('click', onclick, false);
+      toggle.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch'){ onclick(e); } }, false);
     }
     if (backdrop && !backdrop.__ptP5){
       backdrop.__ptP5 = 1;
@@ -2410,9 +2370,15 @@
   function go(dest){
     if (!dest) return;
     if (dest.indexOf('#/')===0){ location.hash = dest; return; }
-    if (dest === 'phone'){ try{ location.href='tel:'+onlyDigits(PHONE_E164); }catch(_){ W.open('tel:'+onlyDigits(PHONE_E164),'_self'); } return; }
+    if (dest === 'phone'){
+      try{ location.href='tel:'+onlyDigits(PHONE_E164); }
+      catch(_){ W.open('tel:'+onlyDigits(PHONE_E164),'_self'); }
+      return;
+    }
     if (dest==='wa' || dest==='whatsapp'){
-      var text = (typeof W.cartToWhatsAppText==='function' && (W.CART||[]).length) ? W.cartToWhatsAppText() : ('Bonjour, je souhaite un devis.\n\nLien: '+location.origin+location.pathname+'#/devis\n\nMerci.');
+      var text = (typeof W.cartToWhatsAppText==='function' && (W.CART||[]).length)
+        ? W.cartToWhatsAppText()
+        : ('Bonjour, je souhaite un devis.\n\nLien: '+location.origin+location.pathname+'#/devis\n\nMerci.');
       W.open('https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(text), '_blank', 'noopener');
     }
   }
@@ -2439,7 +2405,7 @@
 
   /* ---------------- Menu & Dock wiring ---------------- */
   function wireDrawerLinks(){
-    var drawer = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]');
+    var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
     if (!drawer) return;
     var items = qsa('a,button,[role="menuitem"]', drawer);
     for (var i=0;i<items.length;i++){
@@ -2474,46 +2440,45 @@
     }
     // Sécurité : IDs connus → data-route
     var map = { dockToolsBtn:'#/catalogue', dockCartBtn:'#/devis', dockAccountBtn:'#/compte', homeLink:'#/' };
-    for (var k in map){ var el = D.getElementById(k); if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', map[k]); attachNav(el); }
+    for (var k in map){
+      var el = D.getElementById(k);
+      if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', map[k]);
+      attachNav(el);
+    }
   }
 
   /* ---------------- FAB Compte (toujours présent) ---------------- */
   function ensureFabAccount(){
-  if (document.getElementById('fabAccount')) return;
-  // Si un bouton compte existe dans le dock, on ne crée PAS le FAB.
-  if (document.querySelector('#dock .dock__btn--account')) return;
+    if (D.getElementById('fabAccount')) return;
+    // Si un bouton compte existe dans le dock, on ne crée PAS le FAB.
+    if (D.querySelector('#dock .dock__btn--account')) return;
 
-  var btn = document.createElement('button');
-  btn.id = 'fabAccount';
-  btn.type = 'button';
-  btn.setAttribute('aria-label','Mon compte');
-  btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg><span>Compte</span>';
-  btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
-  document.body.appendChild(btn);
-}
+    var btn = D.createElement('button');
+    btn.id = 'fabAccount';
+    btn.type = 'button';
+    btn.setAttribute('aria-label','Mon compte');
+    btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg><span>Compte</span>';
+    btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
+    D.body.appendChild(btn);
+  }
+  // Si le dock a déjà un bouton Compte, on supprime un éventuel FAB existant
+  (function killFabIfDockHasAccount(){
+    var fab = D.getElementById('fabAccount');
+    if (fab && D.querySelector('#dock .dock__btn--account')) fab.remove();
+  })();
 
-// Si le dock a déjà un bouton Compte, on supprime un éventuel FAB existant
-(function killFabIfDockHasAccount(){
-  var fab = document.getElementById('fabAccount');
-  if (fab && document.querySelector('#dock .dock__btn--account')) fab.remove();
-})();
-   
   /* ---------------- Hero polish : assure le fade + rend net ---------------- */
   function polishHero(){
     var hero = qs('#hero'); if (!hero) return;
-    // injecte le fade si pas présent (sans toucher à l’anim existante)
     if (!qs('.hero-fade', hero)){
       var f = D.createElement('div'); f.className='hero-fade'; hero.appendChild(f);
     }
     var logo = qs('#heroLogo');
     if (logo){
-      // haute définition : si ton PNG existe en @2x, tu peux le setter ici si nécessaire
-      // (on laisse la source actuelle, mais on force un rendu net)
       logo.style.imageRendering = '-webkit-optimize-contrast';
       logo.style.backfaceVisibility = 'hidden';
       logo.style.webkitBackfaceVisibility = 'hidden';
       logo.style.transform = 'translateZ(0)';
-      // s’assurer du fade-in si la classe n’a pas été posée
       if (logo.complete) setTimeout(function(){ addClass(logo,'on'); }, 0);
       else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
     }
@@ -2560,210 +2525,210 @@
     try{
       var html = D.documentElement; if (html) html.style.scrollBehavior = 'smooth';
       if (D.body){
-        D.body.style.touchAction = 'pan-y';        // gestes verticaux natifs
+        D.body.style.touchAction = 'pan-y';
         D.body.style.webkitTapHighlightColor = 'transparent';
       }
     }catch(_){}
   })();
 
- /* =========================================================
-   1) HÉRO — overshoot doux + BLUR avant fade + retour fluide
-   • Base 1:1 (logo net) • Hystérésis (remonte = animation inverse)
-   • RAF TOUJOURS actif sur Home (pas d'IO gating)
-   • iOS : blur réduit (mais actif)
-========================================================= */
-(function heroEffectOvershoot(){
-  'use strict';
-  if (window.__ptHeroWired5) return; window.__ptHeroWired5 = 1;
+  /* =========================================================
+     HÉRO — overshoot doux + BLUR avant fade + retour fluide
+     • Base 1:1 (logo net) • Hystérésis (remonte = animation inverse)
+     • RAF actif uniquement sur Home
+  ========================================================== */
+  (function heroEffectOvershoot(){
+    'use strict';
+    if (window.__ptHeroWired5) return; window.__ptHeroWired5 = 1;
 
-  var W = window, D = document;
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
-  function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
+    var W = window, D = document;
+    function qs(s, r){ return (r||D).querySelector(s); }
+    function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
+    function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
 
-  var hero = D.getElementById('hero') || qs('.hero-full');
-  var logo = D.getElementById('heroLogo') || qs('.hero-logo');
-  if (!hero || !logo) return;
+    var hero = D.getElementById('hero') || qs('.hero-full');
+    var logo = D.getElementById('heroLogo') || qs('.hero-logo');
+    if (!hero || !logo) return;
 
-  /* CSS de secours (fondu bas) */
-  (function(){
-    if (D.getElementById('pt-hero-fade-css')) return;
-    var s = D.createElement('style'); s.id='pt-hero-fade-css';
-    s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
-                    'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
-    D.head.appendChild(s);
-  })();
-  if (!hero.querySelector('.hero-fade')){
-    var f = D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
-  }
-
-  /* Image: qualité + chemins inchangés */
-  try{
-    if (logo.tagName==='IMG'){
-      if (!logo.getAttribute('srcset')){
-        logo.setAttribute('srcset',
-          './icons/icon-180.png 180w,./icons/icon-192.png 192w,'+
-          './icons/icon-256.png 256w,./icons/icon-384.png 384w,./icons/icon-512.png 512w'
-        );
-      }
-      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
-      logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
-      logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
-    }
-    logo.style.willChange='transform,opacity,filter';
-    logo.style.backfaceVisibility='hidden';
-    logo.style.webkitBackfaceVisibility='hidden';
-    logo.style.transform='translateZ(0)';
-    logo.style.transformOrigin='50% 50%';
-    logo.style.filter='none';
-  }catch(_){}
-
-  /* Réduction d’animations */
-  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mqr && mqr.matches){
-    var t0='translate3d(0,0,0) scale(1)';
-    logo.style.transform=t0; logo.style.opacity='1'; logo.style.filter='none';
-    addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-    hero.style.zIndex=-1; hero.style.pointerEvents='none';
-    D.documentElement.style.setProperty('--listGap','0vh');
-    return;
-  }
-
-  /* Réglages (alignés avec ton CSS) */
-  var MAX_SCALE_M=11.0, MAX_SCALE_D=8.6;
-  var BASE_M=1.00, BASE_D=1.00;
-  var DIST_M=0.90, DIST_D=0.96;
-  var BLUR_START=0.22, BLUR_LEN=0.38;
-  var FADE_START=0.30, FADE_LEN=0.26;
-  var DONE_M=0.94, DONE_D=0.98;     // seuil “passe derrière”
-  var RETURN_M=0.90, RETURN_D=0.96; // seuil retour (remonte)
-  var GAP_M=12, GAP_D=16;
-
-  // iOS = blur réduit mais actif
-  var ua=(navigator.userAgent||'').toLowerCase();
-  var isIOS=/iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints>1);
-  var canFilter=(typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
-                ('filter' in (D.documentElement.style||{})) || ('webkitFilter' in (D.documentElement.style||{}));
-  var USE_BLUR = !!canFilter;
-  var BLUR_MAX_M = isIOS ? 6 : 10;
-  var BLUR_MAX_D = isIOS ? 5 : 8;
-
-  /* Helpers */
-  var mqMobile=W.matchMedia && W.matchMedia('(max-width:768px)');
-  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
-  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-  function scrollTop(){
-    return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
-           (D.scrollingElement && D.scrollingElement.scrollTop) ||
-           D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
-  }
-  function isHome(){ var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0); }
-
-  var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
-
-  function render(y){
-    var isM = mqMobile && mqMobile.matches;
-    var finPx = _vh * (isM?DIST_M:DIST_D) || 1;
-
-    var raw=y/finPx, p=clamp(raw,0,1), eased=easeOutCubic(p);
-
-    // Scale doux
-    var sProg=clamp(p*1.10,0,1), sEase=easeOutQuad(sProg);
-    var base=isM?BASE_M:BASE_D, sMax=isM?MAX_SCALE_M:MAX_SCALE_D;
-    var scale = base + (sMax - base) * sEase;
-
-    var tyPx = (isM?10:8)*(_vh/100)*eased;
-
-    // Blur avant fade
-    var blurMax=isM?BLUR_MAX_M:BLUR_MAX_D;
-    var blurP=clamp((raw - BLUR_START)/BLUR_LEN, 0, 1);
-    var blur = USE_BLUR ? (blurMax * (0.12 + 0.88*blurP)) : 0;
-
-    var fadeP=clamp((raw - FADE_START)/FADE_LEN, 0, 1);
-    var opacity = 1 - fadeP;
-
-    var t='translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform=t; logo.style.webkitTransform=t;
-    logo.style.opacity=opacity.toFixed(3);
-    logo.style.filter=(USE_BLUR && blur>0)?('blur('+blur.toFixed(2)+'px)'):'none';
-
-    // Espace au-dessus des bulles (Home)
-    var gap=Math.max(0,(1 - p)*(isM?GAP_M:GAP_D));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-    // Hystérésis : passe derrière / revient devant
-    var doneT=isM?DONE_M:DONE_D, backT=isM?RETURN_M:RETURN_D;
-    if (!heroPassed && raw>=doneT){
-      heroPassed=true;
-      addClass(D.body,'after-hero'); addClass(hero,'hero-out');
-      hero.style.zIndex=-1; hero.style.pointerEvents='none';
-      if (opacity<=0.02){ logo.style.opacity='0'; if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)'; }
-    } else if (heroPassed && raw<=backT){
-      heroPassed=false;
-      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-      hero.style.zIndex=''; hero.style.pointerEvents='';
+    /* CSS de secours (fondu bas) */
+    (function(){
+      if (D.getElementById('pt-hero-fade-css')) return;
+      var s = D.createElement('style'); s.id='pt-hero-fade-css';
+      s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
+                      'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
+      D.head.appendChild(s);
+    })();
+    if (!hero.querySelector('.hero-fade')){
+      var f = D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
     }
 
-    // Sécurité : tout en haut → état initial net
-    if (y<=1){
-      heroPassed=false;
-      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-      hero.style.zIndex=''; hero.style.pointerEvents='';
-      logo.style.transform='translate3d(0,0,0) scale(1)';
-      logo.style.opacity='1'; logo.style.filter='none';
-      D.documentElement.style.setProperty('--listGap', (isM?GAP_M:GAP_D)+'vh');
-    }
-  }
-
-  function tick(){
-    if (!running) return;
-    var y=scrollTop();
-    if (y!==prevY){ render(y); prevY=y; }
-    rafId=W.requestAnimationFrame(tick);
-  }
-  function startRAF(){
-    if (!isHome()) return stopRAF();
-    if (running) return;
-    running=true; prevY=-1; render(scrollTop());
-    rafId=W.requestAnimationFrame(tick);
-    // s’assure que les gestes remontent bien (pas de lock résiduel)
+    /* Image: qualité + chemins inchangés */
     try{
-      D.documentElement.style.overscrollBehaviorY='auto';
-      D.body.style.overscrollBehaviorY='auto';
-      D.body.style.touchAction='pan-y';
-      D.body.style.webkitOverflowScrolling='touch';
+      if (logo.tagName==='IMG'){
+        if (!logo.getAttribute('srcset')){
+          logo.setAttribute('srcset',
+            './icons/icon-180.png 180w,./icons/icon-192.png 192w,'+
+            './icons/icon-256.png 256w,./icons/icon-384.png 384w,./icons/icon-512.png 512w'
+          );
+        }
+        if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
+        logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
+        logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
+      }
+      logo.style.willChange='transform,opacity,filter';
+      logo.style.backfaceVisibility='hidden';
+      logo.style.webkitBackfaceVisibility='hidden';
+      logo.style.transform='translateZ(0)';
+      logo.style.transformOrigin='50% 50%';
+      logo.style.filter='none';
     }catch(_){}
-  }
-  function stopRAF(){
-    running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
-  }
 
-  // Révélation douce au chargement image
-  var reveal=function(){ try{ addClass(logo,'on'); }catch(_){} };
-  if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
+    /* Réduction d’animations */
+    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mqr && mqr.matches){
+      var t0='translate3d(0,0,0) scale(1)';
+      logo.style.transform=t0; logo.style.opacity='1'; logo.style.filter='none';
+      addClass(hero,'hero-out'); addClass(D.body,'after-hero');
+      hero.style.zIndex=-1; hero.style.pointerEvents='none';
+      D.documentElement.style.setProperty('--listGap','0vh');
+      return;
+    }
 
-  // Boot + évènements
-  var recalc=function(){ _vh=getVH(); if (running) render(scrollTop()); };
-  W.addEventListener('resize',recalc,{passive:true});
-  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-    W.visualViewport.addEventListener('resize',recalc,{passive:true});
-  }
-  W.addEventListener('orientationchange',recalc,true);
-  D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
-  W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
-  W.addEventListener('pagehide',function(){ stopRAF(); },true);
+    /* Réglages (alignés avec ton CSS) */
+    var MAX_SCALE_M=11.0, MAX_SCALE_D=8.6;
+    var BASE_M=1.00, BASE_D=1.00;
+    var DIST_M=0.90, DIST_D=0.96;
+    var BLUR_START=0.22, BLUR_LEN=0.38;
+    var FADE_START=0.30, FADE_LEN=0.26;
+    var DONE_M=0.94, DONE_D=0.98;     // seuil “passe derrière”
+    var RETURN_M=0.90, RETURN_D=0.96; // seuil retour (remonte)
+    var GAP_M=12, GAP_D=16;
 
-  W.addEventListener('hashchange',function(){
-    if (isHome()) startRAF(); else stopRAF();
-  },false);
+    // iOS = blur réduit mais actif
+    var ua=(navigator.userAgent||'').toLowerCase();
+    var isIOS=/iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints>1);
+    var canFilter=(typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
+                  ('filter' in (D.documentElement.style||{})) || ('webkitFilter' in (D.documentElement.style||{}));
+    var USE_BLUR = !!canFilter;
+    var BLUR_MAX_M = isIOS ? 6 : 10;
+    var BLUR_MAX_D = isIOS ? 5 : 8;
 
-  // Lancement (RAF TOUJOURS ACTIF sur Home)
-  if (isHome()) startRAF();
+    /* Helpers */
+    var mqMobile=W.matchMedia && W.matchMedia('(max-width:768px)');
+    function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
+    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+    function scrollTop(){
+      return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
+             (D.scrollingElement && D.scrollingElement.scrollTop) ||
+             D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
+    }
+    function isHome(){ var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0); }
+
+    var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
+
+    function render(y){
+      var isM = mqMobile && mqMobile.matches;
+      var finPx = _vh * (isM?DIST_M:DIST_D) || 1;
+
+      var raw=y/finPx, p=clamp(raw,0,1), eased=easeOutCubic(p);
+
+      // Scale doux
+      var sProg=clamp(p*1.10,0,1), sEase=easeOutQuad(sProg);
+      var base=isM?BASE_M:BASE_D, sMax=isM?MAX_SCALE_M:MAX_SCALE_D;
+      var scale = base + (sMax - base) * sEase;
+
+      var tyPx = (isM?10:8)*(_vh/100)*eased;
+
+      // Blur avant fade
+      var blurMax=isM?BLUR_MAX_M:BLUR_MAX_D;
+      var blurP=clamp((raw - BLUR_START)/BLUR_LEN, 0, 1);
+      var blur = USE_BLUR ? (blurMax * (0.12 + 0.88*blurP)) : 0;
+
+      var fadeP=clamp((raw - FADE_START)/FADE_LEN, 0, 1);
+      var opacity = 1 - fadeP;
+
+      var t='translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      logo.style.transform=t; logo.style.webkitTransform=t;
+      logo.style.opacity=opacity.toFixed(3);
+      logo.style.filter=(USE_BLUR && blur>0)?('blur('+blur.toFixed(2)+'px)'):'none';
+
+      // Espace au-dessus des bulles (Home)
+      var gap=Math.max(0,(1 - p)*(isM?GAP_M:GAP_D));
+      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+      // Hystérésis : passe derrière / revient devant
+      var doneT=isM?DONE_M:DONE_D, backT=isM?RETURN_M:RETURN_D;
+      if (!heroPassed && raw>=doneT){
+        heroPassed=true;
+        addClass(D.body,'after-hero'); addClass(hero,'hero-out');
+        hero.style.zIndex=-1; hero.style.pointerEvents='none';
+        if (opacity<=0.02){ logo.style.opacity='0'; if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)'; }
+      } else if (heroPassed && raw<=backT){
+        heroPassed=false;
+        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+        hero.style.zIndex=''; hero.style.pointerEvents='';
+      }
+
+      // Sécurité : tout en haut → état initial net
+      if (y<=1){
+        heroPassed=false;
+        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+        hero.style.zIndex=''; hero.style.pointerEvents='';
+        logo.style.transform='translate3d(0,0,0) scale(1)';
+        logo.style.opacity='1'; logo.style.filter='none';
+        D.documentElement.style.setProperty('--listGap', (isM?GAP_M:GAP_D)+'vh');
+      }
+    }
+
+    function tick(){
+      if (!running) return;
+      var y=scrollTop();
+      if (y!==prevY){ render(y); prevY=y; }
+      rafId=W.requestAnimationFrame(tick);
+    }
+    function startRAF(){
+      if (!isHome()) return stopRAF();
+      if (running) return;
+      running=true; prevY=-1; render(scrollTop());
+      rafId=W.requestAnimationFrame(tick);
+      try{
+        D.documentElement.style.overscrollBehaviorY='auto';
+        if (D.body){
+          D.body.style.overscrollBehaviorY='auto';
+          D.body.style.touchAction='pan-y';
+          D.body.style.webkitOverflowScrolling='touch';
+        }
+      }catch(_){}
+    }
+    function stopRAF(){
+      running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
+    }
+
+    // Révélation douce au chargement image
+    var reveal=function(){ try{ addClass(logo,'on'); }catch(_){} };
+    if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
+
+    // Boot + évènements
+    var recalc=function(){ _vh=getVH(); if (running) render(scrollTop()); };
+    W.addEventListener('resize',recalc,{passive:true});
+    if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+      W.visualViewport.addEventListener('resize',recalc,{passive:true});
+    }
+    W.addEventListener('orientationchange',recalc,true);
+    D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
+    W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
+    W.addEventListener('pagehide',function(){ stopRAF(); },true);
+
+    W.addEventListener('hashchange',function(){
+      if (isHome()) startRAF(); else stopRAF();
+    },false);
+
+    // Lancement
+    if (isHome()) startRAF();
+  })();
+
 })();
-
-
    /* =========================================================
    PARTIE 6 — B
    Menu latéral (gestes + inertie) • Nav a11y (focus H1) •
@@ -2785,6 +2750,7 @@
   /* =========================================================
      1) MENU latéral — inertie iOS + swipe to close
      • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
+     • ne force pas l’attribut [hidden] (évite conflits avec Part 5)
   ========================================================== */
   (function drawerGestures(){
     if (W.__ptDrawerGestures) return; W.__ptDrawerGestures = 1;
@@ -2800,8 +2766,7 @@
           drawer.style.touchAction = 'pan-y';
           drawer.style.webkitOverflowScrolling = 'touch';
         }
-        // empêche les scroll chainés quand le menu est ouvert
-        body.style.overscrollBehaviorY = 'contain';
+        if (body) body.style.overscrollBehaviorY = 'contain';
       }catch(_){}
     }
     function closeTuning(){
@@ -2810,25 +2775,22 @@
           drawer.style.touchAction = '';
           drawer.style.webkitOverflowScrolling = '';
         }
-        // rend le scroll normal partout (évite le “lock”)
-        body.style.overscrollBehaviorY = 'auto';
+        if (body) body.style.overscrollBehaviorY = 'auto';
       }catch(_){}
     }
 
     function isOpen(){
       return (drawer && (hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active'))) ||
-             hasClass(body,'menu-open');
+             (body && hasClass(body,'menu-open'));
     }
     function closeDrawer(){
       var flags = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
       var i;
-      for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
-      if (drawer){
-        for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
-        drawer.hidden = true; // compat index.html
-      }
+      if (body) for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
+      if (drawer) for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
       if (overlay){
-        addClass(overlay,'hidden'); overlay.style.display='none'; overlay.hidden = true;
+        addClass(overlay,'hidden');
+        overlay.style.display='none'; // on ne touche PAS à overlay.hidden pour laisser Part 5 rouvrir
       }
       if (burger) burger.setAttribute('aria-expanded','false');
       closeTuning();
@@ -2862,7 +2824,7 @@
     if (overlay && !overlay.__ptP6B){ overlay.__ptP6B = 1; overlay.addEventListener('click', closeDrawer, false); }
     // ESC ferme
     D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
-    // ouverture → tuning (le micro-script d’ouverture est dans l’index)
+    // ouverture → tuning (le micro-script d’ouverture est dans l’index / Part 5)
     if (burger && !burger.__ptP6B){
       burger.__ptP6B = 1;
       burger.addEventListener('click',     function(){ setTimeout(openTuning,0); }, false);
@@ -2931,7 +2893,6 @@
 
     var KEY = W.USER_KEY || 'pt_user_v1';
 
-    // Fallbacks si la Partie 3 n’a pas encore tout fourni
     if (typeof W.loadUser !== 'function'){
       W.loadUser = function(){
         try{
@@ -3024,4 +2985,4 @@
     if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', apply, false); else apply();
   })();
 
-})();  
+})();
