@@ -8,11 +8,15 @@
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
-  <!-- Couleurs système / PWA -->
+  <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="./styles.css" />
 
@@ -43,7 +47,7 @@
   </style>
 </head>
 
-<body>
+<body data-router-root>
   <a class="skip-link" href="#list">Aller au contenu</a>
 
   <!-- =================== TOPBAR =================== -->
@@ -53,7 +57,7 @@
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
-      <a id="homeLink" class="topbar-logo-link" href="#/">
+      <a id="homeLink" class="topbar-logo-link" href="#/" data-nav="/">
         <!-- Placeholder transparent : la vraie source est posée par le loader ci-dessous -->
         <img
           id="topbarLogo"
@@ -66,13 +70,13 @@
     </div>
 
     <div class="cta">
-      <a id="callBtn" class="btn btn-call" href="tel:+33774230195">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+      <a id="callBtn" class="btn btn-call" href="tel:+33774230195" data-action="call">📞 <strong>07 74 23 01 95</strong></a>
+      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp" data-action="open-wa">💬</a>
     </div>
   </header>
 
   <!-- =================== HÉRO =================== -->
-  <section id="hero" class="hero-full" aria-hidden="true">
+  <section id="hero" class="hero-full" aria-hidden="true" data-hero>
     <!-- Placeholder transparent : la vraie source + srcset sont résolus par le loader -->
     <img
       id="heroLogo"
@@ -222,35 +226,35 @@
   <main id="app" role="main">
 
     <!-- HOME -->
-    <section id="view-home" class="view">
+    <section id="view-home" class="view" data-route="/" role="region" aria-labelledby="home-h1">
       <div class="container">
-        <h1 tabindex="-1">Bienvenue</h1>
+        <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
         <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
-        <div id="brandGrid" class="brand-grid" role="list"></div>
+        <div id="brandGrid" class="brand-grid" role="list" data-bind="brands"></div>
       </div>
     </section>
 
     <!-- CATALOGUE -->
-    <section id="view-catalogue" class="view hidden">
+    <section id="view-catalogue" class="view hidden" data-route="/catalogue" role="region" aria-labelledby="catalogue-h1">
       <div class="container">
-        <h1 tabindex="-1">Catalogue</h1>
+        <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
 
         <div class="toolbar">
-          <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" />
-          <select id="tag" class="select" aria-label="Filtrer par catégorie">
+          <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
+          <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
             <option value="">Tous</option>
           </select>
         </div>
 
-        <div id="catList" class="cat-list" aria-label="Catégories"></div>
-        <div id="list" class="list" aria-live="polite" aria-busy="false"></div>
+        <div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
+        <div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
       </div>
     </section>
 
     <!-- PRODUIT (PDP) -->
-    <section id="view-produit" class="view hidden">
+    <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdp-h1">
       <div class="container pdp" id="pdp">
-        <a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>
+        <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
         <div class="pdp__grid">
           <div class="pdp__media">
@@ -258,45 +262,45 @@
           </div>
 
           <div class="pdp__info">
-            <h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>
+            <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag" id="pdp-h1">Produit</h1>
             <div id="pdpTag" class="pdp__tag"></div>
             <p id="pdpDesc" class="pdp__desc"></p>
             <ul id="pdpSpecs" class="pdp__specs"></ul>
 
             <div class="actions">
-              <button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>
-              <a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener">WhatsApp</a>
-              <button id="pdpShare" class="btn" type="button">Partager</button>
+              <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
+              <a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener" data-action="share-wa">WhatsApp</a>
+              <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
             </div>
           </div>
         </div>
 
-        <div class="pdp__related" id="pdpRelated"></div>
+        <div class="pdp__related" id="pdpRelated" data-bind="related"></div>
       </div>
     </section>
 
     <!-- DEVIS (panier) -->
-    <section id="view-devis" class="view hidden">
+    <section id="view-devis" class="view hidden" data-route="/devis" role="region" aria-labelledby="devis-h1">
       <div class="container">
-        <h1 tabindex="-1">Mon devis</h1>
+        <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
 
         <div class="card">
           <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
 
-          <div id="devisList" class="specs" style="display:grid;gap:.8rem"></div>
+          <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
 
           <div class="actions">
-            <button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>
-            <button id="devisClear" class="btn" type="button">Vider</button>
+            <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
+            <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- COMPTE -->
-    <section id="view-compte" class="view hidden">
+    <section id="view-compte" class="view hidden" data-route="/compte" role="region" aria-labelledby="compte-h1">
       <div class="container">
-        <h1 tabindex="-1">Mon compte</h1>
+        <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
 
         <div class="card">
           <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
@@ -309,7 +313,7 @@
                 <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
               </label>
               <div class="actions">
-                <button id="accSave" class="btn primary" type="button">Enregistrer</button>
+                <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
               </div>
             </form>
 
@@ -328,9 +332,9 @@
     </section>
 
     <!-- LOGIN -->
-    <section id="view-login" class="view hidden">
+    <section id="view-login" class="view hidden" data-route="/login" role="region" aria-labelledby="login-h1">
       <div class="container">
-        <h1 tabindex="-1">Connexion</h1>
+        <h1 id="login-h1" tabindex="-1">Connexion</h1>
         <div class="card">
           <div class="head"><h3 class="title">Se connecter</h3><span class="badge">Compte</span></div>
           <div class="specs" style="display:block">
@@ -342,8 +346,8 @@
                 <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
               </label>
               <div class="actions">
-                <button id="loginSubmit" class="btn primary" type="submit">Connexion</button>
-                <a class="btn" href="#/register">Créer un compte</a>
+                <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
+                <a class="btn" href="#/register" data-nav="/register">Créer un compte</a>
               </div>
             </form>
           </div>
@@ -352,9 +356,9 @@
     </section>
 
     <!-- REGISTER -->
-    <section id="view-register" class="view hidden">
+    <section id="view-register" class="view hidden" data-route="/register" role="region" aria-labelledby="register-h1">
       <div class="container">
-        <h1 tabindex="-1">Inscription</h1>
+        <h1 id="register-h1" tabindex="-1">Inscription</h1>
         <div class="card">
           <div class="head"><h3 class="title">Créer un compte</h3><span class="badge">Compte</span></div>
           <div class="specs" style="display:block">
@@ -369,8 +373,8 @@
                 <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
               </label>
               <div class="actions">
-                <button id="regSubmit" class="btn primary" type="submit">Créer le compte</button>
-                <a class="btn" href="#/login">J’ai déjà un compte</a>
+                <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
+                <a class="btn" href="#/login" data-nav="/login">J’ai déjà un compte</a>
               </div>
             </form>
           </div>
@@ -383,31 +387,31 @@
   <!-- =================== DOCK =================== -->
   <nav id="dock" class="dock" aria-label="Barre d’action">
     <div class="dock__shell">
-      <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" aria-label="Devis WhatsApp">🛠️</button>
-      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte">👤</button>
-      <button id="dockCartBtn"    class="dock__btn dock__btn--cart"    type="button" aria-label="Voir le panier">🛒</button>
+      <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" aria-label="Devis WhatsApp" data-nav="/catalogue">🛠️</button>
+      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte" data-nav="/compte">👤</button>
+      <button id="dockCartBtn"    class="dock__btn dock__btn--cart"    type="button" aria-label="Voir le panier" data-nav="/devis">🛒</button>
       <span id="dockCount" class="dock__badge" aria-label="Articles dans le panier">0</span>
-      <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
-      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+      <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler" data-action="call">📞</a>
+      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp" data-action="open-wa">💬</a>
     </div>
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
   <div id="menu-overlay" hidden></div>
   <aside id="side-menu" hidden>
-    <a class="app-link" href="#/">
+    <a class="app-link" href="#/" data-nav="/">
       <span class="app-bubble">🏠</span>
       <span class="app-label">Accueil</span>
     </a>
-    <a class="app-link" href="#/catalogue">
+    <a class="app-link" href="#/catalogue" data-nav="/catalogue">
       <span class="app-bubble">🧰</span>
       <span class="app-label">Catalogue</span>
     </a>
-    <a class="app-link" href="#/devis">
+    <a class="app-link" href="#/devis" data-nav="/devis">
       <span class="app-bubble">🛒</span>
       <span class="app-label">Devis</span>
     </a>
-    <a class="app-link" href="#/compte">
+    <a class="app-link" href="#/compte" data-nav="/compte">
       <span class="app-bubble">👤</span>
       <span class="app-label">Compte</span>
     </a>
@@ -415,10 +419,10 @@
 
   <!-- =================== TOASTS + A11y roots =================== -->
   <div id="toasts" aria-live="polite"></div>
-  <div id="sr-live" class="sr-only" aria-live="polite"></div>
+  <div id="sr-live" class="sr-only" aria-live="polite" role="status"></div>
 
   <!-- Bouton d’installation PWA -->
-  <button id="installBtn" class="chip hidden" hidden>Installer l’app</button>
+  <button id="installBtn" class="chip hidden" hidden data-action="install">Installer l’app</button>
 
   <noscript>
     <div style="padding:1rem;margin:1rem;border:1px solid #22303b;border-radius:8px;background:#121b24;color:#e6edf5">
