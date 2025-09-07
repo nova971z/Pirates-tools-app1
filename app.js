@@ -283,6 +283,12 @@ function ensureDockVisible(){
   if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
   if (!dock.classList.contains('dock--safe')) dock.classList.add('dock--safe');
 
+  // NEW: s’assure que #dock est directement sous <body> (évite les parents avec transform)
+  if (dock && dock.parentNode && dock.parentNode !== document.body){
+    try{ document.body.appendChild(dock); }catch(_){}
+  }
+
+
   // Force le "fixed bottom" sur tous les thèmes
   var cs = window.getComputedStyle ? getComputedStyle(dock) : { position: dock.style.position || '' };
   if (!cs || cs.position !== 'fixed'){
@@ -294,6 +300,9 @@ function ensureDockVisible(){
   }
   var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
   if (zi < 1000) dock.style.zIndex = 1000;
+  
+    // iOS Safari: si une transform est posée sur #dock, elle peut casser le fixed → on la neutralise
+  if (dock.style.transform && dock.style.transform !== 'none'){ dock.style.transform = 'none'; }
 }
 document.addEventListener('DOMContentLoaded', ensureDockVisible, false);
 window.addEventListener('hashchange', function(){
@@ -3607,11 +3616,22 @@ function onRegisterSubmit(e){
   }
 
   /* --------- Hero polish (no-op si P6A actif) --------- */
-  function polishHero(){
-    if (W.__ptHeroWired5 === 1 || W.__ptHeroAB === 1) return; // P6A/exp anim prend la main
+  function __isHomeRoute(){
+    var h=(location.hash||'');
+    if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
+    var p=(PT.parseHash?PT.parseHash():(W.parseHash?W.parseHash():{view:''}));
+    return (!p.view || p.view==='home' || p.view==='/');
+  }
+  function __updateHeroScope(){
     var hero = qs('#hero') || qs('.hero'); if (!hero) return;
-    if (!qs('.hero-fade', hero)){
-      var f = D.createElement('div'); f.className = 'hero-fade'; hero.appendChild(f);
+    var onHome = __isHomeRoute();
+    hero.style.display = onHome ? '' : 'none';
+  }
+
+    function polishHero(){
+    if (W.__ptHeroWired5 === 1 || W.__ptHeroAB === 1) return; // P6A prend la main si présent
+    __updateHeroScope();
+    var hero = qs('#hero') || qs('.hero'); if (!hero || !__isHomeRoute()) return;
     }
     var logo = qs('#heroLogo');
     if (logo){
@@ -3653,6 +3673,13 @@ function boot(){
   ensureBrandGridClass();
   updateDockCountLabel();
   updateNavActiveFromHash();
+  
+    // NEW: cache/affiche le hero selon la route (Accueil uniquement)
+  __updateHeroScope();
+  if (!W.__ptP5HeroScope){
+    W.__ptP5HeroScope=1;
+    W.addEventListener('hashchange', __updateHeroScope, false);
+  }
 
   // Force l’affichage et la sécurité du dock (z-index, classes)
   if (typeof ensureDockVisible === 'function') {
@@ -3758,10 +3785,15 @@ else boot();
 
     var LS_KEY = 'pt_ab_hero_v1';
     var variant = 'none';
-    var hero = $('#hero') || $('.hero') || $('.hero-full');
+        var hero = $('#hero') || $('.hero') || $('.hero-full');
     if (!hero) { exposeAPI(); return; }
-var homeView = document.getElementById('view-home');
-if (!homeView || !homeView.contains(hero)) { exposeAPI(); return; }
+    var __isHome = (function(){
+      var h=(location.hash||'');
+      if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
+      var p=(window.parseHash?window.parseHash():{view:''});
+      return (!p.view || p.view==='home' || p.view==='/');
+    })();
+    if (!__isHome) { exposeAPI(); return; }
     // Bucket déterministe
     try {
       variant = localStorage.getItem(LS_KEY) || '';
@@ -3774,6 +3806,12 @@ if (!homeView || !homeView.contains(hero)) { exposeAPI(); return; }
         try { localStorage.setItem(LS_KEY, variant); } catch (_){}
       }
     } catch (_){ variant = 'A'; }
+    
+        // FORCE: animation du logo (variante B) si demandé
+    if (window.HERO_VARIANT === 'B' || window.FORCE_ANIM === true) {
+      variant = 'B';
+      try{ localStorage.setItem(LS_KEY, 'B'); }catch(_){}
+    }
 
     // Visuels : passer via PT.setSafeImg si dispo
     (function secureHeroMedia(){
