@@ -2459,227 +2459,200 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }catch(_){}
   })();
 
-  /* =========================================================
-     HÉRO — overshoot doux + base 1:1 + retour + blur fiable
-     - Blur avant fade (borne iOS, -webkit-filter inclus)
-     - Rejoue quand on remonte (hystérésis + sentinelle near-top)
-     - RAF actif uniquement sur la Home & quand visible
-  ========================================================== */
-  (function heroEffectOvershoot(){
-    if (W.__ptHeroWired4) return; W.__ptHeroWired4 = 1;
+ /* =========================================================
+   1) HÉRO — overshoot doux + BLUR avant fade
+   • Base 1:1 (logo net) • Hystérésis (remonte = animation inverse)
+   • RAF TOUJOURS actif sur Home (pas d’IO gating) → plus de blocage
+   • iOS : blur réduit (mais actif)
+========================================================= */
+(function heroEffectOvershoot(){
+  'use strict';
+  if (window.__ptHeroWired4) return; window.__ptHeroWired4 = 1;
 
-    function qs(s, r){ return (r||D).querySelector(s); }
-    function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
-    function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
+  var W = window, D = document;
+  function qs(s, r){ return (r||D).querySelector(s); }
+  function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
+  function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
 
-    var hero = D.getElementById('hero') || qs('.hero-full');
-    var logo = D.getElementById('heroLogo') || qs('.hero-logo');
-    if (!hero || !logo) return;
+  var hero = D.getElementById('hero') || qs('.hero-full');
+  var logo = D.getElementById('heroLogo') || qs('.hero-logo');
+  if (!hero || !logo) return;
 
-    /* CSS de secours pour le voile bas du héro (au cas où la CSS manque) */
-    (function(){
-      if (D.getElementById('pt-hero-fade-css')) return;
-      var s = D.createElement('style'); s.id='pt-hero-fade-css';
-      s.textContent =
-        '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
-        'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
-      D.head.appendChild(s);
-    })();
-
-    /* Image : qualité + chemins conservés */
-    try{
-      if (logo.tagName === 'IMG'){
-        if (!logo.getAttribute('srcset')){
-          logo.setAttribute('srcset',
-            './icons/icon-180.png 180w,'+
-            './icons/icon-192.png 192w,'+
-            './icons/icon-256.png 256w,'+
-            './icons/icon-384.png 384w,'+
-            './icons/icon-512.png 512w'
-          );
-        }
-        if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
-        logo.decoding = 'async'; logo.loading = 'eager'; logo.referrerPolicy = 'no-referrer';
-        logo.onerror = function(){ this.onerror=null; this.src = (W.IMG_FALLBACK || './images/pirates-tools-logo.png?v=7'); };
-      }
-      logo.style.willChange = 'transform,opacity,filter';
-      logo.style.backfaceVisibility = 'hidden';
-      logo.style.webkitBackfaceVisibility = 'hidden';
-      logo.style.transform = 'translateZ(0)';
-      logo.style.transformOrigin = '50% 50%';
-      logo.style.filter = 'none';
-      logo.style.webkitFilter = 'none';
-      logo.style.opacity = '1';
-    }catch(_){}
-
-    /* Ajoute le voile si manquant */
-    if (!hero.querySelector('.hero-fade')){
-      var f = D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
-    }
-
-    /* Accessibilité : Reduced motion => pas d’effet, état propre */
-    var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mqr && mqr.matches){
-      var t0='translate3d(0,0,0) scale(1)';
-      logo.style.transform=t0; logo.style.webkitTransform=t0;
-      logo.style.opacity='1'; logo.style.filter='none'; logo.style.webkitFilter='none';
-      addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-      hero.style.zIndex=-1; hero.style.pointerEvents='none';
-      D.documentElement.style.setProperty('--listGap','0vh');
-      return;
-    }
-
-    /* ----- Réglages harmonisés ----- */
-    var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;
-    var BASE_M      = 1.00, BASE_D      = 1.00;
-    var DIST_M      = 0.90, DIST_D      = 0.96;
-    var BLUR_START  = 0.22, BLUR_LEN    = 0.38;
-    var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;
-    var BLUR_MAX_IOS= 5.5;                    // borne iOS pour perf
-    var FADE_START  = 0.30, FADE_LEN    = 0.26;
-    var DONE_M      = 0.94, DONE_D      = 0.98; // seuil “passe derrière”
-    var RETURN_M    = 0.90, RETURN_D    = 0.96; // seuil retour (rejoue)
-    var GAP_M       = 12,   GAP_D       = 16;   // vh au-dessus des bulles
-    var ARM_TOP_PX  = 140;                      // relance près du haut
-
-    /* Détection iOS + support filter */
-    var ua = (navigator.userAgent||'').toLowerCase();
-    var isIOS = /iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints>1);
-    var canFilter = (typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
-                    ('filter' in (D.documentElement.style||{})) || ('webkitFilter' in (D.documentElement.style||{}));
-    var USE_BLUR = !!canFilter;
-
-    /* Helpers */
-    var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
-    function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
-    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-    function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
-    function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-    function scrollTop(){
-      return (typeof W.pageYOffset==='number' ? W.pageYOffset : 0) ||
-             (D.scrollingElement && D.scrollingElement.scrollTop) ||
-             D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
-    }
-    function isHome(){
-      var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0);
-    }
-
-    /* État / RAF */
-    var _vh=getVH(), prevY=-1, rafId=0, io=null, running=false, heroPassed=false;
-
-    function render(y){
-      var isM = mqMobile && mqMobile.matches;
-      var finPx = _vh * (isM ? DIST_M : DIST_D) || 1;
-
-      var raw = y / finPx;
-      var p   = clamp(raw, 0, 1);
-      var eased = easeOutCubic(p);
-
-      // Scale doux (pas d’overshoot visuel)
-      var sProg = clamp(p*1.10, 0, 1);
-      var sEase = easeOutQuad(sProg);
-      var base  = isM ? BASE_M : BASE_D;
-      var sMax  = isM ? MAX_SCALE_M : MAX_SCALE_D;
-      var scale = base + (sMax - base) * sEase;
-
-      var tyPx  = (isM?10:8) * (_vh/100) * eased;
-
-      // Blur avant fade (borne iOS)
-      var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
-      if (isIOS) blurMax = Math.min(blurMax, BLUR_MAX_IOS);
-      var blurP   = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
-      var blur    = USE_BLUR ? (blurMax * (0.10 + 0.90*blurP)) : 0;
-
-      // Fade
-      var fadeP   = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
-      var opacity = 1 - fadeP;
-
-      // Applique
-      var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-      var blurCss = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
-      logo.style.transform = t; logo.style.webkitTransform = t;
-      logo.style.opacity   = opacity.toFixed(3);
-      logo.style.filter    = blurCss; logo.style.webkitFilter = blurCss;
-
-      // Espace au-dessus des bulles
-      var gap = Math.max(0, (1 - p) * (isM ? GAP_M : GAP_D));
-      D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
-
-      // Hystérésis : passe derrière / revient devant
-      var doneT = isM ? DONE_M   : DONE_D;
-      var backT = isM ? RETURN_M : RETURN_D;
-
-      if (!heroPassed && raw >= doneT){
-        heroPassed = true;
-        addClass(D.body,'after-hero'); addClass(hero,'hero-out');
-        hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
-        if (opacity <= 0.02){
-          logo.style.opacity='0';
-          if (USE_BLUR){ logo.style.filter='blur('+blurMax+'px)'; logo.style.webkitFilter='blur('+blurMax+'px)'; }
-        }
-      } else if (heroPassed && raw <= backT){
-        heroPassed = false;
-        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-        hero.style.zIndex=''; hero.style.pointerEvents='';
-      }
-    }
-
-    function tick(){
-      if (!running) return;
-      var y = scrollTop();
-      if (y !== prevY){ render(y); prevY = y; }
-      rafId = W.requestAnimationFrame(tick);
-    }
-    function startRAF(){
-      if (running) return;
-      running = true; prevY = -1; render(scrollTop());
-      rafId = W.requestAnimationFrame(tick);
-    }
-    function stopRAF(){
-      running = false;
-      if (rafId){ W.cancelAnimationFrame(rafId); rafId = 0; }
-    }
-
-    // Révélation douce quand l’image est prête
-    var reveal = function(){ try{ addClass(logo,'on'); }catch(_){ } };
-    if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load', reveal, { once:true });
-
-    // Démarrage conditionnel + relance “near top”
-    function applyRunState(){
-      if (!isHome()){ stopRAF(); return; }
-      if ('IntersectionObserver' in W){
-        if (io) io.disconnect();
-        io = new IntersectionObserver(function(entries){
-          var e = entries && entries[0];
-          if (e && e.isIntersecting) startRAF(); else stopRAF();
-        }, {root:null,threshold:0});
-        io.observe(hero);
-      } else {
-        startRAF();
-      }
-    }
-    function nearTopArmer(){ if (isHome() && scrollTop() <= ARM_TOP_PX) startRAF(); }
-
-    // Boot + events
-    var _vh = getVH();
-    function recalc(){ _vh = getVH(); if (running) render(scrollTop()); }
-    W.addEventListener('resize',            recalc, { passive:true });
-    if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-      W.visualViewport.addEventListener('resize', recalc, { passive:true });
-    }
-    W.addEventListener('orientationchange', recalc, true);
-    D.addEventListener('visibilitychange',  function(){ if(!D.hidden) recalc(); }, true);
-    W.addEventListener('pageshow',          function(e){ if (e && e.persisted) recalc(); }, true);
-    W.addEventListener('pagehide',          function(){ stopRAF(); }, true);
-    W.addEventListener('hashchange',        function(){ setTimeout(applyRunState,0); }, false);
-    W.addEventListener('scroll',            nearTopArmer, { passive:true });
-
-    applyRunState();
+  /* CSS de secours (fondu bas) */
+  (function(){
+    if (D.getElementById('pt-hero-fade-css')) return;
+    var s = D.createElement('style'); s.id='pt-hero-fade-css';
+    s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
+                    'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
+    D.head.appendChild(s);
   })();
+  if (!hero.querySelector('.hero-fade')){
+    var f = D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
+  }
 
-})(); 
+  /* Image: qualité + chemins inchangés */
+  try{
+    if (logo.tagName==='IMG'){
+      if (!logo.getAttribute('srcset')){
+        logo.setAttribute('srcset',
+          './icons/icon-180.png 180w,./icons/icon-192.png 192w,'+
+          './icons/icon-256.png 256w,./icons/icon-384.png 384w,./icons/icon-512.png 512w'
+        );
+      }
+      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
+      logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
+      logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
+    }
+    logo.style.willChange='transform,opacity,filter';
+    logo.style.backfaceVisibility='hidden';
+    logo.style.webkitBackfaceVisibility='hidden';
+    logo.style.transform='translateZ(0)';
+    logo.style.transformOrigin='50% 50%';
+    logo.style.filter='none';
+  }catch(_){}
 
-/* =========================================================
+  /* Réduction d’animations */
+  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mqr && mqr.matches){
+    var t0='translate3d(0,0,0) scale(1)';
+    logo.style.transform=t0; logo.style.opacity='1'; logo.style.filter='none';
+    addClass(hero,'hero-out'); addClass(D.body,'after-hero');
+    hero.style.zIndex=-1; hero.style.pointerEvents='none';
+    D.documentElement.style.setProperty('--listGap','0vh');
+    return;
+  }
+
+  /* Réglages */
+  var MAX_SCALE_M=11.0, MAX_SCALE_D=8.6;
+  var BASE_M=1.00, BASE_D=1.00;
+  var DIST_M=0.90, DIST_D=0.96;
+  var BLUR_START=0.22, BLUR_LEN=0.38;
+  var FADE_START=0.30, FADE_LEN=0.26;
+  var DONE_M=0.94, DONE_D=0.98;   // seuil “passe derrière”
+  var RETURN_M=0.90, RETURN_D=0.96; // seuil retour (remonte)
+  var GAP_M=12, GAP_D=16;
+
+  // iOS = blur réduit mais actif
+  var ua=(navigator.userAgent||'').toLowerCase();
+  var isIOS=/iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints>1);
+  var canFilter=(typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
+                ('filter' in (D.documentElement.style||{})) || ('webkitFilter' in (D.documentElement.style||{}));
+  var USE_BLUR = !!canFilter;
+  var BLUR_MAX_M = isIOS ? 6 : 10;
+  var BLUR_MAX_D = isIOS ? 5 : 8;
+
+  /* Helpers */
+  var mqMobile=W.matchMedia && W.matchMedia('(max-width:768px)');
+  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
+  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
+  function scrollTop(){
+    return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
+           (D.scrollingElement && D.scrollingElement.scrollTop) ||
+           D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
+  }
+  function isHome(){ var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0); }
+
+  var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
+
+  function render(y){
+    var isM=mqMobile && mqMobile.matches;
+    var finPx=_vh * (isM?DIST_M:DIST_D) || 1;
+
+    var raw=y/finPx, p=clamp(raw,0,1), eased=easeOutCubic(p);
+
+    // Scale doux
+    var sProg=clamp(p*1.10,0,1), sEase=easeOutQuad(sProg);
+    var base=isM?BASE_M:BASE_D, sMax=isM?MAX_SCALE_M:MAX_SCALE_D;
+    var scale = base + (sMax - base) * sEase;
+
+    var tyPx = (isM?10:8)*(_vh/100)*eased;
+
+    // Blur avant fade
+    var blurMax=isM?BLUR_MAX_M:BLUR_MAX_D;
+    var blurP=clamp((raw - BLUR_START)/BLUR_LEN, 0, 1);
+    var blur = USE_BLUR ? (blurMax * blurP) : 0;
+
+    var fadeP=clamp((raw - FADE_START)/FADE_LEN, 0, 1);
+    var opacity = 1 - fadeP;
+
+    var t='translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+    logo.style.transform=t; logo.style.webkitTransform=t;
+    logo.style.opacity=opacity.toFixed(3);
+    logo.style.filter=(USE_BLUR && blur>0)?('blur('+blur.toFixed(2)+'px)'):'none';
+
+    // Espace au-dessus des bulles (Home)
+    var gap=Math.max(0,(1 - p)*(isM?GAP_M:GAP_D));
+    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+
+    // Hystérésis : passe derrière / revient devant
+    var doneT=isM?DONE_M:DONE_D, backT=isM?RETURN_M:RETURN_D;
+    if (!heroPassed && raw>=doneT){
+      heroPassed=true;
+      addClass(D.body,'after-hero'); addClass(hero,'hero-out');
+      hero.style.zIndex=-1; hero.style.pointerEvents='none';
+      if (opacity<=0.02){ logo.style.opacity='0'; if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)'; }
+    } else if (heroPassed && raw<=backT){
+      heroPassed=false;
+      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+      hero.style.zIndex=''; hero.style.pointerEvents='';
+    }
+
+    // Sécurité : tout en haut → état initial garanti
+    if (y<=1){
+      heroPassed=false;
+      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+      hero.style.zIndex=''; hero.style.pointerEvents='';
+      logo.style.transform='translate3d(0,0,0) scale(1)';
+      logo.style.opacity='1'; logo.style.filter='none';
+    }
+  }
+
+  function tick(){
+    if (!running) return;
+    var y=scrollTop();
+    if (y!==prevY){ render(y); prevY=y; }
+    rafId=W.requestAnimationFrame(tick);
+  }
+  function startRAF(){
+    if (!isHome()) return stopRAF();
+    if (running) return;
+    running=true; prevY=-1; render(scrollTop());
+    rafId=W.requestAnimationFrame(tick);
+    // s’assure que les gestes remontent bien (pas de lock)
+    try{ D.body.style.overscrollBehaviorY=''; }catch(_){}
+  }
+  function stopRAF(){
+    running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
+  }
+
+  // Révélation douce au chargement image
+  var reveal=function(){ try{ addClass(logo,'on'); }catch(_){} };
+  if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
+
+  // Boot + évènements
+  var recalc=function(){ _vh=getVH(); if (running) render(scrollTop()); };
+  W.addEventListener('resize',recalc,{passive:true});
+  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+    W.visualViewport.addEventListener('resize',recalc,{passive:true});
+  }
+  W.addEventListener('orientationchange',recalc,true);
+  D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
+  W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
+  W.addEventListener('pagehide',function(){ stopRAF(); },true);
+
+  W.addEventListener('hashchange',function(){
+    // On relance/arrête selon la vue
+    if (isHome()) startRAF(); else stopRAF();
+  },false);
+
+  // Lancement (RAF TOUJOURS ACTIF sur Home)
+  if (isHome()) startRAF();
+})();
+   
+   
+   /* =========================================================
    PARTIE 6 — B
    Menu latéral (gestes + inertie) • Nav a11y (focus H1) •
    Fallback compte • FAB Compte (visible partout sauf #/compte)
