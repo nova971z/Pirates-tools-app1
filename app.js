@@ -2450,9 +2450,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   /* ---- Scroll fluide & gestes : presets sûrs ---- */
   (function ensureSmoothScroll(){
     try{
-      // active le scroll fluide même si la CSS est manquante
       var html = D.documentElement; if (html) html.style.scrollBehavior = 'smooth';
-      // permet le geste vertical natif partout
       if (D.body) D.body.style.touchAction = 'pan-y';
     }catch(_){}
   })();
@@ -2472,17 +2470,12 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
   /* ---------------- Helpers ---------------- */
   function qs(s, r){ return (r||D).querySelector(s); }
-  function qsa(s, r){ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }
   function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return !!(el && el.classList && el.classList.contains(c)); }
 
   /* =========================================================
-     1) HÉRO — overshoot doux + base 1:1 + perf mobile
-     - Logo net au départ
-     - Blur allégé et désactivé sur iOS/iPadOS
-     - RAF actif seulement quand le héros est visible & sur la Home
-     - **Hystérésis** pour rejouer l’animation quand on remonte
+     1) HÉRO — overshoot doux + base 1:1 + perf mobile + retour en arrière
   ========================================================== */
   (function heroEffectOvershoot(){
     'use strict';
@@ -2529,6 +2522,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       logo.style.transform = 'translateZ(0)';
       logo.style.transformOrigin = '50% 50%';
       logo.style.filter = 'none';
+      logo.style.webkitFilter = 'none';
       logo.style.opacity = '1';
     }catch(_){}
 
@@ -2541,10 +2535,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
     if (mqr && mqr.matches){
       var t0 = 'translate3d(0,0,0) scale(1)';
-      logo.style.transform = t0;
-      logo.style.webkitTransform = t0;
-      logo.style.opacity = '1';
-      logo.style.filter = 'none';
+      logo.style.transform = t0; logo.style.webkitTransform = t0;
+      logo.style.opacity = '1'; logo.style.filter = 'none'; logo.style.webkitFilter = 'none';
       try{ addClass(logo,'on'); }catch(_){}
       addClass(hero,'hero-out'); addClass(D.body,'after-hero');
       hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
@@ -2553,24 +2545,24 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }
 
     /* Réglages (base 1:1) */
-    var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;  // zoom final
-    var BASE_M      = 1.00, BASE_D      = 1.00;  // logo net au départ
-    var DIST_M      = 0.90, DIST_D      = 0.96;  // disparition assez rapide
-    var BLUR_START  = 0.22, BLUR_LEN    = 0.38;  // blur avant fade
-    var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;     // blur allégé (perf)
-    var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fade court
-    var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière tôt
-    // -------- Hystérésis pour rejouer l'anim en remontant --------
-    var RETURN_M    = 0.90, RETURN_D    = 0.96;  // seuil de retour (< DONE_*)
-    var GAP_M       = 12,   GAP_D       = 16;    // espace au-dessus des bulles
+    var MAX_SCALE_M = 11.0, MAX_SCALE_D = 8.6;
+    var BASE_M      = 1.00, BASE_D      = 1.00;
+    var DIST_M      = 0.90, DIST_D      = 0.96;
+    var BLUR_START  = 0.22, BLUR_LEN    = 0.38;
+    var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;
+    var BLUR_MAX_IOS= 5.5;  /* flou raisonnable sur iOS */
+    var FADE_START  = 0.30, FADE_LEN    = 0.26;
+    var DONE_M      = 0.94, DONE_D      = 0.98;
+    var RETURN_M    = 0.90, RETURN_D    = 0.96;  // rejoue en remontant
+    var GAP_M       = 12,   GAP_D       = 16;
 
-    /* iOS / iPadOS : blur coûte cher → on le coupe */
+    /* iOS / iPadOS : on garde un flou léger au lieu de couper */
     var ua = (navigator.userAgent || '').toLowerCase();
     var isIOS = /iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints > 1);
     var canFilter = (typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
                     ('filter' in (D.documentElement && D.documentElement.style || {})) ||
                     ('webkitFilter' in (D.documentElement && D.documentElement.style || {}));
-    var USE_BLUR = !isIOS && !!canFilter;
+    var USE_BLUR = !!canFilter; // ≠ d'avant : on n’éteint plus sur iOS
 
     /* Helpers */
     var mqMobile = W.matchMedia && W.matchMedia('(max-width: 768px)');
@@ -2589,7 +2581,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }
 
     var _vh = getVH(), prevY = -1, rafId = 0, io = null, running = false;
-    var heroPassed = false; // état "derrière"
+    var heroPassed = false;
+    var ARM_TOP_PX = 140; // déclencheur “near top” pour relancer le RAF
 
     function render(y){
       var isM   = mqMobile && mqMobile.matches;
@@ -2608,25 +2601,28 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
       var tyPx  = (isM ? 10 : 8) * (_vh / 100) * eased;
 
-      /* BLUR avant FADE (coupé sur iOS) */
+      /* BLUR avant FADE (avec borne iOS) */
       var blurMax = isM ? BLUR_MAX_M : BLUR_MAX_D;
+      if (isIOS) blurMax = Math.min(blurMax, BLUR_MAX_IOS);
       var blurP   = clamp((raw - BLUR_START) / BLUR_LEN, 0, 1);
-      var blur    = USE_BLUR ? (blurMax * blurP) : 0;
+      var blur    = USE_BLUR ? (blurMax * (0.10 + 0.90*blurP)) : 0;
 
       var fadeP   = clamp((raw - FADE_START) / FADE_LEN, 0, 1);
       var opacity = 1 - fadeP;
 
       var t = 'translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
+      var blurCss = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
       logo.style.transform       = t;
       logo.style.webkitTransform = t;
       logo.style.opacity         = opacity.toFixed(3);
-      logo.style.filter          = (USE_BLUR && blur>0) ? ('blur('+blur.toFixed(2)+'px)') : 'none';
+      logo.style.filter          = blurCss;
+      logo.style.webkitFilter    = blurCss;
 
       /* Espace au-dessus de la grille d’accueil */
       var gap = Math.max(0, (1 - p) * (isM ? GAP_M : GAP_D));
       D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-      /* --- Hystérésis : passe derrière / revient devant --- */
+      /* Hystérésis : passe derrière / revient devant */
       var doneT = isM ? DONE_M   : DONE_D;
       var backT = isM ? RETURN_M : RETURN_D;
 
@@ -2638,7 +2634,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
         hero.style.pointerEvents = 'none';
         if (opacity <= 0.02){
           logo.style.opacity = '0';
-          if (USE_BLUR) logo.style.filter = 'blur(' + blurMax + 'px)';
+          if (USE_BLUR) { logo.style.filter = 'blur(' + blurMax + 'px)'; logo.style.webkitFilter = 'blur(' + blurMax + 'px)'; }
         }
       } else if (heroPassed && raw <= backT){
         heroPassed = false;
@@ -2670,6 +2666,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     if (logo.complete) setTimeout(reveal,0);
     else logo.addEventListener('load', reveal, { once:true });
 
+    /* Démarrage conditionnel + relance “near top” */
     function applyRunState(){
       if (!isHome()){ stopRAF(); return; }
       if ('IntersectionObserver' in W){
@@ -2683,6 +2680,11 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
         startRAF();
       }
     }
+    function nearTopArmer(){
+      // Si on remonte proche du haut, on relance le RAF pour rejouer l’anim
+      if (!isHome()) return;
+      if (scrollTop() <= ARM_TOP_PX) startRAF();
+    }
 
     /* Boot + évènements */
     var recalc = function(){ _vh = getVH(); if (running) render(scrollTop()); };
@@ -2695,13 +2697,13 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     W.addEventListener('pageshow',          function(e){ if (e && e.persisted) recalc(); }, true);
     W.addEventListener('pagehide',          function(){ stopRAF(); }, true);
     W.addEventListener('hashchange',        function(){ setTimeout(applyRunState,0); }, false);
+    W.addEventListener('scroll',            nearTopArmer, { passive:true });
 
     applyRunState();
   })();
 
   /* =========================================================
      2) MENU latéral — inertie iOS + swipe to close
-     • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
   ========================================================== */
   (function drawerGestures(){
     if (W.__ptDrawerGestures) return; W.__ptDrawerGestures = 1;
