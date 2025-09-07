@@ -291,7 +291,7 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       flex:      { label:'FLEX',      logo: url('flex.png')      },
       wera:      { label:'Wera',      logo: url('wera.png')      },
       stanley:   { label:'Stanley',   logo: url('stanley.png')   },
-      facom:     { label:'Facom',     logo: url('facom.jpg')     } // vérifier l’asset .jpg/.png
+      facom:     { label:'Facom',     logo: url('facom.png')     } // vérifier l’asset .jpg/.png
     };
   })();
 
