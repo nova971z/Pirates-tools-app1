@@ -2872,19 +2872,22 @@
 
 
 function renderCompteRoute(){
-  if (window.PT && window.PT.auth && !window.PT.auth.isLoggedIn()){
+  // Si l’auth locale existe et que l’utilisateur n’est pas connecté → redirige vers /login
+  if (window.PT && window.PT.auth && typeof window.PT.auth.isLoggedIn === 'function' && !window.PT.auth.isLoggedIn()){
     location.hash = '#/login';
     return;
   }
-  if (PT && typeof PT.handleRouteAccount==='function'){ try{ PT.handleRouteAccount(); return; }catch(_){ } }
-  window.showView('compte'); updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' }); window.focusView('compte');
-}
-   
-    // Fallback minimal si P3 absent
-    W.showView('compte');
-    updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' });
-    W.focusView('compte');
+
+  // Si la PARTIE 3 est présente, on lui délègue le rendu
+  if (PT && typeof PT.handleRouteAccount === 'function'){
+    try { PT.handleRouteAccount(); return; } catch(_){}
   }
+
+  // Fallback minimal si P3 est absente
+  W.showView('compte');
+  updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' });
+  W.focusView('compte');
+}
 
   /* ====== Router principal (unique) ====== */
   function route(){
