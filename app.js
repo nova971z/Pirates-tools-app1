@@ -126,13 +126,13 @@
       img.crossOrigin = 'anonymous';
       img.alt = alt || '';
       img.onerror = function(){ img.onerror=null; img.src = window.IMG_FALLBACK; };
-      try{
+             try{
         var s = String(src||'');
-        if (/^(data:|blob:|about:|javascript:)/i.test(s)){
+        if (/^(data:|blob:|about:)/i.test(s)){
           img.src = s || window.IMG_FALLBACK;
         }else{
-          var u = (/^https?:/i.test(s) || /^\/\//.test(s)) ? new URL(s, location.href) : new URL(s, window.PUBLIC_BASE);
-          if (u.protocol === 'http:') u.protocol = 'https:';
+          var u = (/^https?:/i.test(s) || /^\/\//.test(s)) ? new URL(s, location.href) : new URL(s, window.PUBLIC_BASE);       
+           if (u.protocol === 'http:') u.protocol = 'https:';
           img.src = u.href;
         }
       }catch(_){
@@ -169,8 +169,16 @@
         var el = document.getElementById('view-'+ids[i]);
         if (el) el.classList.add('hidden');
       }
-      var want = document.getElementById('view-'+key);
+            var want = document.getElementById('view-'+key);
       if (want) want.classList.remove('hidden');
+
+      // new: unique #main-content target for skip link
+      try{
+        var olds = document.querySelectorAll('#main, #main-content');
+        for (var j=0;j<olds.length;j++){ olds[j].id = ''; }
+        var target = want ? (want.querySelector('.container') || want) : null;
+        if (target) target.id = 'main-content';
+      }catch(_){}
     };
   }
   if (typeof window.focusView !== 'function'){
@@ -194,9 +202,9 @@
     return v;
   }
   if (!document.getElementById('skip-content')){
-    var sk = document.createElement('a');
+        var sk = document.createElement('a');
     sk.id='skip-content';
-    sk.href='#main';
+    sk.href='#main-content';
     sk.className='sr-only pt-root';
     sk.textContent='Aller au contenu';
     appendToBodySafe(sk);
@@ -1096,8 +1104,8 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     var id    = keyOf(m);
     var currency   = m && m.currency ? m.currency : 'EUR';
     var priceCents = priceCentsFrom(m);
-    var priceHtml = (priceCents!=null)
-      ? '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+esc(fmtCents(priceCents,currency))+'</div>'
+       var priceHtml = (priceCents!=null)
+      ? '<div class="price" aria-label="Prix TTC" style="margin-top:.35rem;font-weight:700">'+esc(fmtCents(Math.round(priceCents*(1+VAT_RATE)),currency))+' <small style="opacity:.8">TTC</small></div>'
       : '';
     return ''
       + '<article class="card" data-id="'+esc(id)+'">'
@@ -1287,10 +1295,10 @@ var related = window.MODELS.filter(function(m){
         window.fallback(m.title,''), window.fallback(m.sku,''), window.fallback(m.brand,''),
         window.fallback(m.category,''), window.fallback(m.desc, window.fallback(m.description,'')),
         (Array.isArray(m.tags)?m.tags.join(' '):''), window.fallback(m.badge,'')
-      ].join(' ').toLowerCase();
+           ].join(' ').toLowerCase();
       m.__haystack = hay;
+      m.__hay_norm  = normKey(hay);
       m.__brand_n  = normKey(m.brand);
-      m.__cat_n    = normKey(m.category);
       m.__badge_n  = normKey(m.badge);
       m.__tags_n   = Array.isArray(m.tags) ? m.tags.map(normKey) : [];
       m.__title_n  = normKey(m.title || (m.brand+' '+m.sku));
@@ -1663,8 +1671,8 @@ var related = window.MODELS.filter(function(m){
     CAT_STATE.sort  = (DOM.sort && DOM.sort.value || '').trim();
 
     // Tokens pour recherche
-    var tokens = CAT_STATE.q.toLowerCase().split(/\s+/).filter(Boolean);
-
+        var tokens = CAT_STATE.q.toLowerCase().split(/\s+/).filter(Boolean);
+    var tokensN = tokens.map(normKey);
     // Filtrage
     var filtered = window.MODELS.filter(function(m){
       // brand/type du state si présents
@@ -1672,8 +1680,10 @@ var related = window.MODELS.filter(function(m){
       var okType  = !CAT_STATE.type  || m.__haystack.indexOf(CAT_STATE.type)!==-1 || m.__tags_n.indexOf(normKey(CAT_STATE.type))!==-1 || m.__cat_n===normKey(CAT_STATE.type);
       // chips (multi-tags)
       var okChips = !CAT_STATE.tags.length || CAT_STATE.tags.every(function(tk){ return (m.__tags_n.indexOf(tk)!==-1) || m.__cat_n===tk || m.__badge_n===tk || normKey(m.brand)===tk; });
-      // recherche texte
-      var okQ = !tokens.length || tokens.every(function(t){ return m.__haystack.indexOf(t)!==-1; });
+            // recherche texte
+      var okQ = !tokens.length || tokens.every(function(t, idx){
+        return m.__haystack.indexOf(t)!==-1 || (m.__hay_norm && m.__hay_norm.indexOf(tokensN[idx])!==-1);
+      });
       return okBrand && okType && okChips && okQ;
     });
 
@@ -2818,9 +2828,9 @@ var related = window.MODELS.filter(function(m){
         "@type":"WebSite",
         "name":"Pirates Tools",
         "url": base,
-        "potentialAction":{
+               "potentialAction":{
           "@type":"SearchAction",
-          "target": base + "catalogue?q={search_term_string}",
+          "target": base + "#/catalogue?q={search_term_string}",
           "query-input":"required name=search_term_string"
         }
       },{
@@ -2911,12 +2921,12 @@ function injectBreadcrumbs(items){
 
   function renderCatalogueRoute(){
     ensureCatalogueView(); W.showView('catalogue');
-    updateSEO({ title:'Catalogue • Pirates Tools', desc: DEFAULT_DESC });
+       updateSEO({ title:'Catalogue • Pirates Tools', desc: DEFAULT_DESC });
     // Laisser P2 gérer filtres/rendu
-    if (typeof W.handleRouteCatalogue_Extended==='function'){
-      try{ W.handleRouteCatalogue_Extended(); }catch(_){}
-    } else if (PT && typeof PT.applyFilters==='function'){
-      try{ PT.applyFilters(); }catch(_){}
+    if (PT && typeof PT.handleRouteCatalogue_Extended==='function'){
+      try{ PT.handleRouteCatalogue_Extended(); }catch(_){}
+    } else if (PT && typeof PT.applyFiltersAndSort==='function'){
+      try{ PT.applyFiltersAndSort(false); }catch(_){}
     }
     injectBreadcrumbs([
   {name:'Accueil', href:'#/'},
