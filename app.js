@@ -39,7 +39,9 @@
     window.toast = function(msg, kind){
       var host = document.getElementById('toasts');
       if (!host){
-        host = document.createElement('div'); host.id = 'toasts'; host.setAttribute('aria-live','polite');
+        host = document.createElement('div');
+        host.id = 'toasts';
+        host.setAttribute('aria-live','polite');
         document.body.appendChild(host);
       }
       var n = document.createElement('div');
@@ -52,7 +54,13 @@
   if (typeof window.announce !== 'function'){
     window.announce = function(msg){
       var live = document.getElementById('sr-live');
-      if (!live){ live = document.createElement('div'); live.id='sr-live'; live.className='sr-only'; live.setAttribute('aria-live','polite'); document.body.appendChild(live); }
+      if (!live){
+        live = document.createElement('div');
+        live.id='sr-live';
+        live.className='sr-only';
+        live.setAttribute('aria-live','polite');
+        document.body.appendChild(live);
+      }
       live.textContent = msg || '';
     };
   }
@@ -64,7 +72,11 @@
         if (title) document.title = String(title);
         if (desc!=null){
           var m = document.querySelector('meta[name="description"]');
-          if (!m){ m = document.createElement('meta'); m.setAttribute('name','description'); document.head.appendChild(m); }
+          if (!m){
+            m = document.createElement('meta');
+            m.setAttribute('name','description');
+            document.head.appendChild(m);
+          }
           m.setAttribute('content', String(desc));
         }
       }catch(_){}
@@ -80,7 +92,7 @@
     };
   }
 
-  // Images sûres
+  // Images sûres (force http -> https si possible)
   if (typeof window.setSafeImg !== 'function'){
     window.setSafeImg = function(img, src, alt){
       if (!img) return;
@@ -124,7 +136,10 @@
   if (typeof window.showView !== 'function'){
     window.showView = function(key){
       var ids = ['home','catalogue','produit','devis','compte'];
-      for (var i=0;i<ids.length;i++){ var el = document.getElementById('view-'+ids[i]); if (el) el.classList.add('hidden'); }
+      for (var i=0;i<ids.length;i++){
+        var el = document.getElementById('view-'+ids[i]);
+        if (el) el.classList.add('hidden');
+      }
       var want = document.getElementById('view-'+key);
       if (want) want.classList.remove('hidden');
     };
@@ -133,8 +148,9 @@
     window.focusView = function(key){
       var v = document.getElementById('view-'+key); if (!v) return;
       var h1 = v.querySelector('h1'); if (!h1) return;
-      h1.setAttribute('tabindex','-1'); try{ h1.focus({preventScroll:true}); }catch(_){ h1.focus(); }
-      setTimeout(function(){ h1.removeAttribute('tabindex'); }, 250);
+      h1.setAttribute('tabindex','-1');
+      try{ h1.focus({preventScroll:true}); }catch(_){ try{ h1.focus(); }catch(__){} }
+      setTimeout(function(){ try{ h1.removeAttribute('tabindex'); }catch(_){ } }, 250);
     };
   }
 
@@ -205,7 +221,9 @@
 
   // Ancre PDP (utile à certaines intégrations)
   if (!document.getElementById('pdp')){
-    var a = document.createElement('a'); a.id='pdp'; a.className='sr-only'; a.setAttribute('aria-hidden','true'); document.body.appendChild(a);
+    var a = document.createElement('a');
+    a.id='pdp'; a.className='sr-only'; a.setAttribute('aria-hidden','true');
+    document.body.appendChild(a);
   }
 
   /* ---------- Dock : s'assure que le bouton panier ouvre #/devis ---------- */
@@ -226,91 +244,128 @@
 
 
   /* ---------- Grille marques : toutes les marques visibles ---------- */
-/* 1) Référentiel des logos, conforme aux fichiers présents dans /images/brands/
-      (chemins propres + cache-busting) */
-var BRAND_META = (function(){
-  var ver  = (window.__ASSET_VER || '10');
-  // chemin relatif = OK sur GitHub Pages (repo ou racine)
-  var base = './images/brands/';
-  function url(file){ return base + file + '?v=' + ver; }
-  return {
-    dewalt:    { label:'DeWALT',    logo: url('dewalt.png')    },
-    milwaukee: { label:'Milwaukee', logo: url('milwaukee.png') }, // s’affichera en fallback si le fichier n’est pas encore poussé
-    makita:    { label:'Makita',    logo: url('makita.png')    },
-    festool:   { label:'Festool',   logo: url('festool.png')   },
-    flex:      { label:'FLEX',      logo: url('flex.png')      },
-    wera:      { label:'Wera',      logo: url('wera.png')      },
-    stanley:   { label:'Stanley',   logo: url('stanley.png')   },
-    facom:     { label:'Facom',     logo: url('facom.jpg')     } // <-- JPG d’après ta liste
-  };
-})();
+  // 1) Référentiel des logos
+  var BRAND_META = (function(){
+    var ver  = (window.__ASSET_VER || '10');
+    var base = './images/brands/';
+    function url(file){ return base + file + '?v=' + ver; }
+    return {
+      dewalt:    { label:'DeWALT',    logo: url('dewalt.png')    },
+      milwaukee: { label:'Milwaukee', logo: url('milwaukee.png') },
+      makita:    { label:'Makita',    logo: url('makita.png')    },
+      festool:   { label:'Festool',   logo: url('festool.png')   },
+      flex:      { label:'FLEX',      logo: url('flex.png')      },
+      wera:      { label:'Wera',      logo: url('wera.png')      },
+      stanley:   { label:'Stanley',   logo: url('stanley.png')   },
+      facom:     { label:'Facom',     logo: url('facom.jpg')     }
+    };
+  })();
 
-/* 2) Comptage optionnel par marque (même si products.json est vide,
-      on affiche quand même toutes les bulles) */
-function computeBrands(products){
-  var counts = {};
-  for (var k in BRAND_META) if (Object.prototype.hasOwnProperty.call(BRAND_META,k)) counts[k] = 0;
-  for (var i=0;i<(products||[]).length;i++){
-    var p = products[i];
-    var key = (p && p.brand_key ? String(p.brand_key).toLowerCase() : '');
-    if (key && counts.hasOwnProperty(key)) counts[key] += 1;
+  // Normalisation souple "label → key" (accents/espaces/casse)
+  function normKey(s){
+    s = String(s||'').toLowerCase();
+    s = s.replace(/\s+/g,' ').replace(/[_-]+/g,' ').replace(/[’'`]/g,'');
+    s = s.replace(/[àáâãäå]/g,'a').replace(/[ç]/g,'c')
+         .replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+         .replace(/[ñ]/g,'n').replace(/[òóôõö]/g,'o')
+         .replace(/[ùúûü]/g,'u').replace(/[ýÿ]/g,'y');
+    s = s.replace(/\s+/g,'').trim();
+    return s;
   }
-  var out = [];
-  for (var k2 in BRAND_META){
-    if (!Object.prototype.hasOwnProperty.call(BRAND_META,k2)) continue;
-    var meta = BRAND_META[k2];
-    out.push({ key:k2, label:meta.label, logo:meta.logo, count:counts[k2]||0 });
+  function labelToKey(label){
+    var n = normKey(label);
+    // tente la correspondance avec les labels et les keys déclarés
+    for (var k in BRAND_META){
+      if (!Object.prototype.hasOwnProperty.call(BRAND_META,k)) continue;
+      if (n === normKey(BRAND_META[k].label) || n === normKey(k)) return k;
+    }
+    return ''; // pas reconnu
   }
-  out.sort(function(a,b){ return a.label.localeCompare(b.label); });
-  return out;
-}
 
-/* 3) Rendu des bulles */
-function renderBrandGridFromProducts(products){
-  var host = document.getElementById('brandGrid'); if (!host) return;
-  var brands = computeBrands(products);
-  var html = '';
-  for (var i=0;i<brands.length;i++){
-    var b = brands[i];
-    html += ''
-      + '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">'
-      + '  <span class="brand__bubble">'
-      + '    <img class="brand__logo" alt="'+b.label+'"'
-      + '         src="'+b.logo+'"'
-      + '         decoding="async" loading="lazy" referrerpolicy="no-referrer"'
-      + '         onerror="this.onerror=null; this.src=\''+(window.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7')+'\';">'
-      + '  </span>'
-      + '  <span class="brand__label">'+b.label+'</span>'
-      + '</button>';
+  // 2) Comptage par marque (fallback brand_key -> brand)
+  function computeBrands(products){
+    var counts = {};
+    var k;
+    for (k in BRAND_META) if (Object.prototype.hasOwnProperty.call(BRAND_META,k)) counts[k] = 0;
+
+    for (var i=0;i<(products||[]).length;i++){
+      var p = products[i] || {};
+      var fromKey = (p.brand_key!=null) ? String(p.brand_key) : '';
+      var fromLabel = (p.brand!=null) ? String(p.brand) : '';
+      var key = fromKey ? normKey(fromKey) : labelToKey(fromLabel);
+
+      // si brand_key ne mappe pas directement, essaie via label
+      if (key && !counts.hasOwnProperty(key)){
+        key = labelToKey(fromKey || fromLabel);
+      }
+      if (key && counts.hasOwnProperty(key)){
+        counts[key] += 1;
+      }
+    }
+
+    var out = [];
+    for (k in BRAND_META){
+      if (!Object.prototype.hasOwnProperty.call(BRAND_META,k)) continue;
+      var meta = BRAND_META[k];
+      out.push({ key:k, label:meta.label, logo:meta.logo, count:counts[k]||0 });
+    }
+    out.sort(function(a,b){ return a.label.localeCompare(b.label); });
+    return out;
   }
-  host.innerHTML = html;
-}
-window.PT = window.PT || {};
-window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
-/* 4) Navigation des bulles → #/catalogue?brand=xxx */
-(function(){
-  var host = document.getElementById('brandGrid'); if (!host) return;
-  if (host.__ptWired) return; host.__ptWired = 1;
+  // 3) Rendu des bulles (src posé via setSafeImg pour https+fallback)
+  function renderBrandGridFromProducts(products){
+    var host = document.getElementById('brandGrid'); if (!host) return;
+    var brands = computeBrands(products);
+    var html = '';
+    for (var i=0;i<brands.length;i++){
+      var b = brands[i];
+      html += ''
+        + '<button class="brand" type="button" data-brand="'+b.key+'" aria-label="Voir '+b.label+'">'
+        + '  <span class="brand__bubble">'
+        + '    <img class="brand__logo" alt="'+b.label+'" data-src="'+b.logo+'" decoding="async" loading="lazy" referrerpolicy="no-referrer">'
+        + '  </span>'
+        + '  <span class="brand__label">'+b.label+'</span>'
+        + '</button>';
+    }
+    host.innerHTML = html;
 
-  host.addEventListener('pointerdown', function(e){
-    var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
-    if (!el) return;
-    el.style.transform='scale(0.98)';
-    setTimeout(function(){ el.style.transform=''; }, 160);
-  }, false);
+    // applique setSafeImg (https + fallback) une fois dans le DOM
+    var imgs = host.querySelectorAll ? host.querySelectorAll('img[data-src]') : [];
+    for (var j=0;j<imgs.length;j++){
+      var im = imgs[j];
+      var src = im.getAttribute('data-src')||'';
+      window.setSafeImg(im, src, im.getAttribute('alt')||'');
+      im.removeAttribute('data-src');
+    }
+  }
+  window.PT = window.PT || {};
+  window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
-  host.addEventListener('click', function(e){
-    var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
-    if (!btn) return;
-    var key = btn.getAttribute('data-brand')||'';
-    if (!key) return;
-    location.hash = '#/catalogue?brand='+encodeURIComponent(key);
-  }, false);
-})();
+  // 4) Navigation des bulles → #/catalogue?brand=xxx
+  (function(){
+    var host = document.getElementById('brandGrid'); if (!host) return;
+    if (host.__ptWired) return; host.__ptWired = 1;
+
+    var pressFx = function(e){
+      var el = e.target && e.target.closest ? e.target.closest('.brand') : null;
+      if (!el) return;
+      el.style.transform='scale(0.98)';
+      setTimeout(function(){ el.style.transform=''; }, 160);
+    };
+    host.addEventListener('pointerdown', pressFx, false);
+    host.addEventListener('mousedown', pressFx, false); // fallback
+
+    host.addEventListener('click', function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('[data-brand]') : null;
+      if (!btn) return;
+      var key = btn.getAttribute('data-brand')||'';
+      if (!key) return;
+      location.hash = '#/catalogue?brand='+encodeURIComponent(key);
+    }, false);
+  })();
 
 
-   
   /* ---------- Chargement produits (mémoisé & tolérant) ---------- */
   function loadProducts(){
     if (window.__PT_PRODUCTS && window.__PT_PRODUCTS.length){
@@ -320,7 +375,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }
 
     var inline = window.PRODUCTS || window.products || [];
-    if (inline.length){
+    if (inline && inline.length){
       window.__PT_PRODUCTS = inline.slice();
       window.MODELS = inline.slice();
       try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
@@ -347,23 +402,56 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   if (typeof window.loadProducts !== 'function') window.loadProducts = loadProducts;
   window.PT.loadProducts = loadProducts;
 
-  /* ---------- Router minimal (laisse Part 4 prendre la main) ---------- */
+  /* ---------- Routeur minimal (laisse Part 4 prendre la main) ---------- */
   function handleRoute(){
     var p = window.parseHash();
     if (!p.view || p.view==='home' || p.view==='/'){
       window.showView('home'); window.resetPageMeta();
-      loadProducts().then(renderBrandGridFromProducts);
+
+      // hydrate la grille marques (mémo + fetch si besoin)
+      loadProducts().then(function(arr){ renderBrandGridFromProducts(arr); });
+
       window.focusView('home');
       return;
     }
     if (p.view==='catalogue'){
-      window.showView('catalogue'); window.resetPageMeta(); window.focusView('catalogue'); return;
+      window.showView('catalogue');
+      window.resetPageMeta();
+      window.focusView('catalogue');
+      // Si une extension catalogue existe (Partie 2/4), elle peut réagir elle-même
+      return;
     }
     // Les autres vues sont rendues par les autres parties
   }
   window.PT.handleRoute = handleRoute;
 
   window.addEventListener('hashchange', handleRoute, false);
+
+  // Re-render de la grille si les produits arrivent après
+  window.addEventListener('pt:productsLoaded', function(){
+    var p = window.parseHash();
+    if (!p.view || p.view==='home' || p.view==='/'){
+      try{ renderBrandGridFromProducts(window.MODELS||[]); }catch(_){}
+    }
+  }, false);
+
+  /* ---------- Hero overshoot (petit plus UX, sans impact si non stylé) ---------- */
+  (function(){
+    var ticking = 0;
+    function onScroll(){
+      if (ticking) return;
+      ticking = 1;
+      setTimeout(function(){
+        ticking = 0;
+        var y = (window.pageYOffset||document.documentElement.scrollTop||0);
+        var root = document.body;
+        if (!root) return;
+        if (y > 12){ root.classList.add('is-overshoot'); }
+        else { root.classList.remove('is-overshoot'); }
+      }, 60);
+    }
+    window.addEventListener('scroll', onScroll, { passive:true });
+  })();
 
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function(){
@@ -375,16 +463,20 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
         if (img.complete && img.naturalWidth === 0) img.src = window.IMG_FALLBACK;
       }
       ensureFallback(document.getElementById('heroLogo'));
-      $$('.topbar-logo').forEach(ensureFallback);
+      var arr = $$('.topbar-logo');
+      for (var i=0;i<arr.length;i++) ensureFallback(arr[i]);
     })();
 
     handleRoute();
 
-    // Préparer la grille en amont sur la home
-    loadProducts().then(function(arr){
-      if (!location.hash || location.hash==='#/' || location.hash==='#/home'){
-        renderBrandGridFromProducts(arr);
-      }
+    // Précharger les produits le plus tôt possible sans bloquer
+    var schedule = window.requestIdleCallback || function(fn){ return setTimeout(fn, 0); };
+    schedule(function(){
+      loadProducts().then(function(arr){
+        if (!location.hash || location.hash==='#/' || location.hash==='#/home'){
+          renderBrandGridFromProducts(arr);
+        }
+      });
     });
   }, false);
 
@@ -397,9 +489,6 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   window.PT.showView = window.showView;
   window.PT.focusView = window.focusView;
 })();
-
-
-
 
 
 /* =========================================================
