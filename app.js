@@ -3502,7 +3502,7 @@ function renderCompteRoute(){
     function wireVariantA() {
       log('[P6A] Variante A');
       var img = $('#heroLogo', hero) || $('.hero-logo', hero);
-      if (prefersReduced()) return;
+      if (!window.FORCE_ANIM && prefersReduced()) return;
       if (img) {
         var set = function () { try { img.classList.add('is-ready'); } catch (_){ } };
         if (img.complete) setTimeout(set, 0); else on(img, 'load', set, true);
