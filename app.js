@@ -2657,7 +2657,6 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 })();
 
 
-   
    /* =========================================================
    PARTIE 6 — B
    Menu latéral (gestes + inertie) • Nav a11y (focus H1) •
@@ -2676,201 +2675,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return !!(el && el.classList && el.classList.contains(c)); }
 
-
-/* =========================================================
-   1) HÉRO — overshoot doux + BLUR avant fade + retour fluide
-   • Base 1:1 (logo net) • Hystérésis (remonte = anim inverse)
-   • RAF TOUJOURS actif sur Home (pas de blocage en bas)
-   • iOS : blur réduit (mais actif)
-========================================================= */
-(function heroEffectOvershoot(){
-  'use strict';
-  if (window.__ptHeroWired6) return; window.__ptHeroWired6 = 1;
-
-  var W = window, D = document;
-  function qs(s, r){ return (r||D).querySelector(s); }
-  function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
-  function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
-
-  var hero = D.getElementById('hero') || qs('.hero-full');
-  var logo = D.getElementById('heroLogo') || qs('.hero-logo');
-  if (!hero || !logo) return;
-
-  /* CSS de secours (fondu bas) */
-  (function(){
-    if (D.getElementById('pt-hero-fade-css')) return;
-    var s = D.createElement('style'); s.id='pt-hero-fade-css';
-    s.textContent = '.hero-fade{position:absolute;inset:auto 0 0 0;height:38vh;pointer-events:none;'+
-                    'background:linear-gradient(to bottom, rgba(10,15,20,0) 0%, rgba(10,15,20,.75) 60%, rgba(10,15,20,1) 100%);}';
-    D.head.appendChild(s);
-  })();
-  if (!hero.querySelector('.hero-fade')){
-    var f = D.createElement('div'); f.className='hero-fade'; f.setAttribute('aria-hidden','true'); hero.appendChild(f);
-  }
-
-  /* Image : qualité + chemins inchangés */
-  try{
-    if (logo.tagName === 'IMG'){
-      if (!logo.getAttribute('srcset')){
-        logo.setAttribute('srcset',
-          './icons/icon-180.png 180w,./icons/icon-192.png 192w,'+
-          './icons/icon-256.png 256w,./icons/icon-384.png 384w,./icons/icon-512.png 512w'
-        );
-      }
-      if (!logo.getAttribute('sizes')) logo.setAttribute('sizes','min(62vmin,560px)');
-      logo.decoding='async'; logo.loading='eager'; logo.referrerPolicy='no-referrer';
-      logo.onerror=function(){ this.onerror=null; this.src=(W.IMG_FALLBACK||'./images/pirates-tools-logo.png?v=7'); };
-    }
-    logo.style.willChange='transform,opacity,filter';
-    logo.style.backfaceVisibility='hidden';
-    logo.style.webkitBackfaceVisibility='hidden';
-    logo.style.transform='translateZ(0)';
-    logo.style.transformOrigin='50% 50%';
-    logo.style.filter='none';
-  }catch(_){}
-
-  /* Réduction d’animations */
-  var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
-  if (mqr && mqr.matches){
-    var t0='translate3d(0,0,0) scale(1)';
-    logo.style.transform=t0; logo.style.opacity='1'; logo.style.filter='none';
-    addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-    hero.style.zIndex=-1; hero.style.pointerEvents='none';
-    D.documentElement.style.setProperty('--listGap','0vh');
-    return;
-  }
-
-  /* Réglages (alignés CSS) */
-  var MAX_SCALE_M=11.0, MAX_SCALE_D=8.6;
-  var BASE_M=1.00, BASE_D=1.00;
-  var DIST_M=0.90, DIST_D=0.96;
-  var BLUR_START=0.22, BLUR_LEN=0.38;
-  var FADE_START=0.30, FADE_LEN=0.26;
-  var DONE_M=0.94, DONE_D=0.98;      // seuil “passe derrière”
-  var RETURN_M=0.90, RETURN_D=0.96;  // seuil retour (remonte)
-  var GAP_M=12, GAP_D=16;
-
-  // iOS : blur réduit mais actif
-  var ua=(navigator.userAgent||'').toLowerCase();
-  var isIOS=/iphone|ipad|ipod/.test(ua) || (ua.indexOf('macintosh')>-1 && navigator.maxTouchPoints>1);
-  var canFilter=(typeof CSS!=='undefined' && CSS.supports && CSS.supports('filter','blur(2px)')) ||
-                ('filter' in (D.documentElement.style||{})) || ('webkitFilter' in (D.documentElement.style||{}));
-  var USE_BLUR=!!canFilter;
-  var BLUR_MAX_M=isIOS?6:10, BLUR_MAX_D=isIOS?5:8;
-
-  /* Helpers */
-  var mqMobile=W.matchMedia && W.matchMedia('(max-width:768px)');
-  function clamp(x,a,b){ return x<a?a:(x>b?b:x); }
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  function easeOutQuad(t){ return 1 - (1 - t)*(1 - t); }
-  function getVH(){ return (W.visualViewport ? W.visualViewport.height : W.innerHeight) || 1; }
-  function scrollTop(){
-    return (typeof W.pageYOffset==='number'?W.pageYOffset:0) ||
-           (D.scrollingElement && D.scrollingElement.scrollTop) ||
-           D.documentElement.scrollTop || (D.body && D.body.scrollTop) || 0;
-  }
-  function isHome(){ var h=(location.hash||''); return (!h || h==='#/' || h.indexOf('#/home')===0); }
-
-  var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
-
-  function render(y){
-    var isM=mqMobile && mqMobile.matches;
-    var finPx=_vh*(isM?DIST_M:DIST_D) || 1;
-
-    var raw=y/finPx, p=clamp(raw,0,1), eased=easeOutCubic(p);
-
-    // Scale doux
-    var sProg=clamp(p*1.10,0,1), sEase=easeOutQuad(sProg);
-    var base=isM?BASE_M:BASE_D, sMax=isM?MAX_SCALE_M:MAX_SCALE_D;
-    var scale=base+(sMax-base)*sEase;
-
-    var tyPx=(isM?10:8)*(_vh/100)*eased;
-
-    // Blur avant fade
-    var blurMax=isM?BLUR_MAX_M:BLUR_MAX_D;
-    var blurP=clamp((raw-BLUR_START)/BLUR_LEN,0,1);
-    var blur=USE_BLUR ? (blurMax*(0.12+0.88*blurP)) : 0;
-
-    var fadeP=clamp((raw-FADE_START)/FADE_LEN,0,1);
-    var opacity=1-fadeP;
-
-    var t='translate3d(0,'+tyPx.toFixed(2)+'px,0) scale('+scale.toFixed(3)+')';
-    logo.style.transform=t; logo.style.webkitTransform=t;
-    logo.style.opacity=opacity.toFixed(3);
-    logo.style.filter=(USE_BLUR && blur>0)?('blur('+blur.toFixed(2)+'px)'):'none';
-
-    // Espace au-dessus des bulles
-    var gap=Math.max(0,(1-p)*(isM?GAP_M:GAP_D));
-    D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
-
-    // Hystérésis : passe derrière / revient devant
-    var doneT=isM?DONE_M:DONE_D, backT=isM?RETURN_M:RETURN_D;
-    if (!heroPassed && raw>=doneT){
-      heroPassed=true;
-      addClass(D.body,'after-hero'); addClass(hero,'hero-out');
-      hero.style.zIndex=-1; hero.style.pointerEvents='none';
-      if (opacity<=0.02){ logo.style.opacity='0'; if (USE_BLUR) logo.style.filter='blur('+blurMax+'px)'; }
-    } else if (heroPassed && raw<=backT){
-      heroPassed=false;
-      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-      hero.style.zIndex=''; hero.style.pointerEvents='';
-    }
-
-    // Tout en haut → état initial
-    if (y<=1){
-      heroPassed=false;
-      rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-      hero.style.zIndex=''; hero.style.pointerEvents='';
-      logo.style.transform='translate3d(0,0,0) scale(1)';
-      logo.style.opacity='1'; logo.style.filter='none';
-      D.documentElement.style.setProperty('--listGap', (isM?GAP_M:GAP_D)+'vh');
-    }
-  }
-
-  function tick(){
-    if (!running) return;
-    var y=scrollTop();
-    if (y!==prevY){ render(y); prevY=y; }
-    rafId=W.requestAnimationFrame(tick);
-  }
-  function startRAF(){
-    if (!isHome()) { stopRAF(); return; }
-    if (running) return;
-    running=true; prevY=-1; render(scrollTop());
-    rafId=W.requestAnimationFrame(tick);
-    // Sécurise la remontée (jamais de lock)
-    try{
-      D.documentElement.style.overscrollBehaviorY='auto';
-      D.body.style.overscrollBehaviorY='auto';
-      D.body.style.touchAction='pan-y';
-      D.body.style.webkitOverflowScrolling='touch';
-    }catch(_){}
-  }
-  function stopRAF(){
-    running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
-  }
-
-  // Révélation douce
-  var reveal=function(){ try{ addClass(logo,'on'); }catch(_){} };
-  if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
-
-  // Boot + évènements
-  var recalc=function(){ _vh=getVH(); if (running) render(scrollTop()); };
-  W.addEventListener('resize',recalc,true);
-  if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-    W.visualViewport.addEventListener('resize',recalc,true);
-  }
-  W.addEventListener('orientationchange',recalc,true);
-  D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
-  W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
-  W.addEventListener('pagehide',function(){ stopRAF(); },true);
-  W.addEventListener('hashchange',function(){ if (isHome()) startRAF(); else stopRAF(); },false);
-
-  if (isHome()) startRAF();
-})();
-   
   /* =========================================================
-     2) MENU latéral — inertie iOS + swipe to close
+     1) MENU latéral — inertie iOS + swipe to close
      • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
   ========================================================== */
   (function drawerGestures(){
@@ -2887,6 +2693,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
           drawer.style.touchAction = 'pan-y';
           drawer.style.webkitOverflowScrolling = 'touch';
         }
+        // empêche les scroll chainés quand le menu est ouvert
         body.style.overscrollBehaviorY = 'contain';
       }catch(_){}
     }
@@ -2896,7 +2703,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
           drawer.style.touchAction = '';
           drawer.style.webkitOverflowScrolling = '';
         }
-        body.style.overscrollBehaviorY = '';
+        // rend le scroll normal partout (évite le “lock”)
+        body.style.overscrollBehaviorY = 'auto';
       }catch(_){}
     }
 
@@ -2944,12 +2752,12 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     tgt.addEventListener('pointerup',  end,   { passive:true });
 
     // overlay ferme
-    if (overlay && !overlay.__ptP6){ overlay.__ptP6 = 1; overlay.addEventListener('click', closeDrawer, false); }
+    if (overlay && !overlay.__ptP6B){ overlay.__ptP6B = 1; overlay.addEventListener('click', closeDrawer, false); }
     // ESC ferme
     D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
     // ouverture → tuning (le micro-script d’ouverture est dans l’index)
-    if (burger && !burger.__ptP6){
-      burger.__ptP6 = 1;
+    if (burger && !burger.__ptP6B){
+      burger.__ptP6B = 1;
       burger.addEventListener('click',     function(){ setTimeout(openTuning,0); }, false);
       burger.addEventListener('pointerup', function(){ setTimeout(openTuning,0); }, false);
     }
@@ -2958,7 +2766,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   })();
 
   /* =========================================================
-     3) NAV — focus H1 + lien actif (aria-current)
+     2) NAV — focus H1 + lien actif (aria-current)
   ========================================================== */
   (function navA11y(){
     if (W.__ptNavA11y) return; W.__ptNavA11y = 1;
@@ -3009,7 +2817,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   })();
 
   /* =========================================================
-     4) COMPTE — fallback léger (save/load + wiring basique)
+     3) COMPTE — fallback léger (save/load + wiring basique)
   ========================================================== */
   (function accountFallback(){
     if (W.__ptAccFallback) return; W.__ptAccFallback = 1;
@@ -3058,8 +2866,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
         if (typeof W.toast==='function') W.toast('Compte enregistré','success');
       }
 
-      if (accForm && !accForm.__ptP6){ accForm.__ptP6=1; accForm.addEventListener('submit', save, false); }
-      if (accSave && !accSave.__ptP6){ accSave.__ptP6=1; accSave.addEventListener('click', save, false); }
+      if (accForm && !accForm.__ptP6B){ accForm.__ptP6B=1; accForm.addEventListener('submit', save, false); }
+      if (accSave && !accSave.__ptP6B){ accSave.__ptP6B=1; accSave.addEventListener('click', save, false); }
 
       // login/register (fallback ultra simple)
       var lf = qs('#loginForm'), rf = qs('#registerForm');
@@ -3080,8 +2888,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
         var u = W.loadUser(); u.name = name; u.email = email; W.saveUser(u);
         if (W.toast) W.toast('Compte créé (démo)','success'); location.hash = '#/compte';
       }
-      if (lf && !lf.__ptP6){ lf.__ptP6=1; lf.addEventListener('submit', onLogin, false); }
-      if (rf && !rf.__ptP6){ rf.__ptP6=1; rf.addEventListener('submit', onRegister, false); }
+      if (lf && !lf.__ptP6B){ lf.__ptP6B=1; lf.addEventListener('submit', onLogin, false); }
+      if (rf && !rf.__ptP6B){ rf.__ptP6B=1; rf.addEventListener('submit', onRegister, false); }
     }
 
     // Squelette minimal si absent
@@ -3096,9 +2904,10 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   })();
 
   /* =========================================================
-     5) FAB Compte — présent partout sauf sur #/compte
+     4) FAB Compte — présent partout sauf sur #/compte
   ========================================================== */
   (function fabVisibility(){
+    if (W.__ptFabVis) return; W.__ptFabVis = 1;
     function cur(){ var h=(location.hash||'').toLowerCase(); return h ? h : '#/'; }
     function apply(){
       var fab = qs('#fabAccount'); if (!fab) return;
@@ -3108,4 +2917,4 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', apply, false); else apply();
   })();
 
-})();
+})();  
