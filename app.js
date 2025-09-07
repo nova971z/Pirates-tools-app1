@@ -282,6 +282,16 @@ function ensureDockVisible(){
   if (!dock) return;
   if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
   if (!dock.classList.contains('dock--safe')) dock.classList.add('dock--safe');
+
+  // Force le "fixed bottom" sur tous les thèmes
+  var cs = window.getComputedStyle ? getComputedStyle(dock) : { position: dock.style.position || '' };
+  if (!cs || cs.position !== 'fixed'){
+    dock.style.position = 'fixed';
+    dock.style.left = '0';
+    dock.style.right = '0';
+    dock.style.bottom = '0';
+    dock.style.width = '100%';
+  }
   var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
   if (zi < 1000) dock.style.zIndex = 1000;
 }
@@ -678,6 +688,25 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       window.PT.refreshViewportSafe = refreshAll;
     }
   })();
+  
+  
+(function(){
+  if (window.__ptSafeTop) return; window.__ptSafeTop = 1;
+  function ensureSafeTop(){
+    try{
+      var top = document.getElementById('topbar') || document.querySelector('nav');
+      if (!top) return;
+      var h = Math.ceil((top.getBoundingClientRect && top.getBoundingClientRect().height) || 0);
+      document.documentElement.style.setProperty('--safe-top', h+'px');
+      var cur = parseFloat((getComputedStyle(document.body)||{}).paddingTop)||0;
+      if (h && cur < h) document.body.style.paddingTop = h+'px';
+    }catch(_){}
+  }
+  window.addEventListener('resize', ensureSafeTop, {passive:true});
+  window.addEventListener('hashchange', ensureSafeTop, false);
+  document.addEventListener('DOMContentLoaded', ensureSafeTop, false);
+})();
+
 
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function(){
@@ -1303,6 +1332,7 @@ var related = window.MODELS.filter(function(m){
       m.__tags_n   = Array.isArray(m.tags) ? m.tags.map(normKey) : [];
       m.__title_n  = normKey(m.title || (m.brand+' '+m.sku));
       m.__price_c  = priceCentsFrom(m);
+      m.__cat_n    = normKey(m.category);  // <-- indispensable pour les filtres
       models[i] = m;
     }
     return models;
@@ -1568,17 +1598,17 @@ var related = window.MODELS.filter(function(m){
           VIRT.sentinel = document.createElement('div');
           VIRT.sentinel.style.cssText='width:1px;height:1px;overflow:hidden';
           DOM.list.appendChild(VIRT.sentinel);
-          var io = new IntersectionObserver(function(entries){
-            var e = entries && entries[0]; if (!e) return;
+          VIRT._io = new IntersectionObserver(function(entries){
+           var e = entries && entries[0]; if (!e) return;
             if (e.isIntersecting) appendNextChunk(false);
           }, {threshold:[1]});
-          io.observe(VIRT.sentinel);
-          VIRT.moreBtn.__io = io;
+          VIRT._io.observe(VIRT.sentinel)
         }
       }
-    } else {
+       } else {
       if (VIRT.moreBtn){ VIRT.moreBtn.parentNode.removeChild(VIRT.moreBtn); VIRT.moreBtn=null; }
-      if (VIRT.sentinel){ if (VIRT.sentinel.__io && VIRT.sentinel.__io.disconnect) VIRT.sentinel.__io.disconnect(); VIRT.sentinel.parentNode.removeChild(VIRT.sentinel); VIRT.sentinel=null; }
+      if (VIRT._io && VIRT._io.disconnect){ VIRT._io.disconnect(); VIRT._io=null; }
+      if (VIRT.sentinel){ VIRT.sentinel.parentNode.removeChild(VIRT.sentinel); VIRT.sentinel=null; }
     }
   }
 
@@ -2902,9 +2932,17 @@ function injectBreadcrumbs(items){
     return (parsed && parsed.query && parsed.query.id) ? parsed.query.id : '';
   }
 
+  // Utilitaire: remonte en haut sans animation
+  function __ptScrollTop(){
+    try{ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
+    try{ window.scrollTo({ top: 0, behavior: 'auto' }); }catch(_){ window.scrollTo(0,0); }
+  }
+
+
   /* ====== Rendus par route (délégations) ====== */
   function renderHome(){
     W.showView('home');
+    __ptScrollTop();
     updateSEO({ title:'Pirates Tools • Outillage pro (PWA)', desc: DEFAULT_DESC });
     withProducts(function(){
       try{
@@ -2921,6 +2959,7 @@ function injectBreadcrumbs(items){
 
   function renderCatalogueRoute(){
     ensureCatalogueView(); W.showView('catalogue');
+    __ptScrollTop();
        updateSEO({ title:'Catalogue • Pirates Tools', desc: DEFAULT_DESC });
     // Laisser P2 gérer filtres/rendu
     if (PT && typeof PT.handleRouteCatalogue_Extended==='function'){
@@ -2937,6 +2976,7 @@ function injectBreadcrumbs(items){
 
   function renderProduitRoute(){
     ensureProduitView(); W.showView('produit');
+    __ptScrollTop();
     // Ne pas forcer og:type=product ici; laisser P2 gérer JSON-LD Product + title
     updateSEO({ skipOgImage:false, type:'product' }); // met canonical/OG url/image sans toucher og:type=product
     withProducts(function(){
@@ -3005,6 +3045,7 @@ function injectBreadcrumbs(items){
 
   function renderDevisRoute(){
     ensureDevisView(); W.showView('devis');
+   __ptScrollTop();
     updateSEO({ title:'Mon devis • Pirates Tools', desc:'Préparez et envoyez votre devis via WhatsApp.' });
     if (typeof W.renderCartView==='function'){ try{ W.renderCartView(); }catch(_){ } }
     W.focusView('devis');
@@ -3025,6 +3066,7 @@ function renderCompteRoute(){
 
   // Fallback minimal si P3 est absente
   W.showView('compte');
+  __ptScrollTop();
   updateSEO({ title:'Mon compte • Pirates Tools', desc:'Gérez vos informations et avantages fidélité.' });
   W.focusView('compte');
 }
@@ -3211,7 +3253,7 @@ function onRegisterSubmit(e){
 })();
 
 
-<!-- --- Compat form id (#accForm | #accountForm) + save btn (ES5, non destructif) --- -->
+/* --- Compat form id (#accForm | #accountForm) + save btn (ES5, non destructif) --- */
 
 (function () {
   'use strict';
@@ -3241,7 +3283,7 @@ function onRegisterSubmit(e){
 (function(){
   'use strict';
   if (window.__ptAccMenuBooted) return; window.__ptAccMenuBooted = 1;
-
+  if (true) return; // Désactivé: accès Compte via hamburger/dock uniquement
   function ensureAccMenu(){
     var top = document.getElementById('topbar') || document.querySelector('.topbar') || document.querySelector('nav');
     if (!top) return;
@@ -3650,6 +3692,17 @@ else boot();
 })();
 
 
+(function(){
+  if (document.getElementById('pt-patch-hero')) return;
+  var s=document.createElement('style'); s.id='pt-patch-hero';
+  s.textContent =
+    '#view-home #hero{min-height:100vh;position:relative}' +
+    '#view-home #hero .hero-fade{position:absolute;left:0;right:0;bottom:0;height:calc(18vh + var(--safe-bottom,0px));pointer-events:none}' +
+    '#view-home .container:last-child{margin-bottom:0}';
+  document.head.appendChild(s);
+})();
+
+
 /* =========================================================
    PARTIE 6 — A/B
    6A : Hero A/B (variant bucket + B = séquence par classes)
@@ -3707,7 +3760,8 @@ else boot();
     var variant = 'none';
     var hero = $('#hero') || $('.hero') || $('.hero-full');
     if (!hero) { exposeAPI(); return; }
-
+var homeView = document.getElementById('view-home');
+if (!homeView || !homeView.contains(hero)) { exposeAPI(); return; }
     // Bucket déterministe
     try {
       variant = localStorage.getItem(LS_KEY) || '';
@@ -3756,6 +3810,19 @@ else boot();
     // Wiring
     if (variant === 'B') wireVariantB(); else wireVariantA();
     exposeAPI();
+    
+    function restartHero(){
+  try{
+    hero.classList.remove('ab-in');
+    void hero.offsetWidth; // reflow
+    hero.classList.add('ab-start');
+    setTimeout(function(){ hero.classList.add('ab-in'); }, 60);
+  }catch(_){}
+}
+window.addEventListener('hashchange', function(){
+  var p = (window.parseHash ? window.parseHash() : {view:''});
+  if (!p.view || p.view === 'home' || p.view === '/') restartHero();
+}, false);
 
     /* ---------- Implémentations A vs B ---------- */
 
