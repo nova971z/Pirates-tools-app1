@@ -3361,32 +3361,52 @@ function renderCompteRoute(){
     updateNavActiveFromHash();
   };
 
-  /* --------- Boot --------- */
-  function boot(){
-    wireDrawer();
-    wireDrawerLinks();
-    wireDock();
-    polishHero();
-    ensureBrandGridClass();
-    updateDockCountLabel();
-    updateNavActiveFromHash();
-    // Listeners (idempotents)
-    if (!W.__ptP5NavHash){
-      W.__ptP5NavHash = 1;
-      W.addEventListener('hashchange', updateNavActiveFromHash, false);
-    }
-    if (!W.__ptP5CartEvt){
-      W.__ptP5CartEvt = 1;
-      W.addEventListener('pt:cartChanged', function(){ try{ updateDockCountLabel(); triggerDockPulse(); }catch(_){ } }, false);
+ /* --------- Boot --------- */
+function boot(){
+  wireDrawer();
+  wireDrawerLinks();
+  wireDock();
+  polishHero();
+  ensureBrandGridClass();
+  updateDockCountLabel();
+  updateNavActiveFromHash();
+
+  // Force l’affichage et la sécurité du dock (z-index, classes)
+  if (typeof ensureDockVisible === 'function') {
+    ensureDockVisible();
+  } else {
+    // Fallback si le patch ensureDockVisible n'est pas encore chargé
+    var _d = D.getElementById('dock');
+    if (_d){
+      if (!_d.classList.contains('dock--visible')) _d.classList.add('dock--visible');
+      if (!_d.classList.contains('dock--safe')) _d.classList.add('dock--safe');
+      var zi = parseInt(_d.style.zIndex || '0', 10) || 0;
+      if (zi < 1000) _d.style.zIndex = 1000;
     }
   }
 
-  if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot, false);
-  else boot();
+  // Ajuste les variables de viewport/safe-area s’il est dispo (Partie 1)
+  if (W.PT && typeof W.PT.refreshViewportSafe === 'function') {
+    try { W.PT.refreshViewportSafe(); } catch(_){}
+  }
+
+  // Listeners (idempotents)
+  if (!W.__ptP5NavHash){
+    W.__ptP5NavHash = 1;
+    W.addEventListener('hashchange', updateNavActiveFromHash, false);
+  }
+  if (!W.__ptP5CartEvt){
+    W.__ptP5CartEvt = 1;
+    W.addEventListener('pt:cartChanged', function(){
+      try{ updateDockCountLabel(); triggerDockPulse(); }catch(_){}
+    }, false);
+  }
+}
+
+if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot, false);
+else boot();
 
 })();
-
-
 
 
 /* =========================================================
