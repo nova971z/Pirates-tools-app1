@@ -2699,8 +2699,48 @@
     // og:type : on ne force PAS "product" (laisse P2 si besoin)
     if (!o || o.type!=='product') setMetaOg('og:type','website');
   }
+// === Auth locale (pt_auth_v1) — ES5
+(function(){
+  var AUTH_KEY = 'pt_auth_v1';
 
-  /* ====== JSON-LD Site / Org / SearchAction (idempotent) ====== */
+  function sha256(text, cb){
+    // petit SHA-256 (Web Crypto si dispo, sinon fallback très simple non sécurisé)
+    try{
+      var enc = new TextEncoder('utf-8').encode(String(text||''));
+      if (window.crypto && window.crypto.subtle && window.crypto.subtle.digest){
+        window.crypto.subtle.digest('SHA-256', enc).then(function(buf){
+          var b = Array.prototype.map.call(new Uint8Array(buf), function(x){ return ('00'+x.toString(16)).slice(-2); }).join('');
+          cb(b);
+        }, function(){ cb(window.btoa(String(text||''))); });
+        return;
+      }
+    }catch(_){}
+    cb(window.btoa(String(text||''))); // fallback
+  }
+
+  function loadAuth(){
+    try{ var raw = localStorage.getItem(AUTH_KEY); return raw?JSON.parse(raw):{ email:'', pwdHash:'' }; }
+    catch(_){ return { email:'', pwdHash:'' }; }
+  }
+  function saveAuth(a){
+    try{ localStorage.setItem(AUTH_KEY, JSON.stringify(a||{email:'',pwdHash:''})); }catch(_){}
+  }
+  function clearAuth(){
+    try{ localStorage.removeItem(AUTH_KEY); }catch(_){}
+  }
+  function isLoggedIn(){
+    var a = loadAuth(); return !!(a && a.email && a.pwdHash);
+  }
+
+  // Expose
+  window.PT = window.PT || {};
+  if (!window.PT.auth){
+    window.PT.auth = {
+      load: loadAuth, save: saveAuth, clear: clearAuth,
+      isLoggedIn: isLoggedIn, sha256: sha256
+    };
+  }
+})();  /* ====== JSON-LD Site / Org / SearchAction (idempotent) ====== */
   function injectSiteJsonLD(){
     if (D.getElementById('jsonld-site')) return;
     try{
