@@ -260,6 +260,21 @@
     var dock = document.getElementById('dock');
     if (dock) dock.classList.add('dock--visible');
   })();
+function ensureDockVisible(){
+  var dock = document.getElementById('dock');
+  if (!dock) return;
+  if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
+  if (!dock.classList.contains('dock--safe')) dock.classList.add('dock--safe');
+  var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
+  if (zi < 1000) dock.style.zIndex = 1000;
+}
+document.addEventListener('DOMContentLoaded', ensureDockVisible, false);
+window.addEventListener('hashchange', function(){
+  ensureDockVisible();
+  if (window.PT && typeof window.PT.refreshViewportSafe === 'function') window.PT.refreshViewportSafe();
+}, false);
+try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:true, subtree:true}); }catch(_){}
+
 
   /* ---------- Grille marques : toutes les marques visibles ---------- */
   // 1) Référentiel des logos
