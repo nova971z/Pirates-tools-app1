@@ -3616,34 +3616,34 @@ function onRegisterSubmit(e){
   }
 
   /* --------- Hero polish (no-op si P6A actif) --------- */
-  function __isHomeRoute(){
-    var h=(location.hash||'');
-    if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
-    var p=(PT.parseHash?PT.parseHash():(W.parseHash?W.parseHash():{view:''}));
-    return (!p.view || p.view==='home' || p.view==='/');
-  }
-  function __updateHeroScope(){
-    var hero = qs('#hero') || qs('.hero'); if (!hero) return;
-    var onHome = __isHomeRoute();
-    hero.style.display = onHome ? '' : 'none';
-  }
+function __isHomeRoute(){
+  var h=(location.hash||'');
+  if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
+  var p=(PT.parseHash?PT.parseHash():(W.parseHash?W.parseHash():{view:''}));
+  return (!p.view || p.view==='home' || p.view==='/');
+}
+function __updateHeroScope(){
+  var hero = qs('#hero') || qs('.hero'); if (!hero) return;
+  var onHome = __isHomeRoute();
+  hero.style.display = onHome ? '' : 'none';
+}
 
-    function polishHero(){
-    if (W.__ptHeroWired5 === 1 || W.__ptHeroAB === 1) return; // P6A prend la main si présent
-    __updateHeroScope();
-    var hero = qs('#hero') || qs('.hero'); if (!hero || !__isHomeRoute()) return;
-    }
-    var logo = qs('#heroLogo');
-    if (logo){
-      logo.style.imageRendering = '-webkit-optimize-contrast';
-      logo.style.backfaceVisibility = 'hidden';
-      logo.style.webkitBackfaceVisibility = 'hidden';
-      logo.style.transform = 'translateZ(0)';
-      if (PT.setSafeImg && logo.getAttribute('data-src')){
-        try{ PT.setSafeImg(logo, logo.getAttribute('data-src'), logo.getAttribute('alt')||''); }catch(_){}
-      }
+function polishHero(){
+  if (W.__ptHeroWired5 === 1 || W.__ptHeroAB === 1) return; // P6A prend la main si présent
+  __updateHeroScope();
+  var hero = qs('#hero') || qs('.hero'); if (!hero || !__isHomeRoute()) return;
+
+  var logo = qs('#heroLogo');
+  if (logo){
+    logo.style.imageRendering = '-webkit-optimize-contrast';
+    logo.style.backfaceVisibility = 'hidden';
+    logo.style.webkitBackfaceVisibility = 'hidden';
+    logo.style.transform = 'translateZ(0)';
+    if (PT.setSafeImg && logo.getAttribute('data-src')){
+      try{ PT.setSafeImg(logo, logo.getAttribute('data-src'), logo.getAttribute('alt')||''); }catch(_){}
     }
   }
+} 
 
   /* --------- Home: assure la classe de grille 3 colonnes --------- */
   function ensureBrandGridClass(){
