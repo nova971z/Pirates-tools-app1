@@ -2936,10 +2936,10 @@
   PT.router.clearSiteJsonLD = function(){ var s=D.getElementById('jsonld-site'); if (s && s.parentNode) s.parentNode.removeChild(s); }; // pas utilisée en prod
 
 })();
-</script>
+
 
 <!-- ===== Auth (front-only) : #/login & #/register — ES5, non destructif ===== -->
-<script>
+
 (function(){
   'use strict';
   if (window.__ptP4AuthBooted) return; window.__ptP4AuthBooted = 1;
@@ -2985,7 +2985,7 @@
   window.addEventListener('hashchange', onHash, false);
   document.addEventListener('DOMContentLoaded', function(){ wire(); onHash(); }, false);
 })();
-</script>
+
 
 <!-- --- Compat form id (#accForm | #accountForm) + save btn (ES5, non destructif) --- -->
 <script>
