@@ -2712,7 +2712,7 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       setMetaOg('og:image', (o && o.image) || guessOgImage());
     }
     // og:type : on ne force PAS "product" (laisse P2 si besoin)
-    if (!o || o.type!=='product') setMetaOg('og:type','website');
+    setMetaOg('og:type', (o && o.type) ? o.type : 'website');
   }
 // === Auth locale (pt_auth_v1) — ES5
 (function(){
