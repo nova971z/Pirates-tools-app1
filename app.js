@@ -2447,6 +2447,16 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
   var W = window, D = document;
 
+  /* ---- Scroll fluide & gestes : presets sûrs ---- */
+  (function ensureSmoothScroll(){
+    try{
+      // active le scroll fluide même si la CSS est manquante
+      var html = D.documentElement; if (html) html.style.scrollBehavior = 'smooth';
+      // permet le geste vertical natif partout
+      if (D.body) D.body.style.touchAction = 'pan-y';
+    }catch(_){}
+  })();
+
   /* ---- Neutralisation douce de l'ancien "BLOC 7" s'il existe ---- */
   (function neutralizeOldBlock7(){
     try{
@@ -2469,9 +2479,10 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
   /* =========================================================
      1) HÉRO — overshoot doux + base 1:1 + perf mobile
-     - Logo net au départ (scale 1.00, pas de blur initial)
-     - Blur allégé et désactivé sur iOS/iPadOS (perf)
+     - Logo net au départ
+     - Blur allégé et désactivé sur iOS/iPadOS
      - RAF actif seulement quand le héros est visible & sur la Home
+     - **Hystérésis** pour rejouer l’animation quand on remonte
   ========================================================== */
   (function heroEffectOvershoot(){
     'use strict';
@@ -2549,6 +2560,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     var BLUR_MAX_M  = 10,   BLUR_MAX_D  = 8;     // blur allégé (perf)
     var FADE_START  = 0.30, FADE_LEN    = 0.26;  // fade court
     var DONE_M      = 0.94, DONE_D      = 0.98;  // passe derrière tôt
+    // -------- Hystérésis pour rejouer l'anim en remontant --------
+    var RETURN_M    = 0.90, RETURN_D    = 0.96;  // seuil de retour (< DONE_*)
     var GAP_M       = 12,   GAP_D       = 16;    // espace au-dessus des bulles
 
     /* iOS / iPadOS : blur coûte cher → on le coupe */
@@ -2576,6 +2589,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     }
 
     var _vh = getVH(), prevY = -1, rafId = 0, io = null, running = false;
+    var heroPassed = false; // état "derrière"
 
     function render(y){
       var isM   = mqMobile && mqMobile.matches;
@@ -2585,7 +2599,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       var p      = clamp(raw, 0, 1);
       var eased  = easeOutCubic(p);
 
-      /* SCALE doux (pas d'overshoot pour éviter les à-coups) */
+      /* SCALE doux (sans overshoot) */
       var sProg = clamp(p * 1.10, 0, 1);
       var sEase = easeOutQuad(sProg);
       var base  = isM ? BASE_M : BASE_D;
@@ -2612,19 +2626,26 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       var gap = Math.max(0, (1 - p) * (isM ? GAP_M : GAP_D));
       D.documentElement.style.setProperty('--listGap', gap.toFixed(2) + 'vh');
 
-      /* Quand c’est fini → passe derrière + arrête RAF */
-      var done = raw > (isM ? DONE_M : DONE_D);
-      if (done){
-        addClass(D.body,'after-hero'); addClass(hero,'hero-out');
-        hero.style.zIndex = -1; hero.style.pointerEvents = 'none';
+      /* --- Hystérésis : passe derrière / revient devant --- */
+      var doneT = isM ? DONE_M   : DONE_D;
+      var backT = isM ? RETURN_M : RETURN_D;
+
+      if (!heroPassed && raw >= doneT){
+        heroPassed = true;
+        addClass(D.body,'after-hero');
+        addClass(hero,'hero-out');
+        hero.style.zIndex = -1;
+        hero.style.pointerEvents = 'none';
         if (opacity <= 0.02){
           logo.style.opacity = '0';
           if (USE_BLUR) logo.style.filter = 'blur(' + blurMax + 'px)';
         }
-        stopRAF();
-      } else {
-        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-        hero.style.zIndex = ''; hero.style.pointerEvents = '';
+      } else if (heroPassed && raw <= backT){
+        heroPassed = false;
+        rmClass(D.body,'after-hero');
+        rmClass(hero,'hero-out');
+        hero.style.zIndex = '';
+        hero.style.pointerEvents = '';
       }
     }
 
@@ -2665,7 +2686,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
     /* Boot + évènements */
     var recalc = function(){ _vh = getVH(); if (running) render(scrollTop()); };
-    W.addEventListener('resize',          recalc, { passive:true });
+    W.addEventListener('resize',            recalc, { passive:true });
     if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
       W.visualViewport.addEventListener('resize', recalc, { passive:true });
     }
