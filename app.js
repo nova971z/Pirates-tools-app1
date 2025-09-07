@@ -1939,7 +1939,7 @@
 
 
 
-/*<!-- =========================================================
+/* =========================================================
      PARTIE 3 — Compte + Création de compte (local) + Fidélité
      - Route: #/compte
      - Persistance locale: USER_KEY (par défaut 'pt_user_v1') + migration depuis 'pt_user'
@@ -1948,7 +1948,7 @@
      - Intégration WhatsApp (cartToWhatsAppText lit PT.loadUser())
      - ES5-safe, idempotent, aucun chemin cassé ni redéfinition de helpers P1/P2
      - Compatible PARTIE 1, 2, 4, 5, 6A/6B
-========================================================= -->*/
+========================================================= */
 
 (function(){
   'use strict';
@@ -2457,7 +2457,7 @@
 
 
 
-/*<!-- =========================================================
+/* =========================================================
    PARTIE 4 — Router principal + SEO unifié + JSON-LD Site/Org
    - Déclare le routeur primaire (__ptRouterPrimary=1)
    - Routes: #/ (home), #/catalogue, #/produit/:id, #/devis, #/compte
@@ -2466,8 +2466,8 @@
    - JSON-LD (WebSite + Organization + SearchAction) injecté 1 seule fois
    - Options dev (idle): Service Worker + Web Vitals (non bloquants)
    - ES5-safe (pas d’arrows, pas d’optional chaining)
-========================================================= -->*/
-<script>
+========================================================= */
+
 (function(){
   'use strict';
 
@@ -3015,7 +3015,7 @@
 
 
 
-/*<!-- =========================================================
+/* =========================================================
    PARTIE 5 — Nav actif + Dock/FAB + Hero polish + Grille 3 colonnes
    - Périmètre strict UI/UX : pas de données ni SEO (P1/P2/P3/P4 gardent la main)
    - ES5-safe, idempotent (flags __ptP5*), aucun double listener
@@ -3023,7 +3023,7 @@
    - Dock : pulse sur pt:cartChanged, safe-area, mapping routes
    - Hero : fade discret + rendu net, neutralisé si P6A actif
    - Home : #brandGrid → classe .brand-grid--3col (layout CSS)
-========================================================= -->*/
+========================================================= */
 
 (function(){
   'use strict';
