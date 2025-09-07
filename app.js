@@ -3076,7 +3076,69 @@ function renderCompteRoute(){
 })();
 
 
+/* ===== Compte : dropdown simple (Se connecter / Créer / Profil / Déconnexion) ===== */
+(function(){
+  'use strict';
+  if (window.__ptAccMenuBooted) return; window.__ptAccMenuBooted = 1;
 
+  function ensureAccMenu(){
+    var top = document.getElementById('topbar') || document.querySelector('.topbar') || document.querySelector('nav');
+    if (!top) return;
+
+    var host = document.getElementById('accMenu');
+    if (!host){
+      host = document.createElement('div'); host.id = 'accMenu'; host.style.position = 'relative';
+      try{ if (getComputedStyle(top).display.indexOf('flex')===0) host.style.marginLeft = 'auto'; }catch(_){}
+      var btn = document.createElement('button');
+      btn.id='accMenuBtn'; btn.className='btn'; btn.type='button';
+      btn.setAttribute('aria-haspopup','menu'); btn.setAttribute('aria-expanded','false');
+      btn.textContent='Compte ▾';
+      var drop=document.createElement('div');
+      drop.id='accMenuDrop'; drop.className='dropdown hidden';
+      drop.style.cssText='position:absolute;right:0;top:100%;min-width:180px;background:rgba(0,0,0,.85);backdrop-filter:saturate(120%) blur(6px);border-radius:8px;padding:.4rem;display:none;z-index:1001';
+      host.appendChild(btn); host.appendChild(drop); top.appendChild(host);
+
+      btn.addEventListener('click', function(){
+        var isOpen = drop.style.display === 'block';
+        drop.style.display = isOpen ? 'none' : 'block';
+        btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      }, false);
+      document.addEventListener('click', function(e){
+        if (!host.contains(e.target)) { drop.style.display='none'; btn.setAttribute('aria-expanded','false'); }
+      }, false);
+    }
+    renderMenu();
+  }
+
+  function isLogged(){
+    try{ return !!(window.PT && window.PT.auth && window.PT.auth.isLoggedIn && window.PT.auth.isLoggedIn()); }catch(_){}
+    return false;
+  }
+
+  function renderMenu(){
+    var drop = document.getElementById('accMenuDrop'); if (!drop) return;
+    var logged = isLogged();
+    drop.innerHTML = logged
+      ? '<a class="btn" href="#/compte" role="menuitem" style="display:block;width:100%;text-align:left;margin:.15rem 0">Mon profil</a>'
+        + '<button class="btn" id="accLogout" type="button" role="menuitem" style="display:block;width:100%;text-align:left;margin:.15rem 0">Se déconnecter</button>'
+      : '<a class="btn" href="#/login" role="menuitem" style="display:block;width:100%;text-align:left;margin:.15rem 0">Se connecter</a>'
+        + '<a class="btn" href="#/register" role="menuitem" style="display:block;width:100%;text-align:left;margin:.15rem 0">Créer un compte</a>';
+
+    var lo = document.getElementById('accLogout');
+    if (lo && !lo.__w){
+      lo.__w = 1;
+      lo.addEventListener('click', function(){
+        try{ if (window.PT && window.PT.auth && window.PT.auth.clear) window.PT.auth.clear(); }catch(_){}
+        try{ localStorage.removeItem('pt_auth_v1'); }catch(_){}
+        location.hash = '#/login';
+      }, false);
+    }
+  }
+
+  window.addEventListener('hashchange', renderMenu, false);
+  document.addEventListener('pt:userSaved', renderMenu, false);
+  document.addEventListener('DOMContentLoaded', ensureAccMenu, false);
+})();
 
 /* =========================================================
    PARTIE 5 — Nav actif + Dock/FAB + Hero polish + Grille 3 colonnes
