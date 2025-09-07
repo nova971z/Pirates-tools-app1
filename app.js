@@ -2988,7 +2988,7 @@
 
 
 <!-- --- Compat form id (#accForm | #accountForm) + save btn (ES5, non destructif) --- -->
-<script>
+
 (function () {
   'use strict';
   if (window.__ptP4AccCompat) return; window.__ptP4AccCompat = 1;
