@@ -3021,21 +3021,56 @@ function renderCompteRoute(){
   function saveUser(u){ return (typeof window.saveUser==='function') ? window.saveUser(u) : _fallbackSaveUser(u); }
   function loadUser(){ return (typeof window.loadUser==='function') ? window.loadUser() : (_fallbackLoadUser() || {}); }
 
-  function onLoginSubmit(e){
-    if (e && e.preventDefault) e.preventDefault();
-    var email=(qs('#loginEmail')||{}).value||''; var pwd=(qs('#loginPwd')||{}).value||'';
-    if (!email || email.indexOf('@')===-1 || !pwd){ if(window.toast) window.toast('Identifiants invalides','info'); return; }
-    var u=loadUser()||{}; u.email=email; if(!u.name) u.name=email.split('@')[0]; saveUser(u);
-    if(window.toast) window.toast('Connecté','success'); if(window.announce) window.announce('Connecté'); location.hash='#/compte';
-  }
-  function onRegisterSubmit(e){
-    if (e && e.preventDefault) e.preventDefault();
-    var name=(qs('#regName')||{}).value||''; var email=(qs('#regEmail')||{}).value||''; var pwd=(qs('#regPwd')||{}).value||'';
-    if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){ if(window.toast) window.toast('Veuillez remplir tous les champs (MDP ≥ 6)','info'); return; }
-    var u=loadUser()||{}; u.name=name; u.email=email; saveUser(u);
-    if(window.toast) window.toast('Compte créé (mode démo)','success'); location.hash='#/compte';
-  }
 
+function setAuthAndGo(email, pwd){
+  function done(){
+    if(window.toast) window.toast('Connecté','success');
+    if(window.announce) window.announce('Connecté');
+    location.hash = '#/compte';
+  }
+  try{
+    if (window.PT && window.PT.auth && typeof window.PT.auth.sha256 === 'function'){
+      window.PT.auth.sha256(pwd, function(hash){
+        try { window.PT.auth.save({ email: String(email||''), pwdHash: String(hash||'') }); } catch(_){}
+        done();
+      });
+      return;
+    }
+  }catch(_){}
+  try{ localStorage.setItem('pt_auth_v1', JSON.stringify({ email:String(email||''), pwdHash:btoa(String(pwd||'')) })); }catch(_){}
+  done();
+}
+
+  function onLoginSubmit(e){
+  if (e && e.preventDefault) e.preventDefault();
+  var email=(qs('#loginEmail')||{}).value||''; 
+  var pwd=(qs('#loginPwd')||{}).value||'';
+  if (!email || email.indexOf('@')===-1 || !pwd){
+    if(window.toast) window.toast('Identifiants invalides','info'); 
+    return;
+  }
+  var u=loadUser()||{}; 
+  u.email=email; 
+  if(!u.name) u.name=email.split('@')[0]; 
+  saveUser(u);
+  setAuthAndGo(email, pwd);
+}
+  
+function onRegisterSubmit(e){
+  if (e && e.preventDefault) e.preventDefault();
+  var name=(qs('#regName')||{}).value||''; 
+  var email=(qs('#regEmail')||{}).value||''; 
+  var pwd=(qs('#regPwd')||{}).value||'';
+  if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){
+    if(window.toast) window.toast('Veuillez remplir tous les champs (MDP ≥ 6)','info'); 
+    return;
+  }
+  var u=loadUser()||{}; 
+  u.name=name; 
+  u.email=email; 
+  saveUser(u);
+  setAuthAndGo(email, pwd);
+}
   function wire(){
     var lf=qs('#loginForm'); if(lf && !lf.__wired){ lf.__wired=1; lf.addEventListener('submit', onLoginSubmit, false); }
     var rf=qs('#registerForm'); if(rf && !rf.__wired){ rf.__wired=1; rf.addEventListener('submit', onRegisterSubmit, false); }
