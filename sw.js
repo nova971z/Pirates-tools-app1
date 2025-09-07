@@ -13,28 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v111'; // ⬅️ bump à chaque déploiement
-const CACHE_STATIC   = `pt-static-${VERSION}`;
-const CACHE_DYNAMIC  = `pt-dyn-${VERSION}`;
-const CACHE_IMAGES   = `pt-img-${VERSION}`;
-const CACHE_PRODUCTS = `pt-products-${VERSION}`;
-
-// Quotas (anti-gonflement)
-const LIMIT_STATIC   = 81;
-const LIMIT_DYNAMIC  = 120;
-const LIMIT_IMAGES   = 120;
-const LIMIT_PRODUCTS = 8;
-
-// URL d’index (robuste sous sous-dossier GitHub Pages)
-const INDEX_URL = new URL('./index.html', self.location).toString();
-
-const APP_SHELL = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './manifest.webmanifest',
-  './favicon.ico',
+const VERSION        = 'pt-v112  './favicon.ico',
   // icônes PWA (si certaines n’existent pas, elles seront ignorées proprement)
   './icons/icon-180.png',
   './icons/icon-192.png',
