@@ -1215,13 +1215,13 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }
 
     // Suggestions
-    var tag = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
-    var related = window.MODELS.filter(function(m){
-      return (m!==product) && (
-        (product.category && m.category===product.category) ||
-        (tag && ((m.badge===tag) || (Array.isArray(m.tags) && m.tags.indexOf(tag)!==-1)))
-      );
-    }).slice(0,3);
+var tagRel = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
+var related = window.MODELS.filter(function(m){
+  return (m!==product) && (
+    (product.category && m.category===product.category) ||
+    (tagRel && ((m.badge===tagRel) || (Array.isArray(m.tags) && m.tags.indexOf(tagRel)!==-1)))
+  );
+}).slice(0,3);
 
     if (elRel){
       var relHTML = '';
