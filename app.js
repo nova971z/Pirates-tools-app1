@@ -399,6 +399,9 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 })();
 
 
+
+
+
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
@@ -581,10 +584,11 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   ========================================================== */
   function schemaAvailability(p){
     var s = (p.stock_status||'').toLowerCase();
-    if (s === 'in_stock')     return 'http://schema.org/InStock';
-    if (s === 'low_stock')    return 'http://schema.org/LimitedAvailability';
-    if (s === 'out_of_stock') return 'http://schema.org/OutOfStock';
-    return (p.stock_qty>0) ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock';
+    var base = 'https://schema.org/';
+    if (s === 'in_stock')     return base + 'InStock';
+    if (s === 'low_stock')    return base + 'LimitedAvailability';
+    if (s === 'out_of_stock') return base + 'OutOfStock';
+    return (p.stock_qty>0) ? base + 'InStock' : base + 'OutOfStock';
   }
   function buildProductJsonLD(p){
     var images = [];
@@ -625,13 +629,19 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   }
   function injectProductJsonLD(p){
     try{
-      var id='jsonld-product'; var old=document.getElementById(id); if(old) old.remove();
+      var id='jsonld-product';
+      var old = document.getElementById(id);
+      if (old && old.parentNode) old.parentNode.removeChild(old); // ES5-safe
+
       var json = buildProductJsonLD(p); if(!json) return;
       var s=document.createElement('script'); s.type='application/ld+json'; s.id=id; s.textContent=JSON.stringify(json);
       document.head.appendChild(s);
     }catch(_){}
   }
-  function clearProductJsonLD(){ var s=document.getElementById('jsonld-product'); if(s) s.remove(); }
+  function clearProductJsonLD(){
+    var s=document.getElementById('jsonld-product');
+    if (s && s.parentNode) s.parentNode.removeChild(s); // ES5-safe
+  }
   window.clearProductJsonLD = window.clearProductJsonLD || clearProductJsonLD;
 
   function productToHTML(m){
@@ -838,14 +848,18 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
           '</article>';
       }
       elRel.innerHTML = relHTML;
-      elRel.addEventListener('click', function(e){
-        var btn = e.target && e.target.closest ? e.target.closest('[data-add]') : null;
-        if (!btn) return;
-        var id = btn.getAttribute('data-add'); var p=null;
-        for (var z=0;z<window.MODELS.length;z++){ var x=window.MODELS[z]; if(((x.id||x.sku||x.title)+'')===id){ p=x; break; } }
-        if (p){ window.CART.push(p); saveCart(); window.notifyCartAdded(p.title||p.sku||'Article'); }
-        e.stopPropagation();
-      }, false);
+
+      if (!elRel.__ptWired){
+        elRel.__ptWired = 1;
+        elRel.addEventListener('click', function(e){
+          var btn = e.target && e.target.closest ? e.target.closest('[data-add]') : null;
+          if (!btn) return;
+          var id = btn.getAttribute('data-add'); var p=null;
+          for (var z=0;z<window.MODELS.length;z++){ var x=window.MODELS[z]; if(((x.id||x.sku||x.title)+'')===id){ p=x; break; } }
+          if (p){ window.CART.push(p); saveCart(); window.notifyCartAdded(p.title||p.sku||'Article'); }
+          e.stopPropagation();
+        }, false);
+      }
     }
 
     injectProductJsonLD(product);
@@ -1314,6 +1328,10 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   window.renderList     = window.renderList     || renderList;
 
 })();
+
+
+
+
 
 /* =========================================================
    PARTIE 3 — Compte + Création de compte (local) + Fidélité
