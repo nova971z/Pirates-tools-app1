@@ -193,8 +193,15 @@
     }
     return v;
   }
-
-  ensureView('view-home',
+  if (!document.getElementById('skip-content')){
+    var sk = document.createElement('a');
+    sk.id='skip-content';
+    sk.href='#main';
+    sk.className='sr-only pt-root';
+    sk.textContent='Aller au contenu';
+    appendToBodySafe(sk);
+  }
+    ensureView('view-home',
     '<div class="container">'+
       '<h1 tabindex="-1">Bienvenue</h1>'+
       '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>'+
@@ -203,7 +210,7 @@
   );
 
   ensureView('view-catalogue',
-    '<div class="container">'+
+        '<div class="container" id="main">'+
       '<h1 tabindex="-1">Catalogue</h1>'+
       '<div class="toolbar">'+
         '<input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)">'+
@@ -215,7 +222,7 @@
   );
 
   ensureView('view-devis',
-    '<div class="container">'+
+        '<div class="container" id="main">'+
       '<h1 tabindex="-1">Mon devis</h1>'+
       '<div class="card">'+
         '<div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>'+
@@ -223,6 +230,8 @@
         '<div class="actions">'+
           '<button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>'+
           '<button id="devisClear" class="btn" type="button">Vider</button>'+
+                    '<button id="devisCopy" class="btn" type="button">Copier</button>'+
+          '<button id="devisMail" class="btn" type="button">Email</button>'+
         '</div>'+
       '</div>'+
     '</div>'
@@ -231,7 +240,7 @@
   // Vue Compte: seulement si la Partie 3 n'a pas déjà booté
   if (!window.__ptP3Booted){
     ensureView('view-compte',
-      '<div class="container">'+
+            '<div class="container" id="main">'+
         '<h1 tabindex="-1">Mon compte</h1>'+
         '<div id="accContent"></div>'+
       '</div>'
@@ -400,6 +409,16 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
 
   /* ---------- Chargement produits (mémoisé & robuste) ---------- */
+
+  var LS_PRODUCTS = 'pt_products_cache_v1';
+  function readProductsCache(){
+    try{ var raw = localStorage.getItem(LS_PRODUCTS); return raw ? JSON.parse(raw) : null; }catch(_){ return null; }
+  }
+  function writeProductsCache(arr){
+    try{ localStorage.setItem(LS_PRODUCTS, JSON.stringify({ t: Date.now(), products: (arr||[]) })); }catch(_){}
+  }
+
+
   function _withTimeout(p, ms){
     return new Promise(function(resolve, reject){
       var t = setTimeout(function(){ reject(new Error('timeout')); }, Math.max(3000, ms||6500));
@@ -432,16 +451,19 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       .then(function(json){
         var arr = Array.isArray(json) ? json : (json && Array.isArray(json.products) ? json.products : []);
         if (!Array.isArray(arr)) arr = [];
+                window.__PT_PRODUCTS = arr.slice();
+        window.MODELS = window.__PT_PRODUCTS.slice();
+        writeProductsCache(window.__PT_PRODUCTS);
+        try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
+        return window.__PT_PRODUCTS;
+            })
+      .catch(function(){
+        var cache = readProductsCache();
+        var arr = (cache && Array.isArray(cache.products)) ? cache.products : [];
         window.__PT_PRODUCTS = arr.slice();
         window.MODELS = window.__PT_PRODUCTS.slice();
         try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
         return window.__PT_PRODUCTS;
-      })
-      .catch(function(){
-        window.__PT_PRODUCTS = [];
-        window.MODELS = [];
-        try{ window.dispatchEvent(new CustomEvent('pt:productsLoaded')); }catch(_){}
-        return [];
       });
   }
   if (typeof window.loadProducts !== 'function') window.loadProducts = loadProducts;
@@ -1032,9 +1054,16 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
         "priceCurrency": p.currency || 'EUR',
         "price": price!=null ? String(price) : void 0,
         "availability": schemaAvailability(p),
-        "itemCondition": p.new ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+               "itemCondition": (p.new===true) ? "https://schema.org/NewCondition" : ((p.new===false) ? "https://schema.org/UsedCondition" : void 0),
         "url": url
       }
+            ,
+      "aggregateRating": (typeof p.rating_value==='number' && typeof p.rating_count==='number') ? {
+        "@type":"AggregateRating",
+        "ratingValue": String(p.rating_value),
+        "reviewCount": String(p.rating_count)
+      } : void 0
+      
     };
     function prune(o){
       if (Array.isArray(o)){ var a=[]; for (var i=0;i<o.length;i++){ var pv=prune(o[i]); if(pv!=null) a.push(pv); } return a; }
@@ -1742,6 +1771,29 @@ var related = window.MODELS.filter(function(m){
           saveCart(); renderCartView(); return;
         }
       }, false);
+          var copyBtn = document.getElementById('devisCopy');
+    if (copyBtn && !copyBtn.__wired){
+      copyBtn.__wired = 1;
+      copyBtn.addEventListener('click', function(){
+        try{
+          var msg = window.cartToWhatsAppText();
+          if (!msg) return;
+          (navigator.clipboard && navigator.clipboard.writeText)
+            ? navigator.clipboard.writeText(msg).then(function(){ window.toast('Devis copié','success'); })
+            : alert(msg);
+        }catch(_){}
+      }, false);
+    }
+    var mailBtn = document.getElementById('devisMail');
+    if (mailBtn && !mailBtn.__wired){
+      mailBtn.__wired = 1;
+      mailBtn.addEventListener('click', function(){
+        var msg = encodeURIComponent(window.cartToWhatsAppText() || '');
+        if (!msg) return;
+        var subject = encodeURIComponent('Demande de devis Pirates Tools');
+        location.href = 'mailto:?subject='+subject+'&body='+msg;
+      }, false);
+    }
     }
 
     var sendBtn = document.getElementById('devisSend');
@@ -2894,6 +2946,29 @@ function injectBreadcrumbs(items){
         try{
           W.renderPDP(m); // P2 place title/description + JSON-LD Product
           
+                    /* ===== Breadcrumbs + og:image dynamique (PDP) ===== */
+          injectBreadcrumbs([
+            {name:'Accueil', href:'#/'},
+            {name:'Catalogue', href:'#/catalogue'},
+            {name:(m && (m.title || ((m.brand||'')+' '+(m.sku||'')))) || 'Produit', href:location.hash||'#/produit'}
+          ]);
+          try{
+            var pdp = D.getElementById('pdpImg');
+            function _bumpOg(){
+              try{
+                var img = (pdp && (pdp.currentSrc || pdp.src)) || '';
+                PT.router.updateSEO({
+                  title: document.title,
+                  desc: (D.querySelector('meta[name="description"]')||{}).content || DEFAULT_DESC,
+                  type: 'product',
+                  image: img
+                });
+              }catch(_){}
+            }
+            if (pdp && pdp.complete) _bumpOg();
+            else if (pdp) pdp.addEventListener('load', _bumpOg, { once:true });
+          }catch(_){}
+          
           
           // P4 remet à jour og:url/canonical (déjà fait) et image si besoin
           updateSEO({ title: document.title, desc: (D.querySelector('meta[name="description"]')||{}).content || DEFAULT_DESC, type:'product' });
@@ -3005,7 +3080,8 @@ function renderCompteRoute(){
           try{ scopePath = (typeof W.PUBLIC_BASE==='string') ? new URL('.', W.PUBLIC_BASE).pathname : '/'; }catch(_){}
           try{
             var swUrl = (typeof W.PUBLIC_BASE==='string') ? new URL('sw.js', W.PUBLIC_BASE).href : 'sw.js';
-            navigator.serviceWorker.register(swUrl, { scope: scopePath });
+                        var reg = navigator.serviceWorker.register(swUrl, { scope: scopePath });
+            if (reg && reg.catch) reg.catch(function(){ /* ignore 404 en dev */ });
           }catch(_){}
         }
       }catch(_){}
