@@ -2978,7 +2978,7 @@
 })();
 
 
-<!-- ===== Auth (front-only) : #/login & #/register — ES5, non destructif ===== -->
+/* ===== Auth (front-only) : #/login & #/register — ES5, non destructif ===== */
 
 (function(){
   'use strict';
