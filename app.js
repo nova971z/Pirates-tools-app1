@@ -1,6 +1,7 @@
 /* =========================================================
    Pirates Tools — app.js (Partie 1/4)
    Boot SPA + Helpers + Home + Marques + Loader produits + Hero overshoot
+   + Détecteur intelligent (scroll / bas de page masqué / vh iOS / safe-area)
    - ES5-safe (pas d'arrows / optional chaining)
    - Tolérant (products.json vide/absent => OK)
    - N'écrase rien : n'installe un helper global QUE s'il manque
@@ -454,6 +455,159 @@
     window.addEventListener('scroll', onScroll, { passive:true });
   })();
 
+  /* =========================================================
+     Détecteur intelligent (scroll, bas de page masqué, vh iOS)
+     - Non destructif : n’applique que si nécessaire
+     - ES5-safe, idempotent
+  ========================================================== */
+  (function(){
+    if (window.__ptSmartGuard) return; window.__ptSmartGuard = 1;
+
+    var W = window, D = document, E = D.documentElement, B = D.body;
+
+    function num(v){ v = parseFloat(v); return isNaN(v)?0:v; }
+    function css(el){ return W.getComputedStyle ? W.getComputedStyle(el) : (el.currentStyle||{}); }
+    function px(v){ return (v==null || v==='') ? 0 : num(String(v).replace('px','')); }
+
+    /* --- 1) Variables viewport (vh/vw fiables) --- */
+    function setViewportVars(){
+      try{
+        var vh = (W.visualViewport && W.visualViewport.height) ? W.visualViewport.height : W.innerHeight || E.clientHeight || 0;
+        var vw = (W.visualViewport && W.visualViewport.width)  ? W.visualViewport.width  : W.innerWidth  || E.clientWidth  || 0;
+        E.style.setProperty('--app-vh', (vh*0.01)+'px');
+        E.style.setProperty('--app-vw', (vw*0.01)+'px');
+      }catch(_){}
+    }
+
+    /* --- 2) Safe-area & obstructions (dock, footers fixes) --- */
+    function getSafeAreaBottom(){
+      var vvb = 0;
+      try{
+        if (W.visualViewport){
+          var ih = W.innerHeight||0;
+          var used = (W.visualViewport.height||0) + (W.visualViewport.offsetTop||0);
+          vvb = Math.max(0, ih - used);
+        }
+      }catch(_){}
+      // CSS env(safe-area-inset-bottom)
+      var cssEnv = 0;
+      try{
+        var probe = D.createElement('div');
+        probe.style.cssText = 'position:fixed;left:-9999px;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);';
+        D.body ? D.body.appendChild(probe) : E.appendChild(probe);
+        cssEnv = num(W.getComputedStyle(probe).paddingBottom);
+        probe.parentNode.removeChild(probe);
+      }catch(_){}
+      return Math.max(vvb, cssEnv, 0);
+    }
+
+    function getDockHeight(){
+      var el = D.getElementById('dock');
+      if (!el) return 0;
+      var st = css(el);
+      var pos = (st && st.position)||'';
+      if (pos!=='fixed' && pos!=='sticky') return 0;
+      var r = el.getBoundingClientRect ? el.getBoundingClientRect() : {top:0,bottom:0};
+      var h = Math.max(0, Math.min(W.innerHeight||0, r.bottom) - Math.max(0, r.top));
+      return Math.max(0, h||0);
+    }
+
+    function computeObstruction(){
+      var hDock = getDockHeight();
+      var safe  = getSafeAreaBottom();
+      return Math.max(hDock, safe);
+    }
+
+    function applyBottomPadding(){
+      try{
+        var need = computeObstruction();
+        // si rien → ne touche pas au padding existant
+        if (!need){ E.style.setProperty('--safe-bottom','0px'); return; }
+        var cur = px(css(B).paddingBottom);
+        var want = Math.max(cur, need + 6); // marge douce
+        if (!B.__ptOrigPB){ B.__ptOrigPB = B.style.paddingBottom||''; }
+        if (want > cur + 1){
+          B.style.paddingBottom = want + 'px';
+        }
+        E.style.setProperty('--safe-bottom', need+'px');
+      }catch(_){}
+    }
+
+    /* --- 3) Détection “page ne scrolle pas alors qu’elle est plus haute” --- */
+    function fixScrollLockIfNeeded(){
+      try{
+        var sh = Math.max(B.scrollHeight||0, E.scrollHeight||0);
+        var ch = Math.max(B.clientHeight||0, E.clientHeight||0, W.innerHeight||0);
+        var needScroll = (sh - ch) > 16;
+        if (!needScroll) return;
+
+        var sb = css(B), se = css(E);
+        var bodyLocked = (sb && (sb.overflow==='hidden' || sb.overflowY==='hidden'));
+        var htmlLocked = (se && (se.overflow==='hidden' || se.overflowY==='hidden'));
+
+        if (bodyLocked || htmlLocked){
+          if (!B.__ptPrevOverflowY) B.__ptPrevOverflowY = B.style.overflowY || '';
+          if (!E.__ptPrevOverflowY) E.__ptPrevOverflowY = E.style.overflowY || '';
+          B.style.overflowY = 'auto';
+          E.style.overflowY = 'auto';
+          E.classList.add('pt-scroll-fix');
+        }
+      }catch(_){}
+    }
+
+    /* --- 4) Sentinelle bas de page : ajuste en dynamique --- */
+    function ensureBottomSentinel(){
+      var s = D.getElementById('pt-bottom-sentinel');
+      if (!s){
+        s = D.createElement('div');
+        s.id = 'pt-bottom-sentinel';
+        s.style.cssText = 'width:1px;height:1px;overflow:hidden;position:relative';
+        appendToBodySafe(s);
+      }
+      return s;
+    }
+
+    var io;
+    function watchBottom(){
+      try{
+        var s = ensureBottomSentinel();
+        if (!('IntersectionObserver' in W)) return; // sans IO → padding via resize
+        if (io) return;
+        io = new IntersectionObserver(function(entries){
+          var e = entries && entries[0]; if (!e) return;
+          // Si la sentinelle n’est pas entièrement visible, on augmente le padding
+          if (!e.isIntersecting || e.intersectionRatio < 1){
+            applyBottomPadding();
+          }
+        }, { threshold:[1] });
+        io.observe(s);
+      }catch(_){}
+    }
+
+    /* --- 5) Boot + écoutes --- */
+    function refreshAll(){
+      setViewportVars();
+      applyBottomPadding();
+      fixScrollLockIfNeeded();
+    }
+
+    // événements fiables
+    W.addEventListener('resize', function(){ setViewportVars(); applyBottomPadding(); }, { passive:true });
+    W.addEventListener('orientationchange', function(){ setTimeout(refreshAll, 60); }, false);
+    if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
+      W.visualViewport.addEventListener('resize', function(){ refreshAll(); }, { passive:true });
+      W.visualViewport.addEventListener('scroll', function(){ refreshAll(); }, { passive:true });
+    }
+    W.addEventListener('hashchange', function(){ setTimeout(refreshAll, 0); }, false);
+    D.addEventListener('DOMContentLoaded', function(){ refreshAll(); watchBottom(); }, false);
+
+    // Expose (optionnel)
+    window.PT = window.PT || {};
+    if (typeof window.PT.refreshViewportSafe !== 'function'){
+      window.PT.refreshViewportSafe = refreshAll;
+    }
+  })();
+
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function(){
     // fallback visuels logos (si jamais)
@@ -493,8 +647,6 @@
 
 
 
-
-
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
@@ -502,6 +654,7 @@
    - Panier persistant + WhatsApp devis
    - Cohérente avec la Partie 1 (loadProducts/MODELS/pt:productsLoaded)
    - Expose les APIs utilisées par Parties 3 & 4
+   - Hardening : guard notifyCartAdded, escape HTML, total devis, a11y dock
 ========================================================= */
 (function(){
   'use strict';
@@ -575,6 +728,20 @@
       }catch(_){}
     };
   }
+  if (typeof window.notifyCartAdded !== 'function'){
+    window.notifyCartAdded = function(label){
+      try{ window.toast((label||'Article')+' ajouté', 'success'); }catch(_){}
+      try{ window.announce('Article ajouté au panier'); }catch(_){}
+    };
+  }
+
+  /* ---------- Mini utils locaux ---------- */
+  function esc(s){
+    s = String(s==null?'':s);
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+  }
 
   /* ---------- Globals compat ---------- */
   var PHONE_E164   = window.PHONE_E164   || '+33774230195';
@@ -597,6 +764,17 @@
 
   /* ---------- Utils ---------- */
   function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+  function priceToCents(p){
+    if (p==null) return null;
+    if (typeof p==='number' && isFinite(p)) return Math.round(p*100);
+    return null;
+  }
+  function productPriceCents(m){
+    if (!m) return null;
+    if (typeof m.price_cents==='number' && isFinite(m.price_cents)) return Math.round(m.price_cents);
+    if (typeof m.price==='number' && isFinite(m.price)) return Math.round(m.price*100);
+    return null;
+    }
   function formatPriceCents(priceCents, currency){
     if (priceCents == null) return '';
     var txt = '';
@@ -611,7 +789,11 @@
   ========================================================== */
   function updateDock(){
     var n = window.CART.length;
-    if (dockCount){ dockCount.textContent = n; dockCount.style.display = n ? '' : 'none'; }
+    if (dockCount){
+      dockCount.textContent = n;
+      dockCount.style.display = n ? '' : 'none';
+      try{ dockCount.setAttribute('aria-label', n ? (n+' article'+(n>1?'s':'')) : '0 article'); }catch(_){}
+    }
     if (dock){
       var cartBtn = document.getElementById('dockCartBtn') || (dock.querySelector ? dock.querySelector('.dock__btn--cart') : null);
       if (cartBtn){ cartBtn.style.animationPlayState = n ? 'running' : 'paused'; }
@@ -766,21 +948,19 @@
     var id    = String(window.fallback(m.id, window.fallback(m.sku, title)));
 
     var currency   = (m && m.currency) ? m.currency : 'EUR';
-    var priceCents = (m && typeof m.price_cents==='number' && isFinite(m.price_cents))
-      ? Math.round(m.price_cents)
-      : (m && typeof m.price==='number' && isFinite(m.price)) ? Math.round(m.price*100) : null;
+    var priceCents = productPriceCents(m);
 
     var priceHtml = (priceCents!=null)
-      ? '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+formatPriceCents(priceCents,currency)+'</div>'
+      ? '<div class="price" aria-label="Prix" style="margin-top:.35rem;font-weight:700">'+esc(formatPriceCents(priceCents,currency))+'</div>'
       : '';
 
     return ''
-      + '<article class="card" data-tool data-id="'+id+'" data-tag="'+tag+'">'
-      + '  <div class="head"><h3 class="title">'+title+'</h3>'+(tag?'<span class="badge">'+tag+'</span>':'')+'</div>'
-      + '  <div class="specs"><p style="margin:0">'+(desc||'—')+'</p>'+priceHtml+'</div>'
+      + '<article class="card" data-tool data-id="'+esc(id)+'" data-tag="'+esc(tag)+'">'
+      + '  <div class="head"><h3 class="title">'+esc(title)+'</h3>'+(tag?'<span class="badge">'+esc(tag)+'</span>':'')+'</div>'
+      + '  <div class="specs"><p style="margin:0">'+(desc?esc(desc):'—')+'</p>'+priceHtml+'</div>'
       + '  <div class="actions">'
       + '    <a class="btn" href="#/produit/'+encodeURIComponent(id)+'">Détails</a>'
-      + '    <button class="btn primary" data-add="'+id+'">Ajouter au panier</button>'
+      + '    <button class="btn primary" data-add="'+esc(id)+'">Ajouter au panier</button>'
       + '  </div>'
       + '</article>';
   }
@@ -874,9 +1054,7 @@
 
     // prix
     var currency   = product && product.currency ? product.currency : 'EUR';
-    var priceCents = (product && typeof product.price_cents==='number' && isFinite(product.price_cents))
-      ? Math.round(product.price_cents)
-      : (product && typeof product.price==='number' && isFinite(product.price)) ? Math.round(product.price*100) : null;
+    var priceCents = productPriceCents(product);
 
     var priceEl = document.getElementById('pdpPrice');
     if (!priceEl){
@@ -887,9 +1065,9 @@
     }
     priceEl.textContent = (priceCents!=null) ? formatPriceCents(priceCents, currency) : '';
 
-    // specs (features + table)
+    // specs (features + table) — sécurisées
     var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs)?product.specs:[]);
-    var featHtml = features.length ? features.map(function(s){ return '<li>'+s+'</li>'; }).join('') : '';
+    var featHtml = features.length ? features.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join('') : '';
     var merged = {};
     var kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
     var kvDerived = {
@@ -908,7 +1086,9 @@
 
     var tableHtml = '';
     if (Object.keys(merged).length){
-      var rows = Object.keys(merged).map(function(k){ return '<tr><th>'+k+'</th><td>'+merged[k]+'</td></tr>'; }).join('');
+      var rows = Object.keys(merged).map(function(k){
+        return '<tr><th>'+esc(k)+'</th><td>'+esc(merged[k])+'</td></tr>';
+      }).join('');
       tableHtml =
         '<li style="list-style:none;padding:0;margin:.6rem 0 0">'+
         '  <div class="badge" style="margin:0 0 .4rem;display:inline-flex;align-items:center;gap:.4rem">⚙️ Caractéristiques techniques</div>'+
@@ -958,10 +1138,10 @@
       for (var i=0;i<related.length;i++){
         var rm = related[i];
         relHTML +=
-          '<article class="card" data-id="'+(rm.id||rm.sku||rm.title)+'">'+
-          '  <div class="head"><h3 class="title">'+(rm.title||(rm.brand||'')+' '+(rm.sku||''))+'</h3>'+((rm.badge||'')?'<span class="badge">'+rm.badge+'</span>':'')+'</div>'+
-          '  <div class="specs"><p style="margin:0">'+(rm.desc||rm.description||'')+'</p></div>'+
-          '  <div class="actions"><button class="btn primary" data-add="'+(rm.id||rm.sku||rm.title)+'">Ajouter au panier</button></div>'+
+          '<article class="card" data-id="'+esc(rm.id||rm.sku||rm.title)+'">'+
+          '  <div class="head"><h3 class="title">'+esc(rm.title||(rm.brand||'')+' '+(rm.sku||''))+'</h3>'+((rm.badge||'')?'<span class="badge">'+esc(rm.badge)+'</span>':'')+'</div>'+
+          '  <div class="specs"><p style="margin:0">'+esc(rm.desc||rm.description||'')+'</p></div>'+
+          '  <div class="actions"><button class="btn primary" data-add="'+esc(rm.id||rm.sku||rm.title)+'">Ajouter au panier</button></div>'+
           '</article>';
       }
       elRel.innerHTML = relHTML;
@@ -1021,7 +1201,7 @@
     syncDomRefs(); if (!tagEl) return;
     var html = '<option value="">Tous</option>';
     var opts = buildTagOptions();
-    for (var i=0;i<opts.length;i++) html += '<option value="'+opts[i].key+'">'+opts[i].label+'</option>';
+    for (var i=0;i<opts.length;i++) html += '<option value="'+esc(opts[i].key)+'">'+esc(opts[i].label)+'</option>';
     tagEl.innerHTML = html;
   }
   function findSelectMatch(select, keyLower){
@@ -1038,10 +1218,10 @@
     var cats = buildCategories();
     root.innerHTML = cats.length
       ? cats.map(function(c){
-          return '<article class="card cat-card" data-cat="'+c.key+'">'+
-                   '<div class="head"><h3 class="title">'+c.label+'</h3><span class="badge">Catégorie</span></div>'+
-                   '<div class="specs"><p style="margin:0">'+c.count+' produit'+(c.count>1?'s':'')+'</p></div>'+
-                   '<div class="actions"><button class="btn primary" data-cat-go="'+c.key+'">Voir</button></div>'+
+          return '<article class="card cat-card" data-cat="'+esc(c.key)+'">'+
+                   '<div class="head"><h3 class="title">'+esc(c.label)+'</h3><span class="badge">Catégorie</span></div>'+
+                   '<div class="specs"><p style="margin:0">'+esc(c.count)+' produit'+(c.count>1?'s':'')+'</p></div>'+
+                   '<div class="actions"><button class="btn primary" data-cat-go="'+esc(c.key)+'">Voir</button></div>'+
                  '</article>';
         }).join('')
       : '<div class="card"><div class="specs"><p style="margin:0">Aucune catégorie détectée.</p></div></div>';
@@ -1124,10 +1304,10 @@
     }
     root.innerHTML = types.map(function(c){
       return ''+
-        '<article class="card type-card" data-type="'+c.key+'">'+
-        '  <div class="head"><h3 class="title">'+c.label+'</h3><span class="badge">Type</span></div>'+
-        '  <div class="specs"><p style="margin:0">'+c.count+' produit'+(c.count>1?'s':'')+'</p></div>'+
-        '  <div class="actions"><button class="btn primary" data-type-go="'+c.key+'">Voir</button></div>'+
+        '<article class="card type-card" data-type="'+esc(c.key)+'">'+
+        '  <div class="head"><h3 class="title">'+esc(c.label)+'</h3><span class="badge">Type</span></div>'+
+        '  <div class="specs"><p style="margin:0">'+esc(c.count)+' produit'+(c.count>1?'s':'')+'</p></div>'+
+        '  <div class="actions"><button class="btn primary" data-type-go="'+esc(c.key)+'">Voir</button></div>'+
         '</article>';
     }).join('');
     if (!root.__ptTypeWired){
@@ -1267,28 +1447,42 @@
   }
 
   /* =========================================================
-     E) DEVIS — vue + actions
+     E) DEVIS — vue + actions (avec total si dispo)
   ========================================================== */
   function renderCartView(){
     var wrap = document.getElementById('devisList'); if (!wrap) return;
     var grouped = groupCart();
+
     if (!grouped.length){
       wrap.innerHTML = '<p style="margin:0">Aucun article pour le moment.</p>';
     } else {
-      wrap.innerHTML = grouped.map(function(g){
+      var sumCents = 0;
+      var html = '';
+      for (var i=0;i<grouped.length;i++){
+        var g = grouped[i];
         var it=g.item||{}, qty=Number(g.qty||0), sku=it.sku||it.id||'';
         var title= it.title || ((it.brand||'')+' '+(it.sku||'')).trim();
         var key=keyOf(it);
-        return '<div class="card">'+
-                 '<div class="head"><h3 class="title">'+title+'</h3><span class="badge">'+sku+'</span></div>'+
+        var pc = productPriceCents(it);
+        if (pc!=null) sumCents += (pc*qty);
+        html += '<div class="card">'+
+                 '<div class="head"><h3 class="title">'+esc(title)+'</h3><span class="badge">'+esc(sku)+'</span></div>'+
                  '<div class="specs" style="display:flex;gap:.6rem;align-items:center">'+
-                   '<button class="btn" data-dec="'+key+'" aria-label="Diminuer">−</button>'+
-                   '<strong>'+qty+'</strong>'+
-                   '<button class="btn" data-inc="'+key+'" aria-label="Augmenter">+</button>'+
-                   '<button class="btn" data-del="'+key+'" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>'+
+                   '<button class="btn" data-dec="'+esc(key)+'" aria-label="Diminuer">−</button>'+
+                   '<strong>'+esc(qty)+'</strong>'+
+                   '<button class="btn" data-inc="'+esc(key)+'" aria-label="Augmenter">+</button>'+
+                   (pc!=null ? '<span style="margin-left:.6rem;opacity:.8">'+esc(formatPriceCents(pc,'EUR'))+' /u</span>' : '')+
+                   '<button class="btn" data-del="'+esc(key)+'" style="margin-left:auto;background:rgba(255,255,255,.06);color:#d9e3ec" aria-label="Supprimer">Supprimer</button>'+
                  '</div>'+
                '</div>';
-      }).join('');
+      }
+      if (sumCents>0){
+        html += '<div class="card">'+
+                  '<div class="head"><h3 class="title">Total estimatif</h3><span class="badge">HT indicatif</span></div>'+
+                  '<div class="specs"><p style="margin:0;font-weight:700">'+esc(formatPriceCents(sumCents,'EUR'))+'</p></div>'+
+                '</div>';
+      }
+      wrap.innerHTML = html;
     }
 
     if (!wrap.__wired){
@@ -1480,7 +1674,6 @@
 })();
 
 
-
 /* =========================================================
    PARTIE 3 — Compte + Création de compte (local) + Fidélité
    - Route: #/compte
@@ -1578,22 +1771,22 @@
   if (typeof window.defaultUser !== 'function') window.defaultUser = defaultUser;
 
   /* =========================================================
-     B) Vue & UI (création si absente)
+     B) Vue & UI (création si absente) — progressive enhancement
   ========================================================== */
   function accountInnerHTML(){
     return ''
     + '<div class="card">'
     + '  <div class="head"><h3 class="title">Informations</h3><span class="badge">Profil</span></div>'
     + '  <div class="specs" style="display:grid;gap:.6rem">'
-    + '    <label>Nom / Prénom<br><input id="accName" class="search" type="text" placeholder="Ex: Alex Pirate"></label>'
-    + '    <label>Email<br><input id="accEmail" class="search" type="email" inputmode="email" placeholder="exemple@mail.com"></label>'
-    + '    <label>Téléphone<br><input id="accPhone" class="search" type="tel" inputmode="tel" placeholder="+33 6…"></label>'
-    + '    <label>Adresse<br><textarea id="accAddr" class="search" rows="2" placeholder="Adresse postale"></textarea></label>'
+    + '    <label>Nom / Prénom<br><input id="accName" class="search" type="text" placeholder="Ex: Alex Pirate" autocomplete="name"></label>'
+    + '    <label>Email<br><input id="accEmail" class="search" type="email" inputmode="email" placeholder="exemple@mail.com" autocomplete="email"></label>'
+    + '    <label>Téléphone<br><input id="accPhone" class="search" type="tel" inputmode="tel" placeholder="+33 6…" autocomplete="tel"></label>'
+    + '    <label>Adresse<br><textarea id="accAddr" class="search" rows="2" placeholder="Adresse postale" autocomplete="street-address"></textarea></label>'
     + '    <label style="display:flex;align-items:center;gap:.5rem"><input id="accNews" type="checkbox"> S’abonner aux nouveautés</label>'
     + '  </div>'
     + '  <div class="actions">'
-    + '    <button class="btn primary" id="accSave">Enregistrer</button>'
-    + '    <button class="btn" id="accClear">Se déconnecter / Réinitialiser</button>'
+    + '    <button class="btn primary" id="accSave" type="button">Enregistrer</button>'
+    + '    <button class="btn" id="accClear" type="button">Se déconnecter / Réinitialiser</button>'
     + '  </div>'
     + '</div>'
     + '<div class="card">'
@@ -1606,7 +1799,7 @@
     + '    </div>'
     + '  </div>'
     + '  <div class="actions">'
-    + '    <button class="btn" id="accToDevis">Voir mon devis</button>'
+    + '    <button class="btn" id="accToDevis" type="button">Voir mon devis</button>'
     + '    <a class="btn btn-wa" id="accWA" target="_blank" rel="noopener">WhatsApp</a>'
     + '  </div>'
     + '</div>';
@@ -1626,11 +1819,32 @@
       + '</div>';
       document.body.appendChild(view);
     }
+
+    // Si ancienne version de la vue (Partie 1) sans #accContent → on injecte prudemment
     var content = view.querySelector('#accContent');
     if (content){
       if (!content.__ptInjected){ content.__ptInjected = 1; content.innerHTML = accountInnerHTML(); }
-    } else if (!view.querySelector('#accName')){
-      var box = document.createElement('div'); box.innerHTML = accountInnerHTML(); view.appendChild(box);
+    } else {
+      // Progressive enhancement: on ajoute juste les actions manquantes si besoin
+      var actions = view.querySelector('.actions');
+      if (actions){
+        if (!document.getElementById('accWA')){
+          var a=document.createElement('a');
+          a.className='btn btn-wa'; a.id='accWA'; a.target='_blank'; a.rel='noopener'; a.textContent='WhatsApp';
+          actions.appendChild(a);
+        }
+        if (!document.getElementById('accClear')){
+          var b=document.createElement('button');
+          b.className='btn'; b.id='accClear'; b.type='button'; b.textContent='Se déconnecter / Réinitialiser';
+          actions.appendChild(b);
+        }
+      }
+    }
+    if (!document.getElementById('accHello')){
+      var hello = document.createElement('p'); hello.id='accHello'; hello.style.cssText='margin:.25rem 0 1rem;color:#9fb4c5';
+      hello.textContent='Bienvenue. Renseignez vos informations pour accélérer les devis.';
+      var cont = view.querySelector('.container')||view;
+      cont.insertBefore(hello, cont.firstChild ? cont.firstChild.nextSibling : null);
     }
     return view;
   }
@@ -1646,6 +1860,7 @@
       + '\n• Email: ' + (u.email || '')
       + (u.phone ? '\n• Tel: '   + u.phone : '')
       + (u.addr  ? '\n• Adresse: '+u.addr  : '')
+      + (u.newsletter ? '\n• Newsletter: oui' : '')
       + '\n\nMerci.';
     return 'https://wa.me/' + onlyDigits(PHONE_E164) + '?text=' + encodeURIComponent(base);
   }
@@ -1811,16 +2026,33 @@
     goAccountBtn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
   }
 
-  // Rafraîchit l’UI si le profil change ailleurs (autre onglet)
+  // Rafraîchit l’UI si le profil change ailleurs (CustomEvent interne)
   if (!window.__ptUserChangeWired){
     window.__ptUserChangeWired = 1;
     window.addEventListener('pt:userChanged', function(e){
       try{ populateAccountForm(e && e.detail ? e.detail : loadUser()); }catch(_){}
     }, false);
   }
+
+  // Rafraîchit l’UI si le profil change dans un AUTRE onglet (événement storage)
+  if (!window.__ptUserStorageSync){
+    window.__ptUserStorageSync = 1;
+    window.addEventListener('storage', function(ev){
+      try{
+        if (!ev || ev.key !== USER_KEY) return;
+        populateAccountForm(loadUser());
+      }catch(_){}
+    }, false);
+  }
+
+  // Namespace PT (expose l’API pour les autres parties)
+  window.PT = window.PT || {};
+  if (!window.PT.loadUser)    window.PT.loadUser    = loadUser;
+  if (!window.PT.saveUser)    window.PT.saveUser    = saveUser;
+  if (!window.PT.computeTier) window.PT.computeTier = computeTier;
+  if (!window.PT.defaultUser) window.PT.defaultUser = defaultUser;
+
 })();
-
-
 
 /*=========================================================
    PARTIE 4 — Router principal + Vues fail-safe + SEO
@@ -2030,16 +2262,26 @@
     W.addEventListener('pt:productsLoaded', once, false);
   }
 
-  /* ---------- Hydrate <select id="tag"> si vide ---------- */
+  /* ---------- Hydrate <select id="tag"> si vide (anti-doublons & idempotent) ---------- */
   function hydrateTagSelect(){
     var sel = D.getElementById('tag');
     if (!sel || sel.__ptHydrated) return;
+
     var seen = {};
+    // Recense les options déjà présentes (si une autre partie a hydraté avant)
+    var k, opt, opts = sel && sel.options ? sel.options : [];
+    for (k = 0; k < opts.length; k++){
+      opt = opts[k];
+      var lbl0 = (opt && (opt.textContent || opt.value) || '').trim();
+      if (lbl0) seen[lbl0.toLowerCase()] = 1;
+    }
+
     function add(lbl){
       lbl = (lbl==null?'':String(lbl)).trim(); if (!lbl) return;
       var key = lbl.toLowerCase(); if (seen[key]) return; seen[key]=1;
       var o = D.createElement('option'); o.value = lbl; o.textContent = lbl; sel.appendChild(o);
     }
+
     var i, m;
     for (i=0;i<(W.MODELS||[]).length;i++){
       m = W.MODELS[i]||{};
@@ -2052,7 +2294,8 @@
   /* ---------- Helpers route ---------- */
   function getProductIdFromHash(){
     var h = location.hash || '';
-    var m = h.match(/^#\/produit\/(.+?)$/);
+    // Supporte #/produit/ID, #/produit/ID/, #/produit/ID?x=1
+    var m = h.match(/^#\/produit\/([^\/\?#]+)(?:[\/\?#]|$)/i);
     if (m && m[1]) return decodeURIComponent(m[1]);
     var parsed = W.parseHash();
     return (parsed && parsed.query && parsed.query.id) ? parsed.query.id : '';
@@ -2111,7 +2354,12 @@
         var wrap = D.getElementById('pdp') || D.getElementById('view-produit');
         if (wrap){
           if (wrap.scrollIntoView) wrap.scrollIntoView({behavior:'smooth', block:'start'});
-          var box = D.createElement('div'); box.className='card';
+
+          // Anti-empilement du message "introuvable"
+          var old = wrap.querySelector('.card[data-notfound]');
+          if (old && old.parentNode){ try{ old.parentNode.removeChild(old); }catch(_){ } }
+
+          var box = D.createElement('div'); box.className='card'; box.setAttribute('data-notfound','1');
           box.innerHTML = '<div class="head"><h3 class="title">Produit introuvable</h3></div>'+
                           '<div class="specs"><p style="margin:0">Référence inconnue. <a href="#/catalogue" class="chip chip--back">← Retour catalogue</a></p></div>';
           (wrap.querySelector('.container')||wrap).appendChild(box);
@@ -2252,6 +2500,9 @@
 })();
 
 
+
+
+
 /* =========================================================
    PARTIE 5/4 — Nav fiable + FAB Compte + Hero polish + Grille 3 colonnes
    - Ferme le menu automatiquement (clic + hashchange)
@@ -2294,7 +2545,8 @@
       '#view-home #brandGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
       'padding:0 clamp(10px,2vmin,16px);margin-top:calc(var(--listGap,18vh) * 0.35)}' +
 
-      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer}' +
+      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer;' +
+      'will-change:transform;transition:transform .18s ease;}' +
 
       /* Bulle parfaitement circulaire + clipping sûr iOS */
       '#view-home .brand__bubble{position:relative;display:block;width:clamp(96px,22vmin,140px);aspect-ratio:1/1;' +
@@ -2310,7 +2562,16 @@
       '#view-home .brand__label{color:#cfe3f0;opacity:.95;font-weight:600;font-size:.95rem}' +
 
       /* Douceur de scroll globale */
-      'html{scroll-behavior:smooth}body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}';
+      'html{scroll-behavior:smooth}body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none}' +
+
+      /* FAB Compte — non intrusif, se cale en bas-droite (respect safe-area) */
+      '#fabAccount{position:fixed;right:clamp(12px,2.6vmin,20px);bottom:calc(env(safe-area-inset-bottom,0px) + clamp(12px,2.6vmin,20px));' +
+      'z-index:60;display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);' +
+      'background:rgba(255,255,255,.06);color:#dce9f3;backdrop-filter:saturate(120%) blur(6px);' +
+      'box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);cursor:pointer;}' +
+      '#fabAccount .ico{width:20px;height:20px;flex:0 0 20px;}' +
+      '#fabAccount:hover{transform:translateY(-1px)}' +
+      '#fabAccount:active{transform:translateY(0)}';
     D.head.appendChild(s);
   })();
 
@@ -2462,10 +2723,12 @@
     btn.addEventListener('click', function(){ location.hash = '#/compte'; }, false);
     D.body.appendChild(btn);
   }
-  // Si le dock a déjà un bouton Compte, on supprime un éventuel FAB existant
+  // Si le dock a déjà un bouton Compte, on supprime un éventuel FAB existant (ES5-safe)
   (function killFabIfDockHasAccount(){
     var fab = D.getElementById('fabAccount');
-    if (fab && D.querySelector('#dock .dock__btn--account')) fab.remove();
+    if (fab && D.querySelector('#dock .dock__btn--account')){
+      if (fab.parentNode) fab.parentNode.removeChild(fab);
+    }
   })();
 
   /* ---------------- Hero polish : assure le fade + rend net ---------------- */
@@ -2481,7 +2744,7 @@
       logo.style.webkitBackfaceVisibility = 'hidden';
       logo.style.transform = 'translateZ(0)';
       if (logo.complete) setTimeout(function(){ addClass(logo,'on'); }, 0);
-      else logo.addEventListener('load', function(){ addClass(logo,'on'); }, { once:true });
+      else logo.addEventListener('load', function(){ addClass(logo,'on'); }, false);
     }
   }
 
@@ -2521,10 +2784,30 @@
 
   var W = window, D = document;
 
+  /* ---- addEventListener helper (ES5 + passive-safe) ---- */
+  var _supportsPassive = false;
+  try{
+    var _opts = Object.defineProperty({}, 'passive', { get:function(){ _supportsPassive = true; } });
+    W.addEventListener('pt_passive_test', function(){}, _opts);
+    W.removeEventListener('pt_passive_test', function(){}, _opts);
+  }catch(_){}
+  function on(t, ev, fn, passive){
+    try{
+      if (_supportsPassive && passive){ t.addEventListener(ev, fn, { passive:true }); }
+      else { t.addEventListener(ev, fn, false); }
+    }catch(_){
+      try{ t.addEventListener(ev, fn, false); }catch(__){}
+    }
+  }
+
+  /* ---- requestAnimationFrame poly (ES5-safe) ---- */
+  var raf = W.requestAnimationFrame || W.webkitRequestAnimationFrame || function(cb){ return setTimeout(cb, 16); };
+  var caf = W.cancelAnimationFrame  || W.webkitCancelAnimationFrame  || function(id){ clearTimeout(id); };
+
   /* ---- Scroll fluide & gestes sûrs (fallback si CSS absente) ---- */
   (function ensureSmoothScroll(){
     try{
-      var html = D.documentElement; if (html) html.style.scrollBehavior = 'smooth';
+      var html = D.documentElement; if (html && !html.style.scrollBehavior) html.style.scrollBehavior = 'smooth';
       if (D.body){
         D.body.style.touchAction = 'pan-y';
         D.body.style.webkitTapHighlightColor = 'transparent';
@@ -2541,7 +2824,6 @@
     'use strict';
     if (window.__ptHeroWired5) return; window.__ptHeroWired5 = 1;
 
-    var W = window, D = document;
     function qs(s, r){ return (r||D).querySelector(s); }
     function addClass(el,c){ if(el&&el.classList) el.classList.add(c); }
     function rmClass(el,c){ if(el&&el.classList) el.classList.remove(c); }
@@ -2586,11 +2868,7 @@
     /* Réduction d’animations */
     var mqr = W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)');
     if (mqr && mqr.matches){
-      var t0='translate3d(0,0,0) scale(1)';
-      logo.style.transform=t0; logo.style.opacity='1'; logo.style.filter='none';
-      addClass(hero,'hero-out'); addClass(D.body,'after-hero');
-      hero.style.zIndex=-1; hero.style.pointerEvents='none';
-      D.documentElement.style.setProperty('--listGap','0vh');
+      resetHeroState(1);
       return;
     }
 
@@ -2628,6 +2906,20 @@
 
     var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
 
+    function setListGap(vh){
+      try{ D.documentElement.style.setProperty('--listGap', vh); }catch(_){}
+    }
+    function resetHeroState(minimal){
+      // État net + variable d’espace
+      try{
+        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
+        hero.style.zIndex=''; hero.style.pointerEvents='';
+        logo.style.transform='translate3d(0,0,0) scale(1)';
+        logo.style.opacity='1'; logo.style.filter='none';
+        setListGap(minimal ? '0vh' : (mqMobile && mqMobile.matches ? (GAP_M+'vh') : (GAP_D+'vh')));
+      }catch(_){}
+    }
+
     function render(y){
       var isM = mqMobile && mqMobile.matches;
       var finPx = _vh * (isM?DIST_M:DIST_D) || 1;
@@ -2656,7 +2948,7 @@
 
       // Espace au-dessus des bulles (Home)
       var gap=Math.max(0,(1 - p)*(isM?GAP_M:GAP_D));
-      D.documentElement.style.setProperty('--listGap', gap.toFixed(2)+'vh');
+      setListGap(gap.toFixed(2)+'vh');
 
       // Hystérésis : passe derrière / revient devant
       var doneT=isM?DONE_M:DONE_D, backT=isM?RETURN_M:RETURN_D;
@@ -2674,11 +2966,7 @@
       // Sécurité : tout en haut → état initial net
       if (y<=1){
         heroPassed=false;
-        rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
-        hero.style.zIndex=''; hero.style.pointerEvents='';
-        logo.style.transform='translate3d(0,0,0) scale(1)';
-        logo.style.opacity='1'; logo.style.filter='none';
-        D.documentElement.style.setProperty('--listGap', (isM?GAP_M:GAP_D)+'vh');
+        resetHeroState(0);
       }
     }
 
@@ -2686,13 +2974,13 @@
       if (!running) return;
       var y=scrollTop();
       if (y!==prevY){ render(y); prevY=y; }
-      rafId=W.requestAnimationFrame(tick);
+      rafId = raf(tick);
     }
     function startRAF(){
       if (!isHome()) return stopRAF();
       if (running) return;
       running=true; prevY=-1; render(scrollTop());
-      rafId=W.requestAnimationFrame(tick);
+      rafId = raf(tick);
       try{
         D.documentElement.style.overscrollBehaviorY='auto';
         if (D.body){
@@ -2703,34 +2991,37 @@
       }catch(_){}
     }
     function stopRAF(){
-      running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
+      running=false; if (rafId){ caf(rafId); rafId=0; }
+      // Quand on quitte Home, on remet l’état net (zéro jank quand on revient)
+      if (!isHome()) resetHeroState(1);
     }
 
     // Révélation douce au chargement image
     var reveal=function(){ try{ addClass(logo,'on'); }catch(_){} };
-    if (logo.complete) setTimeout(reveal,0); else logo.addEventListener('load',reveal,{once:true});
+    if (logo.complete) setTimeout(reveal,0); else on(logo,'load',reveal,false);
 
     // Boot + évènements
     var recalc=function(){ _vh=getVH(); if (running) render(scrollTop()); };
-    W.addEventListener('resize',recalc,{passive:true});
+    on(W,'resize',recalc,1);
     if (W.visualViewport && typeof W.visualViewport.addEventListener==='function'){
-      W.visualViewport.addEventListener('resize',recalc,{passive:true});
+      try{ W.visualViewport.addEventListener('resize', recalc, _supportsPassive?{passive:true}:false); }catch(_){}
     }
-    W.addEventListener('orientationchange',recalc,true);
-    D.addEventListener('visibilitychange',function(){ if(!D.hidden) recalc(); },true);
-    W.addEventListener('pageshow',function(e){ if(e && e.persisted) recalc(); },true);
-    W.addEventListener('pagehide',function(){ stopRAF(); },true);
+    on(W,'orientationchange',recalc,false);
+    on(D,'visibilitychange',function(){ if(!D.hidden){ recalc(); if (isHome()) startRAF(); } }, false);
+    on(W,'pageshow',function(e){ if(e && e.persisted){ recalc(); if (isHome()) startRAF(); } }, false);
+    on(W,'pagehide',function(){ stopRAF(); }, false);
 
-    W.addEventListener('hashchange',function(){
+    on(W,'hashchange',function(){
       if (isHome()) startRAF(); else stopRAF();
-    },false);
+    }, false);
 
     // Lancement
     if (isHome()) startRAF();
+    else resetHeroState(1);
   })();
 
 })();
-   /* =========================================================
+  /* =========================================================
    PARTIE 6 — B
    Menu latéral (gestes + inertie) • Nav a11y (focus H1) •
    Fallback compte • FAB Compte (visible partout sauf #/compte)
@@ -2742,16 +3033,31 @@
 
   var W = window, D = document;
 
-  /* ---------------- Helpers ---------------- */
+  /* ---------------- Helpers (ES5 + safe listeners) ---------------- */
   function qs(s, r){ return (r||D).querySelector(s); }
   function addClass(el, c){ if (el && el.classList) el.classList.add(c); }
   function rmClass(el, c){ if (el && el.classList) el.classList.remove(c); }
   function hasClass(el, c){ return !!(el && el.classList && el.classList.contains(c)); }
 
+  // addEventListener: options/passive detection (IE/old webkit safe)
+  var _supportsPassive = false;
+  try{
+    var _opts = Object.defineProperty({}, 'passive', { get:function(){ _supportsPassive = true; } });
+    W.addEventListener('pt_passive_test', function(){}, _opts);
+    W.removeEventListener('pt_passive_test', function(){}, _opts);
+  }catch(_){}
+  function on(t, ev, fn, passive){
+    try{
+      t.addEventListener(ev, fn, (_supportsPassive && passive) ? {passive:true} : false);
+    }catch(_){
+      try{ t.addEventListener(ev, fn, false); }catch(__){}
+    }
+  }
+
   /* =========================================================
      1) MENU latéral — inertie iOS + swipe to close
-     • compatible avec #side-menu / #menu-overlay / #menu-toggle de l’index
-     • ne force pas l’attribut [hidden] (évite conflits avec Part 5)
+     • compatible avec #side-menu / #menu-overlay / #menu-toggle
+     • ne force pas [hidden] (laisse la Part 5 rouvrir)
   ========================================================== */
   (function drawerGestures(){
     if (W.__ptDrawerGestures) return; W.__ptDrawerGestures = 1;
@@ -2761,6 +3067,10 @@
     var overlay = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('.drawer__backdrop') || qs('.backdrop') || qs('#menu-overlay');
     var burger  = qs('#menuBtn') || qs('.hamburger') || qs('.menu-toggle') || qs('#menu-toggle');
 
+    function isOpen(){
+      return (drawer && (hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active'))) ||
+             (body && hasClass(body,'menu-open'));
+    }
     function openTuning(){
       try{
         if (drawer){
@@ -2779,60 +3089,67 @@
         if (body) body.style.overscrollBehaviorY = 'auto';
       }catch(_){}
     }
-
-    function isOpen(){
-      return (drawer && (hasClass(drawer,'open') || hasClass(drawer,'is-open') || hasClass(drawer,'active'))) ||
-             (body && hasClass(body,'menu-open'));
-    }
     function closeDrawer(){
       var flags = ['open','is-open','active','visible','shown','menu-open','drawer-open'];
       var i;
-      if (body) for (i=0;i<flags.length;i++){ rmClass(body, flags[i]); }
-      if (drawer) for (i=0;i<flags.length;i++){ rmClass(drawer, flags[i]); }
-      if (overlay){
-        addClass(overlay,'hidden');
-        overlay.style.display='none'; // on ne touche PAS à overlay.hidden pour laisser Part 5 rouvrir
-      }
-      if (burger) burger.setAttribute('aria-expanded','false');
+      if (body)   for (i=0;i<flags.length;i++) rmClass(body, flags[i]);
+      if (drawer) for (i=0;i<flags.length;i++) rmClass(drawer, flags[i]);
+      if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
+      if (burger)  burger.setAttribute('aria-expanded','false');
       closeTuning();
     }
 
-    // swipe-to-close
-    var sx=0, sy=0, moving=false;
+    // Swipe-to-close (garde le scroll vertical naturel)
+    var sx=0, sy=0, moving=false, id=null, lastX=0, lastT=0, vx=0;
+    var THRESH = 48;      // px minimum vers la gauche
+    var ANGLE  = 1.4;     // ratio dx vs dy (évite conflits défilement)
+    var VELMIN = 0.55;    // px/ms : flick rapide accepte un dx plus court
+
     function start(e){
-      var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
-      sx = t.clientX; sy = t.clientY; moving = true;
+      var t=(e.touches&&e.touches[0])?e.touches[0]:e;
+      id = t.identifier || 0;
+      sx = lastX = t.clientX; sy = t.clientY; lastT = Date.now(); moving=true;
     }
     function move(e){
       if (!moving || !isOpen()) return;
-      var t = (e.touches && e.touches[0]) ? e.touches[0] : e;
-      var dx = t.clientX - sx; var dy = t.clientY - sy;
-      if (dx < -48 && Math.abs(dx) > Math.abs(dy)*1.4){
-        moving = false; closeDrawer();
+      var t=(e.touches&&e.touches[0])?e.touches[0]:e;
+      if (typeof t.identifier!=='undefined' && t.identifier!==id) return;
+
+      var now=Date.now();
+      var dx=t.clientX - sx, dy=t.clientY - sy;
+      vx = (t.clientX - lastX) / Math.max(1, now - lastT);
+      lastX = t.clientX; lastT = now;
+
+      // swipe gauche : dx négatif + angle suffisant + distance/vel
+      if (dx < -THRESH && Math.abs(dx) > Math.abs(dy)*ANGLE){
+        moving=false; closeDrawer(); return;
+      }
+      if (dx < -24 && vx < -VELMIN && Math.abs(dx) > Math.abs(dy)*ANGLE){
+        moving=false; closeDrawer(); return;
       }
     }
-    function end(){ moving = false; }
+    function end(){ moving=false; id=null; vx=0; }
 
     var tgt = drawer || D;
-    tgt.addEventListener('touchstart', start, { passive:true });
-    tgt.addEventListener('touchmove',  move,  { passive:true });
-    tgt.addEventListener('touchend',   end,   { passive:true });
-    tgt.addEventListener('pointerdown',start, { passive:true });
-    tgt.addEventListener('pointermove',move,  { passive:true });
-    tgt.addEventListener('pointerup',  end,   { passive:true });
+    on(tgt, 'touchstart',  start,  true);
+    on(tgt, 'touchmove',   move,   true);
+    on(tgt, 'touchend',    end,    true);
+    on(tgt, 'pointerdown', start,  true);
+    on(tgt, 'pointermove', move,   true);
+    on(tgt, 'pointerup',   end,    true);
 
-    // overlay ferme
-    if (overlay && !overlay.__ptP6B){ overlay.__ptP6B = 1; overlay.addEventListener('click', closeDrawer, false); }
-    // ESC ferme
-    D.addEventListener('keydown', function(e){ if ((e.key === 'Escape' || e.keyCode === 27) && isOpen()) closeDrawer(); }, false);
-    // ouverture → tuning (le micro-script d’ouverture est dans l’index / Part 5)
+    // overlay → ferme
+    if (overlay && !overlay.__ptP6B){ overlay.__ptP6B=1; overlay.addEventListener('click', closeDrawer, false); }
+    // ESC → ferme
+    on(D, 'keydown', function(e){ var k=e.key||e.keyCode; if ((k==='Escape'||k===27) && isOpen()) closeDrawer(); }, false);
+    // ouverture (bouton/menu) → tuning inertie
     if (burger && !burger.__ptP6B){
       burger.__ptP6B = 1;
-      burger.addEventListener('click',     function(){ setTimeout(openTuning,0); }, false);
-      burger.addEventListener('pointerup', function(){ setTimeout(openTuning,0); }, false);
+      burger.addEventListener('click',     function(){ burger.setAttribute('aria-expanded','true'); setTimeout(openTuning,0); }, false);
+      burger.addEventListener('pointerup', function(){ burger.setAttribute('aria-expanded','true'); setTimeout(openTuning,0); }, false);
     }
-    // navigation → ferme
-    W.addEventListener('hashchange', function(){ setTimeout(closeDrawer, 0); }, false);
+    // navigation → ferme automatiquement
+    on(W, 'hashchange', function(){ setTimeout(closeDrawer,0); }, false);
   })();
 
   /* =========================================================
@@ -2843,46 +3160,50 @@
 
     function currentPath(){
       try{
-        var p = (typeof W.parseHash === 'function') ? W.parseHash() : { view:'' };
-        if (!p.view || p.view==='home') return '#/';
+        var p = (typeof W.parseHash==='function') ? W.parseHash() : {view:''};
+        if (!p.view || p.view==='home' || p.view==='') return '#/';
         return '#/'+p.view;
       }catch(_){ return (location.hash||'#/'); }
     }
     function markActive(){
-      var menu = qs('#drawer') || qs('#sideMenu') || qs('.drawer') || qs('[data-drawer]') || qs('#nav') || qs('#side-menu');
-      if (!menu) return;
+      var scopes = [
+        qs('#drawer') || qs('#sideMenu') || qs('[data-drawer]') || qs('#side-menu'),
+        qs('#nav') || qs('.topbar') || qs('nav')
+      ];
       var cur = currentPath();
-      var links = menu.querySelectorAll ? menu.querySelectorAll('a[href^="#"]') : [];
-      var i, href;
-      for (i=0;i<links.length;i++){
-        href = links[i].getAttribute('href') || '';
-        if (href === cur){ links[i].setAttribute('aria-current','page'); addClass(links[i],'is-active'); }
-        else { links[i].removeAttribute('aria-current'); rmClass(links[i],'is-active'); }
+      for (var s=0;s<scopes.length;s++){
+        var host = scopes[s]; if (!host) continue;
+        var links = host.querySelectorAll ? host.querySelectorAll('a[href^="#"]') : [];
+        for (var i=0;i<links.length;i++){
+          var href = links[i].getAttribute('href') || '';
+          if (href === cur){ links[i].setAttribute('aria-current','page'); addClass(links[i],'is-active'); }
+          else { links[i].removeAttribute('aria-current'); rmClass(links[i],'is-active'); }
+        }
       }
     }
     function focusH1(){
       try{
-        var p = (typeof W.parseHash === 'function') ? W.parseHash() : { view:'' };
-        if (typeof W.focusView === 'function') { W.focusView(p.view||''); return; }
+        var p = (typeof W.parseHash==='function') ? W.parseHash() : {view:''};
+        if (typeof W.focusView==='function'){ W.focusView(p.view||''); return; }
         var id = p.view ? ('view-'+p.view) : 'view-home';
         var scope = D.getElementById(id);
         var h1 = scope ? scope.querySelector('h1') : null;
         if (h1){
           h1.setAttribute('tabindex','-1');
-          try{ h1.focus({preventScroll:true}); }catch(_){}
-          setTimeout(function(){ h1.removeAttribute('tabindex'); }, 260);
+          try{ h1.focus({preventScroll:true}); }catch(_){ try{ h1.focus(); }catch(__){} }
+          setTimeout(function(){ try{ h1.removeAttribute('tabindex'); }catch(_){ } }, 260);
         }
       }catch(_){}
     }
     function toggleFab(){
       var fab = qs('#fabAccount'); if (!fab) return;
       var cur = currentPath();
-      if (cur === '#/compte') fab.style.display = 'none'; else fab.style.display = '';
+      fab.style.display = (cur === '#/compte') ? 'none' : '';
     }
 
     function run(){ markActive(); focusH1(); toggleFab(); }
-    W.addEventListener('hashchange', function(){ setTimeout(run,0); }, false);
-    if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', function(){ setTimeout(run,0); }, false);
+    on(W, 'hashchange', function(){ setTimeout(run,0); }, false);
+    if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', function(){ setTimeout(run,0); }, false);
     else setTimeout(run,0);
   })();
 
@@ -2898,7 +3219,11 @@
       W.loadUser = function(){
         try{
           var raw = localStorage.getItem(KEY);
-          return raw ? JSON.parse(raw) : {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
+          var u = raw ? JSON.parse(raw) : {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
+          if (!u || typeof u!=='object') u = {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
+          if (typeof u.points!=='number') u.points = 0;
+          if (!u.tier) u.tier = 'Bronze';
+          return u;
         }catch(_){
           return {name:'',email:'',phone:'',addr:'',points:0,tier:'Bronze'};
         }
@@ -2908,6 +3233,10 @@
       W.saveUser = function(u){
         try{
           if (!u || typeof u!=='object') return;
+          u.name  = String(u.name||'').trim();
+          u.email = String(u.email||'').trim();
+          u.phone = String(u.phone||'').trim();
+          u.addr  = String(u.addr||'').trim();
           localStorage.setItem(KEY, JSON.stringify(u));
           try{ W.dispatchEvent(new CustomEvent('pt:userChanged', { detail:u })); }catch(_){}
         }catch(_){}
@@ -2938,30 +3267,30 @@
       if (accForm && !accForm.__ptP6B){ accForm.__ptP6B=1; accForm.addEventListener('submit', save, false); }
       if (accSave && !accSave.__ptP6B){ accSave.__ptP6B=1; accSave.addEventListener('click', save, false); }
 
-      // login/register (fallback ultra simple)
+      // login/register (fallback démo)
       var lf = qs('#loginForm'), rf = qs('#registerForm');
       function onLogin(e){
         if (e && e.preventDefault) e.preventDefault();
-        var email = (qs('#loginEmail')||{}).value || '';
-        var pwd   = (qs('#loginPwd')  ||{}).value || '';
+        var email=(qs('#loginEmail')||{}).value||'';
+        var pwd  =(qs('#loginPwd')  ||{}).value||'';
         if (!email || email.indexOf('@')===-1 || !pwd){ if (W.toast) W.toast('Identifiants invalides','info'); return; }
-        var u = W.loadUser(); u.email = email; if (!u.name) u.name = email.split('@')[0]; W.saveUser(u);
-        if (W.toast) W.toast('Connecté','success'); location.hash = '#/compte';
+        var u=W.loadUser(); u.email=email; if(!u.name) u.name=email.split('@')[0]; W.saveUser(u);
+        if (W.toast) W.toast('Connecté','success'); if (W.announce) W.announce('Connecté'); location.hash='#/compte';
       }
       function onRegister(e){
         if (e && e.preventDefault) e.preventDefault();
-        var name  = (qs('#regName') ||{}).value || '';
-        var email = (qs('#regEmail')||{}).value || '';
-        var pwd   = (qs('#regPwd')  ||{}).value || '';
+        var name =(qs('#regName') ||{}).value||'';
+        var email=(qs('#regEmail')||{}).value||'';
+        var pwd  =(qs('#regPwd')  ||{}).value||'';
         if (!name || !email || email.indexOf('@')===-1 || !pwd || pwd.length<6){ if (W.toast) W.toast('Champs incomplets (MDP ≥ 6)','info'); return; }
-        var u = W.loadUser(); u.name = name; u.email = email; W.saveUser(u);
-        if (W.toast) W.toast('Compte créé (démo)','success'); location.hash = '#/compte';
+        var u=W.loadUser(); u.name=name; u.email=email; W.saveUser(u);
+        if (W.toast) W.toast('Compte créé (démo)','success'); location.hash='#/compte';
       }
       if (lf && !lf.__ptP6B){ lf.__ptP6B=1; lf.addEventListener('submit', onLogin, false); }
       if (rf && !rf.__ptP6B){ rf.__ptP6B=1; rf.addEventListener('submit', onRegister, false); }
     }
 
-    // Squelette minimal si absent
+    // Squelette minimal si absent (non destructif)
     if (!qs('#view-compte')){
       var v = D.createElement('section'); v.id='view-compte'; v.className='view hidden';
       v.innerHTML = '<div class="container"><h1 tabindex="-1">Mon compte</h1><div class="card"><div class="specs"><p>Chargement…</p></div></div></div>';
@@ -2982,7 +3311,7 @@
       var fab = qs('#fabAccount'); if (!fab) return;
       if (cur().indexOf('#/compte')===0) fab.style.display='none'; else fab.style.display='';
     }
-    W.addEventListener('hashchange', function(){ setTimeout(apply,0); }, false);
+    on(W, 'hashchange', function(){ setTimeout(apply,0); }, false);
     if (D.readyState==='loading') D.addEventListener('DOMContentLoaded', apply, false); else apply();
   })();
 
