@@ -2784,6 +2784,38 @@ var related = window.MODELS.filter(function(m){
     }catch(_){}
   }
 
+
+/* ====== JSON-LD Breadcrumbs (idempotent) ====== */
+function upsertJsonLd(id, obj){
+  try{
+    var old = document.getElementById(id);
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var s = document.createElement('script');
+    s.type = 'application/ld+json';
+    s.id = id;
+    s.textContent = JSON.stringify(obj);
+    document.head.appendChild(s);
+  }catch(_){}
+}
+function injectBreadcrumbs(items){
+  try{
+    var base = location.origin + location.pathname;
+    var list = (items||[]).map(function(it, i){
+      return {
+        "@type":"ListItem",
+        "position": i+1,
+        "name": it.name,
+        "item": base + it.href.replace(/^#/, '')
+      };
+    });
+    upsertJsonLd('jsonld-breadcrumbs', {
+      "@context":"https://schema.org",
+      "@type":"BreadcrumbList",
+      "itemListElement": list
+    });
+  }catch(_){}
+}
+
   /* ====== Produits : attente avant PDP/home si nécessaire ====== */
   function withProducts(cb){
     if (W.MODELS && W.MODELS.length){ try{ cb(); }catch(_){ } return; }
@@ -2821,6 +2853,7 @@ var related = window.MODELS.filter(function(m){
         }
       }catch(_){}
     });
+    injectBreadcrumbs([{name:'Accueil', href:'#/'}]);
     W.focusView('home');
   }
 
@@ -2833,6 +2866,10 @@ var related = window.MODELS.filter(function(m){
     } else if (PT && typeof PT.applyFilters==='function'){
       try{ PT.applyFilters(); }catch(_){}
     }
+    injectBreadcrumbs([
+  {name:'Accueil', href:'#/'},
+  {name:'Catalogue', href:'#/catalogue'}
+]);
     W.focusView('catalogue');
   }
 
@@ -2856,6 +2893,8 @@ var related = window.MODELS.filter(function(m){
       if (m && typeof W.renderPDP==='function'){
         try{
           W.renderPDP(m); // P2 place title/description + JSON-LD Product
+          
+          
           // P4 remet à jour og:url/canonical (déjà fait) et image si besoin
           updateSEO({ title: document.title, desc: (D.querySelector('meta[name="description"]')||{}).content || DEFAULT_DESC, type:'product' });
         }catch(_){}
