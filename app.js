@@ -2460,14 +2460,14 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   })();
 
  /* =========================================================
-   1) HÉRO — overshoot doux + BLUR avant fade
+   1) HÉRO — overshoot doux + BLUR avant fade + retour fluide
    • Base 1:1 (logo net) • Hystérésis (remonte = animation inverse)
-   • RAF TOUJOURS actif sur Home (pas d’IO gating) → plus de blocage
+   • RAF TOUJOURS actif sur Home (pas d'IO gating)
    • iOS : blur réduit (mais actif)
 ========================================================= */
 (function heroEffectOvershoot(){
   'use strict';
-  if (window.__ptHeroWired4) return; window.__ptHeroWired4 = 1;
+  if (window.__ptHeroWired5) return; window.__ptHeroWired5 = 1;
 
   var W = window, D = document;
   function qs(s, r){ return (r||D).querySelector(s); }
@@ -2522,13 +2522,13 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     return;
   }
 
-  /* Réglages */
+  /* Réglages (alignés avec ton CSS) */
   var MAX_SCALE_M=11.0, MAX_SCALE_D=8.6;
   var BASE_M=1.00, BASE_D=1.00;
   var DIST_M=0.90, DIST_D=0.96;
   var BLUR_START=0.22, BLUR_LEN=0.38;
   var FADE_START=0.30, FADE_LEN=0.26;
-  var DONE_M=0.94, DONE_D=0.98;   // seuil “passe derrière”
+  var DONE_M=0.94, DONE_D=0.98;     // seuil “passe derrière”
   var RETURN_M=0.90, RETURN_D=0.96; // seuil retour (remonte)
   var GAP_M=12, GAP_D=16;
 
@@ -2557,8 +2557,8 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   var _vh=getVH(), prevY=-1, rafId=0, running=false, heroPassed=false;
 
   function render(y){
-    var isM=mqMobile && mqMobile.matches;
-    var finPx=_vh * (isM?DIST_M:DIST_D) || 1;
+    var isM = mqMobile && mqMobile.matches;
+    var finPx = _vh * (isM?DIST_M:DIST_D) || 1;
 
     var raw=y/finPx, p=clamp(raw,0,1), eased=easeOutCubic(p);
 
@@ -2572,7 +2572,7 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     // Blur avant fade
     var blurMax=isM?BLUR_MAX_M:BLUR_MAX_D;
     var blurP=clamp((raw - BLUR_START)/BLUR_LEN, 0, 1);
-    var blur = USE_BLUR ? (blurMax * blurP) : 0;
+    var blur = USE_BLUR ? (blurMax * (0.12 + 0.88*blurP)) : 0;
 
     var fadeP=clamp((raw - FADE_START)/FADE_LEN, 0, 1);
     var opacity = 1 - fadeP;
@@ -2599,13 +2599,14 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
       hero.style.zIndex=''; hero.style.pointerEvents='';
     }
 
-    // Sécurité : tout en haut → état initial garanti
+    // Sécurité : tout en haut → état initial net
     if (y<=1){
       heroPassed=false;
       rmClass(D.body,'after-hero'); rmClass(hero,'hero-out');
       hero.style.zIndex=''; hero.style.pointerEvents='';
       logo.style.transform='translate3d(0,0,0) scale(1)';
       logo.style.opacity='1'; logo.style.filter='none';
+      D.documentElement.style.setProperty('--listGap', (isM?GAP_M:GAP_D)+'vh');
     }
   }
 
@@ -2620,8 +2621,13 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
     if (running) return;
     running=true; prevY=-1; render(scrollTop());
     rafId=W.requestAnimationFrame(tick);
-    // s’assure que les gestes remontent bien (pas de lock)
-    try{ D.body.style.overscrollBehaviorY=''; }catch(_){}
+    // s’assure que les gestes remontent bien (pas de lock résiduel)
+    try{
+      D.documentElement.style.overscrollBehaviorY='auto';
+      D.body.style.overscrollBehaviorY='auto';
+      D.body.style.touchAction='pan-y';
+      D.body.style.webkitOverflowScrolling='touch';
+    }catch(_){}
   }
   function stopRAF(){
     running=false; if (rafId){ W.cancelAnimationFrame(rafId); rafId=0; }
@@ -2643,14 +2649,14 @@ window.PT.renderBrandGridFromProducts = renderBrandGridFromProducts;
   W.addEventListener('pagehide',function(){ stopRAF(); },true);
 
   W.addEventListener('hashchange',function(){
-    // On relance/arrête selon la vue
     if (isHome()) startRAF(); else stopRAF();
   },false);
 
   // Lancement (RAF TOUJOURS ACTIF sur Home)
   if (isHome()) startRAF();
 })();
-   
+
+
    
    /* =========================================================
    PARTIE 6 — B
