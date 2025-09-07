@@ -2849,7 +2849,8 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
           var a=(x.id!=null?String(x.id).toLowerCase():'');
           var b=(x.sku!=null?String(x.sku).toLowerCase():'');
           var c=(x.title!=null?String(x.title).toLowerCase():'');
-          if (lid===a || lid===b || lid===c){ m=x; break; }
+          var d=(x.__auto_id!=null?String(x.__auto_id).toLowerCase():'');
+          if (lid===a || lid===b || lid===c || lid===d){ m=x; break; }
         }
       }
       if (m && typeof W.renderPDP==='function'){
