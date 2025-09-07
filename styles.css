@@ -610,4 +610,15 @@ body.after-hero::after{ opacity:1 }
 .hero-full.hero-out{ z-index:-1 }
 #heroLogo, .hero-logo{ will-change:transform, opacity }
 
-/* ====== FIN ====== */
+/* ==== PATCH défilement (empêche tout “lock” en bas) ==== */
+html, body{
+  overscroll-behavior-y: auto;        /* autorise la propagation du scroll */
+  -webkit-overflow-scrolling: touch;  /* inertie iOS */
+}
+
+/* Rappel rendu net pendant le zoom (cohérent avec le JS) */
+#heroLogo, .hero-logo{
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+}
