@@ -4095,29 +4095,32 @@ window.addEventListener('hashchange', function(){
     // Boot initial
     markActive(); toggleFabAccount();
 
-    // Exposer API
-    PT.menu = PT.menu || {};
-    PT.menu.open = open;
-    PT.menu.close = close;
-    PT.menu.setActive = function (route) {
-      try { W.location.hash = route; } catch (_){ }
-      markActive();
-    };
-    PT.menu.wire = function () { // à appeler si DOM nav remplacé
-      drawer = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
-      topnav = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
-      toggleFabAccount(); markActive(); wireTrap();
-    };
-  })();
+     // Exposer API
+  PT.menu = PT.menu || {};
+  PT.menu.open = open;
+  PT.menu.close = close;
+  PT.menu.isOpen = isOpen;
+  PT.menu.setActive = function (route) {
+    try { if (route) W.location.hash = route; } catch (_){ }
+    markActive();
+  };
+  PT.menu.wire = function () { // à appeler si le DOM nav est remplacé
+    drawer = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
+    topnav = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
+    toggleFabAccount();
+    markActive();
+    wireTrap();
+  };
+})(); // ← fin 6B (menu A11y)
 
-  /* =========================================================
-     FIN — petits utilitaires d’ergonomie non intrusifs
-  ========================================================== */
-  (function smoothBehaviorFallback() {
-    try {
-      var html = D.documentElement;
-      if (html && !html.style.scrollBehavior) html.style.scrollBehavior = 'smooth';
-    } catch (_){ }
-  })();
-
+/* =========================================================
+   FIN — petits utilitaires d’ergonomie non intrusifs
+========================================================== */
+(function smoothBehaviorFallback() {
+  try {
+    var html = D.documentElement;
+    if (html && !html.style.scrollBehavior) { html.style.scrollBehavior = 'smooth'; }
+  } catch (_){ }
 })();
+
+})(); // ← fin PARTIE 6 (A/B)
