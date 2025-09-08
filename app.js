@@ -278,10 +278,18 @@
     if (dock) dock.classList.add('dock--visible');
   })();
 
+ // --- FIX: gardien visibilité dock (appelé par P1) ---
+  function ensureDockVisible(){
+    try{
+      var dock = document.getElementById('dock');
+      if (dock) dock.classList.add('dock--visible');
+    }catch(_){}
+  }
 window.addEventListener('hashchange', function(){
-  ensureDockVisible();
-  if (window.PT && typeof window.PT.refreshViewportSafe === 'function') window.PT.refreshViewportSafe();
-}, false);
+   ensureDockVisible();
+   if (window.PT && typeof window.PT.refreshViewportSafe === 'function') window.PT.refreshViewportSafe();
+ }, false)
+  
 try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:true, subtree:true}); }catch(_){}
 
 
@@ -3643,8 +3651,8 @@ function boot(){
   wireDrawer();
   wireDrawerLinks();
   wireDock();
-  polishHero();
-  ensureBrandGridClass();
+  if (typeof polishHero === 'function') { try{ polishHero(); }catch(_){ } }
+    ensureBrandGridClass();
   updateDockCountLabel();
   updateNavActiveFromHash();
   
@@ -3686,6 +3694,12 @@ else boot();
      Expose PT.menu { open, close, setActive, wire }
   ========================================================== */
   (function menuA11y() {
+    var W = window, D = document, PT = W.PT = (W.PT || {});
+    function $(s, r){ try{ return (r||D).querySelector(s); }catch(_){ return null; } }
+    function $$(s, r){ try{ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }catch(_){ return []; } }
+    function on(el, ev, fn){ if (el && !el.__ptOn){ el.__ptOn = 1; el.addEventListener(ev, fn, false); } }
+    function announce(msg){ try{ if (W.announce) W.announce(msg); }catch(_){ } }
+    function log(){ try{ if (W.console && console.log) console.log.apply(console, arguments); }catch(_){ } }
     if (W.__ptP6BNav === 1) return; W.__ptP6BNav = 1; // Informe P5 de ne pas écrire aria-current
     log('[P6B] boot');
 
@@ -3880,4 +3894,3 @@ else boot();
   } catch (_){ }
 })();
 
-})(); // ← fin PARTIE 6 (A/B)
