@@ -676,5 +676,149 @@ body.page-compte .topbar-logo-link { display:none !important; }
     }catch(_){}
   })();
   </script>
+  
+  <script>
+/* PATCH C — Router : affiche la bonne vue + PDP toujours visible */
+(function(){
+  function routePath(){
+    var h=(location.hash||'#/').replace(/^#/,'');
+    var p=h.split('?')[0].split('#')[0]||'/';
+    return p;
+  }
+  function syncViews(){
+    var path=routePath();
+    // bascule l'affichage des vues par data-route
+    document.querySelectorAll('.view').forEach(function(sec){
+      var r = sec.getAttribute('data-route') || '/';
+      var on = (r === path);
+      sec.classList.toggle('hidden', !on);
+      sec.setAttribute('aria-hidden', on ? 'false':'true');
+    });
+    // focus confort sur le H1
+    var view = document.querySelector('[data-route="'+path+'"]');
+    if(view){
+      var h1=view.querySelector('h1');
+      if(h1){ try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){} }
+    }
+    // classe de page (utile pour masquer le logo topbar)
+    document.body.classList.remove('page-home','page-catalogue','page-produit','page-devis','page-compte','page-auth');
+    var cls='page-' + (path==='/'?'home':path.replace(/^\//,'').split('/')[0]);
+    document.body.classList.add(cls);
+  }
+  window.addEventListener('hashchange', syncViews);
+  if (document.readyState!=='loading') syncViews();
+  else document.addEventListener('DOMContentLoaded', syncViews);
+
+  // PDP : garantir un cadre visible même si les données tardent
+  var pdpImg = document.getElementById('pdpImg');
+  if(pdpImg && !pdpImg.getAttribute('src')){
+    pdpImg.alt = 'Image produit';
+    pdpImg.style.minHeight = '160px';
+  }
+})();
+</script>
+
+<script>
+/* PATCH D — Portail d'accès Compte (inscription / connexion locales) */
+(function(){
+  var AUTH_KEY='pt_auth';
+  var USERS_KEY='pt_users';
+
+  function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)||'{}'); }catch(_){ return {}; } }
+  function saveUsers(db){ try{ localStorage.setItem(USERS_KEY, JSON.stringify(db)); }catch(_){} }
+  function setSession(email){ try{ localStorage.setItem(AUTH_KEY, email); }catch(_){ } }
+  function getSession(){ try{ return localStorage.getItem(AUTH_KEY)||''; }catch(_){ return ''; } }
+  function clearSession(){ try{ localStorage.removeItem(AUTH_KEY); }catch(_){ } }
+
+  async function sha256(txt){
+    if (window.crypto && window.crypto.subtle){
+      var enc=new TextEncoder().encode(txt);
+      var buf=await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    return 'plain$'+txt; // fallback si SubtleCrypto indispo
+  }
+
+  async function register(name,email,pwd){
+    var users=getUsers();
+    if(users[email]) throw new Error('Un compte existe déjà pour cet email.');
+    var salt=(Math.random().toString(36).slice(2)+Date.now().toString(36)).slice(0,16);
+    var hash=await sha256(pwd+':'+salt);
+    users[email]={ name:name, email:email, salt:salt, hash:hash, createdAt:Date.now() };
+    saveUsers(users);
+    setSession(email);
+  }
+
+  async function login(email,pwd){
+    var users=getUsers();
+    var u=users[email];
+    if(!u) throw new Error('Aucun compte trouvé.');
+    var hash=await sha256(pwd+':'+(u.salt||''));
+    if(hash!==u.hash) throw new Error('Mot de passe invalide.');
+    setSession(email);
+  }
+
+  // Garde de route : /compte nécessite une session
+  function guard(){
+    var h=(location.hash||'#/').replace(/^#/,'');
+    var path=h.split('?')[0].split('#')[0]||'/';
+    var logged=!!getSession();
+    if(path==='/compte' && !logged){ location.hash='#/auth'; }
+    if(path==='/auth' && logged){ location.hash='#/compte'; }
+  }
+  window.addEventListener('hashchange', guard);
+  if (document.readyState!=='loading') guard();
+  else document.addEventListener('DOMContentLoaded', guard);
+
+  // Brancher les formulaires
+  var regForm=document.getElementById('registerForm');
+  var loginForm=document.getElementById('loginForm');
+
+  if(regForm){
+    regForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      try{
+        var name=document.getElementById('regName').value.trim();
+        var email=document.getElementById('regEmail').value.trim().toLowerCase();
+        var pwd=document.getElementById('regPwd').value;
+        if(!name||!email||!pwd) throw new Error('Veuillez renseigner tous les champs.');
+        await register(name,email,pwd);
+        location.hash='#/compte';
+      }catch(err){ toast(err.message||'Erreur inscription','error'); }
+    });
+  }
+
+  if(loginForm){
+    loginForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      try{
+        var email=document.getElementById('loginEmail').value.trim().toLowerCase();
+        var pwd=document.getElementById('loginPwd').value;
+        if(!email||!pwd) throw new Error('Email et mot de passe requis.');
+        await login(email,pwd);
+        location.hash='#/compte';
+      }catch(err){ toast(err.message||'Erreur connexion','error'); }
+    });
+  }
+
+  // Déconnexion : ajoutez data-action="logout" sur un bouton
+  document.addEventListener('click', function(e){
+    var b=e.target && e.target.closest && e.target.closest('[data-action="logout"]');
+    if(!b) return;
+    clearSession();
+    location.hash='#/auth';
+  }, false);
+
+  // Toaster léger
+  function toast(msg,type){
+    var host=document.getElementById('toasts'); if(!host) return alert(msg);
+    var el=document.createElement('div');
+    el.className='toast toast--'+(type||'info');
+    el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+msg+'</div>';
+    host.appendChild(el);
+    setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); },180); }, 2000);
+  }
+})();
+</script> 
 </body>
 </html>
