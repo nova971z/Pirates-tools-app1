@@ -1975,16 +1975,7 @@ function renderPDP(product){
       }, false);
     }
 
-    var mailBtn = document.getElementById('devisMail');
-    if (mailBtn && !mailBtn.__wired){
-      mailBtn.__wired = 1;
-      mailBtn.addEventListener('click', function(){
-        var msg = encodeURIComponent(window.cartToWhatsAppText() || '');
-        if (!msg) return;
-        var subject = encodeURIComponent('Demande de devis Pirates Tools');
-        location.href = 'mailto:?subject='+subject+'&body='+msg;
-      }, false);
-    }
+    
 
     var sendBtn = document.getElementById('devisSend');
     if (sendBtn && !sendBtn.__wired){
@@ -4011,27 +4002,28 @@ else boot();
 
 
 // app-hero.js — fallback scroll (sans dépendance, ultra light)
-(() => {
-  const logo = document.querySelector('#heroLogo, .hero-logo');
-  const hero = document.querySelector('#hero, .hero-full');
+(function(){
+  var logo = document.querySelector('#heroLogo, .hero-logo');
+  var hero = document.querySelector('#hero, .hero-full');
 
   if (!logo || !hero) return;
 
   // Si CSS Scroll-Driven Animations est supporté, on s'efface.
-  const supportsScrollTimeline = (typeof CSS !== 'undefined') && (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
+  var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
+    (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
 
-  // — Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
+  // Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
   if (!logo.classList.contains('on')) {
-    requestAnimationFrame(() => logo.classList.add('on'));
+    requestAnimationFrame(function(){ logo.classList.add('on'); });
   }
 
-  // — Scroll fallback
-  let lastState = '';
-  const io = new IntersectionObserver((entries) => {
-    const entry = entries[0];
+  // Scroll fallback (ES5)
+  var lastState = '';
+  var io = new IntersectionObserver(function(entries){
+    var entry = entries[0];
     if (!entry) return;
-    const r = entry.intersectionRatio;
+    var r = entry.intersectionRatio;
 
     if (r > 0.96 && lastState !== 'overshoot') {
       logo.classList.add('fx-overshoot');
@@ -4052,25 +4044,26 @@ else boot();
     }
   }, {
     root: null,
-    threshold: Array.from({length:21}, (_,i)=> i/20)
+    threshold: (function(){ var a=[]; for (var i=0;i<=20;i++) a.push(i/20); return a; })()
   });
 
   io.observe(hero);
 
-  const onScroll = () => {
-    const rect = hero.getBoundingClientRect();
-    if (rect.bottom <= (window.innerHeight * 0.30)) {
+  function onScroll(){
+    var rect = hero.getBoundingClientRect();
+    var ih = window.innerHeight || 0;
+    if (rect.bottom <= (ih * 0.30)) {
       if (lastState !== 'out') {
         logo.classList.add('fx-out');
         logo.classList.remove('fx-overshoot','fx-preblur');
         lastState = 'out';
       }
     }
-  };
+  }
   window.addEventListener('scroll', onScroll, {passive:true});
 
-  window.addEventListener('beforeunload', () => {
-    try { io.disconnect(); } catch(_) {}
+  window.addEventListener('beforeunload', function(){
+    try { io.disconnect(); } catch(_){}
     window.removeEventListener('scroll', onScroll);
   });
 })();   // ← fin du patch hero
