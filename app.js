@@ -3894,3 +3894,68 @@ else boot();
   } catch (_){ }
 })();
 
+
+// app-hero.js — fallback scroll (sans dépendance, ultra light)
+(() => {
+  const logo = document.querySelector('#heroLogo, .hero-logo');
+  const hero = document.querySelector('#hero, .hero-full');
+
+  if (!logo || !hero) return;
+
+  // Si CSS Scroll-Driven Animations est supporté, on s'efface.
+  const supportsScrollTimeline = CSS && (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
+  if (supportsScrollTimeline) return;
+
+  // — Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
+  if (!logo.classList.contains('on')) {
+    requestAnimationFrame(() => logo.classList.add('on'));
+  }
+
+  // — Scroll fallback
+  let lastState = '';
+  const io = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
+    const r = entry.intersectionRatio;
+
+    if (r > 0.96 && lastState !== 'overshoot') {
+      logo.classList.add('fx-overshoot');
+      logo.classList.remove('fx-preblur','fx-out');
+      lastState = 'overshoot';
+      return;
+    }
+    if (r <= 0.96 && r > 0.55 && lastState !== 'preblur') {
+      logo.classList.add('fx-preblur');
+      logo.classList.remove('fx-overshoot','fx-out');
+      lastState = 'preblur';
+      return;
+    }
+    if (r <= 0.55 && lastState !== 'out') {
+      logo.classList.add('fx-out');
+      logo.classList.remove('fx-overshoot','fx-preblur');
+      lastState = 'out';
+    }
+  }, {
+    root: null,
+    threshold: Array.from({length:21}, (_,i)=> i/20)
+  });
+
+  io.observe(hero);
+
+  const onScroll = () => {
+    const rect = hero.getBoundingClientRect();
+    if (rect.bottom <= (window.innerHeight * 0.30)) {
+      if (lastState !== 'out') {
+        logo.classList.add('fx-out');
+        logo.classList.remove('fx-overshoot','fx-preblur');
+        lastState = 'out';
+      }
+    }
+  };
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  window.addEventListener('beforeunload', () => {
+    try { io.disconnect(); } catch(_) {}
+    window.removeEventListener('scroll', onScroll);
+  });
+})();   // ← fin du patch hero
