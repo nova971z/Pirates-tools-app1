@@ -3923,7 +3923,7 @@ else boot();
   if (!logo || !hero) return;
 
   // Si CSS Scroll-Driven Animations est supporté, on s'efface.
-  const supportsScrollTimeline = CSS && (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
+  const supportsScrollTimeline = (typeof CSS !== 'undefined') && (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
 
   // — Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
