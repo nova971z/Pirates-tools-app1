@@ -230,8 +230,7 @@
       <div class="container">
         <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
         <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
-         <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
-          <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
+        <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
        </div>
     </section>
 
@@ -253,8 +252,7 @@
     </section>
 
     <!-- PRODUIT (PDP) -->
-    <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdp-h1">
-    <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
+   <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
       <div class="container pdp" id="pdp">
         <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
@@ -264,7 +262,6 @@
           </div>
 
           <div class="pdp__info">
-           <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag" id="pdp-h1">Produit</h1>
            <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
             <div id="pdpTag" class="pdp__tag"></div>
             <p id="pdpDesc" class="pdp__desc"></p>
@@ -272,7 +269,7 @@
 
             <div class="actions">
               <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-                            <a id="pdpWa" class="btn btn-wa" href="#" target="_blank" rel="noopener" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
+              <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
               <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
             </div>
           </div>
@@ -508,25 +505,27 @@
     var ovl  = document.getElementById('menuBackdrop') || document.getElementById('menu-overlay');
     var side = document.getElementById('side-menu');
 
-    function open(){
-      document.body.classList.add('menu-open');
-      if (ovl)  ovl.hidden = false;
-      if (side){
-        side.hidden = false;
-        side.setAttribute('aria-hidden','false');
-        try{ side.focus(); }catch(_){}
-      }
-      if (btn)  btn.setAttribute('aria-expanded','true');
-    }
+   function open(){
+  document.body.classList.add('menu-open');
+  if (ovl)  ovl.hidden = false;
+  if (side){
+    side.hidden = false;
+    side.classList.add('open');
+    side.setAttribute('aria-hidden','false');
+    try{ side.focus(); }catch(_){}
+  }
+  if (btn)  btn.setAttribute('aria-expanded','true');
+}
     function close(){
-      document.body.classList.remove('menu-open');
-      if (ovl)  ovl.hidden = true;
-      if (side){
-        side.hidden = true;
-        side.setAttribute('aria-hidden','true');
-      }
-      if (btn)  btn.setAttribute('aria-expanded','false');
-    }
+  document.body.classList.remove('menu-open');
+  if (ovl)  ovl.hidden = true;
+  if (side){
+    side.classList.remove('open');
+    side.hidden = true;
+    side.setAttribute('aria-hidden','true');
+  }
+  if (btn)  btn.setAttribute('aria-expanded','false');
+}
 
     if (btn){
       btn.addEventListener('click', function(){
