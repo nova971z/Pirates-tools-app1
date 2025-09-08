@@ -1235,155 +1235,165 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }
   }
 
-  // PDP
-  function renderPDP(product){
- 
-      view = document.createElement('section'); view.id='view-produit'; view.className='view';
-      view.innerHTML =
-        '<div class="container pdp" id="pdpContent">'+
-          '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
-          '<div class="pdp__grid">'+
-            '<div class="pdp__media"><img id="pdpImg" alt=""></div>'+
-            '<div class="pdp__info">'+
-              '<h1 class="pdp__title" id="pdpTitle" tabindex="-1"></h1>'+
-              '<div class="pdp__tag" id="pdpTag"></div>'+
-              '<p class="pdp__desc" id="pdpDesc"></p>'+
-              '<p class="pdp__price" id="pdpPrice"></p>'+
-              '<small id="pdpPriceHT" class="pdp__price-ht"></small>'+
-              '<ul class="pdp__specs" id="pdpSpecs"></ul>'+
-              '<div class="actions">'+
-                '<button class="btn primary" id="pdpQuote">Ajouter au panier</button>'+
-                '<a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>'+
-                '<button class="btn" id="pdpShare">Partager</button>'+
-              '</div>'+
+function renderPDP(product){
+  // 1) S'assurer que la vue existe
+  var view = document.getElementById('view-produit');
+  if (!view){
+    view = document.createElement('section');
+    view.id = 'view-produit';
+    view.className = 'view';
+    view.innerHTML =
+      '<div class="container pdp" id="pdpContent">'+
+        '<a class="chip chip--back" href="#/catalogue" aria-label="Retour au catalogue">← Retour</a>'+
+        '<div class="pdp__grid">'+
+          '<div class="pdp__media"><img id="pdpImg" alt=""></div>'+
+          '<div class="pdp__info">'+
+            '<h1 class="pdp__title" id="pdpTitle" tabindex="-1"></h1>'+
+            '<div class="pdp__tag" id="pdpTag"></div>'+
+            '<p class="pdp__desc" id="pdpDesc"></p>'+
+            '<p class="pdp__price" id="pdpPrice"></p>'+
+            '<small id="pdpPriceHT" class="pdp__price-ht"></small>'+
+            '<ul class="pdp__specs" id="pdpSpecs"></ul>'+
+            '<div class="actions">'+
+              '<button class="btn primary" id="pdpQuote">Ajouter au panier</button>'+
+              '<a class="btn btn-wa" id="pdpWa" target="_blank" rel="noopener">WhatsApp</a>'+
+              '<button class="btn" id="pdpShare">Partager</button>'+
             '</div>'+
           '</div>'+
-          '<div class="pdp__related" id="pdpRelated"></div>'+
-        '</div>';
-
-      document.body.appendChild(view);
-    }
-
-    var elImg  = document.getElementById('pdpImg');
-    var elT    = document.getElementById('pdpTitle');
-    var elTag  = document.getElementById('pdpTag');
-    var elDesc = document.getElementById('pdpDesc');
-    var elSpecs= document.getElementById('pdpSpecs');
-    var elRel  = document.getElementById('pdpRelated');
-    var btnQ   = document.getElementById('pdpQuote');
-    var btnWa  = document.getElementById('pdpWa');
-    var btnShare = document.getElementById('pdpShare');
-    var elPrice  = document.getElementById('pdpPrice');
-    var elPriceHT= document.getElementById('pdpPriceHT');
-
-    var title = product.title || ((product.brand||'')+' '+(product.sku||'')).trim();
-    var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
-    var desc  = product.desc || product.description || '';
-    var img   = product.img ? absoluteUrl(product.img) : IMG_FALLBACK;
-
-    if (elT) elT.textContent = title;
-    if (elTag) elTag.textContent = tag ? '#'+tag : '';
-    if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
-    if (elImg) window.setSafeImg(elImg, img, product.images_alt || title || '');
-
-    // prix TTC principal + HT indicatif
-    var currency   = product && product.currency ? product.currency : 'EUR';
-    var priceCents = priceCentsFrom(product);
-    if (elPrice)   elPrice.textContent = (priceCents!=null) ? fmtCents(Math.round(priceCents*(1+VAT_RATE)), currency) : '';
-    if (elPriceHT) elPriceHT.textContent = (priceCents!=null) ? ('≈ HT : '+fmtCents(priceCents, currency)+' (TVA '+Math.round(VAT_RATE*100)+'%)') : '';
-
-    // specs sécurisées
-    var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs)?product.specs:[]);
-    var featHtml = features.length ? features.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join('') : '';
-    var merged = {};
-    var kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
-    var kvDerived = {
-      'Plateforme': product.platform || void 0,
-      'Moteur': product.motor || void 0,
-      'Couple max': (product.torque_nm!=null) ? (product.torque_nm+' Nm') : void 0,
-      'Vitesses': product.rpm || void 0,
-      'Cadence de chocs': product.ipm || void 0,
-      'Mandrin': product.chuck || void 0,
-      'Longueur': (product.length_mm!=null) ? (product.length_mm+' mm') : void 0,
-      'Poids': (product.weight_kg!=null) ? (product.weight_kg+' kg') : void 0,
-      'Garantie': (product.warranty_months!=null) ? (product.warranty_months+' mois') : void 0
-    };
-    if (kvFromJson){ for (var k1 in kvFromJson){ if (kvFromJson[k1]!=null && kvFromJson[k1]!=='') merged[k1]=kvFromJson[k1]; } }
-    for (var k2 in kvDerived){ var v = kvDerived[k2]; if (v!=null && v!=='') merged[k2]=v; }
-
-    var tableHtml = '';
-    if (Object.keys(merged).length){
-      var rows = Object.keys(merged).map(function(k){
-        return '<tr><th>'+esc(k)+'</th><td>'+esc(merged[k])+'</td></tr>';
-      }).join('');
-      tableHtml =
-        '<li style="list-style:none;padding:0;margin:.6rem 0 0">'+
-        '  <div class="badge" style="margin:0 0 .4rem;display:inline-flex;align-items:center;gap:.4rem">⚙️ Caractéristiques techniques</div>'+
-        '  <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.95rem"><tbody>'+rows+'</tbody></table></div>'+
-        '</li>';
-    }
-    if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
-
-    if (btnQ){
-      btnQ.textContent = 'Ajouter au panier';
-      btnQ.onclick = function(){ window.CART.push(product); saveCart(); window.notifyCartAdded(product.title||product.sku||'Article'); };
-    }
-
-    var productLink = absoluteUrl('#/produit/' + encodeURIComponent(keyOf(product)));
-    var textPDP = (function(){
-      var sku = product.sku || product.id || product.__auto_id || title;
-      var contactSuffix = '';
-      try{
-        var u = (typeof window.loadUser==='function') ? window.loadUser() : null;
-        var arr = []; if(u&&u.name)arr.push('Nom: '+u.name); if(u&&u.email)arr.push('Email: '+u.email);
-        if(u&&u.phone)arr.push('Téléphone: '+u.phone); if(u&&u.addr)arr.push('Adresse: '+u.addr);
-        contactSuffix = arr.length ? '\n\nMes coordonnées:\n'+arr.join('\n') : '';
-      }catch(_){}
-      return 'Bonjour, je souhaite un devis pour:\n• '+sku+' – '+title+'\n\nLien: '+productLink+contactSuffix+'\n\nMerci.';
-    })();
-    if (btnWa) btnWa.href = 'https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(textPDP);
-
-    if (btnShare){
-      btnShare.onclick = function(){
-        try{
-          var shareData = { title:title+' • Pirates Tools', text:title, url:productLink };
-          if (navigator.share){ navigator.share(shareData); }
-          else if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(productLink); window.toast('Lien copié','success'); }
-        }catch(_){}
-      };
-    }
-
-    // Suggestions
-var tagRel = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
-var related = window.MODELS.filter(function(m){
-  return (m!==product) && (
-    (product.category && m.category===product.category) ||
-    (tagRel && ((m.badge===tagRel) || (Array.isArray(m.tags) && m.tags.indexOf(tagRel)!==-1)))
-  );
-}).slice(0,3);
-
-    if (elRel){
-      var relHTML = '';
-      for (var i=0;i<related.length;i++){
-        var rm = related[i];
-        relHTML +=
-          '<article class="card" data-id="'+esc(keyOf(rm))+'">'+
-          '  <div class="head"><h3 class="title">'+esc(rm.title||(rm.brand||'')+' '+(rm.sku||''))+'</h3>'+((rm.badge||'')?'<span class="badge">'+esc(rm.badge)+'</span>':'')+'</div>'+
-          '  <div class="specs"><p style="margin:0">'+esc(rm.desc||rm.description||'')+'</p></div>'+
-          '  <div class="actions"><button class="btn primary" data-add="'+esc(keyOf(rm))+'">Ajouter au panier</button></div>'+
-          '</article>';
-      }
-      elRel.innerHTML = relHTML;
-      wireCardsAddToCart(null, elRel);
-    }
-
-    // SEO : titre + description + JSON-LD
-    if (typeof window.setPageMeta==='function'){
-      window.setPageMeta(title+' • Pirates Tools', desc || title);
-    }
-    injectProductJsonLD(product);
+        '</div>'+
+        '<div class="pdp__related" id="pdpRelated"></div>'+
+      '</div>';
+    document.body.appendChild(view);
   }
-  if (typeof window.renderPDP !== 'function') window.renderPDP = renderPDP;
+
+  // 2) Références DOM
+  var elImg    = document.getElementById('pdpImg');
+  var elT      = document.getElementById('pdpTitle');
+  var elTag    = document.getElementById('pdpTag');
+  var elDesc   = document.getElementById('pdpDesc');
+  var elSpecs  = document.getElementById('pdpSpecs');
+  var elRel    = document.getElementById('pdpRelated');
+  var btnQ     = document.getElementById('pdpQuote');
+  var btnWa    = document.getElementById('pdpWa');
+  var btnShare = document.getElementById('pdpShare');
+  var elPrice  = document.getElementById('pdpPrice');
+  var elPriceHT= document.getElementById('pdpPriceHT');
+
+  // 3) Données produit
+  var title = (product.title || ((product.brand||'')+' '+(product.sku||''))).trim();
+  var tag   = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
+  var desc  = product.desc || product.description || '';
+  var img   = product.img ? absoluteUrl(product.img) : IMG_FALLBACK;
+
+  if (elT)    elT.textContent = title;
+  if (elTag)  elTag.textContent = tag ? '#'+tag : '';
+  if (elDesc) elDesc.textContent = desc || 'Caractéristiques à venir.';
+  if (elImg)  window.setSafeImg(elImg, img, product.images_alt || title || '');
+
+  // Prix TTC + HT
+  var currency   = product && product.currency ? product.currency : 'EUR';
+  var priceCents = priceCentsFrom(product);
+  if (elPrice)   elPrice.textContent = (priceCents!=null) ? fmtCents(Math.round(priceCents*(1+VAT_RATE)), currency) : '';
+  if (elPriceHT) elPriceHT.textContent = (priceCents!=null) ? ('≈ HT : '+fmtCents(priceCents, currency)+' (TVA '+Math.round(VAT_RATE*100)+'%)') : '';
+
+  // Specs
+  function esc(s){ s=String(s==null?'':s); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  var features = Array.isArray(product.features) ? product.features : (Array.isArray(product.specs)?product.specs:[]);
+  var featHtml = features.length ? features.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join('') : '';
+  var merged = {};
+  var kvFromJson = (product.specs_kv && typeof product.specs_kv==='object') ? product.specs_kv : null;
+  var kvDerived = {
+    'Plateforme': product.platform || void 0,
+    'Moteur': product.motor || void 0,
+    'Couple max': (product.torque_nm!=null) ? (product.torque_nm+' Nm') : void 0,
+    'Vitesses': product.rpm || void 0,
+    'Cadence de chocs': product.ipm || void 0,
+    'Mandrin': product.chuck || void 0,
+    'Longueur': (product.length_mm!=null) ? (product.length_mm+' mm') : void 0,
+    'Poids': (product.weight_kg!=null) ? (product.weight_kg+' kg') : void 0,
+    'Garantie': (product.warranty_months!=null) ? (product.warranty_months+' mois') : void 0
+  };
+  if (kvFromJson){ for (var k1 in kvFromJson){ if (kvFromJson[k1]!=null && kvFromJson[k1]!=='') merged[k1]=kvFromJson[k1]; } }
+  for (var k2 in kvDerived){ var v = kvDerived[k2]; if (v!=null && v!=='') merged[k2]=v; }
+
+  var tableHtml = '';
+  if (Object.keys(merged).length){
+    var rows = Object.keys(merged).map(function(k){
+      return '<tr><th>'+esc(k)+'</th><td>'+esc(merged[k])+'</td></tr>';
+    }).join('');
+    tableHtml =
+      '<li style="list-style:none;padding:0;margin:.6rem 0 0">'+
+      '  <div class="badge" style="margin:0 0 .4rem;display:inline-flex;align-items:center;gap:.4rem">⚙️ Caractéristiques techniques</div>'+
+      '  <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.95rem"><tbody>'+rows+'</tbody></table></div>'+
+      '</li>';
+  }
+  if (elSpecs) elSpecs.innerHTML = (featHtml || tableHtml) ? (featHtml + tableHtml) : '';
+
+  // Actions
+  if (btnQ){
+    btnQ.textContent = 'Ajouter au panier';
+    btnQ.onclick = function(){ window.CART.push(product); saveCart(); window.notifyCartAdded(product.title||product.sku||'Article'); };
+  }
+
+  var productLink = absoluteUrl('#/produit/' + encodeURIComponent(
+    (product.id||product.sku||product.title||product.__auto_id||'')
+  ));
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+  var textPDP = (function(){
+    var sku = product.sku || product.id || product.__auto_id || title;
+    var contactSuffix = '';
+    try{
+      var u = (typeof window.loadUser==='function') ? window.loadUser() : null;
+      var arr = []; if(u&&u.name)arr.push('Nom: '+u.name); if(u&&u.email)arr.push('Email: '+u.email);
+      if(u&&u.phone)arr.push('Téléphone: '+u.phone); if(u&&u.addr)arr.push('Adresse: '+u.addr);
+      contactSuffix = arr.length ? '\n\nMes coordonnées:\n'+arr.join('\n') : '';
+    }catch(_){}
+    return 'Bonjour, je souhaite un devis pour:\n• '+sku+' – '+title+'\n\nLien: '+productLink+contactSuffix+'\n\nMerci.';
+  })();
+  if (btnWa) btnWa.href = 'https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(textPDP);
+
+  if (btnShare){
+    btnShare.onclick = function(){
+      try{
+        var shareData = { title:title+' • Pirates Tools', text:title, url:productLink };
+        if (navigator.share){ navigator.share(shareData); }
+        else if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(productLink); window.toast('Lien copié','success'); }
+      }catch(_){}
+    };
+  }
+
+  // Suggestions
+  var tagRel = product.badge || (Array.isArray(product.tags)&&product.tags[0]) || product.tag || '';
+  var related = (window.MODELS||[]).filter(function(m){
+    return (m!==product) && (
+      (product.category && m.category===product.category) ||
+      (tagRel && ((m.badge===tagRel) || (Array.isArray(m.tags) && m.tags.indexOf(tagRel)!==-1)))
+    );
+  }).slice(0,3);
+
+  if (elRel){
+    var relHTML = '';
+    for (var i=0;i<related.length;i++){
+      var rm = related[i];
+      var rid = (rm.id||rm.sku||rm.title||rm.__auto_id||'');
+      relHTML +=
+        '<article class="card" data-id="'+rid+'">'+
+        '  <div class="head"><h3 class="title">'+((rm.title||(rm.brand||'')+' '+(rm.sku||'')))+'</h3>'+((rm.badge||'')?'<span class="badge">'+rm.badge+'</span>':'')+'</div>'+
+        '  <div class="specs"><p style="margin:0">'+(rm.desc||rm.description||'')+'</p></div>'+
+        '  <div class="actions"><button class="btn primary" data-add="'+rid+'">Ajouter au panier</button></div>'+
+        '</article>';
+    }
+    elRel.innerHTML = relHTML;
+    wireCardsAddToCart(null, elRel);
+  }
+
+  // SEO
+  if (typeof window.setPageMeta==='function'){
+    window.setPageMeta(title+' • Pirates Tools', desc || title);
+  }
+  injectProductJsonLD(product);
+}
+
 
   /* =========================================================
      D) CHARGEMENT PRODUITS + INDEX RECHERCHE
