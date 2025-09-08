@@ -509,21 +509,21 @@
   document.body.classList.add('menu-open');
   if (ovl)  ovl.hidden = false;
   if (side){
-    side.hidden = false;
-    side.classList.add('open');
-    side.setAttribute('aria-hidden','false');
-    try{ side.focus(); }catch(_){}
-  }
+      side.hidden = false;
+  side.classList.add('open');
+  side.setAttribute('aria-hidden','false');
+  try{ side.focus(); }catch(_){}
+}
   if (btn)  btn.setAttribute('aria-expanded','true');
 }
     function close(){
   document.body.classList.remove('menu-open');
   if (ovl)  ovl.hidden = true;
   if (side){
-    side.classList.remove('open');
-    side.hidden = true;
-    side.setAttribute('aria-hidden','true');
-  }
+       side.hidden = true;
+  side.classList.remove('open');
+  side.setAttribute('aria-hidden','true');
+}
   if (btn)  btn.setAttribute('aria-expanded','false');
 }
 
