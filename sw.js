@@ -13,7 +13,7 @@
 
 'use strict';
 
-const VERSION        = 'pt-v115'./favicon.ico',
+const VERSION        = 'pt-v116'./favicon.ico',
   // icônes PWA (si certaines n’existent pas, elles seront ignorées proprement)
   './icons/icon-180.png',
   './icons/icon-192.png',
