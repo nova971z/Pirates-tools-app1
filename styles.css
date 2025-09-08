@@ -192,6 +192,64 @@ body.after-hero::after{ opacity:1 }
   .hero-logo.fx-overshoot,.hero-logo.fx-preblur,.hero-logo.fx-out{ transform:none; filter:none; opacity:1 }
 }
 
+
+/* ========== 04bis) HÉRO — Animations logo (intro + scroll-driven) ========== */
+/* Intro (apparition + léger overshoot, cohérent avec tes classes existantes) */
+@keyframes hero-intro {
+  0%   { opacity:0; transform:translateZ(0) scale(1.06); filter:blur(8px) saturate(1.05) }
+  60%  { opacity:1; transform:translateZ(0) scale(1.035); filter:blur(2.5px) saturate(1.05) }
+  100% { opacity:1; transform:translateZ(0) scale(1.000); filter:none }
+}
+/* Fallback si le JS met .on (déjà prévu) : on force l'intro propre */
+#heroLogo.on, .hero-logo.on{
+  animation:hero-intro 420ms cubic-bezier(.22,.61,.36,1) both;
+}
+
+/* Scroll-driven (ultra perf, sans JS) — progression: overshoot → préblur → fade-out */
+@supports (animation-timeline: scroll()) or (animation-timeline: view()) {
+  /* crée une timeline liée à la vue du hero */
+  .hero-full, #hero { view-timeline-name: --hero; view-timeline-axis: block; }
+
+  /* l’animation se joue quand le hero commence à sortir (exit) jusqu’à ~70% */
+  #heroLogo, .hero-logo{
+    animation-timeline: --hero;
+    animation-range: exit 0% 70%;
+    animation-name: hero-exit;
+    animation-fill-mode: both;
+  }
+
+  @keyframes hero-exit{
+    0%   { transform:translateZ(0) scale(1.03); filter:blur(0px) saturate(1.04); opacity:1 }
+    28%  { transform:translateZ(0) scale(1.02); filter:blur(4px)  saturate(1.05); opacity:.98 }
+    55%  { transform:translateZ(0) scale(1.01); filter:blur(7px)  saturate(1.06); opacity:.60 }
+    70%  { transform:translateZ(0) scale(.995); filter:blur(10px) saturate(1.06); opacity:0 }
+    100% { transform:translateZ(0) scale(.990); filter:blur(10px); opacity:0 }
+  }
+
+  /* on n’a plus besoin des classes fx-* si la timeline est supportée */
+  .hero-logo.fx-overshoot,
+  .hero-logo.fx-preblur,
+  .hero-logo.fx-out{ all:unset; }
+}
+
+/* Finesse perf + compat : filtres/transform fréquemment animés */
+#heroLogo, .hero-logo{
+  contain: paint style;                 /* isole le rendu */
+  transform: translateZ(0);             /* rasterisation GPU */
+  will-change: transform, opacity, filter;
+}
+
+/* Accessibilité (déjà présent mais on blindera l’intro + scroll) */
+@media (prefers-reduced-motion: reduce){
+  #heroLogo, .hero-logo{
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
+
+
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
 #view-home .container{
   margin-top: var(--listGap, 22vh);
