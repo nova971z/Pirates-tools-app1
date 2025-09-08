@@ -22,29 +22,29 @@
 
   <!-- ===== HÉRO : styles nécessaires à l’animation pilotée par app.js ===== -->
   <style id="pt-hero-overshoot-css">
-    :root{ --listGap: 22vh; --heroFadeH: 28vh; } /* valeurs par défaut; app.js anime --listGap */
+  :root{ --listGap: 22vh; --heroFadeH: 28vh; } /* valeurs par défaut; app.js anime --listGap */
 
-    /* Le hero est au flux avec superposition contrôlée */
-    #hero{ position:relative; z-index:0; }
-    body.after-hero #hero{ z-index:-1; pointer-events:none; }
+  /* Le hero est au flux avec superposition contrôlée */
+  #hero{ position:relative; z-index:0; }
+  body.after-hero #hero{ z-index:-1; pointer-events:none; }
 
-    /* Dégradé pour fondre le logo dans le contenu (aligné sur --heroFadeH) */
-    #hero .hero-fade{
-      position:absolute; inset:auto 0 0 0; height:var(--heroFadeH, 28vh);
-      background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
-      pointer-events:none;
-    }
+  /* Dégradé pour fondre le logo dans le contenu (aligné sur --heroFadeH) */
+  #hero .hero-fade{
+    position:absolute; inset:auto 0 0 0; height:var(--heroFadeH, 28vh);
+    background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
+    pointer-events:none;
+  }
 
-    /* L’espace au-dessus de la grille d’accueil suit --listGap */
-    #view-home .container{
-      margin-top: var(--listGap, 22vh);
-      transition: margin-top .22s ease-out;
-    }
+  /* L’espace au-dessus de la grille d’accueil suit --listGap */
+  #view-home .container{
+    margin-top: var(--listGap, 22vh);
+    transition: margin-top .22s ease-out;
+  }
 
-    /* Aspect du logo pendant le fade-in initial (classe posée par le loader) */
-    .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
-    .hero-logo.on{ opacity:1; }
-  </style>
+  /* Aspect du logo pendant le fade-in initial (classe posée par le loader) */
+  .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
+  .hero-logo.on{ opacity:1; }
+</style>
 </head>
 
 <body data-router-root>
@@ -460,10 +460,10 @@
 
 /* Hero */
 .hero-logo{ transition: transform .28s ease, filter .28s ease, opacity .28s ease; will-change: transform,filter,opacity; }
-.hero-logo.on.fx-overshoot{ transform: scale(1.04); }
-.hero-logo.on.fx-preblur{ filter: blur(.5px); }
-.hero-logo.on.fx-out{ opacity:.0; transform: translateY(-6px) scale(.98); filter: blur(1px); }
-.hero.hero-out{ opacity:.0; pointer-events:none; }
+.hero-logo.fx-overshoot{ transform: translateZ(0) scale(1.035); }
+.hero-logo.fx-preblur{ filter: blur(9px) saturate(1.05); }
+.hero-logo.fx-out{ opacity:0 !important; transition:opacity 120ms linear, filter 180ms ease-out; }
+.hero-full.hero-out{ opacity:.0; pointer-events:none; }
 
 /* Liste après le hero (pilotée par --listGap) */
 .list{ margin-top: var(--listGap, 22vh); }
@@ -515,10 +515,10 @@
 .pdp__price-ht{ opacity:.8; }
 
 /* Masquer le logo topbar sur Catalogue / Devis / Compte */
-.page-catalogue .topbar-logo-link,
-.page-devis .topbar-logo-link,
-.page-compte .topbar-logo-link { display:none; }
-  </style>
+body.page-catalogue .topbar-logo-link,
+body.page-devis .topbar-logo-link,
+body.page-compte .topbar-logo-link { display:none !important; }
+</style>
 
   <!-- Micro-scripts UI (menu + routing + auth + avatar + smooth scroll) -->
   <script>
