@@ -4067,3 +4067,228 @@ else boot();
     window.removeEventListener('scroll', onScroll);
   });
 })();   // ← fin du patch hero
+
+
+// ==== PATCH-JS-001 (Router + classes body + scroll/focus) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+  PT.q  = (s, r=document)=>r.querySelector(s);
+  PT.qa = (s, r=document)=>[...r.querySelectorAll(s)];
+
+  const VIEWS = ['home','catalogue','produit','devis','compte','auth'];
+
+  function setBodyPage(page){
+    const b = document.body;
+    VIEWS.forEach(p=>b.classList.remove('page-'+p));
+    b.classList.add('page-'+page);
+    if(page==='home'){ b.classList.remove('after-hero'); } else { b.classList.add('after-hero'); }
+  }
+
+  PT.route = function(){
+    const hash = (location.hash||'#/').replace(/^#\//,'').trim();
+    let page  = hash.split('?')[0] || '';
+    if(page==='login' || page==='register'){ page='auth'; }
+    if(!VIEWS.includes(page)) page='home';
+
+    setBodyPage(page);
+
+    // Afficher la vue courante, masquer les autres (via [hidden])
+    VIEWS.forEach(p=>{
+      const el = PT.q('#view-'+p);
+      if(!el) return;
+      if(p===page){ el.removeAttribute('hidden'); el.classList.remove('hidden'); }
+      else { el.setAttribute('hidden',''); }
+    });
+
+    // PDP : garantir la visibilité + binder
+    if(page==='produit'){
+      const pdp = PT.q('#view-produit, #pdp');
+      pdp && (pdp.removeAttribute('hidden'), pdp.classList.remove('hidden'));
+      PT.bindPDP && PT.bindPDP();
+    }
+
+    // Scroll en haut + focus H1
+    try{ window.scrollTo({ top:0, behavior:'smooth' }); }catch(_){ window.scrollTo(0,0); }
+    setTimeout(()=>{
+      const current = PT.q('#view-'+page) || document.body;
+      const h1 = PT.q('h1', current);
+      if(h1){
+        if(!h1.hasAttribute('tabindex')) h1.setAttribute('tabindex','-1');
+        h1.focus({ preventScroll:true });
+      }
+    },60);
+  };
+
+  // Délégation data-nav
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('[data-nav]');
+    if(!a) return;
+    const href = a.getAttribute('data-nav') || a.getAttribute('href');
+    if(href && href.startsWith('#/')){ e.preventDefault(); location.hash = href; }
+  }, {passive:false});
+
+  addEventListener('hashchange', PT.route);
+  addEventListener('DOMContentLoaded', PT.route);
+})();
+
+// ==== PATCH-JS-002 (Drawer robuste + aria + fermetures) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+  const btn      = document.getElementById('menu-toggle');
+  const drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
+  const backdrop = document.getElementById('menuBackdrop') || document.querySelector('.menu-backdrop, .backdrop');
+
+  function set(open){
+    if(!drawer) return;
+    drawer.classList.toggle('open', !!open);
+    if(backdrop) backdrop.hidden = !open;
+    if(btn) btn.setAttribute('aria-expanded', String(!!open));
+    drawer.setAttribute('aria-hidden', String(!open));
+  }
+
+  PT.toggleDrawer = (force)=>{
+    const want = typeof force==='boolean' ? force : !drawer?.classList.contains('open');
+    set(want);
+  };
+
+  btn && btn.addEventListener('click', ()=>PT.toggleDrawer());
+  backdrop && backdrop.addEventListener('click', ()=>PT.toggleDrawer(false));
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') PT.toggleDrawer(false); });
+  addEventListener('hashchange', ()=>PT.toggleDrawer(false));
+})();
+
+
+// ==== PATCH-JS-003 (Auth switch : chips + panels) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+
+  function select(tab){
+    const key = tab==='register' ? 'register' : 'login';
+    const chips = document.querySelectorAll('.auth-switch .chip');
+    const panels = { 
+      login:    document.getElementById('authLogin'),
+      register: document.getElementById('authRegister')
+    };
+    chips.forEach(c=> c.setAttribute('aria-selected', c.dataset.tab===key ? 'true' : 'false'));
+    if(panels.login && panels.register){
+      panels.login.hidden    = key!=='login';
+      panels.register.hidden = key!=='register';
+    }
+    localStorage.setItem('pt_auth_tab', key);
+  }
+
+  PT.initAuth = function(){
+    const saved = localStorage.getItem('pt_auth_tab') || 'login';
+    select(saved);
+    document.querySelectorAll('.auth-switch .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=> select(chip.dataset.tab));
+    });
+  };
+
+  // Alias #/login / #/register → #/auth (conserve l’onglet choisi)
+  if(PT.route){
+    const orig = PT.route;
+    PT.route = function(){
+      const h = (location.hash||'').toLowerCase();
+      if(h==='#/login' || h==='#/register'){
+        localStorage.setItem('pt_auth_tab', h.includes('register')?'register':'login');
+        location.hash = '#/auth';
+        setTimeout(()=>PT.initAuth && PT.initAuth(), 60);
+        return;
+      }
+      orig();
+      if((location.hash||'')==='#/auth'){ PT.initAuth && PT.initAuth(); }
+    };
+  }
+})();
+
+
+// ==== PATCH-JS-004 (Toasts utilitaires) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+  PT.toast = function(type, message, ms=2600){
+    let host = document.getElementById('toasts');
+    if(!host){ host = document.createElement('div'); host.id='toasts'; document.body.appendChild(host); }
+    const el = document.createElement('div');
+    el.className = 'toast toast--'+(type||'info');
+    el.innerHTML = `
+      <div class="toast__icon">•</div>
+      <div class="toast__body">${message}</div>
+      <button class="toast__close" aria-label="Fermer">×</button>`;
+    host.appendChild(el);
+    const close = ()=>{ el.style.animation='toast-out .18s ease-in both'; setTimeout(()=>el.remove(),200); };
+    el.querySelector('.toast__close').addEventListener('click', close);
+    setTimeout(close, ms);
+    return el;
+  };
+  PT.toastInfo    = (m)=>PT.toast('info', m);
+  PT.toastSuccess = (m)=>PT.toast('success', m);
+  PT.toastError   = (m)=>PT.toast('error', m);
+})();
+
+
+// ==== PATCH-JS-005 (PDP WhatsApp dynamique + Share) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+  PT.bindPDP = function(){
+    const title = (document.getElementById('pdpTitle')?.textContent||'').trim();
+    const ref   = document.getElementById('pdpRef')?.textContent?.trim();
+    const price = document.getElementById('pdpPrice')?.textContent?.trim();
+    const url   = location.href;
+
+    const msg = [
+      title ? `Produit: ${title}` : '',
+      ref   ? `Réf: ${ref}`       : '',
+      price ? `Prix: ${price}`    : '',
+      `Lien: ${url}`
+    ].filter(Boolean).join('\n');
+
+    const wa = document.getElementById('pdpWa');
+    if(wa) wa.href = `https://wa.me/33774230195?text=${encodeURIComponent(msg)}`;
+
+    const shareBtn = document.getElementById('pdpShare');
+    if(shareBtn){
+      shareBtn.onclick = async (e)=>{
+        e.preventDefault();
+        try{
+          if(navigator.share){ await navigator.share({ title, text:title, url }); }
+          else{
+            await navigator.clipboard.writeText(url);
+            window.PT?.toastSuccess?.('Lien copié 📋');
+          }
+        }catch(_){}
+      };
+    }
+  };
+})();
+
+
+
+// ==== PATCH-JS-006 (Portail Compte → Auth si non connecté) ====
+
+(()=>{ 
+  const PT = (window.PT = window.PT || {});
+  PT.auth = PT.auth || {
+    isLoggedIn(){ return !!localStorage.getItem('pt_user'); },
+    login(u){ localStorage.setItem('pt_user', JSON.stringify(u||{id:'demo'})); },
+    logout(){ localStorage.removeItem('pt_user'); }
+  };
+
+  if(PT.route){
+    const orig = PT.route;
+    PT.route = function(){
+      const next = (location.hash||'').toLowerCase();
+      if(next==='#/compte' && !PT.auth.isLoggedIn()){
+        location.hash = '#/auth';
+        setTimeout(()=>PT.initAuth && PT.initAuth(),60);
+        return;
+      }
+      orig();
+    };
+  }
+})();
