@@ -436,31 +436,46 @@
   <!-- app.js contient l’animation du hero (overshoot/blur/fade + gestion --listGap) -->
   <script src="./app.js" defer></script>
 
-  <!-- Micro-script menu (indépendant) -->
-  <script>
-    (function(){
-      var btn  = document.getElementById('menu-toggle');
-      var ovl  = document.getElementById('menuBackdrop') || document.getElementById('menu-overlay');
-      var side = document.getElementById('side-menu');
-      function open(){
-  document.body.classList.add('menu-open');
-  if (ovl)  ovl.hidden = false;
-  if (side){ side.hidden = false; side.setAttribute('aria-hidden','false'); try{ side.focus(); }catch(_){} }
-  if (btn)  btn.setAttribute('aria-expanded','true');
-}
-function close(){
-  document.body.classList.remove('menu-open');
-  if (ovl)  ovl.hidden = true;
-  if (side){ side.hidden = true; side.setAttribute('aria-hidden','true'); }
-  if (btn)  btn.setAttribute('aria-expanded','false');
-}
-      if (btn){ btn.addEventListener('click', function(){ document.body.classList.contains('menu-open') ? close() : open(); }); }
-      if (ovl){ ovl.addEventListener('click', close); }
-      
-      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); }, false);
-window.addEventListener('hashchange', close, false);
-      
-    })();
-  </script>
+ <!-- Micro-script menu (indépendant) -->
+<script>
+  (function(){
+    var btn  = document.getElementById('menu-toggle');
+    var ovl  = document.getElementById('menuBackdrop') || document.getElementById('menu-overlay');
+    var side = document.getElementById('side-menu');
+
+    function open(){
+      document.body.classList.add('menu-open');
+      if (ovl)  ovl.hidden = false;
+      if (side){
+        side.hidden = false;
+        side.setAttribute('aria-hidden','false');
+        try{ side.focus(); }catch(_){}
+      }
+      if (btn)  btn.setAttribute('aria-expanded','true');
+    }
+    function close(){
+      document.body.classList.remove('menu-open');
+      if (ovl)  ovl.hidden = true;
+      if (side){
+        side.hidden = true;
+        side.setAttribute('aria-hidden','true');
+      }
+      if (btn)  btn.setAttribute('aria-expanded','false');
+    }
+
+    if (btn){
+      btn.addEventListener('click', function(){
+        document.body.classList.contains('menu-open') ? close() : open();
+      });
+    }
+    if (ovl){ ovl.addEventListener('click', close); }
+
+    // Fermeture via Échap + sur changement de route (hash)
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') close();
+    }, false);
+    window.addEventListener('hashchange', close, false);
+  })();
+</script>
 </body>
 </html>
