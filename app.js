@@ -312,6 +312,78 @@ window.addEventListener('hashchange', function(){
 try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:true, subtree:true}); }catch(_){}
 
 
+
+// CSS d’ancrage du dock (injecté)
+(function(){
+  if (document.getElementById('pt-dock-lock')) return;
+  var s = document.createElement('style'); s.id = 'pt-dock-lock';
+  s.textContent =
+    '#dock{position:fixed;left:0;right:0;width:100vw;box-sizing:border-box}' +
+    '#dock.dock--safe{' +
+    '  bottom:max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px));' +
+    '  padding-bottom:max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px));' +
+    '}' +
+    '@supports not (bottom: max(1px,2px)){' +
+    '  #dock.dock--safe{bottom:env(safe-area-inset-bottom,0px);padding-bottom:env(safe-area-inset-bottom,0px)}' +
+    '}' +
+    '#dock.dock--visible{backface-visibility:hidden;contain:layout paint size;z-index:1000}';
+  document.head.appendChild(s);
+})();
+
+// Renfort JS (structure, z-index, transforms, recalages)
+(function(){
+  if (window.__ptDockLockV2) return; window.__ptDockLockV2 = 1;
+
+  function lockDock(){
+    var dock = document.getElementById('dock'); if (!dock) return;
+
+    // Mettre #dock directement sous <body>
+    if (dock.parentNode && dock.parentNode !== document.body){
+      try{ document.body.appendChild(dock); }catch(_){}
+    }
+
+    // Classes de sécurité
+    if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
+    if (!dock.classList.contains('dock--safe'))    dock.classList.add('dock--safe');
+
+    // Position & largeur garanties
+    var cs = window.getComputedStyle ? getComputedStyle(dock) : null;
+    if (!cs || cs.position !== 'fixed'){
+      dock.style.position='fixed';
+      dock.style.left='0'; dock.style.right='0'; dock.style.width='100vw';
+    }
+
+    // Z-index minimal
+    var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
+    if (zi < 1000) dock.style.zIndex = 1000;
+
+    // Neutralise une transform directe sur #dock
+    if (dock.style.transform && dock.style.transform !== 'none'){ dock.style.transform = 'none'; }
+  }
+
+  function refreshViewportVars(){
+    try{
+      if (window.PT && typeof window.PT.refreshViewportSafe === 'function'){
+        window.PT.refreshViewportSafe();
+      }
+    }catch(_){}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){ lockDock(); refreshViewportVars(); }, false);
+  window.addEventListener('hashchange', function(){ lockDock(); refreshViewportVars(); }, false);
+
+  if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function'){
+    visualViewport.addEventListener('resize', refreshViewportVars, {passive:true});
+    visualViewport.addEventListener('scroll', refreshViewportVars, {passive:true});
+  }
+
+  try{
+    new MutationObserver(function(){ lockDock(); })
+      .observe(document.body, {childList:true, subtree:true});
+  }catch(_){}
+})();
+
+
   /* ---------- Grille marques : toutes les marques visibles ---------- */
   // 1) Référentiel des logos
   var BRAND_META = (function(){
@@ -700,20 +772,27 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   
   
 (function(){
-  if (window.__ptSafeTop) return; window.__ptSafeTop = 1;
-  function ensureSafeTop(){
+  if (window.__ptSafeTopV2) return; window.__ptSafeTopV2 = 1;
+
+  function getView(){
+    try{ var p=(window.parseHash?window.parseHash():{view:''}); return (p.view||''); }catch(_){ return ''; }
+  }
+  function topHeight(){
     try{
       var top = document.getElementById('topbar') || document.querySelector('nav');
-      if (!top) return;
-      var h = Math.ceil((top.getBoundingClientRect && top.getBoundingClientRect().height) || 0);
-      document.documentElement.style.setProperty('--safe-top', h+'px');
-      var cur = parseFloat((getComputedStyle(document.body)||{}).paddingTop)||0;
-      if (h && cur < h) document.body.style.paddingTop = h+'px';
-    }catch(_){}
+      var h = Math.ceil((top && top.getBoundingClientRect ? top.getBoundingClientRect().height : 0) || 0);
+      return Math.max(0, h);
+    }catch(_){ return 0; }
   }
-  window.addEventListener('resize', ensureSafeTop, {passive:true});
-  window.addEventListener('hashchange', ensureSafeTop, false);
-  document.addEventListener('DOMContentLoaded', ensureSafeTop, false);
+  function applyTopPadding(){
+    var h = topHeight();
+    document.documentElement.style.setProperty('--safe-top', h+'px');
+    try{ document.body.style.paddingTop = h ? (h+'px') : ''; }catch(_){}
+  }
+
+  window.addEventListener('resize', applyTopPadding, {passive:true});
+  window.addEventListener('hashchange', applyTopPadding, false);
+  document.addEventListener('DOMContentLoaded', applyTopPadding, false);
 })();
 
 
@@ -3729,6 +3808,25 @@ else boot();
   document.head.appendChild(s);
 })();
 
+
+// Force l’animation du hero (variante B)
+window.FORCE_ANIM = true;
+window.HERO_VARIANT = 'B';
+
+
+(function(){
+  if (document.getElementById('pt-hero-fallback')) return;
+  var s = document.createElement('style'); s.id = 'pt-hero-fallback';
+  s.textContent =
+    '@media (prefers-reduced-motion: no-preference){' +
+    '  #view-home #heroLogo{' +
+    '    opacity:0; transform:translateY(8px) scale(.985);' +
+    '    animation:pt-hero-in .42s ease-out both;' +
+    '  }' +
+    '  @keyframes pt-hero-in{ to{ opacity:1; transform:none; } }' +
+    '}';
+  document.head.appendChild(s);
+})();
 
 /* =========================================================
    PARTIE 6 — A/B
