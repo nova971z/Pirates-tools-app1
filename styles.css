@@ -1,7 +1,8 @@
 /* =========================================================
-  Pirates Tools — styles.css (HARMONISÉ v3)
-  • Aligné avec app.js (overshoot + blur avant fade + disparition rapide)
-  • z-index/pointer-events sûrs quand le hero “passe derrière”
+  Pirates Tools — styles.css (HARMONISÉ v4)
+  • Aligné app.js : overshoot → blur → fade rapide du hero
+  • Safe areas + --safe-top (posée par JS) + dock robuste (#dock)
+  • Z-index/pointer-events sûrs quand le hero “passe derrière”
   • --listGap animé par app.js pour libérer les bulles sur l’accueil
 ========================================================= */
 
@@ -17,12 +18,14 @@
   --radius:14px; --shadow:0 10px 24px rgba(0,0,0,.35);
   --container-w:1100px;
 
-  /* Hero / layout dynamiques (pilotés par JS) */
+  /* Layout dynamiques (pilotés par JS) */
   --listGap:22vh;            /* app.js anime cette valeur */
   --heroFadeH:26vh;          /* ajusté plus bas si clamp() dispo */
+  --safe-top:70px;           /* posé/ajusté par app.js v2 */
 
   /* Dock & safe areas */
   --dock-bottom:14px; --dockH:64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 /* Upgrade si clamp() dispo (vieux WebKit safe) */
 @supports (height: clamp(18vh,26vh,32vh)){
@@ -34,7 +37,7 @@
 html{
   -webkit-text-size-adjust:100%; text-size-adjust:100%;
   scroll-behavior:smooth; width:100%; max-width:100%; overflow-x:hidden;
-  scroll-padding-top:70px; /* ≈ topbar */
+  scroll-padding-top: var(--safe-top, 70px); /* ≈ topbar dynamique */
 }
 body{
   margin:0; width:100%; max-width:100%; overflow-x:hidden; touch-action:manipulation;
@@ -44,7 +47,7 @@ body{
   color:var(--fg);
   font:500 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-  padding-bottom:calc(var(--dockH) + 16px);
+  padding-bottom: calc(var(--dockH) + var(--safe-bottom) + 16px);
 }
 img,svg,video{ max-width:100%; height:auto; display:block }
 a{ color:inherit; text-decoration:none }
@@ -61,7 +64,7 @@ h2{ font-size:clamp(1.2rem, 1.05rem + 1vw, 1.6rem) }
 h3{ font-size:1.05rem }
 
 /* ========== 03) TOPBAR (unique) ========== */
-.topbar{
+.topbar, #topbar{
   position:fixed; top:0; left:0; right:0; z-index:1000;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:8px 12px;
@@ -136,9 +139,14 @@ body.after-hero #hero{ z-index:-1; pointer-events:none; } /* ceinture + bretelle
   will-change:transform,opacity,filter;
   backface-visibility:hidden; -webkit-backface-visibility:hidden;
   filter:none;
-  opacity:.001; transition:opacity .25s ease-out;
+  opacity:.001; transition:opacity .25s ease-out, filter .18s ease, transform .18s ease;
 }
 #heroLogo.on, .hero-logo.on{ opacity:1 }
+
+/* États pilotés par app.js : overshoot → blur → fade */
+.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.035) }      /* léger dépassement */
+.hero-logo.fx-preblur{ filter:blur(9px) saturate(1.05) }               /* voile de vitesse */
+.hero-logo.fx-out{ opacity:0 !important; transition:opacity 120ms linear, filter 180ms ease-out }
 
 /* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
@@ -181,6 +189,7 @@ body.after-hero::after{ opacity:1 }
 /* Accessibilité – animations réduites */
 @media (prefers-reduced-motion: reduce){
   .hero-logo{ transition:none; filter:none !important; }
+  .hero-logo.fx-overshoot,.hero-logo.fx-preblur,.hero-logo.fx-out{ transform:none; filter:none; opacity:1 }
 }
 
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
@@ -291,17 +300,16 @@ body.after-hero::after{ opacity:1 }
 .footer-links a{ color:#9fb4c5; text-decoration:none; margin-right:.75rem }
 .footer-links a:hover{ color:#e6edf5 }
 
-/* ========== 12) DOCK (mobile) ========== */
-.dock{
+/* ========== 12) DOCK (mobile – #dock harmonisé) ========== */
+#dock, .dock{
   position:fixed; left:50%;
-  bottom:calc(var(--dock-bottom) + constant(safe-area-inset-bottom,0px));
-  bottom:calc(var(--dock-bottom) + env(safe-area-inset-bottom,0px));
-  z-index:110; transform:translateX(-50%) translateY(12px); opacity:0;
+  bottom:calc(var(--dock-bottom) + var(--safe-bottom));
+  z-index:1000; transform:translateX(-50%) translateY(12px); opacity:0;
   transition:opacity .28s ease-out, transform .28s ease-out;
   pointer-events:none; overflow:visible;
 }
-.dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
-.dock__shell{
+#dock.dock--visible, .dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
+#dock .dock__shell, .dock .dock__shell{
   position:relative; display:inline-flex; align-items:center; gap:.6rem;
   padding:.4rem 24px; border-radius:999px; background:rgba(10,15,20,.66);
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
@@ -403,7 +411,7 @@ body.after-hero::after{ opacity:1 }
 /* ========== 18) TOASTS ========== */
 #toasts{
   position:fixed; z-index:120; right:12px;
-  bottom:calc(var(--dock-bottom) + env(safe-area-inset-bottom,0px) + 62px);
+  bottom:calc(var(--dock-bottom) + var(--safe-bottom) + 62px);
   display:grid; gap:.5rem; width:min(92vw,420px); pointer-events:none;
 }
 .toast{
@@ -435,19 +443,19 @@ body.after-hero::after{ opacity:1 }
   .btn{ padding:.54rem .8rem }
   .ratings{ margin:1.4rem auto .6rem }
   .footer{ padding-bottom:1.2rem }
-  #list, #contact{ scroll-margin-top:84px }
+  #list, #contact{ scroll-margin-top:calc(var(--safe-top, 70px) + 14px) }
 }
 
 /* ========== 21) BANNIÈRES (update / install / net) ========== */
 #updateBanner{
   position:fixed; left:50%; transform:translateX(-50%);
-  bottom:calc(96px + env(safe-area-inset-bottom,0px));
+  bottom:calc(96px + var(--safe-bottom));
   background:rgba(10,15,20,.92); color:var(--fg); border:1px solid var(--border);
   border-radius:10px; padding:.55rem .7rem; z-index:130; box-shadow:var(--shadow);
 }
 #a2hsTip{
   position:fixed; left:50%; transform:translateX(-50%);
-  bottom:calc(96px + env(safe-area-inset-bottom,0px)); z-index:125;
+  bottom:calc(96px + var(--safe-bottom)); z-index:125;
   background:rgba(10,15,20,.92); color:var(--fg); border:1px solid var(--border);
   border-radius:12px; padding:.55rem .75rem; box-shadow:var(--shadow);
   display:flex; align-items:center; gap:.6rem; max-width:min(92vw,520px);
@@ -459,13 +467,13 @@ body.after-hero::after{ opacity:1 }
 @keyframes a2hs-in{ from{ transform:translateX(-50%) translateY(6px); opacity:0 } to{ transform:translateX(-50%) translateY(0); opacity:1 } }
 #a2hsTriangle{
   position:fixed; left:50%; transform:translateX(-50%);
-  bottom:calc(96px + env(safe-area-inset-bottom,0px)); z-index:126;
+  bottom:calc(96px + var(--safe-bottom)); z-index:126;
   border:1px solid var(--border); background:rgba(10,15,20,.92);
   color:#e6edf5; font-weight:900; line-height:1; border-radius:999px; padding:.2rem .5rem; cursor:pointer; box-shadow:var(--shadow);
 }
 #netBanner{
   position:fixed; left:50%; transform:translateX(-50%);
-  bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  bottom:calc(72px + var(--safe-bottom));
   background:rgba(10,15,20,.88); border:1px solid var(--border);
   padding:.5rem .8rem; border-radius:10px; z-index:120; box-shadow:var(--shadow);
   font:600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
@@ -601,9 +609,9 @@ body.after-hero::after{ opacity:1 }
 /* iOS A2HS au-dessus du dock */
 #a2hsTip{ pointer-events:auto; z-index:125 }
 #a2hsTip .a2hs-tip__close{ padding:.25rem; border-radius:6px; cursor:pointer }
-#a2hsTip, #a2hsTriangle{ bottom:calc(96px + env(safe-area-inset-bottom,0px)) }
-/* Ancrages confortables */
-#list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top:84px }
+#a2hsTip, #a2hsTriangle{ bottom:calc(96px + var(--safe-bottom)) }
+/* Ancrages confortables (vues et pages clés) */
+#list, #contact, #pdp, #view-catalogue, #view-devis, #view-compte{ scroll-margin-top:calc(var(--safe-top, 70px) + 14px) }
 
 /* ========== 26) STABILITÉ HÉRO (rappels) ========== */
 .hero-full{ z-index:30 }
