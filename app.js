@@ -748,6 +748,18 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   'use strict';
 
   // Hero timeline (classes uniquement)
+  /* NEW: activer le Hero uniquement sur l'accueil */
+  function __ptIsHome(){
+    try{
+      var p = (window.parseHash ? window.parseHash() : { view:'' });
+      return (!p.view || p.view==='home' || p.view==='/');
+    }catch(_){ return true; }
+  }
+  if (!__ptIsHome()){
+    // Pas d'init Hero en dehors de l'accueil
+    return;
+  }
+
   var heroLogo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
   function runHeroTimeline(){
     if (!heroLogo) return;
@@ -804,6 +816,8 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       rafApply();
     }, { root:null, threshold: thresholds });
     io.observe(hero);
+        /* NEW: expose l'IO pour teardown global */
+    try{ window.__ptHeroIO = io; }catch(_){}
     window.addEventListener('beforeunload', function(){ try{ io.disconnect(); }catch(_){ } }, { once:true });
   } else {
     // Fallback sans IO : calcule le pourcentage visible du hero
@@ -816,10 +830,53 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }
     window.addEventListener('scroll', onScroll, { passive:true });
     window.addEventListener('resize', onScroll, { passive:true });
+        /* NEW: expose les listeners pour teardown global */
+    try{
+      window.__ptHeroScroll = onScroll;
+      window.__ptHeroHeroEl = hero;
+    }catch(_){}
     onScroll();
   }
 })();
   
+  
+  // NEW: contrôle global du Hero (show/hide + teardown IO / listeners)
+(function(){
+  if (window.__ptHeroCtlBooted) return; window.__ptHeroCtlBooted = 1;
+  window.PT = window.PT || {};
+  window.PT.hero = window.PT.hero || {};
+
+  window.PT.hero.hide = function(){
+    try{
+      var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
+      var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
+      if (logo){ logo.classList.remove('on','fx-overshoot','fx-preblur','fx-out'); }
+      if (hero){ hero.classList.remove('hero-out'); }
+      // IO → off
+      if (window.__ptHeroIO && window.__ptHeroIO.disconnect){
+        try{ window.__ptHeroIO.disconnect(); }catch(_){}
+        window.__ptHeroIO = null;
+      }
+      // Fallback listeners → off
+      if (window.__ptHeroScroll){
+        try{
+          window.removeEventListener('scroll', window.__ptHeroScroll);
+          window.removeEventListener('resize', window.__ptHeroScroll);
+        }catch(_){}
+        window.__ptHeroScroll = null;
+      }
+    }catch(_){}
+  };
+
+  window.PT.hero.show = function(){
+    try{
+      var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
+      if (logo && !logo.classList.contains('on')){
+        requestAnimationFrame(function(){ logo.classList.add('on'); });
+      }
+    }catch(_){}
+  };
+})();
   
   // Dock : visible quand on remonte / proche du haut
   var dock = document.getElementById('dock') || document.querySelector('.dock');
@@ -3040,6 +3097,8 @@ function injectBreadcrumbs(items){
   function renderHome(){
     W.showView('home');
     __ptScrollTop();
+        /* NEW: (Home) réactive le Hero */
+    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.show==='function') window.PT.hero.show(); }catch(_){}
     updateSEO({ title:'Pirates Tools • Outillage pro (PWA)', desc: DEFAULT_DESC });
     withProducts(function(){
       try{
@@ -3056,6 +3115,8 @@ function injectBreadcrumbs(items){
 
   function renderCatalogueRoute(){
     ensureCatalogueView(); W.showView('catalogue');
+        /* NEW: coupe le Hero hors accueil */
+    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
     __ptScrollTop();
        updateSEO({ title:'Catalogue • Pirates Tools', desc: DEFAULT_DESC });
     // Laisser P2 gérer filtres/rendu
@@ -3073,6 +3134,9 @@ function injectBreadcrumbs(items){
 
   function renderProduitRoute(){
     ensureProduitView(); W.showView('produit');
+        /* NEW: coupe le Hero hors accueil */
+    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
+    
     __ptScrollTop();
     // Ne pas forcer og:type=product ici; laisser P2 gérer JSON-LD Product + title
     updateSEO({ skipOgImage:false, type:'product' }); // met canonical/OG url/image sans toucher og:type=product
@@ -3142,6 +3206,9 @@ function injectBreadcrumbs(items){
 
   function renderDevisRoute(){
     ensureDevisView(); W.showView('devis');
+        /* NEW: coupe le Hero hors accueil */
+    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
+    
    __ptScrollTop();
     updateSEO({ title:'Mon devis • Pirates Tools', desc:'Préparez et envoyez votre devis via WhatsApp.' });
     if (typeof W.renderCartView==='function'){ try{ W.renderCartView(); }catch(_){ } }
@@ -3150,6 +3217,8 @@ function injectBreadcrumbs(items){
 
 
 function renderCompteRoute(){
+    /* NEW: coupe le Hero hors accueil */
+  try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
   // Si l’auth locale existe et que l’utilisateur n’est pas connecté → redirige vers /login
   if (window.PT && window.PT.auth && typeof window.PT.auth.isLoggedIn === 'function' && !window.PT.auth.isLoggedIn()){
     location.hash = '#/login';
@@ -3181,6 +3250,8 @@ function renderCompteRoute(){
     if (v==='catalogue')  return renderCatalogueRoute();
     if (v==='produit')    return renderProduitRoute();
     if (v==='devis')      return renderDevisRoute();
+        /* NEW: alias route */
+    if (v==='auth'){ W.showView('login'); updateSEO({ title:'Connexion • Pirates Tools', desc:DEFAULT_DESC }); W.focusView('login'); return; }
     if (v==='compte')     return renderCompteRoute();
     if (v==='login'){ W.showView('login'); updateSEO({ title:'Connexion • Pirates Tools', desc:DEFAULT_DESC }); W.focusView('login'); return; }
     if (v==='register'){ W.showView('register'); updateSEO({ title:'Créer un compte • Pirates Tools', desc:DEFAULT_DESC }); W.focusView('register'); return; }
