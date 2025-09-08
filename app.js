@@ -1907,6 +1907,28 @@ var related = window.MODELS.filter(function(m){
         location.href = 'mailto:?subject='+subject+'&body='+msg;
       }, false);
     }
+              var copyBtn = document.getElementById('devisCopy');
+    if (copyBtn && !copyBtn.__wired){
+      copyBtn.__wired = 1;
+      copyBtn.addEventListener('click', function(){
+        try{
+          var msg = window.cartToWhatsAppText();
+          if (!msg) return;
+          (navigator.clipboard && navigator.clipboard.writeText)
+            ? navigator.clipboard.writeText(msg).then(function(){ window.toast('Devis copié','success'); })
+            : alert(msg);
+        }catch(_){}
+      }, false);
+    }
+    var mailBtn = document.getElementById('devisMail');
+    if (mailBtn && !mailBtn.__wired){
+      mailBtn.__wired = 1;
+      mailBtn.addEventListener('click', function(){
+        var msg = encodeURIComponent(window.cartToWhatsAppText() || '');
+        if (!msg) return;
+        var subject = encodeURIComponent('Demande de devis Pirates Tools');
+        location.href = 'mailto:?subject='+subject+'&body='+msg;
+      }, false);
     }
 
     var sendBtn = document.getElementById('devisSend');
@@ -2784,6 +2806,8 @@ var related = window.MODELS.filter(function(m){
           '<div class="actions">'+
             '<button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>'+
             '<button id="devisClear" class="btn" type="button">Vider</button>'+
+                        '<button id="devisCopy" class="btn" type="button">Copier</button>'+
+            '<button id="devisMail" class="btn" type="button">Email</button>'+
           '</div>'+
         '</div>'+
       '</div>';
