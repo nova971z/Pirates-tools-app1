@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" sizes="180x180" />
 
   <link rel="stylesheet" href="./styles.css" />
 
@@ -230,8 +230,9 @@
       <div class="container">
         <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
         <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
-        <div id="brandGrid" class="brand-grid" role="list" data-bind="brands"></div>
-      </div>
+         <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
+          <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
+       </div>
     </section>
 
     <!-- CATALOGUE -->
@@ -253,6 +254,7 @@
 
     <!-- PRODUIT (PDP) -->
     <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdp-h1">
+    <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
       <div class="container pdp" id="pdp">
         <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
@@ -262,14 +264,15 @@
           </div>
 
           <div class="pdp__info">
-            <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag" id="pdp-h1">Produit</h1>
+           <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag" id="pdp-h1">Produit</h1>
+           <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
             <div id="pdpTag" class="pdp__tag"></div>
             <p id="pdpDesc" class="pdp__desc"></p>
             <ul id="pdpSpecs" class="pdp__specs"></ul>
 
             <div class="actions">
               <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-              <a id="pdpWa" class="btn btn-wa" target="_blank" rel="noopener" data-action="share-wa">WhatsApp</a>
+                            <a id="pdpWa" class="btn btn-wa" href="#" target="_blank" rel="noopener" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
               <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
             </div>
           </div>
@@ -398,8 +401,9 @@
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-  <div id="menuBackdrop" class="menu-backdrop" hidden aria-hidden="true"></div>
-  <aside id="side-menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
+    <div id="menuBackdrop" class="menu-backdrop backdrop"
+     hidden aria-hidden="true"></div>
+      <aside id="side-menu" class="drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
     <h2 id="menuTitle" class="sr-only">Menu</h2>
     <a class="app-link" href="#/" data-nav="/">
       <span class="app-bubble">🏠</span>
@@ -536,6 +540,19 @@
       if (e.key === 'Escape') close();
     }, false);
     window.addEventListener('hashchange', close, false);
+  })();
+</script>
+<script>
+  (function(){
+    // Délégation globale : clic sur tout élément [data-nav] non-<a>
+    document.addEventListener('click', function(e){
+      var el = e.target && e.target.closest && e.target.closest('[data-nav]');
+      if (!el) return;
+      if (el.tagName && el.tagName.toLowerCase() === 'a') return; // les <a> gèrent déjà
+      var to = el.getAttribute('data-nav') || '/';
+      try{ location.hash = '#' + to.replace(/^#?/, ''); }catch(_){}
+      e.preventDefault();
+    }, false);
   })();
 </script>
 </body>
