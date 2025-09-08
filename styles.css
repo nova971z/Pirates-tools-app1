@@ -1,5 +1,5 @@
 /* =========================================================
-  Pirates Tools — styles.css (HARMONISÉ v4)
+  Pirates Tools — styles.css (HARMONISÉ v5)
   • Aligné app.js : overshoot → blur → fade rapide du hero
   • Safe areas + --safe-top (posée par JS) + dock robuste (#dock)
   • Z-index/pointer-events sûrs quand le hero “passe derrière”
@@ -22,6 +22,7 @@
   --listGap:22vh;            /* app.js anime cette valeur */
   --heroFadeH:26vh;          /* ajusté plus bas si clamp() dispo */
   --safe-top:70px;           /* posé/ajusté par app.js v2 */
+  --app-vh:1vh;              /* unité fiable 100dvh → JS peut mettre à jour */
 
   /* Dock & safe areas */
   --dock-bottom:14px; --dockH:64px;
@@ -34,6 +35,8 @@
 
 /* ========== 02) RESET, BASE & TYPO ========== */
 *{ box-sizing:border-box }
+[hidden], .hidden{ display:none !important } /* toggle universel fiable */
+
 html{
   -webkit-text-size-adjust:100%; text-size-adjust:100%;
   scroll-behavior:smooth; width:100%; max-width:100%; overflow-x:hidden;
@@ -54,7 +57,6 @@ a{ color:inherit; text-decoration:none }
 a:focus-visible,button:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; border-radius:10px }
 button,input,select,textarea{ font:inherit; color:inherit }
 .container{ width:min(var(--container-w),92vw); margin:0 auto; position:relative; z-index:2 }
-.hidden{ display:none !important }
 .empty{ opacity:.6; text-align:center; padding:2rem 0 }
 
 /* Titres */
@@ -82,6 +84,10 @@ h3{ font-size:1.05rem }
   display:block; height:28px; width:auto; object-fit:contain;
   image-rendering:-webkit-optimize-contrast; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:translateZ(0);
 }
+/* Masquer le logo hors Home (classes posées par le routeur/app.js) */
+body.page-catalogue .topbar-logo-link,
+body.page-devis .topbar-logo-link,
+body.page-compte .topbar-logo-link{ display:none !important }
 
 /* Appels rapides */
 .cta{ margin-left:auto; display:flex; align-items:center; gap:10px; flex:0 1 auto; min-width:0 }
@@ -124,7 +130,6 @@ h3{ font-size:1.05rem }
 }
 
 /* Quand le hero est “passé”, on le met vraiment sous la page */
-/* NEW: quand le hero est coupé, on le retire du flux */
 .hero-full.hero-out, #hero.hero-out{
   z-index:-1;
   height:0 !important; min-height:0 !important;
@@ -132,7 +137,7 @@ h3{ font-size:1.05rem }
 }
 .hero-out .hero-logo{ pointer-events:none; }
 
-/* NEW: hors accueil (ou après scroll), le hero ne prend plus de place */
+/* Hors accueil (ou après scroll), le hero ne prend plus de place */
 body.after-hero #hero{
   z-index:-1; pointer-events:none;
   height:0 !important; min-height:0 !important; display:none !important;
@@ -153,8 +158,8 @@ body.after-hero #hero{
 #heroLogo.on, .hero-logo.on{ opacity:1 }
 
 /* États pilotés par app.js : overshoot → blur → fade */
-.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.035) }      /* léger dépassement */
-.hero-logo.fx-preblur{ filter:blur(9px) saturate(1.05) }               /* voile de vitesse */
+.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.035) }
+.hero-logo.fx-preblur{ filter:blur(9px) saturate(1.05) }
 .hero-logo.fx-out{ opacity:0 !important; transition:opacity 120ms linear, filter 180ms ease-out }
 
 /* Fondu interne collé au bas du hero (cache la jonction) */
@@ -201,32 +206,23 @@ body.after-hero::after{ opacity:1 }
   .hero-logo.fx-overshoot,.hero-logo.fx-preblur,.hero-logo.fx-out{ transform:none; filter:none; opacity:1 }
 }
 
-
-/* ========== 04bis) HÉRO — Animations logo (intro + scroll-driven) ========== */
-/* Intro (apparition + léger overshoot, cohérent avec tes classes existantes) */
+/* Intro */
 @keyframes hero-intro {
   0%   { opacity:0; transform:translateZ(0) scale(1.06); filter:blur(8px) saturate(1.05) }
   60%  { opacity:1; transform:translateZ(0) scale(1.035); filter:blur(2.5px) saturate(1.05) }
   100% { opacity:1; transform:translateZ(0) scale(1.000); filter:none }
 }
-/* Fallback si le JS met .on (déjà prévu) : on force l'intro propre */
-#heroLogo.on, .hero-logo.on{
-  animation:hero-intro 420ms cubic-bezier(.22,.61,.36,1) both;
-}
+#heroLogo.on, .hero-logo.on{ animation:hero-intro 420ms cubic-bezier(.22,.61,.36,1) both }
 
-/* Scroll-driven (ultra perf, sans JS) — progression: overshoot → préblur → fade-out */
+/* Scroll-driven (si support) */
 @supports (animation-timeline: scroll()) or (animation-timeline: view()) {
-  /* crée une timeline liée à la vue du hero */
   .hero-full, #hero { view-timeline-name: --hero; view-timeline-axis: block; }
-
-  /* l’animation se joue quand le hero commence à sortir (exit) jusqu’à ~70% */
   #heroLogo, .hero-logo{
     animation-timeline: --hero;
     animation-range: exit 0% 70%;
     animation-name: hero-exit;
     animation-fill-mode: both;
   }
-
   @keyframes hero-exit{
     0%   { transform:translateZ(0) scale(1.03); filter:blur(0px) saturate(1.04); opacity:1 }
     28%  { transform:translateZ(0) scale(1.02); filter:blur(4px)  saturate(1.05); opacity:.98 }
@@ -234,30 +230,21 @@ body.after-hero::after{ opacity:1 }
     70%  { transform:translateZ(0) scale(.995); filter:blur(10px) saturate(1.06); opacity:0 }
     100% { transform:translateZ(0) scale(.990); filter:blur(10px); opacity:0 }
   }
-
-  /* on n’a plus besoin des classes fx-* si la timeline est supportée */
   .hero-logo.fx-overshoot,
   .hero-logo.fx-preblur,
   .hero-logo.fx-out{ all:unset; }
 }
-
-/* Finesse perf + compat : filtres/transform fréquemment animés */
+/* Finesse perf */
 #heroLogo, .hero-logo{
-  contain: paint style;                 /* isole le rendu */
-  transform: translateZ(0);             /* rasterisation GPU */
+  contain: paint style;
+  transform: translateZ(0);
   will-change: transform, opacity, filter;
 }
-
-/* Accessibilité (déjà présent mais on blindera l’intro + scroll) */
 @media (prefers-reduced-motion: reduce){
   #heroLogo, .hero-logo{
-    animation: none !important;
-    transform: none !important;
-    filter: none !important;
-    opacity: 1 !important;
+    animation: none !important; transform: none !important; filter: none !important; opacity: 1 !important;
   }
 }
-
 
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
 #view-home .container{
@@ -392,6 +379,8 @@ body.after-hero::after{ opacity:1 }
 .dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa{ background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
 #dockCount, .dock__badge{ display:none !important }
+
+/* Animation douce du panier + support dock--pulse si activé par JS */
 .dock__btn--cart{ transform:translateZ(0); animation:cart-idle 8s cubic-bezier(.22,.61,.36,1) infinite; animation-delay:.8s }
 @keyframes cart-idle{
   0%,76%{ transform:translateZ(0) scale(1) rotate(0) }
@@ -402,9 +391,18 @@ body.after-hero::after{ opacity:1 }
   86%{ transform:translateZ(0) scale(1.005) rotate(-2deg) }
   90%,100%{ transform:translateZ(0) scale(1) rotate(0) }
 }
+#dock.dock--pulse{ animation:dockPulse .46s ease }
+@keyframes dockPulse{
+  0%{ transform:translateX(-50%) translateY(0) scale(1) }
+  40%{ transform:translateX(-50%) translateY(0) scale(1.03) }
+  100%{ transform:translateX(-50%) translateY(0) scale(1) }
+}
 
 /* ========== 13) VUES / ROUTER ========== */
-.view{ width:min(var(--container-w),92vw); margin:0 auto 1.2rem }
+.view{
+  width:min(var(--container-w),92vw); margin:0 auto 1.2rem;
+  content-visibility:auto; contain-intrinsic-size:800px 600px; /* perf: vues cachées non peintes */
+}
 .view.hidden{ display:none !important }
 
 /* ========== 14) PDP (fiche produit) ========== */
@@ -430,7 +428,7 @@ body.after-hero::after{ opacity:1 }
 .pdp__specs tr:last-child th, .pdp__specs tr:last-child td{ border-bottom:0 }
 .pdp__specs .badge{ background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10)); border-color:rgba(25,211,255,.45); color:#e6f7ff }
 .pdp__related{ margin:1.2rem 0 0; display:grid; gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
-@media (max-width:960px){ .pdp__grid{ grid-template-columns:1fr } }
+@media (max-width:740px){ .pdp__grid{ grid-template-columns:1fr } } /* 1 col mobile / 2 cols ≥ 740px */
 
 /* ========== 15) CATALOGUE (cat-cards) ========== */
 .cat-list{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) }
@@ -474,6 +472,7 @@ body.after-hero::after{ opacity:1 }
   background:linear-gradient(90deg, var(--brand), var(--brand-2));
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
+
 /* ========== 17bis) COMPTE — onglets & sections ========== */
 .tabs{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.6rem 0 1rem }
 .tab{
@@ -488,6 +487,7 @@ body.after-hero::after{ opacity:1 }
 }
 .tabpanels [data-panel]{ display:none }
 .tabpanels [data-panel].is-active{ display:block }
+
 /* ========== 18) TOASTS ========== */
 #toasts{
   position:fixed; z-index:120; right:12px;
@@ -572,68 +572,50 @@ body.after-hero::after{ opacity:1 }
   .tool--exit-left,.tool--exit-right{ animation:none; opacity:0 }
 }
 
-/* ========== 23) OVERLAY + MENU LATÉRAL (bulles) ========== */
-#menu-overlay{
-  position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.68); backdrop-filter:blur(2px); display:none;
-  cursor:pointer; /* NEW: indique que le voile est cliquable pour fermer */
+/* ========== 23) OVERLAY + MENU LATÉRAL (unifié .drawer/.menu-backdrop) ========== */
+.menu-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000;
 }
-.menu-open #menu-overlay{ display:block }
-#side-menu{
-  position:fixed; inset:0; z-index:1001;
+.menu-backdrop[hidden]{ display:none !important }
+
+.drawer{
+  position:fixed; inset:0 0 0 auto; width:min(86vw,360px); max-width:92vw;
+  background:rgba(0,0,0,.9);
+  -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
+  transform:translateX(100%); transition:transform .25s ease; z-index:1001;
   padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
-  align-content:start; justify-items:start; background:transparent;
-  opacity:0; pointer-events:none; transition:opacity .18s ease-out;
+  align-content:start; justify-items:start;
 }
-.menu-open #side-menu{ opacity:1 }
-#side-menu .app-link{ pointer-events:auto; display:inline-flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none }
-#side-menu .app-bubble{
+.drawer.open{ transform:none }
+.drawer .app-link{ pointer-events:auto; display:inline-flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none }
+.drawer .app-bubble{
   position:relative; width:64px; height:64px; border-radius:50%;
   background:rgba(255,255,255,0.10); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   display:flex; align-items:center; justify-content:center;
   box-shadow:0 8px 22px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22);
   transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-#side-menu .app-bubble::before{
+.drawer .app-bubble::before{
   content:""; position:absolute; inset:-8px; border-radius:50%;
   background:radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
   filter:blur(10px); opacity:.55; z-index:-1;
 }
-#side-menu .app-icon-img{ width:65%; height:65%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
-#side-menu .app-bubble svg{ width:22px; height:22px; display:block; color:#fff; stroke:currentColor; fill:none }
-#side-menu .app-label{ font-size:.88rem; font-weight:600; line-height:1.1; color:rgba(255,255,255,0.96); text-shadow:0 1px 2px rgba(0,0,0,0.35) }
-#side-menu .app-link:hover .app-bubble{ transform:translateY(-2px) scale(1.06); background:rgba(255,255,255,0.14) }
-#side-menu .app-link:focus-visible .app-bubble{
-  outline:2px solid var(--brand); outline-offset:3px;
-}
-#side-menu .app-link:active .app-bubble{ transform:scale(0.96) }
-@media (max-width:360px){ #side-menu{ padding-left:14px; gap:24px } #side-menu .app-bubble{ width:60px; height:60px } #side-menu .app-label{ font-size:.82rem } }
-
+.drawer .app-icon-img{ width:65%; height:65%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
+.drawer .app-bubble svg{ width:22px; height:22px; display:block; color:#fff; stroke:currentColor; fill:none }
+.drawer .app-label{ font-size:.88rem; font-weight:600; line-height:1.1; color:rgba(255,255,255,0.96); text-shadow:0 1px 2px rgba(0,0,0,0.35) }
+.drawer .app-link:hover .app-bubble{ transform:translateY(-2px) scale(1.06); background:rgba(255,255,255,0.14) }
+.drawer .app-link:focus-visible .app-bubble{ outline:2px solid var(--brand); outline-offset:3px }
+.drawer .app-link:active .app-bubble{ transform:scale(0.96) }
+@media (max-width:360px){ .drawer{ padding-left:14px; gap:24px } .drawer .app-bubble{ width:60px; height:60px } .drawer .app-label{ font-size:.82rem } }
 
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
-#view-auth .auth-grid{
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
-  gap:14px; margin:.6rem 0 1rem; align-items:start; justify-items:center;
+.auth-switch{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem }
+.auth-switch .chip{ border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.06); cursor:pointer; user-select:none }
+.auth-switch .chip[aria-selected="true"]{
+  background:rgba(255,255,255,.14);
+  border-color:rgba(25,211,255,.45);
+  color:#e6f7ff;
 }
-.auth-bubble{
-  position:relative; width:120px; height:120px; border-radius:50%;
-  display:grid; place-items:center; text-align:center; user-select:none; cursor:pointer;
-  background:rgba(255,255,255,.08); border:1px solid var(--border);
-  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
-  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
-  -webkit-mask-image:-webkit-radial-gradient(white, black); mask-image:radial-gradient(white, white);
-}
-.auth-bubble .auth-emoji{ font-size:2rem; line-height:1 }
-.auth-bubble .auth-label{ font-weight:800; font-size:.95rem; color:#eef4fa; margin-top:.4rem }
-.auth-bubble:hover, .auth-bubble:focus-visible{
-  transform:translateY(-2px) scale(1.03);
-  background:rgba(255,255,255,.14); border-color:rgba(25,211,255,.45);
-  box-shadow:0 0 16px 6px rgba(25,211,255,.22), 0 12px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
-  outline:none;
-}
-.auth-panels{ width:min(var(--container-w),92vw); margin:0 auto }
-.auth-panel{ display:none }
-.auth-panel.is-active{ display:block } /* montré par JS quand on clique une bulle */
 
 /* ========== 24) MARQUES — grille unifiée + HOTFIX JS ========== */
 /* Base responsive */
@@ -642,6 +624,10 @@ body.after-hero::after{ opacity:1 }
   gap:14px; justify-items:center; align-items:start;
   margin:.6rem 0 1rem; padding:.5rem 0 0;
 }
+/* Variante explicite 2→3 colonnes si la classe --3col est utilisée */
+.brand-grid.brand-grid--3col{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+@media (min-width:680px){ .brand-grid.brand-grid--3col{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+
 .brand{
   background:none; border:0; padding:0; appearance:none; -webkit-appearance:none;
   display:flex; flex-direction:column; align-items:center; gap:.55rem;
@@ -651,15 +637,13 @@ body.after-hero::after{ opacity:1 }
 .brand__label{ font-weight:800; font-size:.95rem; color:#eef4fa }
 .brand__bubble{
   position:relative; width:92px; height:92px; border-radius:50%;
-  display:block; overflow:hidden; /* clip strict */
+  display:block; overflow:hidden;
   background:rgba(255,255,255,.08); border:1px solid var(--border);
   -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
   box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
   transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
-  /* clip iOS parfait */
   -webkit-mask-image:-webkit-radial-gradient(white, black); mask-image:radial-gradient(white, white);
 }
-/* >>> Logos plein cadre, zéro marge <<< */
 .brand__bubble img, .brand__img, .brand__logo{
   position:absolute; inset:0; width:100%; height:100%; display:block;
   max-width:none; max-height:none;
@@ -668,7 +652,7 @@ body.after-hero::after{ opacity:1 }
 }
 .brand:focus-visible .brand__bubble,
 .brand:hover .brand__bubble{
-    outline:2px solid var(--brand); outline-offset:2px; /* NEW: focus très visible */
+  outline:2px solid var(--brand); outline-offset:2px;
   transform:translateY(-2px) scale(1.03);
   background:rgba(255,255,255,.14);
   border-color:rgba(25,211,255,.45);
@@ -732,8 +716,8 @@ body.after-hero::after{ opacity:1 }
 
 /* ==== PATCH défilement (empêche tout “lock” en bas) ==== */
 html, body{
-  overscroll-behavior-y: auto;        /* autorise la propagation du scroll */
-  -webkit-overflow-scrolling: touch;  /* inertie iOS */
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Rappel rendu net pendant le zoom (cohérent avec le JS) */
