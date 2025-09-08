@@ -124,10 +124,19 @@ h3{ font-size:1.05rem }
 }
 
 /* Quand le hero est “passé”, on le met vraiment sous la page */
-.hero-full.hero-out, #hero.hero-out{ z-index:-1; }
+/* NEW: quand le hero est coupé, on le retire du flux */
+.hero-full.hero-out, #hero.hero-out{
+  z-index:-1;
+  height:0 !important; min-height:0 !important;
+  display:none !important; pointer-events:none !important;
+}
 .hero-out .hero-logo{ pointer-events:none; }
-body.after-hero #hero{ z-index:-1; pointer-events:none; } /* ceinture + bretelles */
 
+/* NEW: hors accueil (ou après scroll), le hero ne prend plus de place */
+body.after-hero #hero{
+  z-index:-1; pointer-events:none;
+  height:0 !important; min-height:0 !important; display:none !important;
+}
 /* Logo HD + rendu net pendant le scale (classe .on posée par le loader/app.js) */
 #heroLogo, .hero-logo{
   display:block; margin:0 auto; background:transparent; border:0; border-radius:0; box-shadow:none;
@@ -465,7 +474,20 @@ body.after-hero::after{ opacity:1 }
   background:linear-gradient(90deg, var(--brand), var(--brand-2));
   border:2px solid #0a0f14; box-shadow:0 0 12px rgba(25,211,255,.8);
 }
-
+/* ========== 17bis) COMPTE — onglets & sections ========== */
+.tabs{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.6rem 0 1rem }
+.tab{
+  padding:.45rem .8rem; border-radius:999px; cursor:pointer; user-select:none;
+  background:rgba(255,255,255,.06); border:1px solid var(--border); color:#d9e3ec;
+  font-weight:700; line-height:1.1;
+}
+.tab:hover{ background:rgba(255,255,255,.10) }
+.tab.is-active{
+  background:linear-gradient(180deg, rgba(25,211,255,.22), rgba(0,225,180,.10));
+  border-color:rgba(25,211,255,.45); color:#e6f7ff;
+}
+.tabpanels [data-panel]{ display:none }
+.tabpanels [data-panel].is-active{ display:block }
 /* ========== 18) TOASTS ========== */
 #toasts{
   position:fixed; z-index:120; right:12px;
@@ -553,6 +575,7 @@ body.after-hero::after{ opacity:1 }
 /* ========== 23) OVERLAY + MENU LATÉRAL (bulles) ========== */
 #menu-overlay{
   position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.68); backdrop-filter:blur(2px); display:none;
+  cursor:pointer; /* NEW: indique que le voile est cliquable pour fermer */
 }
 .menu-open #menu-overlay{ display:block }
 #side-menu{
@@ -579,8 +602,38 @@ body.after-hero::after{ opacity:1 }
 #side-menu .app-bubble svg{ width:22px; height:22px; display:block; color:#fff; stroke:currentColor; fill:none }
 #side-menu .app-label{ font-size:.88rem; font-weight:600; line-height:1.1; color:rgba(255,255,255,0.96); text-shadow:0 1px 2px rgba(0,0,0,0.35) }
 #side-menu .app-link:hover .app-bubble{ transform:translateY(-2px) scale(1.06); background:rgba(255,255,255,0.14) }
+#side-menu .app-link:focus-visible .app-bubble{
+  outline:2px solid var(--brand); outline-offset:3px;
+}
 #side-menu .app-link:active .app-bubble{ transform:scale(0.96) }
 @media (max-width:360px){ #side-menu{ padding-left:14px; gap:24px } #side-menu .app-bubble{ width:60px; height:60px } #side-menu .app-label{ font-size:.82rem } }
+
+
+/* ========== 23bis) AUTH (Connexion / Inscription) ========== */
+#view-auth .auth-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+  gap:14px; margin:.6rem 0 1rem; align-items:start; justify-items:center;
+}
+.auth-bubble{
+  position:relative; width:120px; height:120px; border-radius:50%;
+  display:grid; place-items:center; text-align:center; user-select:none; cursor:pointer;
+  background:rgba(255,255,255,.08); border:1px solid var(--border);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+  -webkit-mask-image:-webkit-radial-gradient(white, black); mask-image:radial-gradient(white, white);
+}
+.auth-bubble .auth-emoji{ font-size:2rem; line-height:1 }
+.auth-bubble .auth-label{ font-weight:800; font-size:.95rem; color:#eef4fa; margin-top:.4rem }
+.auth-bubble:hover, .auth-bubble:focus-visible{
+  transform:translateY(-2px) scale(1.03);
+  background:rgba(255,255,255,.14); border-color:rgba(25,211,255,.45);
+  box-shadow:0 0 16px 6px rgba(25,211,255,.22), 0 12px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18);
+  outline:none;
+}
+.auth-panels{ width:min(var(--container-w),92vw); margin:0 auto }
+.auth-panel{ display:none }
+.auth-panel.is-active{ display:block } /* montré par JS quand on clique une bulle */
 
 /* ========== 24) MARQUES — grille unifiée + HOTFIX JS ========== */
 /* Base responsive */
@@ -615,6 +668,7 @@ body.after-hero::after{ opacity:1 }
 }
 .brand:focus-visible .brand__bubble,
 .brand:hover .brand__bubble{
+    outline:2px solid var(--brand); outline-offset:2px; /* NEW: focus très visible */
   transform:translateY(-2px) scale(1.03);
   background:rgba(255,255,255,.14);
   border-color:rgba(25,211,255,.45);
