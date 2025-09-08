@@ -726,3 +726,28 @@ html, body{
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
   transform: translateZ(0);
 }
+
+/* PATCH A — Dock centré et fixe */
+#dock, .dock{
+  position:fixed;
+  left:50%;
+  right:auto;
+  bottom:calc(var(--dock-bottom,14px) + var(--safe-bottom, 0px));
+  transform:translateX(-50%);
+  z-index:1000;
+  pointer-events:none;
+}
+#dock.dock--visible, .dock.dock--visible{ transform:translateX(-50%) translateY(0) }
+#dock .dock__shell, .dock .dock__shell{ pointer-events:auto }
+
+
+/* PATCH B — Drawer flush à droite + verrouillage du scroll lorsque le menu est ouvert */
+body.menu-open{ overflow:hidden }
+
+.drawer{
+  left:auto !important;
+  right:0 !important;
+  margin:0 !important;
+  transform:translateX(100%) !important;
+}
+.drawer.open{ transform:translateX(0) !important }
