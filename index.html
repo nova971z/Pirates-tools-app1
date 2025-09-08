@@ -332,55 +332,56 @@
     </section>
 
     <!-- LOGIN -->
-    <section id="view-login" class="view hidden" data-route="/login" role="region" aria-labelledby="login-h1">
-      <div class="container">
-        <h1 id="login-h1" tabindex="-1">Connexion</h1>
-        <div class="card">
-          <div class="head"><h3 class="title">Se connecter</h3><span class="badge">Compte</span></div>
-          <div class="specs" style="display:block">
-            <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
-              <label>Email
-                <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-              </label>
-              <label>Mot de passe
-                <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
-              </label>
-              <div class="actions">
-                <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
-                <a class="btn" href="#/register" data-nav="/register">Créer un compte</a>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- AUTH (vue unifiée Login/Inscription) -->
+<section id="view-auth" class="view hidden" data-route="/auth" role="region" aria-labelledby="auth-h1">
+  <div class="container">
+    <h1 id="auth-h1" tabindex="-1">Compte</h1>
+    <div class="card">
+      <div class="head"><h3 class="title">Bienvenue</h3><span class="badge">Compte</span></div>
 
-    <!-- REGISTER -->
-    <section id="view-register" class="view hidden" data-route="/register" role="region" aria-labelledby="register-h1">
-      <div class="container">
-        <h1 id="register-h1" tabindex="-1">Inscription</h1>
-        <div class="card">
-          <div class="head"><h3 class="title">Créer un compte</h3><span class="badge">Compte</span></div>
-          <div class="specs" style="display:block">
-            <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
-              <label>Nom complet
-                <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
-              </label>
-              <label>Email
-                <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-              </label>
-              <label>Mot de passe
-                <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
-              </label>
-              <div class="actions">
-                <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
-                <a class="btn" href="#/login" data-nav="/login">J’ai déjà un compte</a>
-              </div>
-            </form>
-          </div>
+      <div class="specs" style="display:block">
+        <!-- Sélecteur de formulaire -->
+        <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
+          <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
+          <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
         </div>
-      </div>
-    </section>
+
+        <!-- Panneau CONNEXION -->
+        <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
+          <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+            <label>Email
+              <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+            </label>
+            <label>Mot de passe
+              <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
+            </label>
+            <div class="actions">
+              <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Panneau INSCRIPTION (caché par défaut) -->
+        <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
+          <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+            <label>Nom complet
+              <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+            </label>
+            <label>Email
+              <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+            </label>
+            <label>Mot de passe
+              <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
+            </label>
+            <div class="actions">
+              <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
+            </div>
+          </form>
+        </div>
+      </div><!-- /.specs -->
+    </div><!-- /.card -->
+  </div><!-- /.container -->
+</section>
 
   </main>
 
@@ -397,8 +398,9 @@
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-  <div id="menu-overlay" hidden></div>
-  <aside id="side-menu" hidden>
+  <div id="menuBackdrop" class="menu-backdrop" hidden aria-hidden="true"></div>
+  <aside id="side-menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
+    <h2 id="menuTitle" class="sr-only">Menu</h2>
     <a class="app-link" href="#/" data-nav="/">
       <span class="app-bubble">🏠</span>
       <span class="app-label">Accueil</span>
@@ -438,12 +440,26 @@
   <script>
     (function(){
       var btn  = document.getElementById('menu-toggle');
-      var ovl  = document.getElementById('menu-overlay');
+      var ovl  = document.getElementById('menuBackdrop') || document.getElementById('menu-overlay');
       var side = document.getElementById('side-menu');
-      function open(){ document.body.classList.add('menu-open'); if(ovl) ovl.hidden=false; if(side) side.hidden=false; btn && btn.setAttribute('aria-expanded','true'); }
-      function close(){ document.body.classList.remove('menu-open'); if(ovl) ovl.hidden=true;  if(side) side.hidden=true;  btn && btn.setAttribute('aria-expanded','false'); }
+      function open(){
+  document.body.classList.add('menu-open');
+  if (ovl)  ovl.hidden = false;
+  if (side){ side.hidden = false; side.setAttribute('aria-hidden','false'); try{ side.focus(); }catch(_){} }
+  if (btn)  btn.setAttribute('aria-expanded','true');
+}
+function close(){
+  document.body.classList.remove('menu-open');
+  if (ovl)  ovl.hidden = true;
+  if (side){ side.hidden = true; side.setAttribute('aria-hidden','true'); }
+  if (btn)  btn.setAttribute('aria-expanded','false');
+}
       if (btn){ btn.addEventListener('click', function(){ document.body.classList.contains('menu-open') ? close() : open(); }); }
       if (ovl){ ovl.addEventListener('click', close); }
+      
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); }, false);
+window.addEventListener('hashchange', close, false);
+      
     })();
   </script>
 </body>
