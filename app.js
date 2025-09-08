@@ -761,46 +761,66 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     document.addEventListener('DOMContentLoaded', runHeroTimeline, false);
   }
 
-  // After-hero au scroll (basculer des classes, pas de styles inline)
+  // Pilotage unique via IntersectionObserver : bascule after-hero/hero-out + --listGap (22vh → 4vh)
+// Ne touche PAS aux classes FX du logo (laisse le CSS ou le fallback d’en bas faire le travail).
+(function(){
   var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
   var body = document.body;
-  function vh(n){ return (window.innerHeight||0) * (n/100); }
-  function getHeroThreshold(){
-    var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--heroFadeH')) || 26;
-    return (window.innerHeight||0) - vh(v);
-  }
-  var heroGone = false;
-  function onScrollHero(){
-    if (!hero) return;
-    var y = window.scrollY || window.pageYOffset || 0;
-    if (y >= getHeroThreshold()){
-      if (!heroGone){
-        body.classList.add('after-hero');
-        hero.classList.add('hero-out');
-        if (heroLogo) heroLogo.classList.add('fx-out');
-        heroGone = true;
-      }
+  var rootStyle = document.documentElement && document.documentElement.style;
+  if (!hero || !rootStyle || !body) return;
+
+  var lastRatio = 1;
+  var ticking = false;
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function apply(ratio){
+    // ratio ∈ [0..1] : 1 = hero plein cadre → listGap = 22vh ; 0 = hero sorti → listGap = 4vh
+    var gapVH = 4 + 18 * clamp(ratio, 0, 1);
+    rootStyle.setProperty('--listGap', gapVH.toFixed(2)+'vh');
+
+    // Sortie du hero (environ ≤ 8% visible) → classes structurelles
+    var isOut = (ratio <= 0.08);
+    if (isOut){
+      body.classList.add('after-hero');
+      hero.classList.add('hero-out');
     } else {
-      if (heroGone){
-        body.classList.remove('after-hero');
-        hero.classList.remove('hero-out');
-        if (heroLogo) heroLogo.classList.remove('fx-out');
-        heroGone = false;
-      }
+      body.classList.remove('after-hero');
+      hero.classList.remove('hero-out');
     }
   }
-  window.addEventListener('scroll', onScrollHero, {passive:true});
-  onScrollHero();
 
-  // --listGap animé par le scroll (22vh -> 0vh)
-  function updateListGap(){
-    var h = window.innerHeight || 1;
-    var val = Math.max(0, 22 - ( (window.scrollY||0) / h ) * 22);
-    document.documentElement.style.setProperty('--listGap', val.toFixed(3) + 'vh');
+  function rafApply(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){ apply(lastRatio); ticking = false; });
   }
-  window.addEventListener('scroll', updateListGap, {passive:true});
-  updateListGap();
 
+  if ('IntersectionObserver' in window){
+    var thresholds = Array.from({length:21}, function(_, i){ return i/20; });
+    var io = new IntersectionObserver(function(entries){
+      var e = entries && entries[0];
+      lastRatio = e ? e.intersectionRatio : 0;
+      rafApply();
+    }, { root:null, threshold: thresholds });
+    io.observe(hero);
+    window.addEventListener('beforeunload', function(){ try{ io.disconnect(); }catch(_){ } }, { once:true });
+  } else {
+    // Fallback sans IO : calcule le pourcentage visible du hero
+    function onScroll(){
+      var rect = hero.getBoundingClientRect();
+      var h = rect.height || hero.offsetHeight || 1;
+      var vis = (Math.min(rect.bottom, window.innerHeight||0) - Math.max(rect.top, 0)) / h;
+      lastRatio = clamp(vis, 0, 1);
+      rafApply();
+    }
+    window.addEventListener('scroll', onScroll, { passive:true });
+    window.addEventListener('resize', onScroll, { passive:true });
+    onScroll();
+  }
+})();
+  
+  
   // Dock : visible quand on remonte / proche du haut
   var dock = document.getElementById('dock') || document.querySelector('.dock');
   var lastY = window.scrollY || 0;
