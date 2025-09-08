@@ -277,111 +277,13 @@
     var dock = document.getElementById('dock');
     if (dock) dock.classList.add('dock--visible');
   })();
-function ensureDockVisible(){
-  var dock = document.getElementById('dock');
-  if (!dock) return;
-  if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
-  if (!dock.classList.contains('dock--safe')) dock.classList.add('dock--safe');
 
-  // NEW: s’assure que #dock est directement sous <body> (évite les parents avec transform)
-  if (dock && dock.parentNode && dock.parentNode !== document.body){
-    try{ document.body.appendChild(dock); }catch(_){}
-  }
-
-
-  // Force le "fixed bottom" sur tous les thèmes
-  var cs = window.getComputedStyle ? getComputedStyle(dock) : { position: dock.style.position || '' };
-  if (!cs || cs.position !== 'fixed'){
-    dock.style.position = 'fixed';
-    dock.style.left = '0';
-    dock.style.right = '0';
-    dock.style.bottom = '0';
-    dock.style.width = '100%';
-  }
-  var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
-  if (zi < 1000) dock.style.zIndex = 1000;
-  
-    // iOS Safari: si une transform est posée sur #dock, elle peut casser le fixed → on la neutralise
-  if (dock.style.transform && dock.style.transform !== 'none'){ dock.style.transform = 'none'; }
-}
-document.addEventListener('DOMContentLoaded', ensureDockVisible, false);
 window.addEventListener('hashchange', function(){
   ensureDockVisible();
   if (window.PT && typeof window.PT.refreshViewportSafe === 'function') window.PT.refreshViewportSafe();
 }, false);
 try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:true, subtree:true}); }catch(_){}
 
-
-
-// CSS d’ancrage du dock (injecté)
-(function(){
-  if (document.getElementById('pt-dock-lock')) return;
-  var s = document.createElement('style'); s.id = 'pt-dock-lock';
-  s.textContent =
-    '#dock{position:fixed;left:0;right:0;width:100vw;box-sizing:border-box}' +
-    '#dock.dock--safe{' +
-    '  bottom:max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px));' +
-    '  padding-bottom:max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px));' +
-    '}' +
-    '@supports not (bottom: max(1px,2px)){' +
-    '  #dock.dock--safe{bottom:env(safe-area-inset-bottom,0px);padding-bottom:env(safe-area-inset-bottom,0px)}' +
-    '}' +
-    '#dock.dock--visible{backface-visibility:hidden;contain:layout paint size;z-index:1000}';
-  document.head.appendChild(s);
-})();
-
-// Renfort JS (structure, z-index, transforms, recalages)
-(function(){
-  if (window.__ptDockLockV2) return; window.__ptDockLockV2 = 1;
-
-  function lockDock(){
-    var dock = document.getElementById('dock'); if (!dock) return;
-
-    // Mettre #dock directement sous <body>
-    if (dock.parentNode && dock.parentNode !== document.body){
-      try{ document.body.appendChild(dock); }catch(_){}
-    }
-
-    // Classes de sécurité
-    if (!dock.classList.contains('dock--visible')) dock.classList.add('dock--visible');
-    if (!dock.classList.contains('dock--safe'))    dock.classList.add('dock--safe');
-
-    // Position & largeur garanties
-    var cs = window.getComputedStyle ? getComputedStyle(dock) : null;
-    if (!cs || cs.position !== 'fixed'){
-      dock.style.position='fixed';
-      dock.style.left='0'; dock.style.right='0'; dock.style.width='100vw';
-    }
-
-    // Z-index minimal
-    var zi = parseInt(dock.style.zIndex || '0', 10) || 0;
-    if (zi < 1000) dock.style.zIndex = 1000;
-
-    // Neutralise une transform directe sur #dock
-    if (dock.style.transform && dock.style.transform !== 'none'){ dock.style.transform = 'none'; }
-  }
-
-  function refreshViewportVars(){
-    try{
-      if (window.PT && typeof window.PT.refreshViewportSafe === 'function'){
-        window.PT.refreshViewportSafe();
-      }
-    }catch(_){}
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){ lockDock(); refreshViewportVars(); }, false);
-  window.addEventListener('hashchange', function(){ lockDock(); refreshViewportVars(); }, false);
-
-  if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function'){
-    visualViewport.addEventListener('resize', refreshViewportVars, {passive:true});
-    visualViewport.addEventListener('scroll', refreshViewportVars, {passive:true});
-  }
-
-  try{
-    new MutationObserver(function(){ lockDock(); })
-      .observe(document.body, {childList:true, subtree:true});
-  }catch(_){}
-})();
 
 
   /* ---------- Grille marques : toutes les marques visibles ---------- */
@@ -597,25 +499,7 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }
   }, false);
 
-  /* ---------- Hero overshoot (petit plus UX, no-conflict P6A) ---------- */
-  (function(){
-    if (window.__ptHeroWired5) return; // (11.1) court-circuit si P6A présent
-    var ticking = 0;
-    function onScroll(){
-      if (ticking) return;
-      ticking = 1;
-      setTimeout(function(){
-        ticking = 0;
-        var y = (window.pageYOffset||document.documentElement.scrollTop||0);
-        var root = document.body;
-        if (!root) return;
-        if (y > 12){ root.classList.add('is-overshoot'); }
-        else { root.classList.remove('is-overshoot'); }
-      }, 60);
-    }
-    window.addEventListener('scroll', onScroll, { passive:true });
-  })();
-
+ 
   /* =========================================================
      Détecteur intelligent (scroll, bas de page masqué, vh iOS)
      - Non destructif : n’applique que si nécessaire
@@ -785,9 +669,10 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }catch(_){ return 0; }
   }
   function applyTopPadding(){
-    var h = topHeight();
-    document.documentElement.style.setProperty('--safe-top', h+'px');
-    try{ document.body.style.paddingTop = h ? (h+'px') : ''; }catch(_){}
+        var h = topHeight();
+    document.documentElement.style.setProperty('--safe-top', h + 'px');
+    // Laisse le CSS gérer les offsets : pas de padding inline sur <body>
+    try{ document.body.style.paddingTop = ''; }catch(_){}
   }
 
   window.addEventListener('resize', applyTopPadding, {passive:true});
@@ -850,6 +735,78 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   window.PT.focusView = window.focusView;
 })();
 
+// === Patches UI “classe-first” (laisser le CSS piloter) ===
+(function(){
+  'use strict';
+
+  // Hero timeline (classes uniquement)
+  var heroLogo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
+  function runHeroTimeline(){
+    if (!heroLogo) return;
+    heroLogo.classList.add('on','fx-overshoot');
+    setTimeout(function(){ heroLogo.classList.add('fx-preblur'); }, 220);
+    setTimeout(function(){ heroLogo.classList.remove('fx-overshoot'); }, 260);
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    requestAnimationFrame(runHeroTimeline);
+  } else {
+    document.addEventListener('DOMContentLoaded', runHeroTimeline, false);
+  }
+
+  // After-hero au scroll (basculer des classes, pas de styles inline)
+  var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
+  var body = document.body;
+  function vh(n){ return (window.innerHeight||0) * (n/100); }
+  function getHeroThreshold(){
+    var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--heroFadeH')) || 26;
+    return (window.innerHeight||0) - vh(v);
+  }
+  var heroGone = false;
+  function onScrollHero(){
+    if (!hero) return;
+    var y = window.scrollY || window.pageYOffset || 0;
+    if (y >= getHeroThreshold()){
+      if (!heroGone){
+        body.classList.add('after-hero');
+        hero.classList.add('hero-out');
+        if (heroLogo) heroLogo.classList.add('fx-out');
+        heroGone = true;
+      }
+    } else {
+      if (heroGone){
+        body.classList.remove('after-hero');
+        hero.classList.remove('hero-out');
+        if (heroLogo) heroLogo.classList.remove('fx-out');
+        heroGone = false;
+      }
+    }
+  }
+  window.addEventListener('scroll', onScrollHero, {passive:true});
+  onScrollHero();
+
+  // --listGap animé par le scroll (22vh -> 0vh)
+  function updateListGap(){
+    var h = window.innerHeight || 1;
+    var val = Math.max(0, 22 - ( (window.scrollY||0) / h ) * 22);
+    document.documentElement.style.setProperty('--listGap', val.toFixed(3) + 'vh');
+  }
+  window.addEventListener('scroll', updateListGap, {passive:true});
+  updateListGap();
+
+  // Dock : visible quand on remonte / proche du haut
+  var dock = document.getElementById('dock') || document.querySelector('.dock');
+  var lastY = window.scrollY || 0;
+  function onScrollDock(){
+    if (!dock) return;
+    var y = window.scrollY || 0;
+    var goingDown = y > lastY;
+    if (!goingDown || y < 10) dock.classList.add('dock--visible');
+    else dock.classList.remove('dock--visible');
+    lastY = y;
+  }
+  window.addEventListener('scroll', onScrollDock, {passive:true});
+  onScrollDock();
+})();
 
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
@@ -3464,41 +3421,7 @@ function onRegisterSubmit(e){
     return { view: path.replace('#/','').split('/')[0]||'', path:path, raw:h, query:{} };
   }
 
-  /* --------- CSS non-destructif (layout & micro-anim) --------- */
-  (function injectP5CSS(){
-    if (D.getElementById('pt-p5-style')) return;
-    var s = D.createElement('style'); s.id = 'pt-p5-style';
-    s.textContent =
-      /* Nav actif : neutre (laisser le thème styler .is-active) */
-      '[aria-current="page"]{pointer-events:none}' +
-
-      /* Dock safe-area + pulse (désactivé en reduced) */
-      '#dock.dock--safe{padding-bottom:max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px))}' +
-      '@media (prefers-reduced-motion:no-preference){' +
-      '  #dock.dock--pulse{animation:pt-p5-pulse .42s ease}' +
-      '  @keyframes pt-p5-pulse{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-2px) scale(1.04)}100%{transform:translateY(0) scale(1)}}' +
-      '}' +
-
-      /* Hero : conteneur relatif + dégradé bas (pas si P6A prend la main) */
-      '#hero,.hero{position:relative}' +
-      '#hero .hero-fade{position:absolute;left:0;right:0;bottom:0;height:38vh;pointer-events:none;' +
-      'background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.90) 62%, var(--bg,#0a0f14) 100%);}' +
-      '#heroLogo{image-rendering:-webkit-optimize-contrast;backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform,opacity;transform:translateZ(0)}' +
-
-      /* Grille marques → classe ajoutée par P5 (pas de ciblage dur sur l’ID) */
-      '.brand-grid--3col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,2vmin,18px);' +
-      'padding:0 clamp(10px,2vmin,16px)}' +
-      '@media (min-width:720px){.brand-grid--3col{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
-
-      /* Bulle logo (polish léger, pas d’anim si reduced) */
-      '#view-home .brand{display:flex;flex-direction:column;align-items:center;gap:.55rem;background:transparent;border:0;cursor:pointer;transition:transform .18s ease}' +
-      '#view-home .brand__bubble{position:relative;display:block;width:clamp(96px,22vmin,140px);aspect-ratio:1/1;border-radius:50%;overflow:hidden;padding:0;' +
-      'background:rgba(255,255,255,.02);box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);' +
-      'backdrop-filter:saturate(120%) blur(4px);-webkit-mask-image:-webkit-radial-gradient(white, black);mask-image:radial-gradient(white, white)}' +
-      '#view-home .brand__logo{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center;image-rendering:-webkit-optimize-contrast}' +
-      '#view-home .brand:active{transform:scale(.98)}';
-    D.head.appendChild(s);
-  })();
+ 
 
   /* --------- Menu (drawer) : toggle + auto-close (idempotent) --------- */
   function p5CloseDrawer(){
@@ -3694,35 +3617,7 @@ function onRegisterSubmit(e){
     // S'assurer d’une annonce correcte si un aria-live existe côté P1/P2
   }
 
-  /* --------- Hero polish (no-op si P6A actif) --------- */
-function __isHomeRoute(){
-  var h=(location.hash||'');
-  if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
-  var p=(PT.parseHash?PT.parseHash():(W.parseHash?W.parseHash():{view:''}));
-  return (!p.view || p.view==='home' || p.view==='/');
-}
-function __updateHeroScope(){
-  var hero = qs('#hero') || qs('.hero'); if (!hero) return;
-  var onHome = __isHomeRoute();
-  hero.style.display = onHome ? '' : 'none';
-}
-
-function polishHero(){
-  if (W.__ptHeroWired5 === 1 || W.__ptHeroAB === 1) return; // P6A prend la main si présent
-  __updateHeroScope();
-  var hero = qs('#hero') || qs('.hero'); if (!hero || !__isHomeRoute()) return;
-
-  var logo = qs('#heroLogo');
-  if (logo){
-    logo.style.imageRendering = '-webkit-optimize-contrast';
-    logo.style.backfaceVisibility = 'hidden';
-    logo.style.webkitBackfaceVisibility = 'hidden';
-    logo.style.transform = 'translateZ(0)';
-    if (PT.setSafeImg && logo.getAttribute('data-src')){
-      try{ PT.setSafeImg(logo, logo.getAttribute('data-src'), logo.getAttribute('alt')||''); }catch(_){}
-    }
-  }
-} 
+ 
 
   /* --------- Home: assure la classe de grille 3 colonnes --------- */
   function ensureBrandGridClass(){
@@ -3753,27 +3648,9 @@ function boot(){
   updateDockCountLabel();
   updateNavActiveFromHash();
   
-    // NEW: cache/affiche le hero selon la route (Accueil uniquement)
-  __updateHeroScope();
-  if (!W.__ptP5HeroScope){
-    W.__ptP5HeroScope=1;
-    W.addEventListener('hashchange', __updateHeroScope, false);
-  }
+   
 
-  // Force l’affichage et la sécurité du dock (z-index, classes)
-  if (typeof ensureDockVisible === 'function') {
-    ensureDockVisible();
-  } else {
-    // Fallback si le patch ensureDockVisible n'est pas encore chargé
-    var _d = D.getElementById('dock');
-    if (_d){
-      if (!_d.classList.contains('dock--visible')) _d.classList.add('dock--visible');
-      if (!_d.classList.contains('dock--safe')) _d.classList.add('dock--safe');
-      var zi = parseInt(_d.style.zIndex || '0', 10) || 0;
-      if (zi < 1000) _d.style.zIndex = 1000;
-    }
-  }
-
+ 
   // Ajuste les variables de viewport/safe-area s’il est dispo (Partie 1)
   if (W.PT && typeof W.PT.refreshViewportSafe === 'function') {
     try { W.PT.refreshViewportSafe(); } catch(_){}
@@ -3798,229 +3675,11 @@ else boot();
 })();
 
 
-(function(){
-  if (document.getElementById('pt-patch-hero')) return;
-  var s=document.createElement('style'); s.id='pt-patch-hero';
-  s.textContent =
-    '#view-home #hero{min-height:100vh;position:relative}' +
-    '#view-home #hero .hero-fade{position:absolute;left:0;right:0;bottom:0;height:calc(18vh + var(--safe-bottom,0px));pointer-events:none}' +
-    '#view-home .container:last-child{margin-bottom:0}';
-  document.head.appendChild(s);
-})();
 
 
-// Force l’animation du hero (variante B)
-window.FORCE_ANIM = true;
-window.HERO_VARIANT = 'B';
 
 
-(function(){
-  if (document.getElementById('pt-hero-fallback')) return;
-  var s = document.createElement('style'); s.id = 'pt-hero-fallback';
-  s.textContent =
-    '@media (prefers-reduced-motion: no-preference){' +
-    '  #view-home #heroLogo{' +
-    '    opacity:0; transform:translateY(8px) scale(.985);' +
-    '    animation:pt-hero-in .42s ease-out both;' +
-    '  }' +
-    '  @keyframes pt-hero-in{ to{ opacity:1; transform:none; } }' +
-    '}';
-  document.head.appendChild(s);
-})();
 
-/* =========================================================
-   PARTIE 6 — A/B
-   6A : Hero A/B (variant bucket + B = séquence par classes)
-   6B : Menu A11y avancé (open/close, focus trap, état actif)
-   - ES5-safe, idempotent, sans casser P1/P2/P3/P4/P5
-   - Chemins assets via PUBLIC_BASE, aucun override de helpers
-========================================================= */
-(function () {
-  'use strict';
-  if (window.__ptP6Booted) return; window.__ptP6Booted = 1;
-
-  /* --------------------------- Shared --------------------------- */
-  var W = window, D = document, PT = (W.PT = W.PT || {});
-  var DEV = !!PT.__dev;
-
-  function log() { if (DEV && W.console && console.debug) try { console.debug.apply(console, arguments); } catch (_){ } }
-  function noop() {}
-
-  // Fallback helpers (sans override si déjà fournis)
-  var $ = PT.$ || function (s, r) { return (r || D).querySelector(s); };
-  var $$ = PT.$$ || function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-
-  // Passive-safe addEventListener
-  var _supportsPassive = false;
-  try {
-    var _opt = Object.defineProperty({}, 'passive', { get: function () { _supportsPassive = true; } });
-    W.addEventListener('pt_passive_test', noop, _opt);
-    W.removeEventListener('pt_passive_test', noop, _opt);
-  } catch (_){}
-  function on(t, ev, fn, passive) {
-    try { t.addEventListener(ev, fn, (_supportsPassive && passive) ? { passive: true } : false); }
-    catch (_){ try { t.addEventListener(ev, fn, false); } catch (__){ } }
-  }
-
-  // Prefers-reduced-motion
-  function prefersReduced() {
-    try { return !!(W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_){ return false; }
-  }
-
-  // Safe asset URL
-  function asset(rel) {
-    try { return new URL(rel, W.PUBLIC_BASE || (W.location && W.location.origin) || '/').href; } catch (_){ return rel; }
-  }
-
-  // Announce (polite)
-  var announce = (typeof W.announce === 'function') ? W.announce : noop;
-
-  /* =========================================================
-     6A — HERO A/B (idempotent + API PT.abHero)
-  ========================================================== */
-  (function heroAB() {
-    if (W.__ptHeroWired6A) return; W.__ptHeroWired6A = 1;
-
-    var LS_KEY = 'pt_ab_hero_v1';
-    var variant = 'none';
-        var hero = $('#hero') || $('.hero') || $('.hero-full');
-    if (!hero) { exposeAPI(); return; }
-    var __isHome = (function(){
-      var h=(location.hash||'');
-      if(!h || h==='#' || h==='#/' || h.indexOf('#/home')===0) return true;
-      var p=(window.parseHash?window.parseHash():{view:''});
-      return (!p.view || p.view==='home' || p.view==='/');
-    })();
-    if (!__isHome) { exposeAPI(); return; }
-    // Bucket déterministe
-    try {
-      variant = localStorage.getItem(LS_KEY) || '';
-      if (!variant) {
-        var seed = '';
-        try { seed = (localStorage.getItem(W.USER_KEY || 'pt_user_v1') || '') + '|' + (navigator.userAgent || '') + '|' + (Intl.DateTimeFormat().resolvedOptions().timeZone || ''); } catch (_){}
-        var h = 0, i, ch;
-        for (i = 0; i < seed.length; i++) { ch = seed.charCodeAt(i); h = ((h << 5) - h) + ch; h |= 0; }
-        variant = (Math.abs(h) % 100) < 50 ? 'A' : 'B';
-        try { localStorage.setItem(LS_KEY, variant); } catch (_){}
-      }
-    } catch (_){ variant = 'A'; }
-    
-        // FORCE: animation du logo (variante B) si demandé
-    if (window.HERO_VARIANT === 'B' || window.FORCE_ANIM === true) {
-      variant = 'B';
-      try{ localStorage.setItem(LS_KEY, 'B'); }catch(_){}
-    }
-
-    // Visuels : passer via PT.setSafeImg si dispo
-    (function secureHeroMedia(){
-      var img = $('#heroLogo') || $('.hero-logo', hero);
-      if (img && typeof PT.setSafeImg === 'function') {
-        var src = img.getAttribute('src') || img.getAttribute('data-src') || img.currentSrc || img.src || '';
-        var alt = img.getAttribute('alt') || 'Pirates Tools';
-        PT.setSafeImg(img, src, alt);
-      }
-    })();
-
-    // Variante B neutralise le polish P5
-    if (variant === 'B') { W.__ptHeroAB = 1; }
-
-    // CSS minimal pour la séquence B (ne fait rien si le thème override)
-    (function inject6ACSS() {
-      if (D.getElementById('pt-6a-style')) return;
-      var s = D.createElement('style'); s.id = 'pt-6a-style';
-      s.textContent =
-        /* Séquence B par classes – aucune couleur, transitions neutres */
-        '#hero.ab-start{opacity:0;transform:translateY(8px);will-change:transform,opacity}' +
-        '#hero.ab-in{opacity:1;transform:translateY(0);transition:transform .28s ease-out,opacity .28s ease-out}' +
-        '#hero .ab-img{opacity:0;transform:scale(.985)}#hero .ab-img.ab-in{opacity:1;transform:scale(1);transition:transform .26s ease-out,opacity .26s ease-out}' +
-        '#hero .ab-title{opacity:0;transform:translateY(8px)}#hero .ab-title.ab-in{opacity:1;transform:none;transition:transform .28s ease-out,opacity .28s ease-out}' +
-        '#hero .ab-sub{opacity:0}#hero .ab-sub.ab-in{opacity:1;transition:opacity .22s ease-out .06s}' +
-        '#hero .ab-cta{opacity:0;transform:scale(.98)}#hero .ab-cta.ab-in{opacity:1;transform:scale(1);transition:transform .22s ease-out .08s,opacity .22s ease-out .08s}' +
-        /* Overlay de lecture si contraste faible (activable par classe) */
-        '#hero.hero--overlay::after{content:"";position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;}' +
-        /* Fallback fade bas (si pas déjà présent via P5) */ 
-        '#hero .hero-fade{position:absolute;left:0;right:0;bottom:0;height:38vh;pointer-events:none;}';
-      D.head.appendChild(s);
-    })();
-
-    // Wiring
-    if (variant === 'B') wireVariantB(); else wireVariantA();
-    exposeAPI();
-    
-    function restartHero(){
-  try{
-    hero.classList.remove('ab-in');
-    void hero.offsetWidth; // reflow
-    hero.classList.add('ab-start');
-    setTimeout(function(){ hero.classList.add('ab-in'); }, 60);
-  }catch(_){}
-}
-window.addEventListener('hashchange', function(){
-  var p = (window.parseHash ? window.parseHash() : {view:''});
-  if (!p.view || p.view === 'home' || p.view === '/') restartHero();
-}, false);
-
-    /* ---------- Implémentations A vs B ---------- */
-
-    // A : baseline — laisse P5 agir ; on pose juste une classe ready quand l’image est chargée
-    function wireVariantA() {
-      log('[P6A] Variante A');
-      var img = $('#heroLogo', hero) || $('.hero-logo', hero);
-      if (!window.FORCE_ANIM && prefersReduced()) return;
-      if (img) {
-        var set = function () { try { img.classList.add('is-ready'); } catch (_){ } };
-        if (img.complete) setTimeout(set, 0); else on(img, 'load', set, true);
-      }
-      // Overlay fade si absent (non intrusif)
-      if (!$('.hero-fade', hero)) {
-        var f = D.createElement('div'); f.className = 'hero-fade'; f.setAttribute('aria-hidden', 'true'); hero.appendChild(f);
-      }
-    }
-
-    // B : séquence par classes ; CTA scroll doux si non reduced
-    function wireVariantB() {
-      log('[P6A] Variante B (AB classes + neutralise P5 polish)');
-      if (prefersReduced()) { hero.classList.add('ab-in'); return; }
-
-      // Ciblage éléments
-      var img = $('#heroLogo', hero) || $('.hero-logo', hero);
-      var title = $('.hero__title', hero) || $('h1', hero);
-      var sub = $('.hero__subtitle', hero) || $('p', hero);
-      var cta = $('[data-cta]', hero) || $('.btn.primary', hero) || $('a[href^="#/catalogue"]', hero) || $('a[href^="#/"]', hero);
-
-      if (!$('.hero-fade', hero)) { var f = D.createElement('div'); f.className = 'hero-fade'; f.setAttribute('aria-hidden', 'true'); hero.appendChild(f); }
-
-      if (img) img.classList.add('ab-img');
-      if (title) title.classList.add('ab-title');
-      if (sub) sub.classList.add('ab-sub');
-      if (cta) cta.classList.add('ab-cta');
-
-      hero.classList.add('ab-start');
-      // Séquence
-      setTimeout(function () { hero.classList.add('ab-in'); if (img) img.classList.add('ab-in'); }, 80);
-      setTimeout(function () { if (title) title.classList.add('ab-in'); }, 220);
-      setTimeout(function () { if (sub) sub.classList.add('ab-in'); }, 320);
-      setTimeout(function () { if (cta) cta.classList.add('ab-in'); }, 420);
-
-      // CTA → #brandGrid (smooth si autorisé)
-      if (cta && !cta.__pt6A) {
-        cta.__pt6A = 1;
-        cta.addEventListener('click', function (e) {
-          try {
-            var target = D.getElementById('brandGrid'); if (!target) return;
-            e.preventDefault();
-            if (!prefersReduced() && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            else location.hash = '#/';
-          } catch (_){ }
-        }, false);
-      }
-    }
-
-    function exposeAPI() {
-      PT.abHero = PT.abHero || {};
-      PT.abHero.getVariant = function () { return variant; };
-    }
-  })();
 
   /* =========================================================
      6B — MENU A11y avancé (open/close + focus trap + actif)
