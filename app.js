@@ -212,10 +212,11 @@
     ensureView('view-home',
     '<div class="container">'+
       '<h1 tabindex="-1">Bienvenue</h1>'+
-      '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>'+
+      '<p class="muted mt-0 mb-1">Choisissez une marque ou explorez le catalogue.</p>'+
       '<div id="brandGrid" class="brand-grid" role="list"></div>'+
     '</div>'
   );
+
 
   ensureView('view-catalogue',
         '<div class="container" id="main">'+
@@ -617,7 +618,6 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       if (!s){
         s = D.createElement('div');
         s.id = 'pt-bottom-sentinel';
-        s.style.cssText = 'width:1px;height:1px;overflow:hidden;position:relative';
         appendToBodySafe(s);
       }
       return s;
@@ -1206,13 +1206,13 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     var id    = keyOf(m);
     var currency   = m && m.currency ? m.currency : 'EUR';
     var priceCents = priceCentsFrom(m);
-       var priceHtml = (priceCents!=null)
-      ? '<div class="price" aria-label="Prix TTC" style="margin-top:.35rem;font-weight:700">'+esc(fmtCents(Math.round(priceCents*(1+VAT_RATE)),currency))+' <small style="opacity:.8">TTC</small></div>'
+    var priceHtml = (priceCents!=null)
+      ? '<div class="price" aria-label="Prix TTC">'+esc(fmtCents(Math.round(priceCents*(1+VAT_RATE)),currency))+' <small class="subtle">TTC</small></div>'
       : '';
     return ''
       + '<article class="card" data-id="'+esc(id)+'">'
       + '  <div class="head"><h3 class="title">'+esc(title)+'</h3>'+(tag?'<span class="badge">'+esc(tag)+'</span>':'')+'</div>'
-      + '  <div class="specs"><p style="margin:0">'+(desc?esc(desc):'—')+'</p>'+priceHtml+'</div>'
+      + '  <div class="specs"><p class="mt-0 mb-0">'+(desc?esc(desc):'—')+'</p>'+priceHtml+'</div>'
       + '  <div class="actions">'
       + '    <a class="btn" href="#/produit/'+encodeURIComponent(id)+'">Détails</a>'
       + '    <button class="btn primary" data-add="'+esc(id)+'">Ajouter au panier</button>'
@@ -1237,8 +1237,7 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
 
   // PDP
   function renderPDP(product){
-    var view = document.getElementById('view-produit');
-    if (!view){
+ 
       view = document.createElement('section'); view.id='view-produit'; view.className='view';
       view.innerHTML =
         '<div class="container pdp" id="pdpContent">'+
@@ -1249,8 +1248,8 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
               '<h1 class="pdp__title" id="pdpTitle" tabindex="-1"></h1>'+
               '<div class="pdp__tag" id="pdpTag"></div>'+
               '<p class="pdp__desc" id="pdpDesc"></p>'+
-              '<p class="pdp__price" id="pdpPrice" style="margin:.35rem 0;font-weight:700"></p>'+
-              '<small id="pdpPriceHT" style="opacity:.8;display:block;margin-top:-.2rem"></small>'+
+              '<p class="pdp__price" id="pdpPrice"></p>'+
+              '<small id="pdpPriceHT" class="pdp__price-ht"></small>'+
               '<ul class="pdp__specs" id="pdpSpecs"></ul>'+
               '<div class="actions">'+
                 '<button class="btn primary" id="pdpQuote">Ajouter au panier</button>'+
@@ -1261,6 +1260,7 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
           '</div>'+
           '<div class="pdp__related" id="pdpRelated"></div>'+
         '</div>';
+
       document.body.appendChild(view);
     }
 
@@ -1599,14 +1599,15 @@ var related = window.MODELS.filter(function(m){
     var html = '';
     for (var i=0;i<n;i++){
       html += '<article class="card" aria-hidden="true">'+
-                '<div class="head"><h3 class="title skeleton" style="width:60%">&nbsp;</h3><span class="badge skeleton" style="width:64px">&nbsp;</span></div>'+
-                '<div class="specs"><p class="skeleton" style="height:1em;width:90%">&nbsp;</p><p class="skeleton" style="height:1em;width:50%">&nbsp;</p></div>'+
-                '<div class="actions"><span class="btn skeleton" style="width:90px">&nbsp;</span> <span class="btn skeleton" style="width:140px">&nbsp;</span></div>'+
+                '<div class="head"><h3 class="title skeleton w-60">&nbsp;</h3><span class="badge skeleton w-50">&nbsp;</span></div>'+
+                '<div class="specs"><p class="skeleton h-1em w-90">&nbsp;</p><p class="skeleton h-1em w-50">&nbsp;</p></div>'+
+                '<div class="actions"><span class="btn skeleton w-50">&nbsp;</span> <span class="btn skeleton w-60">&nbsp;</span></div>'+
               '</article>';
     }
     DOM.list.setAttribute('aria-busy','true');
     DOM.list.innerHTML = html;
   }
+
 
   // Virtualisation simple avec "Afficher plus"
   var VIRT = { chunk:60, step:40, current:0, data:[], moreBtn:null, sentinel:null };
@@ -1657,22 +1658,19 @@ var related = window.MODELS.filter(function(m){
     // "Afficher plus"
     if (VIRT.current < VIRT.data.length){
       if (!VIRT.moreBtn){
-        VIRT.moreBtn = document.createElement('button');
-        VIRT.moreBtn.className = 'btn';
+         VIRT.moreBtn = document.createElement('button');
+        VIRT.moreBtn.className = 'btn btn--block';
         VIRT.moreBtn.type = 'button';
         VIRT.moreBtn.textContent = 'Afficher plus';
-        VIRT.moreBtn.style.display='block';
-        VIRT.moreBtn.style.margin='1rem auto';
         VIRT.moreBtn.addEventListener('click', function(){ appendNextChunk(false); }, false);
         DOM.list.appendChild(VIRT.moreBtn);
 
-        // IOC (optionnel) : auto-charger en bas de page
         if ('IntersectionObserver' in window){
           VIRT.sentinel = document.createElement('div');
-          VIRT.sentinel.style.cssText='width:1px;height:1px;overflow:hidden';
+          VIRT.sentinel.className = 'virt-sentinel';
           DOM.list.appendChild(VIRT.sentinel);
           VIRT._io = new IntersectionObserver(function(entries){
-           var e = entries && entries[0]; if (!e) return;
+            var e = entries && entries[0]; if (!e) return;
             if (e.isIntersecting) appendNextChunk(false);
           }, {threshold:[1]});
           VIRT._io.observe(VIRT.sentinel)
@@ -1884,18 +1882,7 @@ var related = window.MODELS.filter(function(m){
           saveCart(); renderCartView(); return;
         }
       }, false);
-          var copyBtn = document.getElementById('devisCopy');
-    if (copyBtn && !copyBtn.__wired){
-      copyBtn.__wired = 1;
-      copyBtn.addEventListener('click', function(){
-        try{
-          var msg = window.cartToWhatsAppText();
-          if (!msg) return;
-          (navigator.clipboard && navigator.clipboard.writeText)
-            ? navigator.clipboard.writeText(msg).then(function(){ window.toast('Devis copié','success'); })
-            : alert(msg);
-        }catch(_){}
-      }, false);
+          
     }
     var mailBtn = document.getElementById('devisMail');
     if (mailBtn && !mailBtn.__wired){
@@ -1920,6 +1907,7 @@ var related = window.MODELS.filter(function(m){
         }catch(_){}
       }, false);
     }
+
     var mailBtn = document.getElementById('devisMail');
     if (mailBtn && !mailBtn.__wired){
       mailBtn.__wired = 1;
@@ -1974,7 +1962,8 @@ var related = window.MODELS.filter(function(m){
       // Ajoute sort + chips si absents
       if (!document.getElementById('sort')){
         var toolbar = s.querySelector('.toolbar') || s;
-        var sel = document.createElement('select'); sel.id='sort'; sel.className='select'; sel.style.minWidth='140px'; sel.style.marginLeft='.4rem';
+        var sel = document.createElement('select');
+        sel.id='sort'; sel.className='select select--sort';
         toolbar.appendChild(sel);
       }
       if (!document.getElementById('tagChips')){
@@ -2750,11 +2739,12 @@ var related = window.MODELS.filter(function(m){
     v.innerHTML =
       '<div class="container">'+
         '<h1 tabindex="-1">Bienvenue</h1>'+
-        '<p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>'+
+        '<p class="muted mt-0 mb-1">Choisissez une marque ou explorez le catalogue.</p>'+
         '<div id="brandGrid" class="brand-grid" role="list"></div>'+
       '</div>';
     D.body.appendChild(v); return v;
   }
+  
   function ensureCatalogueView(){
     var v = D.getElementById('view-catalogue'); if (v) return v;
     v = D.createElement('section'); v.id='view-catalogue'; v.className='view hidden';
