@@ -5103,3 +5103,168 @@ else boot();
   try { PT.auth.updateUI && PT.auth.updateUI(); } catch(_){}
 
 })();
+// ==== PATCH-JS-006b (Bridge Auth P4 ↔ P6, idempotent, non destructif) ====
+(function(){
+  'use strict';
+  if (window.__ptPatch006b) return; window.__ptPatch006b = 1;
+
+  var PT = (window.PT = window.PT || {});
+  var AUTH_USER_KEY = 'pt_user';     // utilisé par le patch 006
+  var AUTH_LOCAL_KEY = 'pt_auth_v1'; // utilisé par la Partie 4 (login/register)
+  var POST_LOGIN_KEY = 'pt_post_login_hash';
+
+  // ---- helpers stockage sûrs
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k, v); }catch(_){ } }
+  function lsDel(k){ try{ localStorage.removeItem(k); }catch(_){ } }
+
+  function nowSec(){ return Math.floor(Date.now()/1000); }
+
+  // ---- 1) Étend PT.auth existant sans rien casser
+  PT.auth = PT.auth || {};
+
+  // a) sha256 (Promise-like via callback utilisé par P4)
+  if (typeof PT.auth.sha256 !== 'function'){
+    PT.auth.sha256 = function(text, cb){
+      cb = (typeof cb==='function') ? cb : function(){};
+      try{
+        var enc = new TextEncoder('utf-8').encode(String(text||''));
+        if (crypto && crypto.subtle && crypto.subtle.digest){
+          crypto.subtle.digest('SHA-256', enc).then(function(buf){
+            var hex = Array.prototype.map.call(new Uint8Array(buf), function(x){ return ('00'+x.toString(16)).slice(-2); }).join('');
+            cb(hex);
+          }, function(){ cb(btoa(String(text||''))); });
+          return;
+        }
+      }catch(_){}
+      cb(btoa(String(text||''))); // fallback
+    };
+  }
+
+  // b) getUser / isLoggedIn → comprennent les 2 formats
+  var origGetUser = PT.auth.getUser;
+  PT.auth.getUser = function(){
+    // Priorité à pt_user (patch 006)
+    var raw = lsGet(AUTH_USER_KEY);
+    if (raw){
+      try{
+        var u = JSON.parse(raw);
+        if (!u || typeof u!=='object') return null;
+        if (typeof u.exp === 'number' && u.exp > 0 && u.exp < nowSec()) return null; // expiré
+        return u;
+      }catch(_){ /* continue */ }
+    }
+    // Sinon: profil minimal depuis pt_auth_v1 (email uniquement)
+    try{
+      var auth = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
+      if (auth && auth.email) return { id:'local', email: auth.email };
+    }catch(_){}
+    return origGetUser ? origGetUser() : null;
+  };
+
+  var origIsLoggedIn = PT.auth.isLoggedIn;
+  PT.auth.isLoggedIn = function(){
+    try{
+      // pt_user valide ?
+      var u = PT.auth.getUser && PT.auth.getUser();
+      if (u) return true;
+    }catch(_){}
+    try{
+      // pt_auth_v1 présent ?
+      var a = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
+      return !!(a && a.email && a.pwdHash);
+    }catch(_){}
+    return origIsLoggedIn ? !!origIsLoggedIn() : false;
+  };
+
+  // c) save(email,pwdHash) : API attendue par la page Login/Register (Partie 4)
+  if (typeof PT.auth.save !== 'function'){
+    PT.auth.save = function(obj){
+      try{
+        var a = { email: String(obj && obj.email || ''), pwdHash: String(obj && obj.pwdHash || '') };
+        lsSet(AUTH_LOCAL_KEY, JSON.stringify(a));
+        // Si aucun pt_user n’existe, en créer un minimal pour l’UX unifiée
+        if (!lsGet(AUTH_USER_KEY) && a.email){
+          lsSet(AUTH_USER_KEY, JSON.stringify({ id: 'local', email: a.email }));
+        }
+        // Post-login redirect si mémorisé (compat patch 006)
+        var target = lsGet(POST_LOGIN_KEY) || sessionStorage.getItem(POST_LOGIN_KEY);
+        if (target){ try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
+          try{ lsDel(POST_LOGIN_KEY); }catch(_){}
+          try{ location.hash = target; }catch(_){}
+          try{ if (PT.route) PT.route(); }catch(_){}
+        }
+      }catch(_){}
+    };
+  }
+
+  // d) login(user, {ttlSec}) : écrit aussi pt_auth_v1 si email présent
+  var origLogin = PT.auth.login;
+  PT.auth.login = function(user, opts){
+    try{
+      // legacy pt_user (patch 006) si dispo
+      if (origLogin) origLogin(user, opts);
+      else {
+        var payload = user && typeof user==='object' ? user : { id:'demo' };
+        if (opts && typeof opts.ttlSec==='number' && opts.ttlSec>0){
+          payload = Object.assign({}, payload, { exp: nowSec() + Math.floor(opts.ttlSec) });
+        }
+        lsSet(AUTH_USER_KEY, JSON.stringify(payload));
+      }
+      // miroir pt_auth_v1 si on a un email
+      if (user && user.email){
+        PT.auth.sha256(user.password||user.pwd||'', function(hash){
+          PT.auth.save({ email: user.email, pwdHash: hash });
+        });
+      }
+    }catch(_){}
+  };
+
+  // e) logout : nettoie tout (les deux clés)
+  var origLogout = PT.auth.logout;
+  PT.auth.logout = function(){
+    try{ if (origLogout) origLogout(); }catch(_){}
+    try{ lsDel(AUTH_USER_KEY); }catch(_){}
+    try{ lsDel(AUTH_LOCAL_KEY); }catch(_){}
+  };
+
+  // ---- 2) Init douce Auth : focus automatique sur #/login ou #/auth
+  if (typeof PT.initAuth !== 'function'){
+    PT.initAuth = function(){
+      try{
+        var h = (location.hash||'').toLowerCase();
+        if (h.indexOf('#/login')===0 || h.indexOf('#/auth')===0){
+          setTimeout(function(){
+            var el = document.getElementById('loginEmail') || document.querySelector('#view-login input[type="email"]');
+            if (el && el.focus) el.focus();
+          }, 0);
+        }
+      }catch(_){}
+    };
+  }
+
+  // ---- 3) Sync multi-onglets : écoute aussi pt_auth_v1
+  if (!window.__ptAuthLocalSync){
+    window.__ptAuthLocalSync = 1;
+    window.addEventListener('storage', function(e){
+      if (!e) return;
+      if (e.key === AUTH_LOCAL_KEY){
+        try{
+          // si on vient d’être connecté ailleurs, appliquer le post-login redirect si présent
+          var a = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
+          if (a && a.email){
+            var target = lsGet(POST_LOGIN_KEY) || sessionStorage.getItem(POST_LOGIN_KEY);
+            if (target){ try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
+              try{ lsDel(POST_LOGIN_KEY); }catch(_){}
+              try{ location.hash = target; }catch(_){}
+              try{ if (PT.route) PT.route(); }catch(_){}
+            }
+          }
+          // notifier l’UI (si ton patch 006 a updateUI/onChange)
+          if (PT.auth.updateUI) PT.auth.updateUI();
+        }catch(_){}
+      }
+    }, false);
+  }
+})();
+
