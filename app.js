@@ -1852,6 +1852,7 @@ if (elRel){
             if (e.isIntersecting) appendNextChunk(false);
           }, {threshold:[1]});
           VIRT._io.observe(VIRT.sentinel)
+          ; // ← point-virgule pour éviter une concaténation involontaire lors de la minification
         }
       }
        } else {
@@ -4254,160 +4255,684 @@ else boot();
 
 
 // ==== PATCH-JS-003 (Auth switch : chips + panels) ==== //
+
 (()=>{ 
   const PT = (window.PT = window.PT || {});
 
   function select(tab){
-    const key = tab==='register' ? 'register' : 'login';
-    const chips = document.querySelectorAll('.auth-switch .chip');
-    const panels = { 
+    const key = (tab === 'register') ? 'register' : 'login';
+    const chips  = document.querySelectorAll('.auth-switch .chip');
+    const panels = {
       login:    document.getElementById('authLogin'),
       register: document.getElementById('authRegister')
     };
+
+    // État visuel + a11y des chips
     Array.prototype.forEach.call(chips, function(c){
-      c.setAttribute('aria-selected', c.dataset.tab===key ? 'true' : 'false');
+      const isOn = (c.getAttribute('data-tab') === key);
+      c.setAttribute('aria-selected', isOn ? 'true' : 'false');
     });
-    if(panels.login && panels.register){
-      panels.login.hidden    = key!=='login';
-      panels.register.hidden = key!=='register';
+
+    // Affichage des panneaux (double garde: hidden + display)
+    if (panels.login){
+      panels.login.hidden = (key !== 'login');
+      if (panels.login.style) panels.login.style.display = (key === 'login') ? '' : 'none';
     }
+    if (panels.register){
+      panels.register.hidden = (key !== 'register');
+      if (panels.register.style) panels.register.style.display = (key === 'register') ? '' : 'none';
+    }
+
+    // Mémoire de l’onglet choisi
     try { localStorage.setItem('pt_auth_tab', key); } catch(_){}
   }
 
-  PT.initAuth = function(){
-    let saved = 'login';
-    try { saved = localStorage.getItem('pt_auth_tab') || 'login'; } catch(_){}
-    select(saved);
-    document.querySelectorAll('.auth-switch .chip').forEach(function(chip){
-      chip.addEventListener('click', function(){ select(chip.dataset.tab); });
+  function wire(){
+    const host = document.querySelector('.auth-switch');
+    if (!host || host.__ptAuthWired) return;
+    host.__ptAuthWired = 1;
+
+    // Délégation de clic
+    host.addEventListener('click', function(e){
+      const chip = e.target && e.target.closest ? e.target.closest('.auth-switch .chip[data-tab]') : null;
+      if (!chip) return;
+      const tab = chip.getAttribute('data-tab') || '';
+      if (tab) select(tab);
+    }, false);
+
+    // Accessibilité clavier (Enter/Espace)
+    const chips = document.querySelectorAll('.auth-switch .chip[data-tab]');
+    Array.prototype.forEach.call(chips, function(chip){
+      if (chip.__ptKeyWired) return;
+      chip.__ptKeyWired = 1;
+      chip.addEventListener('keydown', function(ev){
+        const k = ev.key || ev.keyCode;
+        if (k === 'Enter' || k === ' ' || k === 13 || k === 32){
+          ev.preventDefault();
+          const tab = chip.getAttribute('data-tab') || '';
+          if (tab) select(tab);
+        }
+      }, false);
     });
+  }
+
+  PT.initAuth = function(forceTab){
+    // Priorité: param → route → mémoire → défaut
+    let key = (forceTab === 'register' || forceTab === 'login') ? forceTab : '';
+    if (!key){
+      const h = (location.hash || '').toLowerCase();
+      if (h.indexOf('#/register') === 0) key = 'register';
+    }
+    if (!key){
+      try { key = localStorage.getItem('pt_auth_tab') || 'login'; } catch(_){ key = 'login'; }
+    }
+
+    select(key || 'login');
+    wire();
   };
 
-  // Alias #/login / #/register → #/auth (conserve l’onglet choisi)
-  if(PT.route){
-    const orig = PT.route;
-    PT.route = function(){
-      const h = (location.hash||'').toLowerCase();
-      if(h==='#/login' || h==='#/register'){
-        try { localStorage.setItem('pt_auth_tab', h.indexOf('register')>-1 ? 'register' : 'login'); } catch(_){}
-        location.hash = '#/auth';
-        setTimeout(function(){ if (PT.initAuth) PT.initAuth(); }, 60);
-        return;
-      }
-      orig();
-      if((location.hash||'')==='#/auth'){ if (PT.initAuth) PT.initAuth(); }
-    };
+  // Boot sûr et idempotent
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    try { PT.initAuth(); } catch(_){}
+  } else {
+    document.addEventListener('DOMContentLoaded', function(){ try { PT.initAuth(); } catch(_){} }, false);
   }
 })();
 
 
-// ==== PATCH-JS-004 (Toasts utilitaires) ==== 
-(()=>{ 
-  const PT = (window.PT = window.PT || {});
-  PT.toast = function(type, message, ms=2600){
-    let host = document.getElementById('toasts');
-    if(!host){
-      host = document.createElement('div');
-      host.id='toasts';
-      document.body.appendChild(host);
+  /* ===== Alias #/login / #/register → #/auth (préserve l'onglet) ===== */
+(function(){
+  'use strict';
+  var PT = window.PT = (window.PT || {});
+
+  function _lower(h){ return String(h||'').toLowerCase(); }
+
+  function _readTabFrom(hash){
+    try{
+      var h = _lower(hash||location.hash||'');
+      if (h.indexOf('register') > -1) return 'register';
+      // supporte ?tab=register|login
+      var m = h.match(/[?&]tab=(register|login)/i);
+      return (m && m[1]) ? m[1].toLowerCase() : 'login';
+    }catch(_){ return 'login'; }
+  }
+
+  function _saveTab(tab){
+    try{ localStorage.setItem('pt_auth_tab', (tab==='register'?'register':'login')); }catch(_){}
+  }
+
+  function _initAuthSoon(forceTab){
+    var tries = 0;
+    (function tick(){
+      tries++;
+      try{
+        if (PT && typeof PT.initAuth === 'function'){
+          PT.initAuth(forceTab);
+          return;
+        }
+      }catch(_){}
+      if (tries < 8) setTimeout(tick, 60);
+    })();
+  }
+
+  function _redirectToAuth(fromHash){
+    var tab = _readTabFrom(fromHash);
+    _saveTab(tab);
+    if (_lower(location.hash) !== '#/auth'){
+      // Remplace l’entrée d’historique → pas de “retour” inutile
+      try{ location.replace('#/auth'); }catch(_){ location.hash = '#/auth'; }
     }
-    const el = document.createElement('div');
-    el.className = 'toast toast--'+(type||'info');
+    _initAuthSoon(tab);
+  }
 
-    // Structure de base
-    el.innerHTML = '<div class="toast__icon">•</div><div class="toast__body"></div><button class="toast__close" aria-label="Fermer">×</button>';
+  function _interceptAuthAliases(){
+    var h = _lower(location.hash||'');
+    if (h === '#/login' || h === '#/register') { _redirectToAuth(h); return true; }
+    if (h === '#/auth'){ _initAuthSoon(_readTabFrom(h)); return false; }
+    return false;
+  }
 
-    // Sécurise le contenu du message
-    const body = el.querySelector('.toast__body');
-    body.textContent = String(message==null ? '' : message);
-
-    host.appendChild(el);
-
-    const close = function(){
-      el.style.animation='toast-out .18s ease-in both';
-      setTimeout(function(){ el.remove(); }, 200);
+  // 1) Hook routeur P4 si dispo (PT.router.route)
+  if (PT.router && typeof PT.router.route === 'function' && !PT.router.route.__ptAliasWrapped){
+    var _origR = PT.router.route;
+    PT.router.route = function(){
+      if (_interceptAuthAliases()) return;
+      _origR.apply(this, arguments);
+      if (_lower(location.hash)==='#/auth') _initAuthSoon(_readTabFrom());
     };
-    el.querySelector('.toast__close').addEventListener('click', close);
-    setTimeout(close, ms);
-    return el;
-  };
-  PT.toastInfo    = (m)=>PT.toast('info', m);
-  PT.toastSuccess = (m)=>PT.toast('success', m);
-  PT.toastError   = (m)=>PT.toast('error', m);
+    PT.router.route.__ptAliasWrapped = 1;
+  }
+  // 2) Sinon hook routeur P2 si dispo (PT.route)
+  else if (typeof PT.route === 'function' && !PT.route.__ptAliasWrapped){
+    var _orig = PT.route;
+    PT.route = function(){
+      if (_interceptAuthAliases()) return;
+      _orig.apply(this, arguments);
+      if (_lower(location.hash)==='#/auth') _initAuthSoon(_readTabFrom());
+    };
+    PT.route.__ptAliasWrapped = 1;
+  }
+  // 3) Fallback universel: écoute hashchange (non destructif)
+  else {
+    if (!window.__ptAuthAliasHC){
+      window.__ptAuthAliasHC = 1;
+      window.addEventListener('hashchange', function(){ _interceptAuthAliases(); }, false);
+    }
+  }
+
+  // Boot initial (au chargement courant)
+  (function bootOnce(){
+    if (_interceptAuthAliases()) return;
+    if (_lower(location.hash)==='#/auth') _initAuthSoon(_readTabFrom());
+  })();
 })();
 
+// ==== PATCH-JS-004 (Toasts utilitaires) ====
+(function(){
+  'use strict';
+  var PT = (window.PT = window.PT || {});
+  if (window.__ptPatch004) return; // idempotent
+  window.__ptPatch004 = 1;
+
+  /* ----------------- Config & état ----------------- */
+  var DEFAULTS = {
+    timeout: 2600,
+    max: 5,
+    ariaLive: 'polite',     // ou 'assertive'
+    position: 'top-right',  // si votre CSS gère [data-position]
+    closeOnClick: false,
+    dismissible: true,
+    pauseOnHover: true,
+    dedupe: true,           // évite les doublons visuels
+    iconMap: { info: 'ℹ️', success: '✓', warn: '⚠️', error: '⛔' }
+  };
+
+  // Mémoire des clés anti-doublons
+  PT.__toastsKeys = PT.__toastsKeys || Object.create(null);
+
+  // Par défaut, modifiable avant usage si besoin
+  PT.toastDefaults = PT.toastDefaults || Object.assign({}, DEFAULTS);
+
+  function getHost(){
+    var host = document.getElementById('toasts');
+    if (!host){
+      host = document.createElement('div');
+      host.id = 'toasts';
+      host.setAttribute('role', 'region');
+      host.setAttribute('aria-label', 'Notifications');
+      host.dataset.position = PT.toastDefaults.position;
+      document.body.appendChild(host);
+    }
+    return host;
+  }
+
+  function coerceOptions(type, message, msOrOpts){
+    var opts = {};
+    // Back-compat: PT.toast('info', 'msg', 2000)
+    if (typeof msOrOpts === 'number') opts.timeout = msOrOpts;
+    else if (msOrOpts && typeof msOrOpts === 'object') opts = msOrOpts;
+
+    var merged = Object.assign({}, PT.toastDefaults, opts);
+    merged.type = (type || 'info');
+    merged.message = (message == null ? '' : String(message));
+    if (merged.timeout == null) merged.timeout = DEFAULTS.timeout;
+    return merged;
+  }
+
+  function closeWithAnimation(el){
+    if (!el || el.__closed) return;
+    el.__closed = true;
+
+    // Marqueur de sortie (laisser votre CSS gérer la transi)
+    el.classList.add('is-out');
+    // Fallback animation si aucune CSS fournie
+    try { el.style.animation = 'toast-out .18s ease-in both'; } catch(_){}
+    if (!el.style.animation){
+      el.style.transition = el.style.transition || 'opacity .18s ease-in, transform .18s ease-in';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-6px)';
+    }
+    // Nettoyage
+    setTimeout(function(){
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      if (el.__key && PT.__toastsKeys[el.__key] === el) delete PT.__toastsKeys[el.__key];
+    }, 200);
+  }
+
+  function armTimer(el, ms){
+    if (!ms || ms <= 0) return; // persistant
+    var endAt = Date.now() + ms;
+    clearTimeout(el.__timer);
+    el.__remaining = ms;
+    el.__timer = setTimeout(function(){ closeWithAnimation(el); }, ms);
+
+    el.reset = function(newMs){
+      var val = typeof newMs === 'number' ? newMs : el.__remaining || ms;
+      armTimer(el, val);
+    };
+
+    // Pause au survol
+    el.__onEnter = function(){
+      if (!el.__opts.pauseOnHover) return;
+      if (el.__paused) return;
+      el.__paused = true;
+      el.classList.add('is-paused');
+      clearTimeout(el.__timer);
+      el.__remaining = Math.max(0, endAt - Date.now());
+    };
+    el.__onLeave = function(){
+      if (!el.__opts.pauseOnHover) return;
+      if (!el.__paused) return;
+      el.__paused = false;
+      el.classList.remove('is-paused');
+      armTimer(el, el.__remaining);
+    };
+    el.addEventListener('mouseenter', el.__onEnter);
+    el.addEventListener('mouseleave', el.__onLeave);
+
+    // Progress bar (si votre CSS l'utilise via animation-duration)
+    var pg = el.querySelector('.toast__progress');
+    if (pg){ try { pg.style.animationDuration = (ms)+'ms'; } catch(_){} }
+  }
+
+  function enforceMax(host, max){
+    if (!max || max <= 0) return;
+    while (host.children.length > max){
+      var first = host.firstElementChild;
+      if (!first) break;
+      if (first.__paused){ // si survolé, passer au suivant
+        first = first.nextElementSibling;
+        if (!first) break;
+      }
+      closeWithAnimation(first);
+    }
+  }
+
+  // Fermeture via Échap (la dernière)
+  (function bindEscOnce(){
+    if (window.__ptToastEsc) return;
+    window.__ptToastEsc = true;
+    window.addEventListener('keydown', function(e){
+      if (e.key !== 'Escape') return;
+      var host = document.getElementById('toasts');
+      if (!host || !host.lastElementChild) return;
+      var last = host.lastElementChild;
+      if (last && typeof last.close === 'function') last.close();
+    }, false);
+  })();
+
+  /* ----------------- Core API ----------------- */
+  PT.toast = function(type, message, msOrOpts){
+    // Surcharge tolérante : PT.toast('msg') ⇒ info
+    if (message === undefined && typeof type === 'string' &&
+        !/^(info|success|warn|warning|error)$/i.test(type)){
+      message = type; type = 'info';
+    }
+
+    var opts = coerceOptions(type, message, msOrOpts);
+    var host = getHost();
+
+    // Anti-doublons (clé explicite ou message+type)
+    var key = opts.key || (opts.dedupe ? (opts.type + '::' + opts.message) : null);
+    if (key && PT.__toastsKeys[key]){
+      // On met à jour le toast existant & on reset le timer
+      var existing = PT.__toastsKeys[key];
+      var body = existing.querySelector('.toast__body');
+      if (body) body.textContent = opts.message;
+      existing.__opts = opts;
+      existing.reset && existing.reset(opts.timeout);
+      return existing;
+    }
+
+    // Création
+    var el = document.createElement('div');
+    el.className = 'toast pt-toast toast--' + (opts.type||'info');
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', opts.ariaLive || 'polite');
+    el.__opts = opts;
+    el.__key = key;
+
+    // Structure
+    el.innerHTML =
+      '<div class="toast__icon" aria-hidden="true"></div>' +
+      '<div class="toast__body"></div>' +
+      (opts.action && opts.action.label ? '<button class="toast__action" type="button"></button>' : '') +
+      (opts.dismissible !== false ? '<button class="toast__close" type="button" aria-label="Fermer">×</button>' : '') +
+      '<div class="toast__progress" aria-hidden="true"></div>';
+
+    // Icône
+    var icon = el.querySelector('.toast__icon');
+    icon.textContent = (opts.icon != null) ? String(opts.icon) : (DEFAULTS.iconMap[opts.type] || '•');
+
+    // Message (sécurisé)
+    var body = el.querySelector('.toast__body');
+    body.textContent = opts.message;
+
+    // Action éventuelle
+    var actionBtn = el.querySelector('.toast__action');
+    if (actionBtn && opts.action && opts.action.label){
+      actionBtn.textContent = String(opts.action.label);
+      actionBtn.addEventListener('click', function(ev){
+        try { if (typeof opts.action.onClick === 'function') opts.action.onClick(ev, el); }
+        catch(_){}
+      }, false);
+    }
+
+    // Fermer (bouton et API)
+    var closeBtn = el.querySelector('.toast__close');
+    el.close = function(){ closeWithAnimation(el); };
+    if (closeBtn){
+      closeBtn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        el.close();
+      }, false);
+    }
+
+    // Fermer au clic global si demandé
+    if (opts.closeOnClick){
+      el.addEventListener('click', function(ev){
+        // ne pas fermer si clic sur bouton d’action
+        if (ev.target && (ev.target.classList.contains('toast__action') || ev.target.classList.contains('toast__close'))) return;
+        el.close();
+      }, false);
+    }
+
+    // Progression + timer
+    armTimer(el, opts.timeout);
+
+    // Position (si gérée par votre CSS)
+    try { getHost().dataset.position = opts.position || PT.toastDefaults.position; } catch(_){}
+
+    // Ajout + max
+    host.appendChild(el);
+    enforceMax(host, opts.max);
+
+    // Enregistre la clé pour dédup
+    if (key) PT.__toastsKeys[key] = el;
+
+    // Évènement custom (écouteurs externes optionnels)
+    try{
+      var evt = new CustomEvent('pt:toast', { detail: { element: el, options: opts } });
+      document.dispatchEvent(evt);
+    }catch(_){}
+
+    return el;
+  };
+
+  // Raccourcis
+  PT.toastInfo    = function(m, o){ return PT.toast('info',    m, o); };
+  PT.toastSuccess = function(m, o){ return PT.toast('success', m, o); };
+  PT.toastWarn    = function(m, o){ return PT.toast('warn',    m, o); };
+  PT.toastError   = function(m, o){ return PT.toast('error',   m, o); };
+
+  // Fermeture programmatique (utilitaire)
+  PT.toastClose   = function(el){ if (el && typeof el.close === 'function') el.close(); };
+
+})();
 
 // ==== PATCH-JS-005 (PDP WhatsApp dynamique + Share, TTC/HT) ====
-(()=>{ 
-  const PT = (window.PT = window.PT || {});
+(function(){
+  'use strict';
+  var PT = (window.PT = window.PT || {});
+  if (window.__ptPatch005) return; window.__ptPatch005 = 1;
 
-  // Utilitaires prix (fallback si non présents globalement)
+  /* ---------- Utilitaires sûrs ---------- */
+  function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
+  function lc(v){ return String(v||'').toLowerCase(); }
+
+  // Parse des montants en texte (supporte "1 234,56 €", "1,234.56", "1234,5", "TTC", etc.)
   function parsePriceCents(str){
-    if(!str) return null;
+    if (!str) return null;
     try{
-      var s = (''+str).trim().replace(/\s/g,'');
-      // capture "1234", "1,234.56", "1.234,56", "1234,5"
-      var m = s.match(/([0-9]+(?:[.,][0-9]{1,2})?)/);
-      if(!m) return null;
-      var num = m[1].replace(',', '.');
+      var s = String(str).replace(/\s+/g,'').replace(/[^\d.,-]/g,'');
+      // capture un nombre avec 0, 1 ou 2 décimales (virgule ou point)
+      var m = s.match(/^-?\d+(?:[.,]\d{1,2})?$/);
+      if (!m) {
+        // tenter d’arracher le premier nombre plausible
+        m = String(str).replace(/\s+/g,'').match(/(\d+(?:[.,]\d{1,2})?)/);
+        if (!m) return null;
+      }
+      var num = m[0].replace(',', '.');
       var v = Math.round(parseFloat(num) * 100);
       return isNaN(v) ? null : v;
     }catch(_){ return null; }
   }
+
+  function detectCurrency(txt){
+    var t = lc(txt||'');
+    if (t.indexOf('xpf')>-1 || t.indexOf('cfp')>-1) return 'XPF';
+    if (t.indexOf('mad')>-1 || t.indexOf('dh')>-1)  return 'MAD';
+    if (t.indexOf('usd')>-1 || t.indexOf('$')>-1)  return 'USD';
+    if (t.indexOf('eur')>-1 || t.indexOf('€')>-1)  return 'EUR';
+    return 'EUR';
+  }
+
   function fmtCents(cents, curr){
     try{
-      var v = (cents||0)/100;
-      return new Intl.NumberFormat('fr-FR', { style:'currency', currency: curr||'EUR' }).format(v);
+      return (cents/100).toLocaleString('fr-FR', { style:'currency', currency: curr||'EUR' });
     }catch(_){
-      return ((cents||0)/100).toFixed(2) + ' ' + (curr||'EUR');
+      return (cents/100).toFixed(2) + ' ' + (curr||'EUR');
     }
   }
 
-  PT.bindPDP = function(){
-    const title = (document.getElementById('pdpTitle') && document.getElementById('pdpTitle').textContent || '').trim();
-    const ref   = (document.getElementById('pdpRef')   && document.getElementById('pdpRef').textContent   || '').trim();
-    const priceText = (document.getElementById('pdpPrice') && document.getElementById('pdpPrice').textContent || '').trim();
-    const url   = location.href;
+  function vatRate(){
+    return (typeof window.VAT_RATE === 'number' && window.VAT_RATE >= 0) ? window.VAT_RATE : 0.20;
+  }
 
-    // Calcule HT/TTC si possible (VAT_RATE global si dispo, sinon 0.20 par défaut)
-    const VAT = (typeof window.VAT_RATE === 'number' && window.VAT_RATE >= 0) ? window.VAT_RATE : 0.20;
-    const currency = 'EUR';
-    const htCents = parsePriceCents(priceText);
-    const ttcCents = (htCents!=null) ? Math.round(htCents * (1 + VAT)) : null;
+  function pdpScope(){
+    var scope = document.getElementById('view-produit') || document.getElementById('pdp') || document;
+    return scope;
+  }
 
-    const lignes = [];
-    if (title) lignes.push('Produit: ' + title);
-    if (ref)   lignes.push('Réf: ' + ref);
-    if (htCents!=null){
-      lignes.push('Prix HT: ' + fmtCents(htCents, currency));
-      lignes.push('Prix TTC: ' + fmtCents(ttcCents, currency));
-    } else if (priceText){
-      // fallback : on garde tel quel si parsing impossible
-      lignes.push('Prix: ' + priceText);
+  /* ---------- Lecture des données PDP (DOM + MODELS) ---------- */
+  function currentProduct(){
+    // Cherche via l’URL (#/produit/:id) et la base MODELS
+    try{
+      var h = location.hash || '';
+      var m = h.match(/^#\/produit\/([^\/\?#]+)/i);
+      var key = m && m[1] ? decodeURIComponent(m[1]) : '';
+      if (key && typeof window.findProductByKey === 'function'){
+        return window.findProductByKey(key);
+      }
+    }catch(_){}
+    return null;
+  }
+
+  function readPdpDom(){
+    var scope = pdpScope();
+    var elT = scope.querySelector('#pdpTitle, .pdp__title, h1');
+    var elHT = scope.querySelector('#pdpPriceHT'); // ex. "≈ HT : 123,45 € (TVA 20%)"
+    var elTTC = scope.querySelector('#pdpPrice');  // TTC affiché en gras
+    var elTag = scope.querySelector('#pdpTag');
+    var elImg = scope.querySelector('#pdpImg');
+
+    var title = (elT && elT.textContent || '').trim();
+    var tag   = (elTag && elTag.textContent || '').replace(/^#\s*/,'').trim(); // badge/type si dispo
+
+    var txtHT  = (elHT  && elHT.textContent  || '');
+    var txtTTC = (elTTC && elTTC.textContent || '');
+
+    var curr = detectCurrency(txtHT || txtTTC || '');
+    var htCents  = null;
+    var ttcCents = null;
+
+    // Si un champ "≈ HT :" existe → on parse directement
+    if (txtHT){
+      var m = txtHT.match(/(?:HT|≈HT)[^\d]*([\d\s.,]+)/i);
+      if (m) htCents = parsePriceCents(m[1]);
     }
-    lignes.push('Lien: ' + url);
-
-    const msg = lignes.join('\n');
-
-    const wa = document.getElementById('pdpWa');
-    if(wa) wa.href = 'https://wa.me/33774230195?text=' + encodeURIComponent(msg);
-
-    const shareBtn = document.getElementById('pdpShare');
-    if(shareBtn){
-      shareBtn.onclick = async function(e){
-        e.preventDefault();
-        try{
-          if(navigator.share){ await navigator.share({ title: title||document.title, text:title||document.title, url }); }
-          else{
-            await navigator.clipboard.writeText(url);
-            if (window.PT && typeof window.PT.toastSuccess === 'function') window.PT.toastSuccess('Lien copié 📋');
-          }
-        }catch(_){}
-      };
+    // TTC affiché dans #pdpPrice (Partie 2)
+    if (txtTTC){
+      ttcCents = parsePriceCents(txtTTC);
     }
-  };
+
+    // Recalcule l’autre si nécessaire
+    var VAT = vatRate();
+    if (htCents==null && ttcCents!=null){
+      htCents = Math.round(ttcCents / (1 + VAT));
+    } else if (ttcCents==null && htCents!=null){
+      ttcCents = Math.round(htCents * (1 + VAT));
+    }
+
+    var imgUrl = '';
+    try { imgUrl = (elImg && (elImg.currentSrc || elImg.src)) || ''; }catch(_){}
+
+    return {
+      title: title,
+      tag: tag,
+      currency: curr || 'EUR',
+      htCents: htCents,
+      ttcCents: ttcCents,
+      image: imgUrl
+    };
+  }
+
+  /* ---------- Message WhatsApp + Share ---------- */
+  function userContactSuffix(){
+    try{
+      var u = (typeof PT.loadUser === 'function') ? PT.loadUser() : null;
+      if (!u) return '';
+      var lines = [];
+      if (u.name)  lines.push('Nom: ' + u.name);
+      if (u.email) lines.push('Email: ' + u.email);
+      if (u.phone) lines.push('Téléphone: ' + u.phone);
+      if (u.addr)  lines.push('Adresse: ' + u.addr);
+      return lines.length ? '\n\nMes coordonnées:\n' + lines.join('\n') : '';
+    }catch(_){}
+    return '';
+  }
+
+  function buildWAFrom(product, domData){
+    var p = product || {};
+    var d = domData || {};
+    var title = (d.title || p.title || ((p.brand||'')+' '+(p.sku||''))).trim();
+    var sku   = (p.sku || p.id || p.__auto_id || '').trim();
+    var VAT   = vatRate();
+    var url   = location.origin + location.pathname + '#/produit/' + encodeURIComponent(sku || title || '');
+    var curr  = d.currency || p.currency || 'EUR';
+
+    var lines = [];
+    lines.push('Bonjour, je souhaite un devis pour:');
+    var head = '• ' + (sku ? (sku + ' – ') : '') + title;
+
+    // Prix : priorité DOM (ce que voit l’utilisateur)
+    var htCents  = (d.htCents!=null)  ? d.htCents  : (typeof window.priceCentsFrom==='function' ? window.priceCentsFrom(p) : null);
+    var ttcCents = (d.ttcCents!=null) ? d.ttcCents : (htCents!=null ? Math.round(htCents*(1+VAT)) : null);
+
+    if (ttcCents!=null && htCents!=null){
+      head += ' — ' + fmtCents(ttcCents, curr) + ' TTC — HT: ' + fmtCents(htCents, curr);
+    } else if (ttcCents!=null){
+      head += ' — ' + fmtCents(ttcCents, curr) + ' TTC';
+    } else if (htCents!=null){
+      head += ' — HT: ' + fmtCents(htCents, curr);
+    }
+    lines.push(head);
+    lines.push('');
+    lines.push('Lien: ' + url);
+
+    var contact = userContactSuffix();
+    if (contact) lines.push(contact);
+
+    lines.push('\nMerci.');
+    return lines.join('\n');
+  }
+
+  function bindShare(shareBtn){
+    if (!shareBtn || shareBtn.__pt005) return;
+    shareBtn.__pt005 = 1;
+    shareBtn.addEventListener('click', function(e){
+      if (e) e.preventDefault();
+      var title = (document.getElementById('pdpTitle') && document.getElementById('pdpTitle').textContent) || document.title || 'Pirates Tools';
+      var url   = location.href;
+      var text  = title;
+      try{
+        if (navigator.share){
+          navigator.share({ title:title, text:text, url:url });
+          return;
+        }
+      }catch(_){}
+      // Fallback: copy
+      try{
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(url).then(function(){
+            if (window.toast) window.toast('Lien copié','success');
+            else alert('Lien copié :\n' + url);
+          }, function(){ alert(url); });
+        } else {
+          alert(url);
+        }
+      }catch(_){ alert(url); }
+    }, false);
+  }
+
+  function bindWA(waBtn){
+    if (!waBtn) return;
+    // on reboucle sans multiplier les listeners (href seulement)
+    var p  = currentProduct();
+    var dd = readPdpDom();
+    var msg = buildWAFrom(p, dd);
+    var phone = onlyDigits(window.PHONE_E164 || '+33774230195');
+    waBtn.href = 'https://wa.me/'+ phone +'?text=' + encodeURIComponent(msg);
+  }
+
+  /* ---------- Binder principal (idempotent) ---------- */
+  function bindPDP(){
+    // S’assure d’avoir les noeuds
+    var scope = pdpScope();
+    if (!scope) return;
+
+    // WhatsApp
+    var wa = scope.querySelector('#pdpWa, .btn.btn-wa');
+    if (wa) bindWA(wa);
+
+    // Share
+    var share = scope.querySelector('#pdpShare');
+    if (share) bindShare(share);
+  }
+
+  // Expose (utile aux autres parties/tests)
+  PT.pdp = PT.pdp || {};
+  PT.pdp.patch005 = { bind: bindPDP, readDom: readPdpDom, buildWAFrom: buildWAFrom };
+
+  /* ---------- Wiring : hashchange + produits + mutations ---------- */
+  function scheduleBind(){
+    clearTimeout(scheduleBind._t);
+    scheduleBind._t = setTimeout(bindPDP, 50);
+  }
+
+  // Sur navigation
+  window.addEventListener('hashchange', function(){
+    if (lc(location.hash).indexOf('#/produit')===0) scheduleBind();
+  }, false);
+
+  // Quand les produits arrivent (si PDP déjà ouverte)
+  window.addEventListener('pt:productsLoaded', function(){ 
+    if (lc(location.hash).indexOf('#/produit')===0) scheduleBind();
+  }, false);
+
+  // DOM ready
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', scheduleBind, false);
+  } else {
+    scheduleBind();
+  }
+
+  // Mutation observer (rendu PDP après injection/transition)
+  try{
+    var mo = new MutationObserver(function(muts){
+      for (var i=0;i<muts.length;i++){
+        var n = muts[i].target || {};
+        if (!n || !n.querySelector) continue;
+        if (n.querySelector('#pdpTitle') || n.querySelector('#pdpWa') || n.id === 'view-produit'){
+          scheduleBind();
+          break;
+        }
+      }
+    });
+    mo.observe(document.body, { childList:true, subtree:true });
+  }catch(_){}
+
 })();
-
 
 // ==== PATCH-JS-006 (Portail Compte → Auth si non connecté) ====
 (()=>{ 
