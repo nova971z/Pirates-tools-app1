@@ -4137,75 +4137,87 @@ else boot();
   // ==== PATCH-HERO (Scroll + IntersectionObserver fallback) ====
 (function(){
   function initHero(){
-    var hero = document.getElementById('hero') || document.querySelector('.hero');
-    var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
-    if(!hero || !logo){ return; }
+    var heroEl = document.getElementById('hero') || document.querySelector('.hero, .hero-full');
+    var logo   = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
+    if (!heroEl || !logo) return;
 
     var lastState = '';
 
+    // ES5-safe thresholds
     var thresholds = (function(){
-      var a = [];
-      for (var i=0; i<=20; i++) a.push(i/20);
+      var a = [], i;
+      for (i = 0; i <= 20; i++) a.push(i/20);
       return a;
     })();
 
     var io = null;
-    if ('IntersectionObserver' in window) {
+
+    if ('IntersectionObserver' in window){
       io = new IntersectionObserver(function(entries){
         var entry = entries && entries[0];
         if (!entry) return;
         var r = (typeof entry.intersectionRatio === 'number') ? entry.intersectionRatio : 0;
 
-        if (r > 0.96 && lastState !== 'overshoot') {
+        if (r > 0.96 && lastState !== 'overshoot'){
           logo.classList.add('fx-overshoot');
           logo.classList.remove('fx-preblur','fx-out');
           lastState = 'overshoot';
           return;
         }
-        if (r <= 0.96 && r > 0.55 && lastState !== 'preblur') {
+        if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
           logo.classList.add('fx-preblur');
           logo.classList.remove('fx-overshoot','fx-out');
           lastState = 'preblur';
           return;
         }
-        if (r <= 0.55 && lastState !== 'out') {
+        if (r <= 0.55 && lastState !== 'out'){
           logo.classList.add('fx-out');
           logo.classList.remove('fx-overshoot','fx-preblur');
           lastState = 'out';
         }
-      }, { root: null, threshold: thresholds });
+      }, { root:null, threshold: thresholds });
 
-      try { io.observe(hero); } catch(_){}
+      try{ io.observe(heroEl); }catch(_){}
+      try{ window.__ptHeroIO = io; }catch(_){}
     }
 
+    // Fallback scroll (toujours câblé — il ne s'active que si besoin)
     function onScroll(){
-      var rect = hero.getBoundingClientRect();
+      var rect = heroEl.getBoundingClientRect ? heroEl.getBoundingClientRect() : {top:0,bottom:0,height:1};
+      var h = rect.height || heroEl.offsetHeight || 1;
       var ih = window.innerHeight || 0;
-      if (rect.bottom <= (ih * 0.30)) {
-        if (lastState !== 'out') {
-          logo.classList.add('fx-out');
-          logo.classList.remove('fx-overshoot','fx-preblur');
-          lastState = 'out';
-        }
+      var visibleRatio = (Math.min(rect.bottom, ih) - Math.max(rect.top, 0)) / h;
+      if (visibleRatio <= 0.55 && lastState !== 'out'){
+        logo.classList.add('fx-out');
+        logo.classList.remove('fx-overshoot','fx-preblur');
+        lastState = 'out';
       }
     }
 
-    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('scroll', onScroll, { passive:true });
+    window.addEventListener('resize', onScroll, { passive:true });
+    try{
+      window.__ptHeroScroll = onScroll;
+      window.__ptHeroHeroEl = heroEl;
+    }catch(_){}
+    onScroll();
 
+    // Nettoyage
     window.addEventListener('beforeunload', function(){
-      try { io && io.disconnect && io.disconnect(); } catch(_){}
-      window.removeEventListener('scroll', onScroll);
-    });
+      try{ if (io && io.disconnect) io.disconnect(); }catch(_){}
+      try{
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onScroll);
+      }catch(_){}
+    }, { once:true });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHero);
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    try{ initHero(); }catch(_){}
   } else {
-    initHero();
+    document.addEventListener('DOMContentLoaded', function(){ try{ initHero(); }catch(_){} }, false);
   }
-})();   // ← fin du patch hero
-
-
+})();
 // ==== PATCH-JS-001 (Router + classes body + scroll/focus) ====
 (()=>{ 
   const PT = (window.PT = window.PT || {});
