@@ -1,4 +1,4 @@
-/* =========================================================
+Tu /* =========================================================
    Pirates Tools — app.js (Partie 1/4)
    Boot SPA + Helpers + Home + Marques + Loader produits + Hero overshoot
    + Détecteur intelligent (scroll / bas de page masqué / vh iOS / safe-area)
@@ -56,6 +56,8 @@
   return _fetch(input, init);
 };
 
+  }catch(_){}
+})();
 
   /* ---------- Mini helpers DOM ---------- */
   function $(sel, root){ return (root||document).querySelector(sel); }
@@ -1118,7 +1120,7 @@ body.page-compte .topbar-logo-link { display:none; }`;
       if (typeof window.PUBLIC_BASE === 'string' && window.PUBLIC_BASE) return window.PUBLIC_BASE;
       var b = document.querySelector && document.querySelector('base[href]');
       if (b) return new URL(b.getAttribute('href'), location.href).href;
-      return location.pathname;
+            return location.origin + location.pathname.replace(/[^\/]*$/,'');
     }catch(_){ return location.pathname; }
   })();
   var PHONE_E164   = window.PHONE_E164   || '+33774230195';
@@ -1954,7 +1956,8 @@ if (elRel){
     var filtered = window.MODELS.filter(function(m){
       // brand/type du state si présents
       var okBrand = !CAT_STATE.brand || normKey(m.brand)===normKey(CAT_STATE.brand) || normKey(m.brand_key)===normKey(CAT_STATE.brand);
-      var okType  = !CAT_STATE.type  || m.__haystack.indexOf(CAT_STATE.type)!==-1 || m.__tags_n.indexOf(normKey(CAT_STATE.type))!==-1 || m.__cat_n===normKey(CAT_STATE.type);
+            var tn = normKey(CAT_STATE.type);
+      var okType  = !tn || (m.__hay_norm && m.__hay_norm.indexOf(tn)!==-1) || m.__tags_n.indexOf(tn)!==-1 || m.__cat_n===tn;
       // chips (multi-tags)
       var okChips = !CAT_STATE.tags.length || CAT_STATE.tags.every(function(tk){ return (m.__tags_n.indexOf(tk)!==-1) || m.__cat_n===tk || m.__badge_n===tk || normKey(m.brand)===tk; });
             // recherche texte
@@ -4132,7 +4135,7 @@ else boot();
   }
 
   // ==== PATCH-HERO (Scroll + IntersectionObserver fallback) ====
-(()=> {
+(function(){
   function initHero(){
     var hero = document.getElementById('hero') || document.querySelector('.hero');
     var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
