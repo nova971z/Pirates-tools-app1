@@ -4073,13 +4073,15 @@ else boot();
 /* =========================================================
    FIN — petits utilitaires d’ergonomie non intrusifs
 ========================================================== */
+
 (function smoothBehaviorFallback() {
   try {
-    var html = D.documentElement;
-    if (html && !html.style.scrollBehavior) { html.style.scrollBehavior = 'smooth'; }
-  } catch (_){ }
+    var html = document.documentElement;
+    if (html && !('scrollBehavior' in html.style)) {
+      html.style.scrollBehavior = 'smooth';
+    }
+  } catch (_){}
 })();
-
 
 // app-hero.js — fallback scroll (sans dépendance, ultra light)
 (function(){
@@ -4092,7 +4094,9 @@ else boot();
   var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
     (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
-
+  if (window.__ptHeroIO || window.__ptHeroScroll || (window.PT && window.PT.hero)) return;
+  
+  
   // Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
   if (!logo.classList.contains('on')) {
     requestAnimationFrame(function(){ logo.classList.add('on'); });
@@ -4232,6 +4236,11 @@ else boot();
   window.addEventListener('DOMContentLoaded', PT.route);
 })();
 
+
+if (!window.__ptRouterPrimary) {
+  addEventListener('hashchange', PT.route);
+  addEventListener('DOMContentLoaded', PT.route);
+}
 
 // ==== PATCH-JS-002 (Drawer robuste + aria + fermetures) ==== //
 (()=>{ 
