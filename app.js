@@ -1,4 +1,4 @@
-Tu /* =========================================================
+ /* =========================================================
    Pirates Tools — app.js (Partie 1/4)
    Boot SPA + Helpers + Home + Marques + Loader produits + Hero overshoot
    + Détecteur intelligent (scroll / bas de page masqué / vh iOS / safe-area)
