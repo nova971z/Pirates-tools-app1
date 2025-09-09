@@ -1226,7 +1226,7 @@ body.page-compte .topbar-logo-link { display:none; }`;
       var it = g.item||{}, qty = g.qty||0;
       var sku = it.sku || it.id || it.__auto_id || '';
       var title = (it.title || ((it.brand||'')+' '+(it.sku||''))).trim();
-      return '• ' + sku + ' – ' + title + (qty>1 ? (' ×'+qty) : '');
+            return '• ' + sku + ' – ' + title + (qty>1 ? (' ×'+qty) : '') + (function(pc,curr){ return (pc!=null) ? (' — ' + fmtCents(Math.round(pc*(1+VAT_RATE)), curr) + ' TTC' + (qty>1 ? (' (total ' + fmtCents(Math.round(pc*(1+VAT_RATE))*qty, curr) + ')') : '') + ' — HT: ' + fmtCents(pc, curr)) : ''; })(priceCentsFrom(it), (it && it.currency) ? it.currency : 'EUR');
     });
     var contact = '';
     try{
@@ -1485,7 +1485,7 @@ function renderPDP(product){
       if(u&&u.phone)arr.push('Téléphone: '+u.phone); if(u&&u.addr)arr.push('Adresse: '+u.addr);
       contactSuffix = arr.length ? '\n\nMes coordonnées:\n'+arr.join('\n') : '';
     }catch(_){}
-    return 'Bonjour, je souhaite un devis pour:\n• '+sku+' – '+title+'\n\nLien: '+productLink+contactSuffix+'\n\nMerci.';
+      return 'Bonjour, je souhaite un devis pour:\n• ' + sku + ' – ' + title + (function(pc,curr){ return (pc!=null) ? (' — ' + fmtCents(Math.round(pc*(1+VAT_RATE)), curr) + ' TTC — HT: ' + fmtCents(pc, curr)) : ''; })(priceCentsFrom(product), (product && product.currency) ? product.currency : 'EUR') + '\n\nLien: ' + productLink + contactSuffix + '\n\nMerci.';
   })();
   if (btnWa) btnWa.href = 'https://wa.me/'+onlyDigits(PHONE_E164)+'?text='+encodeURIComponent(textPDP);
 
@@ -4098,63 +4098,83 @@ else boot();
     requestAnimationFrame(function(){ logo.classList.add('on'); });
   }
 
-  // Scroll fallback (ES5)
-  var lastState = '';
-  var io = new IntersectionObserver(function(entries){
-    var entry = entries[0];
-    if (!entry) return;
-    var r = entry.intersectionRatio;
+  // ==== PATCH-HERO (Scroll + IntersectionObserver fallback) ====
+(()=> {
+  function initHero(){
+    var hero = document.getElementById('hero') || document.querySelector('.hero');
+    var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
+    if(!hero || !logo){ return; }
 
-    if (r > 0.96 && lastState !== 'overshoot') {
-      logo.classList.add('fx-overshoot');
-      logo.classList.remove('fx-preblur','fx-out');
-      lastState = 'overshoot';
-      return;
-    }
-    if (r <= 0.96 && r > 0.55 && lastState !== 'preblur') {
-      logo.classList.add('fx-preblur');
-      logo.classList.remove('fx-overshoot','fx-out');
-      lastState = 'preblur';
-      return;
-    }
-    if (r <= 0.55 && lastState !== 'out') {
-      logo.classList.add('fx-out');
-      logo.classList.remove('fx-overshoot','fx-preblur');
-      lastState = 'out';
-    }
-  }, {
-    root: null,
-    threshold: (function(){ var a=[]; for (var i=0;i<=20;i++) a.push(i/20); return a; })()
-  });
+    var lastState = '';
 
-  io.observe(hero);
+    var thresholds = (function(){
+      var a = [];
+      for (var i=0; i<=20; i++) a.push(i/20);
+      return a;
+    })();
 
-  function onScroll(){
-    var rect = hero.getBoundingClientRect();
-    var ih = window.innerHeight || 0;
-    if (rect.bottom <= (ih * 0.30)) {
-      if (lastState !== 'out') {
-        logo.classList.add('fx-out');
-        logo.classList.remove('fx-overshoot','fx-preblur');
-        lastState = 'out';
+    var io = null;
+    if ('IntersectionObserver' in window) {
+      io = new IntersectionObserver(function(entries){
+        var entry = entries && entries[0];
+        if (!entry) return;
+        var r = (typeof entry.intersectionRatio === 'number') ? entry.intersectionRatio : 0;
+
+        if (r > 0.96 && lastState !== 'overshoot') {
+          logo.classList.add('fx-overshoot');
+          logo.classList.remove('fx-preblur','fx-out');
+          lastState = 'overshoot';
+          return;
+        }
+        if (r <= 0.96 && r > 0.55 && lastState !== 'preblur') {
+          logo.classList.add('fx-preblur');
+          logo.classList.remove('fx-overshoot','fx-out');
+          lastState = 'preblur';
+          return;
+        }
+        if (r <= 0.55 && lastState !== 'out') {
+          logo.classList.add('fx-out');
+          logo.classList.remove('fx-overshoot','fx-preblur');
+          lastState = 'out';
+        }
+      }, { root: null, threshold: thresholds });
+
+      try { io.observe(hero); } catch(_){}
+    }
+
+    function onScroll(){
+      var rect = hero.getBoundingClientRect();
+      var ih = window.innerHeight || 0;
+      if (rect.bottom <= (ih * 0.30)) {
+        if (lastState !== 'out') {
+          logo.classList.add('fx-out');
+          logo.classList.remove('fx-overshoot','fx-preblur');
+          lastState = 'out';
+        }
       }
     }
-  }
-  window.addEventListener('scroll', onScroll, {passive:true});
 
-  window.addEventListener('beforeunload', function(){
-    try { io.disconnect(); } catch(_){}
-    window.removeEventListener('scroll', onScroll);
-  });
+    window.addEventListener('scroll', onScroll, {passive:true});
+
+    window.addEventListener('beforeunload', function(){
+      try { io && io.disconnect && io.disconnect(); } catch(_){}
+      window.removeEventListener('scroll', onScroll);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHero);
+  } else {
+    initHero();
+  }
 })();   // ← fin du patch hero
 
 
 // ==== PATCH-JS-001 (Router + classes body + scroll/focus) ====
-
 (()=>{ 
   const PT = (window.PT = window.PT || {});
   PT.q  = (s, r=document)=>r.querySelector(s);
-  PT.qa = (s, r=document)=>[...r.querySelectorAll(s)];
+  PT.qa = (s, r=document)=>Array.prototype.slice.call(r.querySelectorAll(s));
 
   const VIEWS = ['home','catalogue','produit','devis','compte','auth'];
 
@@ -4162,14 +4182,14 @@ else boot();
     const b = document.body;
     VIEWS.forEach(p=>b.classList.remove('page-'+p));
     b.classList.add('page-'+page);
-    if(page==='home'){ b.classList.remove('after-hero'); } else { b.classList.add('after-hero'); }
+    if(page === 'home'){ b.classList.remove('after-hero'); } else { b.classList.add('after-hero'); }
   }
 
   PT.route = function(){
     const hash = (location.hash||'#/').replace(/^#\//,'').trim();
     let page  = hash.split('?')[0] || '';
     if(page==='login' || page==='register'){ page='auth'; }
-    if(!VIEWS.includes(page)) page='home';
+    if(VIEWS.indexOf(page) === -1) page='home';
 
     setBodyPage(page);
 
@@ -4184,8 +4204,8 @@ else boot();
     // PDP : garantir la visibilité + binder
     if(page==='produit'){
       const pdp = PT.q('#view-produit, #pdp');
-      pdp && (pdp.removeAttribute('hidden'), pdp.classList.remove('hidden'));
-      PT.bindPDP && PT.bindPDP();
+      if (pdp) { pdp.removeAttribute('hidden'); pdp.classList.remove('hidden'); }
+      if (PT.bindPDP) PT.bindPDP();
     }
 
     // Scroll en haut + focus H1
@@ -4195,25 +4215,25 @@ else boot();
       const h1 = PT.q('h1', current);
       if(h1){
         if(!h1.hasAttribute('tabindex')) h1.setAttribute('tabindex','-1');
-        h1.focus({ preventScroll:true });
+        try { h1.focus({ preventScroll:true }); } catch(_){ try{ h1.focus(); }catch(__){} }
       }
     },60);
   };
 
-  // Délégation data-nav
+  // Délégation data-nav //
   document.addEventListener('click', (e)=>{
-    const a = e.target.closest('[data-nav]');
-    if(!a) return;
-    const href = a.getAttribute('data-nav') || a.getAttribute('href');
-    if(href && href.startsWith('#/')){ e.preventDefault(); location.hash = href; }
+    const target = e.target && e.target.closest ? e.target.closest('[data-nav]') : null;
+    if(!target) return;
+    const href = target.getAttribute('data-nav') || target.getAttribute('href');
+    if(href && href.indexOf('#/') === 0){ e.preventDefault(); location.hash = href; }
   }, {passive:false});
 
-  addEventListener('hashchange', PT.route);
-  addEventListener('DOMContentLoaded', PT.route);
+  window.addEventListener('hashchange', PT.route);
+  window.addEventListener('DOMContentLoaded', PT.route);
 })();
 
-// ==== PATCH-JS-002 (Drawer robuste + aria + fermetures) ====
 
+// ==== PATCH-JS-002 (Drawer robuste + aria + fermetures) ==== //
 (()=>{ 
   const PT = (window.PT = window.PT || {});
   const btn      = document.getElementById('menu-toggle');
@@ -4228,20 +4248,20 @@ else boot();
     drawer.setAttribute('aria-hidden', String(!open));
   }
 
-  PT.toggleDrawer = (force)=>{
-    const want = typeof force==='boolean' ? force : !drawer?.classList.contains('open');
+  PT.toggleDrawer = function(force){
+    var isOpen = drawer ? drawer.classList.contains('open') : false;
+    const want = (typeof force === 'boolean') ? force : !isOpen;
     set(want);
   };
 
-  btn && btn.addEventListener('click', ()=>PT.toggleDrawer());
-  backdrop && backdrop.addEventListener('click', ()=>PT.toggleDrawer(false));
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') PT.toggleDrawer(false); });
-  addEventListener('hashchange', ()=>PT.toggleDrawer(false));
+  if (btn) btn.addEventListener('click', function(){ PT.toggleDrawer(); });
+  if (backdrop) backdrop.addEventListener('click', function(){ PT.toggleDrawer(false); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') PT.toggleDrawer(false); });
+  window.addEventListener('hashchange', function(){ PT.toggleDrawer(false); });
 })();
 
 
-// ==== PATCH-JS-003 (Auth switch : chips + panels) ====
-
+// ==== PATCH-JS-003 (Auth switch : chips + panels) ==== //
 (()=>{ 
   const PT = (window.PT = window.PT || {});
 
@@ -4252,19 +4272,22 @@ else boot();
       login:    document.getElementById('authLogin'),
       register: document.getElementById('authRegister')
     };
-    chips.forEach(c=> c.setAttribute('aria-selected', c.dataset.tab===key ? 'true' : 'false'));
+    Array.prototype.forEach.call(chips, function(c){
+      c.setAttribute('aria-selected', c.dataset.tab===key ? 'true' : 'false');
+    });
     if(panels.login && panels.register){
       panels.login.hidden    = key!=='login';
       panels.register.hidden = key!=='register';
     }
-    localStorage.setItem('pt_auth_tab', key);
+    try { localStorage.setItem('pt_auth_tab', key); } catch(_){}
   }
 
   PT.initAuth = function(){
-    const saved = localStorage.getItem('pt_auth_tab') || 'login';
+    let saved = 'login';
+    try { saved = localStorage.getItem('pt_auth_tab') || 'login'; } catch(_){}
     select(saved);
-    document.querySelectorAll('.auth-switch .chip').forEach(chip=>{
-      chip.addEventListener('click', ()=> select(chip.dataset.tab));
+    document.querySelectorAll('.auth-switch .chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ select(chip.dataset.tab); });
     });
   };
 
@@ -4274,33 +4297,44 @@ else boot();
     PT.route = function(){
       const h = (location.hash||'').toLowerCase();
       if(h==='#/login' || h==='#/register'){
-        localStorage.setItem('pt_auth_tab', h.includes('register')?'register':'login');
+        try { localStorage.setItem('pt_auth_tab', h.indexOf('register')>-1 ? 'register' : 'login'); } catch(_){}
         location.hash = '#/auth';
-        setTimeout(()=>PT.initAuth && PT.initAuth(), 60);
+        setTimeout(function(){ if (PT.initAuth) PT.initAuth(); }, 60);
         return;
       }
       orig();
-      if((location.hash||'')==='#/auth'){ PT.initAuth && PT.initAuth(); }
+      if((location.hash||'')==='#/auth'){ if (PT.initAuth) PT.initAuth(); }
     };
   }
 })();
 
 
-// ==== PATCH-JS-004 (Toasts utilitaires) ====
-
+// ==== PATCH-JS-004 (Toasts utilitaires) ==== 
 (()=>{ 
   const PT = (window.PT = window.PT || {});
   PT.toast = function(type, message, ms=2600){
     let host = document.getElementById('toasts');
-    if(!host){ host = document.createElement('div'); host.id='toasts'; document.body.appendChild(host); }
+    if(!host){
+      host = document.createElement('div');
+      host.id='toasts';
+      document.body.appendChild(host);
+    }
     const el = document.createElement('div');
     el.className = 'toast toast--'+(type||'info');
-    el.innerHTML = `
-      <div class="toast__icon">•</div>
-      <div class="toast__body">${message}</div>
-      <button class="toast__close" aria-label="Fermer">×</button>`;
+
+    // Structure de base
+    el.innerHTML = '<div class="toast__icon">•</div><div class="toast__body"></div><button class="toast__close" aria-label="Fermer">×</button>';
+
+    // Sécurise le contenu du message
+    const body = el.querySelector('.toast__body');
+    body.textContent = String(message==null ? '' : message);
+
     host.appendChild(el);
-    const close = ()=>{ el.style.animation='toast-out .18s ease-in both'; setTimeout(()=>el.remove(),200); };
+
+    const close = function(){
+      el.style.animation='toast-out .18s ease-in both';
+      setTimeout(function(){ el.remove(); }, 200);
+    };
     el.querySelector('.toast__close').addEventListener('click', close);
     setTimeout(close, ms);
     return el;
@@ -4311,35 +4345,70 @@ else boot();
 })();
 
 
-// ==== PATCH-JS-005 (PDP WhatsApp dynamique + Share) ====
-
+// ==== PATCH-JS-005 (PDP WhatsApp dynamique + Share, TTC/HT) ====
 (()=>{ 
   const PT = (window.PT = window.PT || {});
+
+  // Utilitaires prix (fallback si non présents globalement)
+  function parsePriceCents(str){
+    if(!str) return null;
+    try{
+      var s = (''+str).trim().replace(/\s/g,'');
+      // capture "1234", "1,234.56", "1.234,56", "1234,5"
+      var m = s.match(/([0-9]+(?:[.,][0-9]{1,2})?)/);
+      if(!m) return null;
+      var num = m[1].replace(',', '.');
+      var v = Math.round(parseFloat(num) * 100);
+      return isNaN(v) ? null : v;
+    }catch(_){ return null; }
+  }
+  function fmtCents(cents, curr){
+    try{
+      var v = (cents||0)/100;
+      return new Intl.NumberFormat('fr-FR', { style:'currency', currency: curr||'EUR' }).format(v);
+    }catch(_){
+      return ((cents||0)/100).toFixed(2) + ' ' + (curr||'EUR');
+    }
+  }
+
   PT.bindPDP = function(){
-    const title = (document.getElementById('pdpTitle')?.textContent||'').trim();
-    const ref   = document.getElementById('pdpRef')?.textContent?.trim();
-    const price = document.getElementById('pdpPrice')?.textContent?.trim();
+    const title = (document.getElementById('pdpTitle') && document.getElementById('pdpTitle').textContent || '').trim();
+    const ref   = (document.getElementById('pdpRef')   && document.getElementById('pdpRef').textContent   || '').trim();
+    const priceText = (document.getElementById('pdpPrice') && document.getElementById('pdpPrice').textContent || '').trim();
     const url   = location.href;
 
-    const msg = [
-      title ? `Produit: ${title}` : '',
-      ref   ? `Réf: ${ref}`       : '',
-      price ? `Prix: ${price}`    : '',
-      `Lien: ${url}`
-    ].filter(Boolean).join('\n');
+    // Calcule HT/TTC si possible (VAT_RATE global si dispo, sinon 0.20 par défaut)
+    const VAT = (typeof window.VAT_RATE === 'number' && window.VAT_RATE >= 0) ? window.VAT_RATE : 0.20;
+    const currency = 'EUR';
+    const htCents = parsePriceCents(priceText);
+    const ttcCents = (htCents!=null) ? Math.round(htCents * (1 + VAT)) : null;
+
+    const lignes = [];
+    if (title) lignes.push('Produit: ' + title);
+    if (ref)   lignes.push('Réf: ' + ref);
+    if (htCents!=null){
+      lignes.push('Prix HT: ' + fmtCents(htCents, currency));
+      lignes.push('Prix TTC: ' + fmtCents(ttcCents, currency));
+    } else if (priceText){
+      // fallback : on garde tel quel si parsing impossible
+      lignes.push('Prix: ' + priceText);
+    }
+    lignes.push('Lien: ' + url);
+
+    const msg = lignes.join('\n');
 
     const wa = document.getElementById('pdpWa');
-    if(wa) wa.href = `https://wa.me/33774230195?text=${encodeURIComponent(msg)}`;
+    if(wa) wa.href = 'https://wa.me/33774230195?text=' + encodeURIComponent(msg);
 
     const shareBtn = document.getElementById('pdpShare');
     if(shareBtn){
-      shareBtn.onclick = async (e)=>{
+      shareBtn.onclick = async function(e){
         e.preventDefault();
         try{
-          if(navigator.share){ await navigator.share({ title, text:title, url }); }
+          if(navigator.share){ await navigator.share({ title: title||document.title, text:title||document.title, url }); }
           else{
             await navigator.clipboard.writeText(url);
-            window.PT?.toastSuccess?.('Lien copié 📋');
+            if (window.PT && typeof window.PT.toastSuccess === 'function') window.PT.toastSuccess('Lien copié 📋');
           }
         }catch(_){}
       };
@@ -4348,15 +4417,15 @@ else boot();
 })();
 
 
-
 // ==== PATCH-JS-006 (Portail Compte → Auth si non connecté) ====
-
 (()=>{ 
   const PT = (window.PT = window.PT || {});
   PT.auth = PT.auth || {
-    isLoggedIn(){ return !!localStorage.getItem('pt_user'); },
-    login(u){ localStorage.setItem('pt_user', JSON.stringify(u||{id:'demo'})); },
-    logout(){ localStorage.removeItem('pt_user'); }
+    isLoggedIn: function(){ 
+      try { return !!localStorage.getItem('pt_user'); } catch(_){ return false; }
+    },
+    login: function(u){ try { localStorage.setItem('pt_user', JSON.stringify(u||{id:'demo'})); } catch(_){} },
+    logout: function(){ try { localStorage.removeItem('pt_user'); } catch(_){} }
   };
 
   if(PT.route){
@@ -4365,7 +4434,7 @@ else boot();
       const next = (location.hash||'').toLowerCase();
       if(next==='#/compte' && !PT.auth.isLoggedIn()){
         location.hash = '#/auth';
-        setTimeout(()=>PT.initAuth && PT.initAuth(),60);
+        setTimeout(function(){ if (PT.initAuth) PT.initAuth(); }, 60);
         return;
       }
       orig();
