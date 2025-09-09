@@ -11,6 +11,35 @@
 (function(){
   'use strict';
 
+
+/* PT — Hotfix GH Pages: force les chemins relatifs (products.json / data/* / images/*) à passer par la base /<repo>/ */
+(function(){
+  try{
+    var parts = location.pathname.split('/').filter(Boolean);
+    var base  = parts.length ? ('/' + parts[0] + '/') : '/';
+    var _fetch = window.fetch;
+    window.fetch = function(input, init){
+      var url = (typeof input === 'string') ? input : (input && input.url) || '';
+      if (!url) return _fetch(input, init);
+
+      // products.json à la racine du repo
+      if (/^\/?products\.json(?:[\?#]|$)/i.test(url)){
+        return _fetch(base + 'products.json', init);
+      }
+      // /data/* ou data/*  → vers /<repo>/data/*
+      if (/^(?:\/)?data\//i.test(url)){
+        return _fetch(base + url.replace(/^\//,''), init);
+      }
+      // /images/* ou images/* → vers /<repo>/images/*
+      if (/^(?:\/)?images\//i.test(url)){
+        return _fetch(base + url.replace(/^\//,''), init);
+      }
+      return _fetch(input, init);
+    };
+  }catch(_){}
+})();
+
+
   /* ---------- Mini helpers DOM ---------- */
   function $(sel, root){ return (root||document).querySelector(sel); }
   function $$(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
@@ -742,6 +771,57 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   window.PT.showView = window.showView;
   window.PT.focusView = window.focusView;
 })();
+
+
+/* PT — UI micro-styles injectés (dock centré + drawer propre + PDP détails) */
+(function(){
+  if (document.getElementById('pt-ui')) return;
+  var css = `
+:root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
+
+/* Drawer (menu hamburger) aligné à droite, glisse propre */
+.drawer{
+  position:fixed; inset:0 0 0 auto; width:min(86vw,360px); max-width:92vw;
+  background:rgba(0,0,0,.9); -webkit-backdrop-filter:saturate(120%) blur(8px);
+  backdrop-filter:saturate(120%) blur(8px);
+  transform:translateX(100%); transition:transform .25s ease; z-index:1001;
+}
+.drawer.open{ transform:none; }
+.backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
+.backdrop.hidden{ display:none; }
+[hidden]{ display:none !important; }
+
+/* Dock — centré, fixe, avec safe-area bottom */
+#dock{
+  position:fixed; left:50%;
+  bottom:calc(14px + var(--safe-bottom,0px));
+  z-index:999; transform:translateX(-50%) translateY(12px); opacity:0;
+  transition:opacity .28s ease-out, transform .28s ease-out;
+  pointer-events:none; overflow:visible;
+}
+#dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
+#dock.dock--pulse{ animation:dockPulse .46s ease }
+@keyframes dockPulse{
+  0%{ transform:translateX(-50%) translateY(0) scale(1) }
+  40%{ transform:translateX(-50%) translateY(0) scale(1.03) }
+  100%{ transform:translateX(-50%) translateY(0) scale(1) }
+}
+
+/* PDP petites choses pour que tout réapparaisse nickel */
+.pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
+.pdp__price{ font-size:1.25rem; font-weight:700; }
+.pdp__price-ht{ opacity:.8; }
+
+/* Masquer le logo topbar hors Accueil (si présent) */
+body.page-catalogue .topbar-logo-link,
+body.page-devis .topbar-logo-link,
+body.page-compte .topbar-logo-link { display:none; }`;
+  var s = document.createElement('style');
+  s.id = 'pt-ui'; s.textContent = css;
+  document.head.appendChild(s);
+})();
+
+
 
 // === Patches UI “classe-first” (laisser le CSS piloter) ===
 (function(){
