@@ -4935,26 +4935,171 @@ else boot();
 })();
 
 // ==== PATCH-JS-006 (Portail Compte → Auth si non connecté) ====
-(()=>{ 
-  const PT = (window.PT = window.PT || {});
-  PT.auth = PT.auth || {
-    isLoggedIn: function(){ 
-      try { return !!localStorage.getItem('pt_user'); } catch(_){ return false; }
-    },
-    login: function(u){ try { localStorage.setItem('pt_user', JSON.stringify(u||{id:'demo'})); } catch(_){} },
-    logout: function(){ try { localStorage.removeItem('pt_user'); } catch(_){} }
+(function(){
+  'use strict';
+  var PT = (window.PT = window.PT || {});
+  if (window.__ptPatch006) return; // idempotent
+  window.__ptPatch006 = 1;
+
+  /* ---------- Utils stockage sûrs ---------- */
+  function lsGet(key){
+    try { return localStorage.getItem(key); } catch(_){ return null; }
+  }
+  function lsSet(key, val){
+    try { localStorage.setItem(key, val); } catch(_){}
+  }
+  function lsDel(key){
+    try { localStorage.removeItem(key); } catch(_){}
+  }
+  function ssGet(key){
+    try { return sessionStorage.getItem(key); } catch(_){ return null; }
+  }
+  function ssSet(key, val){
+    try { sessionStorage.setItem(key, val); } catch(_){}
+  }
+  function ssDel(key){
+    try { sessionStorage.removeItem(key); } catch(_){}
+  }
+
+  function nowSec(){ return Math.floor(Date.now()/1000); }
+
+  /* ---------- PT.auth (rétro-compat + améliorations) ---------- */
+  PT.auth = PT.auth || {};
+  var AUTH_KEY = 'pt_user';
+  var POST_LOGIN_KEY = 'pt_post_login_hash';
+
+  var listeners = [];
+  function emitAuth(event, detail){
+    try{
+      var ev = new CustomEvent('pt:'+event, { detail: detail||{} });
+      document.dispatchEvent(ev);
+    }catch(_){}
+    // callbacks déclarées via onChange
+    listeners.slice().forEach(function(fn){
+      try { fn(event, detail||{}); } catch(_){}
+    });
+  }
+
+  PT.auth.getUser = PT.auth.getUser || function(){
+    var raw = lsGet(AUTH_KEY);
+    if (!raw) return null;
+    try {
+      var obj = JSON.parse(raw);
+      if (obj && typeof obj === 'object'){
+        // Support TTL optionnel (rétro-compat si absent)
+        if (typeof obj.exp === 'number' && obj.exp > 0 && obj.exp < nowSec()){
+          return null; // expiré
+        }
+        return obj;
+      }
+      return null;
+    } catch(_){ return null; }
   };
 
-  if(PT.route){
-    const orig = PT.route;
-    PT.route = function(){
-      const next = (location.hash||'').toLowerCase();
-      if(next==='#/compte' && !PT.auth.isLoggedIn()){
-        location.hash = '#/auth';
-        setTimeout(function(){ if (PT.initAuth) PT.initAuth(); }, 60);
-        return;
+  PT.auth.isLoggedIn = PT.auth.isLoggedIn || function(){
+    return !!PT.auth.getUser();
+  };
+
+  PT.auth.login = PT.auth.login || function(user, opts){
+    var payload = user && typeof user === 'object' ? user : { id:'demo' };
+    // TTL optionnel { ttlSec }
+    if (opts && typeof opts.ttlSec === 'number' && opts.ttlSec > 0){
+      payload = Object.assign({}, payload, { exp: nowSec() + Math.floor(opts.ttlSec) });
+    }
+    lsSet(AUTH_KEY, JSON.stringify(payload));
+    PT.auth.updateUI && PT.auth.updateUI();
+    emitAuth('login', { user: payload });
+
+    // Redirection post-login si une cible a été mémorisée
+    var target = ssGet(POST_LOGIN_KEY);
+    if (target){
+      ssDel(POST_LOGIN_KEY);
+      try { location.hash = target; } catch(_){}
+      // Relancer le routeur s’il existe
+      try { PT.route && PT.route(); } catch(_){}
+    }
+  };
+
+  PT.auth.logout = PT.auth.logout || function(){
+    lsDel(AUTH_KEY);
+    PT.auth.updateUI && PT.auth.updateUI();
+    emitAuth('logout', {});
+  };
+
+  PT.auth.onChange = PT.auth.onChange || function(fn){
+    if (typeof fn === 'function') listeners.push(fn);
+    return function off(){ // unsubscribe
+      var i = listeners.indexOf(fn);
+      if (i>-1) listeners.splice(i,1);
+    };
+  };
+
+  // Petites aides d’UI (optionnelles, non intrusives)
+  PT.auth.updateUI = PT.auth.updateUI || function(){
+    var logged = PT.auth.isLoggedIn();
+    try{
+      var ins  = document.querySelectorAll('[data-auth="in"], .js-auth-in');
+      var outs = document.querySelectorAll('[data-auth="out"], .js-auth-out');
+      ins.forEach(function(n){ n.hidden = !logged; });
+      outs.forEach(function(n){ n.hidden = !!logged; });
+    }catch(_){}
+    emitAuth('auth-change', { loggedIn: logged, user: PT.auth.getUser() });
+  };
+
+  // Sync multi-onglets : logout / login ailleurs
+  if (!window.__ptAuthStorageBound){
+    window.__ptAuthStorageBound = true;
+    window.addEventListener('storage', function(e){
+      if (e && e.key === AUTH_KEY){
+        PT.auth.updateUI && PT.auth.updateUI();
+        // Si on est sur une route protégée et qu’on vient d’être déconnecté, bascule vers /auth
+        try{
+          if (!PT.auth.isLoggedIn()){
+            var h = (location.hash||'').toLowerCase();
+            var list = PT.routeProtected || [];
+            if (list.indexOf(h) > -1){
+              location.hash = '#/auth';
+              setTimeout(function(){ PT.initAuth && PT.initAuth(); }, 60);
+            }
+          }
+        }catch(_){}
       }
-      orig();
+    }, false);
+  }
+
+  /* ---------- Protection des routes ---------- */
+  // Liste extensible depuis ailleurs si besoin
+  PT.routeProtected = PT.routeProtected || ['#/compte'];
+
+  if (PT.route){
+    var orig = PT.route;
+    PT.route = function(){
+      // Normalise le hash
+      var next = (location.hash || '').toLowerCase();
+
+      // Si la route demandée est protégée et que l’utilisateur n’est pas loggué
+      if (Array.isArray(PT.routeProtected) && PT.routeProtected.indexOf(next) > -1 && !PT.auth.isLoggedIn()){
+        // mémorise la cible pour y revenir post-login
+        ssSet(POST_LOGIN_KEY, next);
+        // feedback doux si toasts dispos
+        try {
+          if (PT.toastInfo) PT.toastInfo('Veuillez vous connecter pour accéder à cette page.');
+        } catch(_){}
+        // redirige vers auth + init
+        try { location.hash = '#/auth'; } catch(_){}
+        setTimeout(function(){ try { PT.initAuth && PT.initAuth(); } catch(_){} }, 60);
+        return; // ne pas exécuter le routeur original dans ce cas
+      }
+
+      // Route normale
+      try { orig.apply(this, arguments); } catch(_){ orig(); }
+
+      // Met à jour l’UI auth à chaque navigation (idempotent)
+      try { PT.auth.updateUI && PT.auth.updateUI(); } catch(_){}
     };
   }
+
+  // Mise à jour initiale de l’UI au chargement
+  try { PT.auth.updateUI && PT.auth.updateUI(); } catch(_){}
+
 })();
