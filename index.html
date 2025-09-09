@@ -44,7 +44,7 @@
   /* Aspect du logo pendant le fade-in initial (classe posée par le loader) */
   .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
   .hero-logo.on{ opacity:1; }
-</style>
+  </style>
 </head>
 
 <body data-router-root>
@@ -370,7 +370,7 @@
                   <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
                 </label>
                 <label>Mot de passe
-                  <input id="loginPwd" type="password" class="search" placeholder="••••••••" required />
+                  <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
                 </label>
                 <div class="actions">
                   <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
@@ -388,7 +388,7 @@
                   <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
                 </label>
                 <label>Mot de passe
-                  <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" required />
+                  <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
                 </label>
                 <div class="actions">
                   <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
@@ -415,7 +415,7 @@
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-    <div id="menuBackdrop" class="menu-backdrop" hidden aria-hidden="true"></div>
+  <div id="menuBackdrop" class="backdrop" hidden aria-hidden="true"></div>
   <aside id="side-menu" class="drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
     <h2 id="menuTitle" class="sr-only">Menu</h2>
     <a class="app-link" href="#/" data-nav="/">
@@ -490,6 +490,7 @@
 .toast{ background:rgba(0,0,0,.8); color:#fff; border-radius:8px; padding:.6rem .8rem; }
 .toast--success{ background:rgba(23, 135, 44, .9); }
 .toast--info{ background:rgba(39, 96, 201, .9); }
+@keyframes toast-out{ to{ opacity:0; transform:translateY(8px); } }
 
 /* SR helpers */
 .sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0; }
@@ -518,14 +519,17 @@
 body.page-catalogue .topbar-logo-link,
 body.page-devis .topbar-logo-link,
 body.page-compte .topbar-logo-link { display:none !important; }
-</style>
+  </style>
 
-  <!-- Micro-scripts UI (menu + routing + auth + avatar + smooth scroll) -->
+  <!-- Micro-scripts UI (menu + a11y + auth tabs + avatar + mini-panier) -->
   <script>
   (function(){
     var btn  = document.getElementById('menu-toggle');
     var ovl  = document.getElementById('menuBackdrop');
     var side = document.getElementById('side-menu');
+
+    /* PATCH A — normalise la classe d’overlay (sécurité si HTML ancien) */
+    if (ovl) { ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
 
     function open(){
       document.body.classList.add('menu-open');
@@ -558,11 +562,27 @@ body.page-compte .topbar-logo-link { display:none !important; }
       if (e.key === 'Escape') close();
     }, false);
     window.addEventListener('hashchange', function(){ close(); }, false);
-  })();
-  </script>
 
-  <script>
-  (function(){
+    /* PATCH B — Le lien "Aller au contenu" ne touche pas au hash + fallback */
+    (function(){
+      var sk = document.querySelector('.skip-link');
+      if (!sk) return;
+      sk.addEventListener('click', function(e){
+        var id = (sk.getAttribute('href')||'').replace(/^#/, '');
+        var tgt = id && document.getElementById(id);
+        if (!tgt){
+          // Fallback : H1 de la vue visible, ou #home-h1
+          var view = document.querySelector('.view:not(.hidden)') || document.getElementById('view-home');
+          tgt = (view && view.querySelector('h1')) || document.getElementById('home-h1');
+        }
+        if (!tgt) return;
+        e.preventDefault();
+        try{ tgt.setAttribute('tabindex','-1'); }catch(_){}
+        try{ tgt.focus({preventScroll:true}); }catch(_){}
+        try{ tgt.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ window.scrollTo(0, tgt.offsetTop||0); }
+      }, false);
+    })();
+
     // Navigation pour éléments [data-nav] non <a>
     document.addEventListener('click', function(e){
       var el = e.target && e.target.closest && e.target.closest('[data-nav]');
@@ -573,44 +593,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
       e.preventDefault();
     }, false);
 
-    // Router minimal : applique classe page-*, smooth scroll top, focus H1
-    function pageFromHash(){
-      var h = (location.hash || '#/').replace(/^#/, '');
-      var p = h.split('?')[0].split('#')[0];
-      if (p === '/' || p === '') return 'home';
-      return (p.replace(/^\//,'') || 'home').split('/')[0];
-    }
-    function setPageClass(){
-      var p = pageFromHash();
-      document.body.classList.remove('page-home','page-catalogue','page-produit','page-devis','page-compte','page-auth');
-      document.body.classList.add('page-' + p);
-    }
-    function focusH1(){
-      var p = pageFromHash();
-      var view = document.getElementById('view-' + p);
-      if (!view) return;
-      var h1 = view.querySelector('h1[tabindex="-1"], h1');
-      if (!h1) return;
-      try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){}
-    }
-    function scrollTopSmooth(){
-      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ window.scrollTo(0,0); }
-    }
-    function onRoute(){
-      setPageClass();
-      scrollTopSmooth();
-      // petit délai pour laisser le scroll démarrer, puis focus
-      setTimeout(focusH1, 160);
-      // informer lecteurs d'écran
-      var live = document.getElementById('sr-live');
-      if (live){ live.textContent = 'Navigation vers ' + pageFromHash(); }
-    }
-
-    // Première application + écoute
-    onRoute();
-    window.addEventListener('hashchange', onRoute);
-
-    // ===== Auth : switch onglets + redirection post-submit =====
+    // ===== Auth : switch onglets
     var tabLogin = document.getElementById('authLoginTab');
     var tabReg   = document.getElementById('authRegisterTab');
     var panLogin = document.getElementById('authLogin');
@@ -633,17 +616,6 @@ body.page-compte .topbar-logo-link { display:none !important; }
     if (tabLogin) tabLogin.addEventListener('click', showLogin);
     if (tabReg)   tabReg.addEventListener('click', showRegister);
 
-    var loginForm = document.getElementById('loginForm');
-    var regForm   = document.getElementById('registerForm');
-
-    function goCompte(e){
-      if (e) e.preventDefault();
-      try{ location.hash = '#/compte'; }catch(_){}
-      return false;
-    }
-    if (loginForm) loginForm.addEventListener('submit', goCompte);
-    if (regForm)   regForm.addEventListener('submit', goCompte);
-
     // ===== Avatar preview =====
     var fileInp = document.getElementById('accAvatar');
     var imgOut  = document.getElementById('accAvatarImg');
@@ -661,7 +633,6 @@ body.page-compte .topbar-logo-link { display:none !important; }
     try{
       var miniTxt = document.getElementById('accCartMiniTxt');
       if (miniTxt){
-        // essaie de lire un format simple depuis localStorage (si app.js l’utilise, il écrasera)
         var raw = localStorage.getItem('cart') || localStorage.getItem('pt_cart');
         if (raw){
           try{
@@ -687,6 +658,14 @@ body.page-compte .topbar-logo-link { display:none !important; }
   }
   function syncViews(){
     var path=routePath();
+
+    /* NEW — anti-doublon : évite les doubles traitements de route */
+    try{
+      var now = Date.now();
+      if (window.__PT_ROUTER_LOCK && (now - window.__PT_ROUTER_LOCK) < 80) return;
+      window.__PT_ROUTER_LOCK = now;
+    }catch(_){}
+
     // bascule l'affichage des vues par data-route
     document.querySelectorAll('.view').forEach(function(sec){
       var r = sec.getAttribute('data-route') || '/';
@@ -716,9 +695,9 @@ body.page-compte .topbar-logo-link { display:none !important; }
     pdpImg.style.minHeight = '160px';
   }
 })();
-</script>
+  </script>
 
-<script>
+  <script>
 /* PATCH D — Portail d'accès Compte (inscription / connexion locales) */
 (function(){
   var AUTH_KEY='pt_auth';
@@ -770,9 +749,29 @@ body.page-compte .topbar-logo-link { display:none !important; }
   if (document.readyState!=='loading') guard();
   else document.addEventListener('DOMContentLoaded', guard);
 
-  // Brancher les formulaires
+  // Brancher les formulaires (purge anciens listeners + set autocomplete)
   var regForm=document.getElementById('registerForm');
   var loginForm=document.getElementById('loginForm');
+
+  // Purge (au cas où) des anciens listeners en clonant les nodes
+  (function(){
+    if (loginForm && loginForm.parentNode){
+      var lf = loginForm.cloneNode(true);
+      loginForm.parentNode.replaceChild(lf, loginForm);
+      loginForm = lf;
+    }
+    if (regForm && regForm.parentNode){
+      var rf = regForm.cloneNode(true);
+      regForm.parentNode.replaceChild(rf, regForm);
+      regForm = rf;
+    }
+    try{
+      var loginPwd = document.getElementById('loginPwd');
+      var regPwd   = document.getElementById('regPwd');
+      if (loginPwd) loginPwd.setAttribute('autocomplete','current-password');
+      if (regPwd)   regPwd.setAttribute('autocomplete','new-password');
+    }catch(_){}
+  })();
 
   if(regForm){
     regForm.addEventListener('submit', async function(e){
@@ -816,9 +815,12 @@ body.page-compte .topbar-logo-link { display:none !important; }
     el.className='toast toast--'+(type||'info');
     el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+msg+'</div>';
     host.appendChild(el);
-    setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); },180); }, 2000);
+    setTimeout(function(){
+      el.style.animation='toast-out .18s ease-in both';
+      setTimeout(function(){ el.remove(); }, 200);
+    }, 2000);
   }
 })();
-</script> 
+  </script> 
 </body>
 </html>
