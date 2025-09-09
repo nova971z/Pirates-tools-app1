@@ -908,7 +908,7 @@ body.page-compte .topbar-logo-link { display:none; }`;
   }
 
   if ('IntersectionObserver' in window){
-    var thresholds = Array.from({length:21}, function(_, i){ return i/20; });
+    var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++){ a.push(i/20); } return a; })();
     var io = new IntersectionObserver(function(entries){
       var e = entries && entries[0];
       lastRatio = e ? e.intersectionRatio : 0;
