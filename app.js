@@ -4115,109 +4115,115 @@ else boot();
   } catch (_){}
 })();
 
-// app-hero.js — fallback scroll (sans dépendance, ultra light)
+/* app-hero.js — fallback scroll (sans dépendance, ultra light) */
 (function(){
   var logo = document.querySelector('#heroLogo, .hero-logo');
   var hero = document.querySelector('#hero, .hero-full');
-
   if (!logo || !hero) return;
 
   // Si CSS Scroll-Driven Animations est supporté, on s'efface.
   var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
     (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
+
+  // Si un autre contrôleur Hero est déjà présent, on ne double pas.
   if (window.__ptHeroIO || window.__ptHeroScroll || (window.PT && window.PT.hero)) return;
-  
-  
-  // Intro contrôlée (si pas déjà jouée via la classe .on posée par ton loader)
+
+  // Intro douce si pas encore jouée
   if (!logo.classList.contains('on')) {
     requestAnimationFrame(function(){ logo.classList.add('on'); });
   }
 
   // ==== PATCH-HERO (Scroll + IntersectionObserver fallback) ====
-(function(){
-  function initHero(){
-    var heroEl = document.getElementById('hero') || document.querySelector('.hero, .hero-full');
-    var logo   = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
-    if (!heroEl || !logo) return;
+  (function(){
+    function initHero(){
+      var heroEl = document.getElementById('hero') || document.querySelector('.hero, .hero-full');
+      var logoEl = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
+      if (!heroEl || !logoEl) return;
 
-    var lastState = '';
+      var lastState = '';
+      var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++) a.push(i/20); return a; })();
+      var io = null;
 
-    // ES5-safe thresholds
-    var thresholds = (function(){
-      var a = [], i;
-      for (i = 0; i <= 20; i++) a.push(i/20);
-      return a;
-    })();
+      if ('IntersectionObserver' in window){
+        io = new IntersectionObserver(function(entries){
+          var entry = entries && entries[0]; if (!entry) return;
+          var r = (typeof entry.intersectionRatio === 'number') ? entry.intersectionRatio : 0;
 
-    var io = null;
+          if (r > 0.96 && lastState !== 'overshoot'){
+            logoEl.classList.add('fx-overshoot');
+            logoEl.classList.remove('fx-preblur','fx-out');
+            lastState = 'overshoot';
+            return;
+          }
+          if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
+            logoEl.classList.add('fx-preblur');
+            logoEl.classList.remove('fx-overshoot','fx-out');
+            lastState = 'preblur';
+            return;
+          }
+          if (r <= 0.55 && lastState !== 'out'){
+            logoEl.classList.add('fx-out');
+            logoEl.classList.remove('fx-overshoot','fx-preblur');
+            lastState = 'out';
+          }
+        }, { root:null, threshold: thresholds });
 
-    if ('IntersectionObserver' in window){
-      io = new IntersectionObserver(function(entries){
-        var entry = entries && entries[0];
-        if (!entry) return;
-        var r = (typeof entry.intersectionRatio === 'number') ? entry.intersectionRatio : 0;
+        try{ io.observe(heroEl); }catch(_){}
+        try{ window.__ptHeroIO = io; }catch(_){}
+      } else {
+        function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+        function onScroll(){
+          var rect = heroEl.getBoundingClientRect ? heroEl.getBoundingClientRect() : {top:0,bottom:0,height:1};
+          var h = rect.height || heroEl.offsetHeight || 1;
+          var ih = window.innerHeight || 0;
+          var vis = (Math.min(rect.bottom, ih) - Math.max(rect.top, 0)) / h;
+          var r = clamp(vis, 0, 1);
 
-        if (r > 0.96 && lastState !== 'overshoot'){
-          logo.classList.add('fx-overshoot');
-          logo.classList.remove('fx-preblur','fx-out');
-          lastState = 'overshoot';
-          return;
+          if (r > 0.96 && lastState !== 'overshoot'){
+            logoEl.classList.add('fx-overshoot');
+            logoEl.classList.remove('fx-preblur','fx-out');
+            lastState = 'overshoot';
+          } else if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
+            logoEl.classList.add('fx-preblur');
+            logoEl.classList.remove('fx-overshoot','fx-out');
+            lastState = 'preblur';
+          } else if (r <= 0.55 && lastState !== 'out'){
+            logoEl.classList.add('fx-out');
+            logoEl.classList.remove('fx-overshoot','fx-preblur');
+            lastState = 'out';
+          }
         }
-        if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
-          logo.classList.add('fx-preblur');
-          logo.classList.remove('fx-overshoot','fx-out');
-          lastState = 'preblur';
-          return;
-        }
-        if (r <= 0.55 && lastState !== 'out'){
-          logo.classList.add('fx-out');
-          logo.classList.remove('fx-overshoot','fx-preblur');
-          lastState = 'out';
-        }
-      }, { root:null, threshold: thresholds });
-
-      try{ io.observe(heroEl); }catch(_){}
-      try{ window.__ptHeroIO = io; }catch(_){}
-    }
-
-    // Fallback scroll (toujours câblé — il ne s'active que si besoin)
-    function onScroll(){
-      var rect = heroEl.getBoundingClientRect ? heroEl.getBoundingClientRect() : {top:0,bottom:0,height:1};
-      var h = rect.height || heroEl.offsetHeight || 1;
-      var ih = window.innerHeight || 0;
-      var visibleRatio = (Math.min(rect.bottom, ih) - Math.max(rect.top, 0)) / h;
-      if (visibleRatio <= 0.55 && lastState !== 'out'){
-        logo.classList.add('fx-out');
-        logo.classList.remove('fx-overshoot','fx-preblur');
-        lastState = 'out';
+        window.addEventListener('scroll', onScroll, { passive:true });
+        window.addEventListener('resize', onScroll, { passive:true });
+        try{
+          window.__ptHeroScroll = onScroll;
+          window.__ptHeroHeroEl = heroEl;
+        }catch(_){}
+        onScroll();
       }
+
+      // Nettoyage
+      window.addEventListener('beforeunload', function(){
+        try{ if (io && io.disconnect) io.disconnect(); }catch(_){}
+        try{
+          if (window.__ptHeroScroll){
+            window.removeEventListener('scroll', window.__ptHeroScroll);
+            window.removeEventListener('resize', window.__ptHeroScroll);
+            window.__ptHeroScroll = null;
+          }
+        }catch(_){}
+      }, { once:true });
     }
 
-    window.addEventListener('scroll', onScroll, { passive:true });
-    window.addEventListener('resize', onScroll, { passive:true });
-    try{
-      window.__ptHeroScroll = onScroll;
-      window.__ptHeroHeroEl = heroEl;
-    }catch(_){}
-    onScroll();
+    if (document.readyState === 'complete' || document.readyState === 'interactive'){
+      try{ initHero(); }catch(_){}
+    } else {
+      document.addEventListener('DOMContentLoaded', function(){ try{ initHero(); }catch(_){} }, false);
+    }
+  })();
 
-    // Nettoyage
-    window.addEventListener('beforeunload', function(){
-      try{ if (io && io.disconnect) io.disconnect(); }catch(_){}
-      try{
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onScroll);
-      }catch(_){}
-    }, { once:true });
-  }
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive'){
-    try{ initHero(); }catch(_){}
-  } else {
-    document.addEventListener('DOMContentLoaded', function(){ try{ initHero(); }catch(_){} }, false);
-  }
-})();
 // ==== PATCH-JS-001 (Router + classes body + scroll/focus) ====
 (()=>{ 
   const PT = (window.PT = window.PT || {});
