@@ -18,26 +18,43 @@
     var parts = location.pathname.split('/').filter(Boolean);
     var base  = parts.length ? ('/' + parts[0] + '/') : '/';
     var _fetch = window.fetch;
-    window.fetch = function(input, init){
-      var url = (typeof input === 'string') ? input : (input && input.url) || '';
-      if (!url) return _fetch(input, init);
-
-      // products.json à la racine du repo
-      if (/^\/?products\.json(?:[\?#]|$)/i.test(url)){
-        return _fetch(base + 'products.json', init);
-      }
-      // /data/* ou data/*  → vers /<repo>/data/*
-      if (/^(?:\/)?data\//i.test(url)){
-        return _fetch(base + url.replace(/^\//,''), init);
-      }
-      // /images/* ou images/* → vers /<repo>/images/*
-      if (/^(?:\/)?images\//i.test(url)){
-        return _fetch(base + url.replace(/^\//,''), init);
-      }
-      return _fetch(input, init);
-    };
+    function _rewriteFetch(input, init, newUrl){
+  try{
+    if (input && typeof input === 'object' && 'method' in input){
+      var reqInit = {
+        method: input.method, headers: input.headers, body: input.body,
+        mode: input.mode, credentials: input.credentials, cache: input.cache,
+        redirect: input.redirect, referrer: input.referrer, referrerPolicy: input.referrerPolicy,
+        integrity: input.integrity, keepalive: input.keepalive, signal: input.signal
+      };
+      return _fetch(new Request(newUrl, reqInit), init);
+    }
   }catch(_){}
-})();
+  return _fetch(newUrl, init);
+}
+   window.fetch = function(input, init){
+  var url = (typeof input === 'string') ? input : (input && input.url) || '';
+  if (!url) return _fetch(input, init);
+
+  // products.json à la racine du repo (on garde ?query et #hash)
+  var m = url.match(/^\/?products\.json([\?#].*)?$/i);
+  if (m){
+    return _rewriteFetch(input, init, base + 'products.json' + (m[1] || ''));
+  }
+
+  // /data/* ou data/*  → vers /<repo>/data/* (on garde ?query/#hash)
+  if (/^(?:\/)?data\//i.test(url)){
+    return _rewriteFetch(input, init, base + url.replace(/^\//,''));
+  }
+
+  // /images/* ou images/* → vers /<repo>/images/* (on garde ?query/#hash)
+  if (/^(?:\/)?images\//i.test(url)){
+    return _rewriteFetch(input, init, base + url.replace(/^\//,''));
+  }
+
+  // par défaut, on ne touche pas
+  return _fetch(input, init);
+};
 
 
   /* ---------- Mini helpers DOM ---------- */
@@ -1508,21 +1525,33 @@ function renderPDP(product){
     );
   }).slice(0,3);
 
-  if (elRel){
-    var relHTML = '';
-    for (var i=0;i<related.length;i++){
-      var rm = related[i];
-      var rid = (rm.id||rm.sku||rm.title||rm.__auto_id||'');
-      relHTML +=
-        '<article class="card" data-id="'+rid+'">'+
-        '  <div class="head"><h3 class="title">'+((rm.title||(rm.brand||'')+' '+(rm.sku||'')))+'</h3>'+((rm.badge||'')?'<span class="badge">'+rm.badge+'</span>':'')+'</div>'+
-        '  <div class="specs"><p style="margin:0">'+(rm.desc||rm.description||'')+'</p></div>'+
-        '  <div class="actions"><button class="btn primary" data-add="'+rid+'">Ajouter au panier</button></div>'+
-        '</article>';
-    }
-    elRel.innerHTML = relHTML;
-    wireCardsAddToCart(null, elRel);
+if (elRel){
+  // échappement sûr (XSS-safe)
+  function esc(s){
+    s = String(s==null?'':s);
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
   }
+
+  var relHTML = '';
+  for (var i=0;i<related.length;i++){
+    var rm = related[i] || {};
+    var rid = String(rm.id||rm.sku||rm.title||rm.__auto_id||'');
+    var rTitle = esc(rm.title || ((rm.brand||'')+' '+(rm.sku||'')));
+    var rBadge = rm.badge ? '<span class="badge">'+esc(rm.badge)+'</span>' : '';
+    var rDesc  = esc(rm.desc || rm.description || '');
+
+    relHTML +=
+      '<article class="card" data-id="'+esc(rid)+'">'+
+      '  <div class="head"><h3 class="title">'+rTitle+'</h3>'+rBadge+'</div>'+
+      '  <div class="specs"><p style="margin:0">'+rDesc+'</p></div>'+
+      '  <div class="actions"><button class="btn primary" data-add="'+esc(rid)+'">Ajouter au panier</button></div>'+
+      '</article>';
+  }
+  elRel.innerHTML = relHTML;
+  wireCardsAddToCart(null, elRel);
+}
 
   // SEO
   if (typeof window.setPageMeta==='function'){
