@@ -71,7 +71,7 @@
 
     <div class="cta">
       <a id="callBtn" class="btn btn-call" href="tel:+33774230195" data-action="call">📞 <strong>07 74 23 01 95</strong></a>
-      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp" data-action="open-wa">💬</a>
+      <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
     </div>
   </header>
 
@@ -269,7 +269,7 @@
 
             <div class="actions">
               <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-              <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
+              <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
               <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
             </div>
           </div>
@@ -410,7 +410,7 @@
       <button id="dockCartBtn"    class="dock__btn dock__btn--cart"    type="button" aria-label="Voir le panier" data-nav="/devis">🛒</button>
       <span id="dockCount" class="dock__badge" aria-label="Articles dans le panier">0</span>
       <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler" data-action="call">📞</a>
-      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" aria-label="WhatsApp" data-action="open-wa">💬</a>
+      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
     </div>
   </nav>
 
@@ -450,8 +450,21 @@
   </noscript>
 
   <!-- =================== JS =================== -->
-  <!-- app.js contient l’animation du hero (overshoot/blur/fade + gestion --listGap) -->
-  <script src="./app.js" defer></script>
+  <!-- 1) Tente d'abord la version "classique" de PT (doit définir window.PT) -->
+  <script defer src="./pt.js"></script>
+
+  <!-- 2) Fallback si PT est un module ES : on l'importe et on l’expose sur window -->
+  <script type="module">
+    if (!window.PT) {
+      import('./pt.js').then((PT)=>{ window.PT = PT; }).catch(()=>{ /* silencieux */ });
+    }
+  </script>
+
+  <!-- 3) app.js (garde ton code existant). S’il est un module, tu peux aussi le servir en type="module". -->
+  <script defer src="./app.js"></script>
+  <!-- Variante si ton app est un module :
+  <script type="module" src="./app.js"></script>
+  -->
 
   <!-- Micro-styles UI complémentaires -->
   <style id="pt-ui">
@@ -503,6 +516,9 @@
 .backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
 .backdrop.hidden{ display:none; }
 [hidden]{ display:none !important; }
+
+/* Cache les vues marquées .hidden par le router */
+.view.hidden{ display:none !important; }
 
 /* Dock (compteur & pulse) */
 #dock{ position:fixed; left:0; right:0; bottom:0; padding:.5rem; transform:translateY(100%); transition:transform .2s ease; z-index:999; }
@@ -647,7 +663,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
     }catch(_){}
   })();
   </script>
-  
+
   <script>
 /* PATCH C — Router : affiche la bonne vue + PDP toujours visible */
 (function(){
@@ -821,6 +837,33 @@ body.page-compte .topbar-logo-link { display:none !important; }
     }, 2000);
   }
 })();
-  </script> 
+  </script>
+
+  <!-- ===== Diagnostics réseau rapides (HEAD sur pt.js & products.json) ===== -->
+  <script>
+  (function(){
+    try {
+      ['.\\/pt.js','.\\/js/pt.js','/pt.js','/js/pt.js'].forEach(function(u){
+        fetch(u, {method:'HEAD'}).then(function(r){ console.log('[diag] PT candidate', u, r.status); })
+                                 .catch(function(){ console.log('[diag] PT candidate', u, 'ERR'); });
+      });
+      fetch('./data/products.json', {method:'HEAD'})
+        .then(function(r){ console.log('[diag] products.json', r.status, r.url); })
+        .catch(function(){ console.log('[diag] products.json ERR'); });
+    } catch (_) {}
+  })();
+  </script>
+
+  <!-- ===== Eruda : console mobile persistante (activer via #eruda ou localStorage) ===== -->
+  <script>
+  (function () {
+    var enabled = /[?&#]eruda(?:=true)?\b/.test(location.href) || localStorage.getItem('eruda') === 'true';
+    if (!enabled) return;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    s.onload = function () { try{ eruda.init(); eruda.show(); }catch(_){ } };
+    document.body.appendChild(s);
+  })();
+  </script>
 </body>
 </html>
