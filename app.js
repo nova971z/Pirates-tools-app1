@@ -1,4 +1,3 @@
-<script>
 /*! Pirates Tools — bundle unifié (ES5, idempotent) */
 (function (window, document) {
   'use strict';
