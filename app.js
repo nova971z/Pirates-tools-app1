@@ -621,22 +621,30 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
     }
 
     function applyBottomPadding(){
-      try{
-        var need = computeObstruction();
-        if (!need){
-          E.style.setProperty('--safe-bottom','0px');
-          if (B && B.__ptOrigPB!=null){ B.style.paddingBottom = B.__ptOrigPB; } // (12.2) restore
-          return;
-        }
-        var cur = px(css(B).paddingBottom);
-        var want = Math.max(cur, need + 6); // marge douce
-        if (!B.__ptOrigPB){ B.__ptOrigPB = B.style.paddingBottom||''; }
-        if (want > cur + 1){
-          B.style.paddingBottom = want + 'px';
-        }
-        E.style.setProperty('--safe-bottom', need+'px');
-      }catch(_){}
+  try{
+    var need = computeObstruction();
+
+    // Pas de body encore → juste reset la var CSS
+    if (!B){ if (E) E.style.setProperty('--safe-bottom','0px'); return; }
+
+    if (!need){
+      E && E.style.setProperty('--safe-bottom','0px');
+      if (B.__ptOrigPB != null){ B.style.paddingBottom = B.__ptOrigPB; } // restaure le padding d’origine
+      return;
     }
+
+    var cur  = px(css(B).paddingBottom);
+    var want = Math.max(cur, need + 6); // marge douce
+
+    // FIX: ne sauvegarder l’original qu’une seule fois (accepté même si chaîne vide)
+    if (B.__ptOrigPB == null){ B.__ptOrigPB = B.style.paddingBottom || ''; }
+
+    if (want > cur + 1){
+      B.style.paddingBottom = want + 'px';
+    }
+    E && E.style.setProperty('--safe-bottom', need + 'px');
+  }catch(_){}
+}
 
     /* --- 3) Détection “page ne scrolle pas alors qu’elle est plus haute” --- */
     function fixScrollLockIfNeeded(){
