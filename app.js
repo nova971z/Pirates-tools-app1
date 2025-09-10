@@ -4138,6 +4138,7 @@ else boot();
 
 /*=========================================================================*
   2) HERO: Fallback Scroll + IntersectionObserver (ultra light)
+  - ES5-safe, idempotent, ne double pas si un contrôleur existe déjà
 *=========================================================================*/
 (function heroFallback(){
   if (window.__ptHeroPatch) return; window.__ptHeroPatch = 1;
@@ -4146,17 +4147,17 @@ else boot();
   var hero = document.querySelector('#hero, .hero-full');
   if (!logo || !hero) return;
 
-  // Si Scroll-Driven Animations sont supportées, on s'efface
+  // Scroll-Driven Animations supportées ? → on s'efface
   var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
     (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
 
-  // Si un autre contrôleur Hero est déjà présent, on ne double pas.
+  // Un autre contrôleur existe ? → on ne double pas
   if (window.__ptHeroIO || window.__ptHeroScroll || (window.PT && window.PT.hero)) return;
 
   // Intro douce si pas encore jouée
   if (!logo.classList.contains('on')) {
-    requestAnimationFrame(function(){ logo.classList.add('on'); });
+    try { requestAnimationFrame(function(){ logo.classList.add('on'); }); } catch(_){}
   }
 
   (function(){
@@ -4166,7 +4167,7 @@ else boot();
       if (!heroEl || !logoEl) return;
 
       var lastState = '';
-      var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++) a.push(i/20); return a; })();
+      var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++){ a.push(i/20); } return a; })();
       var io = null;
 
       if ('IntersectionObserver' in window){
@@ -4247,7 +4248,6 @@ else boot();
     }
   })();
 })();
-
 /*=========================================================================*
   3) PATCH-002 — Drawer robuste (ARIA + escapades + hash close)
 *=========================================================================*/
