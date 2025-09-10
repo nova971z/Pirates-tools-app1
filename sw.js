@@ -1,344 +1,227 @@
-/* =========================================================
-   Pirates Tools — sw.js (PWA cache/offline PRO, SAFE)
-   - App shell précache (+ index fallback) — safeAddAll (tolère fichiers manquants)
-   - Navigations: network-first (+ preload si dispo)
-   - products.json: network-first (retombe sur cache)
-   - Images: cache-first (opaque CORS OK) + fallback offline
-     • interne: "loose" (accepte ?v=)   • externe: SAFE (fallback no-cors)
-   - CSS/JS/Fonts/Manifest/JSON: stale-while-revalidate
-   - Trim automatique des caches (anti-gonflement)
-   - Warm-up products.json à l'install
-   - Messages: SKIP_WAITING / CLEAR_CACHES / GET_VERSION
-========================================================= */
+/* sw.js — Pirates Tools (PWA) */
+const VERSION        = 'pt-v130';
+const STATIC_CACHE   = `pt-static-${VERSION}`;
+const RUNTIME_CACHE  = `pt-runtime-${VERSION}`;
+const IMG_CACHE      = `pt-img-${VERSION}`;
+const DATA_CACHE     = `pt-data-${VERSION}`;
+const ORIGIN         = self.location.origin;
 
-'use strict';
-
-const VERSION        = 'pt-v127'./favicon.ico',
-  // icônes PWA (si certaines n’existent pas, elles seront ignorées proprement)
+// IMPORTANT : le site tourne sous /Pirates-tools-app1/ (GitHub Pages).
+// On reste en chemins relatifs (./) pour que le SW fonctionne en local et en prod.
+const APP_SHELL = [
+  './',
+  './index.html',
+  './styles.css',
+  './pt.js',                    // sera ignoré s'il n'existe pas
+  './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-256.png',
   './icons/icon-384.png',
   './icons/icon-512.png',
-  // logo (sans ?v=, on matche en “loose” côté images internes)
-  './images/pirates-tools-logo.png'
+  './images/pirates-tools-logo.png' // sera ignoré si absent
 ];
 
-/* ---------------- Helpers ---------------- */
-const isCachable = (req, res) =>
-  req.method === 'GET' && res && (res.ok || res.type === 'opaque');
+// Utilitaires
+const isGET = req => (req.method || 'GET').toUpperCase() === 'GET';
+const sameOrigin = url => url.origin === ORIGIN;
+const ext = p => (p.split('?')[0].split('#')[0].split('.').pop() || '').toLowerCase();
+const isNav = evt => evt.request.mode === 'navigate';
 
-async function putInCache(cacheName, request, response) {
-  if (!isCachable(request, response)) return response;
-  try {
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-  } catch (_) {}
-  return response;
+// Précharger en douceur en ignorant les erreurs individuelles
+async function precacheShell() {
+  const c = await caches.open(STATIC_CACHE);
+  await Promise.all(APP_SHELL.map(async (u) => {
+    try { const r = await fetch(u, {cache:'no-store'}); if (r.ok) await c.put(u, r.clone()); }
+    catch (_){ /* ignore */ }
+  }));
 }
 
-async function fromCache(cacheName, request, { ignoreSearch = false } = {}) {
-  const cache = await caches.open(cacheName);
-  const match = await cache.match(request, { ignoreSearch, ignoreVary: true });
-  return match || null;
-}
-
-async function fromCacheLoose(cacheName, request) {
-  const cached = await fromCache(cacheName, request, { ignoreSearch: false });
-  if (cached) return cached;
-  return fromCache(cacheName, request, { ignoreSearch: true });
-}
-
-async function trimCache(cacheName, maxEntries) {
-  if (!maxEntries || maxEntries <= 0) return;
-  try {
-    const cache = await caches.open(cacheName);
-    const keys  = await cache.keys();
-    const extra = keys.length - maxEntries;
-    if (extra > 0) {
-      await Promise.all(keys.slice(0, extra).map(k => cache.delete(k)));
-    }
-  } catch (_) {}
-}
-
-function offlineImageResponse() {
-  const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360">
-  <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#0a0f14"/><stop offset="1" stop-color="#06141b"/></linearGradient></defs>
-  <rect width="100%" height="100%" fill="url(#g)"/>
-  <g font-family="system-ui,Segoe UI,Roboto,Arial" fill="#9fb4c5" text-anchor="middle">
-    <text x="50%" y="48%" font-size="26">Image indisponible hors ligne</text>
-    <text x="50%" y="60%" font-size="18" fill="#19d3ff">Pirates Tools</text>
-  </g>
-</svg>`;
-  return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml' } });
-}
-
-function isHTMLResponse(res) {
-  try {
-    const ct = res.headers.get('Content-Type') || '';
-    return ct.includes('text/html');
-  } catch (_) { return false; }
-}
-
-// Pré-cache tolérant : n’échoue pas si un fichier manque (icône absente, etc.)
-async function safeAddAll(cache, urls) {
-  for (const u of urls) {
-    try {
-      const req = new Request(u, { cache: 'no-store' });
-      const res = await fetch(req);
-      if (isCachable(req, res)) await cache.put(req, res.clone());
-    } catch (_) { /* on ignore cet item */ }
-  }
-}
-
-/* -------- Images externes : fetch “safe” avec fallback no-cors -------- */
-async function fetchImageSafe(request) {
-  try {
-    return await fetch(request); // essai standard
-  } catch (_) {
-    try {
-      const noCorsReq = new Request(request.url, {
-        mode: 'no-cors',
-        credentials: 'omit',
-        redirect: 'follow',
-        cache: request.cache || 'default',
-        referrer: '' // évite certains hotlinks
-      });
-      return await fetch(noCorsReq);
-    } catch (__){
-      return null;
-    }
-  }
-}
-
-async function cacheFirstImage(event, request, cacheName, limit, { loose = true } = {}) {
-  const cached = loose ? await fromCacheLoose(cacheName, request) : await fromCache(cacheName, request);
-  if (cached) return cached;
-
-  const res = await fetchImageSafe(request);
-  if (res) {
-    event.waitUntil((async () => {
-      await putInCache(cacheName, request, res);
-      await trimCache(cacheName, limit);
-    })());
-    return res.clone();
-  }
-  return offlineImageResponse();
-}
-
-/* ---------------- Strategies ---------------- */
-async function cacheFirst(event, request, cacheName, limit, { loose = false } = {}) {
-  const cached = loose ? await fromCacheLoose(cacheName, request) : await fromCache(cacheName, request);
-  if (cached) return cached;
-
-  try {
-    const res = await fetch(request);
-    event.waitUntil((async () => {
-      await putInCache(cacheName, request, res);
-      await trimCache(cacheName, limit);
-    })());
-    return res.clone();
-  } catch (_) {
-    if (request.destination === 'image' || request.url.endsWith('.ico')) return offlineImageResponse();
-    return Response.error();
-  }
-}
-
-async function staleWhileRevalidate(event, request, cacheName, limit, { loose = false } = {}) {
-  const cachePromise = loose ? fromCacheLoose(cacheName, request) : fromCache(cacheName, request);
-  const fetchPromise = fetch(request)
-    .then(async (res) => {
-      await putInCache(cacheName, request, res);
-      await trimCache(cacheName, limit);
-      return res.clone();
-    })
-    .catch(() => null);
-
-  const cached = await cachePromise;
-  if (cached) {
-    event.waitUntil(fetchPromise);
-    return cached;
-  }
-  const fresh = await fetchPromise;
-  return fresh || Response.error();
-}
-
-async function networkFirst(event, request, cacheName, limit, fallbackResponse = null) {
-  try {
-    // Navigation Preload si dispo
-    const preload = await event.preloadResponse;
-    if (preload) {
-      event.waitUntil((async () => {
-        await putInCache(cacheName, request, preload);
-        await trimCache(cacheName, limit);
-      })());
-      return preload.clone();
-    }
-
-    const res = await fetch(request);
-    event.waitUntil((async () => {
-      await putInCache(cacheName, request, res);
-      await trimCache(cacheName, limit);
-    })());
-    return res.clone();
-  } catch (_) {
-    const cached = await fromCache(cacheName, request);
-    if (cached) return cached;
-    if (fallbackResponse) return fallbackResponse;
-    return Response.error();
-  }
-}
-
-/* ---------------- Install ---------------- */
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     try {
-      const cache = await caches.open(CACHE_STATIC);
-      await safeAddAll(cache, APP_SHELL); // tolérant aux fichiers manquants
-      // Warm-up du catalogue (si présent)
-      try {
-        const req = new Request('./products.json', { cache: 'no-store' });
-        const res = await fetch(req);
-        if (res && (res.ok || res.type === 'opaque')) {
-          const c = await caches.open(CACHE_PRODUCTS);
-          await c.put(req, res.clone());
-        }
-      } catch (_) {}
-    } catch (_) {}
-    await self.skipWaiting();
+      if ('navigationPreload' in self.registration) {
+        try { await self.registration.navigationPreload.enable(); } catch(_){}
+      }
+      await precacheShell();
+      await self.skipWaiting();
+    } catch(_){}
   })());
 });
 
-/* ---------------- Activate ---------------- */
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    // Purge des anciens caches
-    const keep = new Set([CACHE_STATIC, CACHE_DYNAMIC, CACHE_IMAGES, CACHE_PRODUCTS]);
+    // Supprime les anciens caches
+    const keep = new Set([STATIC_CACHE, RUNTIME_CACHE, IMG_CACHE, DATA_CACHE]);
     const names = await caches.keys();
-    await Promise.all(
-      names.filter(n => n.startsWith('pt-') && !keep.has(n)).map(n => caches.delete(n))
-    );
-
-    // Navigation preload si possible
-    try {
-      if ('navigationPreload' in self.registration) {
-        await self.registration.navigationPreload.enable();
-      }
-    } catch (_) {}
-
+    await Promise.all(names.map(n => keep.has(n) ? null : caches.delete(n)));
     await self.clients.claim();
-
-    // Info clients (optionnel)
-    try {
-      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-      for (const c of clients) c.postMessage({ type: 'SW_READY', version: VERSION });
-    } catch (_) {}
   })());
 });
 
-/* ---------------- Fetch router ---------------- */
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.method !== 'GET') return;
+// Network helpers
+async function fromCache(cacheName, request) {
+  const c = await caches.open(cacheName);
+  const m = await c.match(request, {ignoreVary:true});
+  return m || null;
+}
+async function putCache(cacheName, request, response) {
+  try {
+    const c = await caches.open(cacheName);
+    await c.put(request, response.clone());
+  } catch(_){}
+}
+function timeout(ms, promise){
+  return new Promise((resolve, reject)=>{
+    const id = setTimeout(()=>reject(new Error('timeout')), ms);
+    promise.then(v=>{ clearTimeout(id); resolve(v); }, e=>{ clearTimeout(id); reject(e); });
+  });
+}
 
-  const url = new URL(request.url);
+// Stratégies
+async function handleNavigate(event){
+  // Navigation : utilise preload/network, sinon fallback index.html en cache
+  try {
+    const pre = await event.preloadResponse;
+    if (pre) return pre;
+  } catch(_){}
 
-  // Ignorer certaines origines / schémas (extensions, analytics, WhatsApp)
-  if (url.protocol === 'chrome-extension:') return;
-  if (url.hostname === 'wa.me') return;
-  if (/google-analytics|gstatic|googletagmanager/.test(url.hostname)) return;
+  try {
+    const net = await fetch(event.request);
+    // rafraîchit index.html en cache si on a la ressource
+    if (net && net.ok) { putCache(STATIC_CACHE, './index.html', net.clone()); }
+    return net;
+  } catch(_){
+    const cached = await fromCache(STATIC_CACHE, './index.html');
+    if (cached) return cached;
+    // dernier recours
+    return Response.redirect('./', 302);
+  }
+}
 
-  // Navigations (SPA/hash routes comprises) → network-first + fallback index
-  if (request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        // 1) Preload s'il existe
-        const preload = await event.preloadResponse;
-        if (preload) {
-          if (isHTMLResponse(preload)) {
-            event.waitUntil(putInCache(CACHE_STATIC, INDEX_URL, preload.clone()));
-          }
-          return preload;
-        }
+async function handleProducts(request){
+  // Network-first (avec timeout) + fallback cache pour data/products.json ou products.json
+  try {
+    const net = await timeout(4000, fetch(request));
+    if (net && net.ok) { putCache(DATA_CACHE, request, net.clone()); }
+    return net;
+  } catch(_){
+    const cached = await fromCache(DATA_CACHE, request);
+    if (cached) return cached;
+    // Essaie l'autre chemin en fallback (data/ <-> racine)
+    const url = new URL(request.url);
+    const twin = url.pathname.endsWith('/products.json')
+      ? url.pathname.replace('/products.json','/data/products.json')
+      : url.pathname.replace('/data/products.json','/products.json');
+    try {
+      const altReq = new Request(`${url.origin}${twin}${url.search}`, {method:'GET'});
+      const altCached = await fromCache(DATA_CACHE, altReq);
+      if (altCached) return altCached;
+    } catch(_){}
+    // Rien en cache
+    return new Response('[]', {status:200, headers:{'Content-Type':'application/json'}});
+  }
+}
 
-        // 2) Fetch réseau
-        const net = await fetch(request);
-        if (isHTMLResponse(net)) {
-          event.waitUntil(putInCache(CACHE_STATIC, INDEX_URL, net.clone()));
-        }
-        return net;
-      } catch (_) {
-        // 3) Fallback index pré-caché
-        const cachedIndex = await caches.match(INDEX_URL, { ignoreSearch: true });
-        return cachedIndex || Response.error();
+async function handleStatic(request){
+  // CSS/JS/Manifest -> stale-while-revalidate
+  const cached = await fromCache(STATIC_CACHE, request);
+  const fetching = (async ()=>{
+    try {
+      const net = await fetch(request);
+      if (net && (net.ok || net.type === 'opaque')) {
+        await putCache(STATIC_CACHE, request, net.clone());
       }
-    })());
-    return;
+    } catch(_){}
+  })();
+  if (cached) { event.waitUntil?.(fetching); return cached; }
+  try {
+    const net = await fetch(request);
+    if (net && net.ok) { putCache(STATIC_CACHE, request, net.clone()); }
+    return net;
+  } catch(_){
+    return cached || new Response('', {status:504});
   }
+}
 
-  // Externe (CDN) : images → cache-first SAFE (fallback no-cors)
-  if (url.origin !== location.origin) {
-    if (request.destination === 'image' || url.pathname.endsWith('.ico')) {
-      event.respondWith(cacheFirstImage(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: false }));
+async function handleImage(request){
+  // Images/icônes -> cache-first puis réseau
+  const cached = await fromCache(IMG_CACHE, request);
+  if (cached) return cached;
+  try {
+    const net = await fetch(request);
+    if (net && (net.ok || net.type === 'opaque')) {
+      putCache(IMG_CACHE, request, net.clone());
     }
+    return net;
+  } catch(_){
+    // Fallback icône
+    return fromCache(STATIC_CACHE, './icons/icon-256.png') ||
+           new Response('', {status:504});
+  }
+}
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (!isGET(req)) return;
+
+  const url = new URL(req.url);
+
+  // Laisse passer les requêtes cross-origin (WhatsApp, fonts externes, etc.)
+  if (!sameOrigin(url)) return;
+
+  // 1) Navigation (SPA hash routes)
+  if (isNav(event)) {
+    event.respondWith(handleNavigate(event));
     return;
   }
 
-  // products.json → network-first (cache dédié) + fallback []
-  if (url.pathname.endsWith('/products.json') || url.pathname.endsWith('products.json')) {
-    const emptyJson = new Response('[]', { headers: { 'Content-Type': 'application/json' } });
-    event.respondWith(networkFirst(event, request, CACHE_PRODUCTS, LIMIT_PRODUCTS, emptyJson));
+  const pathname = url.pathname;
+
+  // 2) Produits JSON
+  if (pathname.endsWith('/data/products.json') || pathname.endsWith('/products.json')) {
+    event.respondWith(handleProducts(req));
     return;
   }
 
-  // CSS / JS / Fonts / Manifest / autres JSON → SWR
-  if (
-    request.destination === 'style'   ||
-    request.destination === 'script'  ||
-    request.destination === 'font'    ||
-    request.destination === 'manifest'||
-    (request.destination === '' && url.pathname.endsWith('.json'))
-  ) {
-    // pour les assets du site: SWR "loose" afin de couvrir ?v= (ex: logo.png?v=7)
-    const isSameOrigin = url.origin === location.origin;
-    event.respondWith(staleWhileRevalidate(
-      event, request, CACHE_STATIC, LIMIT_STATIC, { loose: isSameOrigin }
-    ));
+  // 3) Images & icônes
+  const e = ext(pathname);
+  if (['png','jpg','jpeg','webp','gif','svg','ico'].includes(e)) {
+    event.respondWith(handleImage(req));
     return;
   }
 
-  // Images internes → cache-first (loose pour ?v=)
-  if (request.destination === 'image' || url.pathname.endsWith('.ico')) {
-    event.respondWith(cacheFirst(event, request, CACHE_IMAGES, LIMIT_IMAGES, { loose: true }));
+  // 4) CSS / JS / Manifest
+  if (['css','js','mjs','map','webmanifest','json'].includes(e)) {
+    event.respondWith(handleStatic(req));
     return;
   }
 
-  // Par défaut → SWR (dyn)
-  event.respondWith(staleWhileRevalidate(event, request, CACHE_DYNAMIC, LIMIT_DYNAMIC));
+  // 5) Par défaut : passe au réseau (et met en cache léger si 200)
+  event.respondWith((async ()=>{
+    try {
+      const net = await fetch(req);
+      if (net && net.ok && sameOrigin(url)) { putCache(RUNTIME_CACHE, req, net.clone()); }
+      return net;
+    } catch(_){
+      const cached = await fromCache(RUNTIME_CACHE, req) || await fromCache(STATIC_CACHE, req);
+      return cached || new Response('', {status:504});
+    }
+  })());
 });
 
-/* ---------------- Messages ---------------- */
-self.addEventListener('message', async (event) => {
-  if (!event || !event.data) return;
-  const data = event.data;
-
+// Messages depuis l'app (mise à jour souple)
+self.addEventListener('message', (e) => {
+  const data = e?.data;
+  if (!data) return;
   if (data === 'SKIP_WAITING' || data?.type === 'SKIP_WAITING') {
-    await self.skipWaiting();
-    return;
+    self.skipWaiting();
   }
-
-  if (data === 'CLEAR_CACHES' || data?.type === 'CLEAR_CACHES') {
-    const names = await caches.keys();
-    await Promise.all(names.filter(n => n.startsWith('pt-')).map(n => caches.delete(n)));
-    try {
-      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-      for (const c of clients) c.postMessage({ type: 'CACHES_CLEARED' });
-    } catch (_) {}
-    return;
-  }
-
-  if (data === 'GET_VERSION' || data?.type === 'GET_VERSION') {
-    try { event.source?.postMessage?.({ type: 'VERSION', version: VERSION }); } catch (_) {}
+  if (data === 'CLEAR_OLD_CACHES' || data?.type === 'CLEAR_OLD_CACHES') {
+    (async ()=> {
+      const keep = new Set([STATIC_CACHE, RUNTIME_CACHE, IMG_CACHE, DATA_CACHE]);
+      const names = await caches.keys();
+      await Promise.all(names.map(n => keep.has(n) ? null : caches.delete(n)));
+    })();
   }
 });
