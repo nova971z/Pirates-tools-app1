@@ -372,7 +372,6 @@
   <!-- =================== JS =================== -->
   <!-- PT (si présent) -->
   <script defer src="pt.js"></script>
-  <script type="module">
     if (!window.PT) {
       import('pt.js').then((PT)=>{ window.PT = PT; }).catch(()=>{});
     }
