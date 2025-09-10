@@ -4107,22 +4107,47 @@ else boot();
    FIN — petits utilitaires d’ergonomie non intrusifs
 ========================================================== */
 
-(function smoothBehaviorFallback() {
+<script>
+/* =========================================================================
+   PT BUNDLE — Patches front
+   - Idempotent partout (window.__ptPatchXXX)
+   - Sans dépendances externes
+   - Organisation logique par sections
+   ====================================================================== */
+
+/*=========================================================================*
+  0) CORE NAMESPACE
+*=========================================================================*/
+(function bootPT(){
+  if (!window.PT) window.PT = {};
+})();
+
+/*=========================================================================*
+  1) Fallback scroll-behavior (douceur de scroll basique)
+*=========================================================================*/
+(function smoothBehaviorFallback(){
+  if (window.__ptSmoothFallback) return; window.__ptSmoothFallback = 1;
   try {
     var html = document.documentElement;
     if (html && !('scrollBehavior' in html.style)) {
+      // Pas de vraie polyfill (complexe), mais on active la prop côté style
+      // sur les navigateurs qui comprennent la propriété même partiellement.
       html.style.scrollBehavior = 'smooth';
     }
-  } catch (_){}
+  } catch(_){}
 })();
 
-/* app-hero.js — fallback scroll (sans dépendance, ultra light) */
-(function(){
+/*=========================================================================*
+  2) HERO: Fallback Scroll + IntersectionObserver (ultra light)
+*=========================================================================*/
+(function heroFallback(){
+  if (window.__ptHeroPatch) return; window.__ptHeroPatch = 1;
+
   var logo = document.querySelector('#heroLogo, .hero-logo');
   var hero = document.querySelector('#hero, .hero-full');
   if (!logo || !hero) return;
 
-  // Si CSS Scroll-Driven Animations est supporté, on s'efface.
+  // Si Scroll-Driven Animations sont supportées, on s'efface
   var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
     (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
   if (supportsScrollTimeline) return;
@@ -4135,7 +4160,6 @@ else boot();
     requestAnimationFrame(function(){ logo.classList.add('on'); });
   }
 
-  // ==== PATCH-HERO (Scroll + IntersectionObserver fallback) ====
   (function(){
     function initHero(){
       var heroEl = document.getElementById('hero') || document.querySelector('.hero, .hero-full');
@@ -4223,11 +4247,13 @@ else boot();
       document.addEventListener('DOMContentLoaded', function(){ try{ initHero(); }catch(_){} }, false);
     }
   })();
+})();
 
-
-
-// ==== PATCH-JS-002 (Drawer robuste + aria + fermetures) ==== //
-(()=>{ 
+/*=========================================================================*
+  3) PATCH-002 — Drawer robuste (ARIA + escapades + hash close)
+*=========================================================================*/
+(function drawerPatch(){
+  if (window.__ptPatch002) return; window.__ptPatch002 = 1;
   const PT = (window.PT = window.PT || {});
   const btn      = document.getElementById('menu-toggle');
   const drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
@@ -4253,10 +4279,11 @@ else boot();
   window.addEventListener('hashchange', function(){ PT.toggleDrawer(false); });
 })();
 
-
-// ==== PATCH-JS-003 (Auth switch : chips + panels) ==== //
-
-(()=>{ 
+/*=========================================================================*
+  4) PATCH-003 — Auth switch (chips + panels + mémoire onglet)
+*=========================================================================*/
+(function authSwitch(){
+  if (window.__ptPatch003) return; window.__ptPatch003 = 1;
   const PT = (window.PT = window.PT || {});
 
   function select(tab){
@@ -4316,7 +4343,7 @@ else boot();
     });
   }
 
-  PT.initAuth = function(forceTab){
+  PT.initAuth = PT.initAuth || function(forceTab){
     // Priorité: param → route → mémoire → défaut
     let key = (forceTab === 'register' || forceTab === 'login') ? forceTab : '';
     if (!key){
@@ -4339,9 +4366,11 @@ else boot();
   }
 })();
 
-
-  /* ===== Alias #/login / #/register → #/auth (préserve l'onglet) ===== */
-(function(){
+/*=========================================================================*
+  5) ROUTING — Alias #/login / #/register → #/auth (préserve l’onglet)
+*=========================================================================*/
+(function authAliases(){
+  if (window.__ptAuthAlias) return; window.__ptAuthAlias = 1;
   'use strict';
   var PT = window.PT = (window.PT || {});
 
@@ -4427,30 +4456,28 @@ else boot();
   })();
 })();
 
-// ==== PATCH-JS-004 (Toasts utilitaires) ====
-(function(){
+/*=========================================================================*
+  6) PATCH-004 — Toasts utilitaires (a11y, dédup, actions)
+*=========================================================================*/
+(function toasts(){
   'use strict';
   var PT = (window.PT = window.PT || {});
   if (window.__ptPatch004) return; // idempotent
   window.__ptPatch004 = 1;
 
-  /* ----------------- Config & état ----------------- */
   var DEFAULTS = {
     timeout: 2600,
     max: 5,
-    ariaLive: 'polite',     // ou 'assertive'
-    position: 'top-right',  // si votre CSS gère [data-position]
+    ariaLive: 'polite',
+    position: 'top-right',
     closeOnClick: false,
     dismissible: true,
     pauseOnHover: true,
-    dedupe: true,           // évite les doublons visuels
+    dedupe: true,
     iconMap: { info: 'ℹ️', success: '✓', warn: '⚠️', error: '⛔' }
   };
 
-  // Mémoire des clés anti-doublons
   PT.__toastsKeys = PT.__toastsKeys || Object.create(null);
-
-  // Par défaut, modifiable avant usage si besoin
   PT.toastDefaults = PT.toastDefaults || Object.assign({}, DEFAULTS);
 
   function getHost(){
@@ -4468,7 +4495,6 @@ else boot();
 
   function coerceOptions(type, message, msOrOpts){
     var opts = {};
-    // Back-compat: PT.toast('info', 'msg', 2000)
     if (typeof msOrOpts === 'number') opts.timeout = msOrOpts;
     else if (msOrOpts && typeof msOrOpts === 'object') opts = msOrOpts;
 
@@ -4482,17 +4508,13 @@ else boot();
   function closeWithAnimation(el){
     if (!el || el.__closed) return;
     el.__closed = true;
-
-    // Marqueur de sortie (laisser votre CSS gérer la transi)
     el.classList.add('is-out');
-    // Fallback animation si aucune CSS fournie
     try { el.style.animation = 'toast-out .18s ease-in both'; } catch(_){}
     if (!el.style.animation){
       el.style.transition = el.style.transition || 'opacity .18s ease-in, transform .18s ease-in';
       el.style.opacity = '0';
       el.style.transform = 'translateY(-6px)';
     }
-    // Nettoyage
     setTimeout(function(){
       if (el && el.parentNode) el.parentNode.removeChild(el);
       if (el.__key && PT.__toastsKeys[el.__key] === el) delete PT.__toastsKeys[el.__key];
@@ -4500,7 +4522,7 @@ else boot();
   }
 
   function armTimer(el, ms){
-    if (!ms || ms <= 0) return; // persistant
+    if (!ms || ms <= 0) return;
     var endAt = Date.now() + ms;
     clearTimeout(el.__timer);
     el.__remaining = ms;
@@ -4511,7 +4533,6 @@ else boot();
       armTimer(el, val);
     };
 
-    // Pause au survol
     el.__onEnter = function(){
       if (!el.__opts.pauseOnHover) return;
       if (el.__paused) return;
@@ -4530,7 +4551,6 @@ else boot();
     el.addEventListener('mouseenter', el.__onEnter);
     el.addEventListener('mouseleave', el.__onLeave);
 
-    // Progress bar (si votre CSS l'utilise via animation-duration)
     var pg = el.querySelector('.toast__progress');
     if (pg){ try { pg.style.animationDuration = (ms)+'ms'; } catch(_){} }
   }
@@ -4540,7 +4560,7 @@ else boot();
     while (host.children.length > max){
       var first = host.firstElementChild;
       if (!first) break;
-      if (first.__paused){ // si survolé, passer au suivant
+      if (first.__paused){
         first = first.nextElementSibling;
         if (!first) break;
       }
@@ -4548,7 +4568,6 @@ else boot();
     }
   }
 
-  // Fermeture via Échap (la dernière)
   (function bindEscOnce(){
     if (window.__ptToastEsc) return;
     window.__ptToastEsc = true;
@@ -4561,9 +4580,7 @@ else boot();
     }, false);
   })();
 
-  /* ----------------- Core API ----------------- */
   PT.toast = function(type, message, msOrOpts){
-    // Surcharge tolérante : PT.toast('msg') ⇒ info
     if (message === undefined && typeof type === 'string' &&
         !/^(info|success|warn|warning|error)$/i.test(type)){
       message = type; type = 'info';
@@ -4572,10 +4589,8 @@ else boot();
     var opts = coerceOptions(type, message, msOrOpts);
     var host = getHost();
 
-    // Anti-doublons (clé explicite ou message+type)
     var key = opts.key || (opts.dedupe ? (opts.type + '::' + opts.message) : null);
     if (key && PT.__toastsKeys[key]){
-      // On met à jour le toast existant & on reset le timer
       var existing = PT.__toastsKeys[key];
       var body = existing.querySelector('.toast__body');
       if (body) body.textContent = opts.message;
@@ -4584,7 +4599,6 @@ else boot();
       return existing;
     }
 
-    // Création
     var el = document.createElement('div');
     el.className = 'toast pt-toast toast--' + (opts.type||'info');
     el.setAttribute('role', 'status');
@@ -4592,7 +4606,6 @@ else boot();
     el.__opts = opts;
     el.__key = key;
 
-    // Structure
     el.innerHTML =
       '<div class="toast__icon" aria-hidden="true"></div>' +
       '<div class="toast__body"></div>' +
@@ -4600,15 +4613,12 @@ else boot();
       (opts.dismissible !== false ? '<button class="toast__close" type="button" aria-label="Fermer">×</button>' : '') +
       '<div class="toast__progress" aria-hidden="true"></div>';
 
-    // Icône
     var icon = el.querySelector('.toast__icon');
     icon.textContent = (opts.icon != null) ? String(opts.icon) : (DEFAULTS.iconMap[opts.type] || '•');
 
-    // Message (sécurisé)
     var body = el.querySelector('.toast__body');
     body.textContent = opts.message;
 
-    // Action éventuelle
     var actionBtn = el.querySelector('.toast__action');
     if (actionBtn && opts.action && opts.action.label){
       actionBtn.textContent = String(opts.action.label);
@@ -4618,7 +4628,6 @@ else boot();
       }, false);
     }
 
-    // Fermer (bouton et API)
     var closeBtn = el.querySelector('.toast__close');
     el.close = function(){ closeWithAnimation(el); };
     if (closeBtn){
@@ -4628,29 +4637,22 @@ else boot();
       }, false);
     }
 
-    // Fermer au clic global si demandé
     if (opts.closeOnClick){
       el.addEventListener('click', function(ev){
-        // ne pas fermer si clic sur bouton d’action
         if (ev.target && (ev.target.classList.contains('toast__action') || ev.target.classList.contains('toast__close'))) return;
         el.close();
       }, false);
     }
 
-    // Progression + timer
     armTimer(el, opts.timeout);
 
-    // Position (si gérée par votre CSS)
     try { getHost().dataset.position = opts.position || PT.toastDefaults.position; } catch(_){}
 
-    // Ajout + max
     host.appendChild(el);
     enforceMax(host, opts.max);
 
-    // Enregistre la clé pour dédup
     if (key) PT.__toastsKeys[key] = el;
 
-    // Évènement custom (écouteurs externes optionnels)
     try{
       var evt = new CustomEvent('pt:toast', { detail: { element: el, options: opts } });
       document.dispatchEvent(evt);
@@ -4659,36 +4661,31 @@ else boot();
     return el;
   };
 
-  // Raccourcis
   PT.toastInfo    = function(m, o){ return PT.toast('info',    m, o); };
   PT.toastSuccess = function(m, o){ return PT.toast('success', m, o); };
   PT.toastWarn    = function(m, o){ return PT.toast('warn',    m, o); };
   PT.toastError   = function(m, o){ return PT.toast('error',   m, o); };
-
-  // Fermeture programmatique (utilitaire)
   PT.toastClose   = function(el){ if (el && typeof el.close === 'function') el.close(); };
 
 })();
 
-// ==== PATCH-JS-005 (PDP WhatsApp dynamique + Share, TTC/HT) ====
-(function(){
+/*=========================================================================*
+  7) PATCH-005 — PDP (WhatsApp dynamique + Share + TTC/HT)
+*=========================================================================*/
+(function pdpPatch(){
   'use strict';
   var PT = (window.PT = window.PT || {});
   if (window.__ptPatch005) return; window.__ptPatch005 = 1;
 
-  /* ---------- Utilitaires sûrs ---------- */
   function onlyDigits(s){ return String(s||'').replace(/[^\d]/g,''); }
   function lc(v){ return String(v||'').toLowerCase(); }
 
-  // Parse des montants en texte (supporte "1 234,56 €", "1,234.56", "1234,5", "TTC", etc.)
   function parsePriceCents(str){
     if (!str) return null;
     try{
       var s = String(str).replace(/\s+/g,'').replace(/[^\d.,-]/g,'');
-      // capture un nombre avec 0, 1 ou 2 décimales (virgule ou point)
       var m = s.match(/^-?\d+(?:[.,]\d{1,2})?$/);
       if (!m) {
-        // tenter d’arracher le premier nombre plausible
         m = String(str).replace(/\s+/g,'').match(/(\d+(?:[.,]\d{1,2})?)/);
         if (!m) return null;
       }
@@ -4702,8 +4699,8 @@ else boot();
     var t = lc(txt||'');
     if (t.indexOf('xpf')>-1 || t.indexOf('cfp')>-1) return 'XPF';
     if (t.indexOf('mad')>-1 || t.indexOf('dh')>-1)  return 'MAD';
-    if (t.indexOf('usd')>-1 || t.indexOf('$')>-1)  return 'USD';
-    if (t.indexOf('eur')>-1 || t.indexOf('€')>-1)  return 'EUR';
+    if (t.indexOf('usd')>-1 || t.indexOf('$')>-1)   return 'USD';
+    if (t.indexOf('eur')>-1 || t.indexOf('€')>-1)   return 'EUR';
     return 'EUR';
   }
 
@@ -4724,9 +4721,7 @@ else boot();
     return scope;
   }
 
-  /* ---------- Lecture des données PDP (DOM + MODELS) ---------- */
   function currentProduct(){
-    // Cherche via l’URL (#/produit/:id) et la base MODELS
     try{
       var h = location.hash || '';
       var m = h.match(/^#\/produit\/([^\/\?#]+)/i);
@@ -4741,13 +4736,13 @@ else boot();
   function readPdpDom(){
     var scope = pdpScope();
     var elT = scope.querySelector('#pdpTitle, .pdp__title, h1');
-    var elHT = scope.querySelector('#pdpPriceHT'); // ex. "≈ HT : 123,45 € (TVA 20%)"
-    var elTTC = scope.querySelector('#pdpPrice');  // TTC affiché en gras
+    var elHT = scope.querySelector('#pdpPriceHT');
+    var elTTC = scope.querySelector('#pdpPrice');
     var elTag = scope.querySelector('#pdpTag');
     var elImg = scope.querySelector('#pdpImg');
 
     var title = (elT && elT.textContent || '').trim();
-    var tag   = (elTag && elTag.textContent || '').replace(/^#\s*/,'').trim(); // badge/type si dispo
+    var tag   = (elTag && elTag.textContent || '').replace(/^#\s*/,'').trim();
 
     var txtHT  = (elHT  && elHT.textContent  || '');
     var txtTTC = (elTTC && elTTC.textContent || '');
@@ -4756,17 +4751,14 @@ else boot();
     var htCents  = null;
     var ttcCents = null;
 
-    // Si un champ "≈ HT :" existe → on parse directement
     if (txtHT){
       var m = txtHT.match(/(?:HT|≈HT)[^\d]*([\d\s.,]+)/i);
       if (m) htCents = parsePriceCents(m[1]);
     }
-    // TTC affiché dans #pdpPrice (Partie 2)
     if (txtTTC){
       ttcCents = parsePriceCents(txtTTC);
     }
 
-    // Recalcule l’autre si nécessaire
     var VAT = vatRate();
     if (htCents==null && ttcCents!=null){
       htCents = Math.round(ttcCents / (1 + VAT));
@@ -4787,7 +4779,6 @@ else boot();
     };
   }
 
-  /* ---------- Message WhatsApp + Share ---------- */
   function userContactSuffix(){
     try{
       var u = (typeof PT.loadUser === 'function') ? PT.loadUser() : null;
@@ -4815,7 +4806,6 @@ else boot();
     lines.push('Bonjour, je souhaite un devis pour:');
     var head = '• ' + (sku ? (sku + ' – ') : '') + title;
 
-    // Prix : priorité DOM (ce que voit l’utilisateur)
     var htCents  = (d.htCents!=null)  ? d.htCents  : (typeof window.priceCentsFrom==='function' ? window.priceCentsFrom(p) : null);
     var ttcCents = (d.ttcCents!=null) ? d.ttcCents : (htCents!=null ? Math.round(htCents*(1+VAT)) : null);
 
@@ -4851,11 +4841,11 @@ else boot();
           return;
         }
       }catch(_){}
-      // Fallback: copy
+      // Fallback: copier l’URL + toast
       try{
         if (navigator.clipboard && navigator.clipboard.writeText){
           navigator.clipboard.writeText(url).then(function(){
-            if (window.toast) window.toast('Lien copié','success');
+            if (PT.toastSuccess) PT.toastSuccess('Lien copié');
             else alert('Lien copié :\n' + url);
           }, function(){ alert(url); });
         } else {
@@ -4867,57 +4857,48 @@ else boot();
 
   function bindWA(waBtn){
     if (!waBtn) return;
-    // on reboucle sans multiplier les listeners (href seulement)
     var p  = currentProduct();
     var dd = readPdpDom();
     var msg = buildWAFrom(p, dd);
-    var phone = onlyDigits(window.PHONE_E164 || '+33774230195');
+    var phone = onlyDigits(window.PHONE_E164 || '+33774230195'); // wa.me exige sans '+'
     waBtn.href = 'https://wa.me/'+ phone +'?text=' + encodeURIComponent(msg);
+    waBtn.setAttribute('rel','noopener');
+    waBtn.setAttribute('target','_blank');
   }
 
-  /* ---------- Binder principal (idempotent) ---------- */
   function bindPDP(){
-    // S’assure d’avoir les noeuds
     var scope = pdpScope();
     if (!scope) return;
 
-    // WhatsApp
     var wa = scope.querySelector('#pdpWa, .btn.btn-wa');
     if (wa) bindWA(wa);
 
-    // Share
     var share = scope.querySelector('#pdpShare');
     if (share) bindShare(share);
   }
 
-  // Expose (utile aux autres parties/tests)
   PT.pdp = PT.pdp || {};
   PT.pdp.patch005 = { bind: bindPDP, readDom: readPdpDom, buildWAFrom: buildWAFrom };
 
-  /* ---------- Wiring : hashchange + produits + mutations ---------- */
   function scheduleBind(){
     clearTimeout(scheduleBind._t);
     scheduleBind._t = setTimeout(bindPDP, 50);
   }
 
-  // Sur navigation
   window.addEventListener('hashchange', function(){
     if (lc(location.hash).indexOf('#/produit')===0) scheduleBind();
   }, false);
 
-  // Quand les produits arrivent (si PDP déjà ouverte)
-  window.addEventListener('pt:productsLoaded', function(){ 
+  window.addEventListener('pt:productsLoaded', function(){
     if (lc(location.hash).indexOf('#/produit')===0) scheduleBind();
   }, false);
 
-  // DOM ready
   if (document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', scheduleBind, false);
   } else {
     scheduleBind();
   }
 
-  // Mutation observer (rendu PDP après injection/transition)
   try{
     var mo = new MutationObserver(function(muts){
       for (var i=0;i<muts.length;i++){
@@ -4934,36 +4915,23 @@ else boot();
 
 })();
 
-// ==== PATCH-JS-006 (Portail Compte → Auth si non connecté) ====
-(function(){
+/*=========================================================================*
+  8) PATCH-006 — Portail Compte → Auth si non connecté (+ PT.auth)
+*=========================================================================*/
+(function authPatch006(){
   'use strict';
   var PT = (window.PT = window.PT || {});
-  if (window.__ptPatch006) return; // idempotent
-  window.__ptPatch006 = 1;
+  if (window.__ptPatch006) return; window.__ptPatch006 = 1;
 
-  /* ---------- Utils stockage sûrs ---------- */
-  function lsGet(key){
-    try { return localStorage.getItem(key); } catch(_){ return null; }
-  }
-  function lsSet(key, val){
-    try { localStorage.setItem(key, val); } catch(_){}
-  }
-  function lsDel(key){
-    try { localStorage.removeItem(key); } catch(_){}
-  }
-  function ssGet(key){
-    try { return sessionStorage.getItem(key); } catch(_){ return null; }
-  }
-  function ssSet(key, val){
-    try { sessionStorage.setItem(key, val); } catch(_){}
-  }
-  function ssDel(key){
-    try { sessionStorage.removeItem(key); } catch(_){}
-  }
+  function lsGet(key){ try { return localStorage.getItem(key); } catch(_){ return null; } }
+  function lsSet(key, val){ try { localStorage.setItem(key, val); } catch(_){} }
+  function lsDel(key){ try { localStorage.removeItem(key); } catch(_){} }
+  function ssGet(key){ try { return sessionStorage.getItem(key); } catch(_){ return null; } }
+  function ssSet(key, val){ try { sessionStorage.setItem(key, val); } catch(_){} }
+  function ssDel(key){ try { sessionStorage.removeItem(key); } catch(_){} }
 
   function nowSec(){ return Math.floor(Date.now()/1000); }
 
-  /* ---------- PT.auth (rétro-compat + améliorations) ---------- */
   PT.auth = PT.auth || {};
   var AUTH_KEY = 'pt_user';
   var POST_LOGIN_KEY = 'pt_post_login_hash';
@@ -4974,7 +4942,6 @@ else boot();
       var ev = new CustomEvent('pt:'+event, { detail: detail||{} });
       document.dispatchEvent(ev);
     }catch(_){}
-    // callbacks déclarées via onChange
     listeners.slice().forEach(function(fn){
       try { fn(event, detail||{}); } catch(_){}
     });
@@ -4986,9 +4953,8 @@ else boot();
     try {
       var obj = JSON.parse(raw);
       if (obj && typeof obj === 'object'){
-        // Support TTL optionnel (rétro-compat si absent)
         if (typeof obj.exp === 'number' && obj.exp > 0 && obj.exp < nowSec()){
-          return null; // expiré
+          return null;
         }
         return obj;
       }
@@ -5002,7 +4968,6 @@ else boot();
 
   PT.auth.login = PT.auth.login || function(user, opts){
     var payload = user && typeof user === 'object' ? user : { id:'demo' };
-    // TTL optionnel { ttlSec }
     if (opts && typeof opts.ttlSec === 'number' && opts.ttlSec > 0){
       payload = Object.assign({}, payload, { exp: nowSec() + Math.floor(opts.ttlSec) });
     }
@@ -5010,12 +4975,10 @@ else boot();
     PT.auth.updateUI && PT.auth.updateUI();
     emitAuth('login', { user: payload });
 
-    // Redirection post-login si une cible a été mémorisée
     var target = ssGet(POST_LOGIN_KEY);
     if (target){
       ssDel(POST_LOGIN_KEY);
       try { location.hash = target; } catch(_){}
-      // Relancer le routeur s’il existe
       try { PT.route && PT.route(); } catch(_){}
     }
   };
@@ -5028,13 +4991,12 @@ else boot();
 
   PT.auth.onChange = PT.auth.onChange || function(fn){
     if (typeof fn === 'function') listeners.push(fn);
-    return function off(){ // unsubscribe
+    return function off(){
       var i = listeners.indexOf(fn);
       if (i>-1) listeners.splice(i,1);
     };
   };
 
-  // Petites aides d’UI (optionnelles, non intrusives)
   PT.auth.updateUI = PT.auth.updateUI || function(){
     var logged = PT.auth.isLoggedIn();
     try{
@@ -5046,13 +5008,11 @@ else boot();
     emitAuth('auth-change', { loggedIn: logged, user: PT.auth.getUser() });
   };
 
-  // Sync multi-onglets : logout / login ailleurs
   if (!window.__ptAuthStorageBound){
     window.__ptAuthStorageBound = true;
     window.addEventListener('storage', function(e){
       if (e && e.key === AUTH_KEY){
         PT.auth.updateUI && PT.auth.updateUI();
-        // Si on est sur une route protégée et qu’on vient d’être déconnecté, bascule vers /auth
         try{
           if (!PT.auth.isLoggedIn()){
             var h = (location.hash||'').toLowerCase();
@@ -5067,63 +5027,51 @@ else boot();
     }, false);
   }
 
-  /* ---------- Protection des routes ---------- */
-  // Liste extensible depuis ailleurs si besoin
   PT.routeProtected = PT.routeProtected || ['#/compte'];
 
   if (PT.route){
     var orig = PT.route;
     PT.route = function(){
-      // Normalise le hash
       var next = (location.hash || '').toLowerCase();
 
-      // Si la route demandée est protégée et que l’utilisateur n’est pas loggué
       if (Array.isArray(PT.routeProtected) && PT.routeProtected.indexOf(next) > -1 && !PT.auth.isLoggedIn()){
-        // mémorise la cible pour y revenir post-login
         ssSet(POST_LOGIN_KEY, next);
-        // feedback doux si toasts dispos
-        try {
-          if (PT.toastInfo) PT.toastInfo('Veuillez vous connecter pour accéder à cette page.');
-        } catch(_){}
-        // redirige vers auth + init
+        try { if (PT.toastInfo) PT.toastInfo('Veuillez vous connecter pour accéder à cette page.'); } catch(_){}
         try { location.hash = '#/auth'; } catch(_){}
         setTimeout(function(){ try { PT.initAuth && PT.initAuth(); } catch(_){} }, 60);
-        return; // ne pas exécuter le routeur original dans ce cas
+        return;
       }
 
-      // Route normale
       try { orig.apply(this, arguments); } catch(_){ orig(); }
-
-      // Met à jour l’UI auth à chaque navigation (idempotent)
       try { PT.auth.updateUI && PT.auth.updateUI(); } catch(_){}
     };
   }
 
-  // Mise à jour initiale de l’UI au chargement
   try { PT.auth.updateUI && PT.auth.updateUI(); } catch(_){}
 
 })();
-// ==== PATCH-JS-006b (Bridge Auth P4 ↔ P6, idempotent, non destructif) ====
-(function(){
+
+/*=========================================================================*
+  9) PATCH-006b — Bridge Auth P4 ↔ P6 (idempotent, non destructif)
+*=========================================================================*/
+(function authBridge006b(){
   'use strict';
   if (window.__ptPatch006b) return; window.__ptPatch006b = 1;
 
   var PT = (window.PT = window.PT || {});
-  var AUTH_USER_KEY = 'pt_user';     // utilisé par le patch 006
-  var AUTH_LOCAL_KEY = 'pt_auth_v1'; // utilisé par la Partie 4 (login/register)
+  var AUTH_USER_KEY = 'pt_user';     // patch 006
+  var AUTH_LOCAL_KEY = 'pt_auth_v1'; // Partie 4 (login/register)
   var POST_LOGIN_KEY = 'pt_post_login_hash';
 
-  // ---- helpers stockage sûrs
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } }
   function lsSet(k,v){ try{ localStorage.setItem(k, v); }catch(_){ } }
   function lsDel(k){ try{ localStorage.removeItem(k); }catch(_){ } }
 
   function nowSec(){ return Math.floor(Date.now()/1000); }
 
-  // ---- 1) Étend PT.auth existant sans rien casser
   PT.auth = PT.auth || {};
 
-  // a) sha256 (Promise-like via callback utilisé par P4)
+  // sha256 Promise-like (callback) attendu par P4
   if (typeof PT.auth.sha256 !== 'function'){
     PT.auth.sha256 = function(text, cb){
       cb = (typeof cb==='function') ? cb : function(){};
@@ -5137,24 +5085,21 @@ else boot();
           return;
         }
       }catch(_){}
-      cb(btoa(String(text||''))); // fallback
+      cb(btoa(String(text||'')));
     };
   }
 
-  // b) getUser / isLoggedIn → comprennent les 2 formats
   var origGetUser = PT.auth.getUser;
   PT.auth.getUser = function(){
-    // Priorité à pt_user (patch 006)
     var raw = lsGet(AUTH_USER_KEY);
     if (raw){
       try{
         var u = JSON.parse(raw);
         if (!u || typeof u!=='object') return null;
-        if (typeof u.exp === 'number' && u.exp > 0 && u.exp < nowSec()) return null; // expiré
+        if (typeof u.exp === 'number' && u.exp > 0 && u.exp < nowSec()) return null;
         return u;
       }catch(_){ /* continue */ }
     }
-    // Sinon: profil minimal depuis pt_auth_v1 (email uniquement)
     try{
       var auth = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
       if (auth && auth.email) return { id:'local', email: auth.email };
@@ -5165,44 +5110,39 @@ else boot();
   var origIsLoggedIn = PT.auth.isLoggedIn;
   PT.auth.isLoggedIn = function(){
     try{
-      // pt_user valide ?
       var u = PT.auth.getUser && PT.auth.getUser();
       if (u) return true;
     }catch(_){}
     try{
-      // pt_auth_v1 présent ?
       var a = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
       return !!(a && a.email && a.pwdHash);
     }catch(_){}
     return origIsLoggedIn ? !!origIsLoggedIn() : false;
   };
 
-  // c) save(email,pwdHash) : API attendue par la page Login/Register (Partie 4)
   if (typeof PT.auth.save !== 'function'){
     PT.auth.save = function(obj){
       try{
         var a = { email: String(obj && obj.email || ''), pwdHash: String(obj && obj.pwdHash || '') };
         lsSet(AUTH_LOCAL_KEY, JSON.stringify(a));
-        // Si aucun pt_user n’existe, en créer un minimal pour l’UX unifiée
         if (!lsGet(AUTH_USER_KEY) && a.email){
           lsSet(AUTH_USER_KEY, JSON.stringify({ id: 'local', email: a.email }));
         }
-        // Post-login redirect si mémorisé (compat patch 006)
         var target = lsGet(POST_LOGIN_KEY) || sessionStorage.getItem(POST_LOGIN_KEY);
-        if (target){ try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
+        if (target){
+          try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
           try{ lsDel(POST_LOGIN_KEY); }catch(_){}
           try{ location.hash = target; }catch(_){}
           try{ if (PT.route) PT.route(); }catch(_){}
         }
+        if (PT.auth.updateUI) PT.auth.updateUI();
       }catch(_){}
     };
   }
 
-  // d) login(user, {ttlSec}) : écrit aussi pt_auth_v1 si email présent
   var origLogin = PT.auth.login;
   PT.auth.login = function(user, opts){
     try{
-      // legacy pt_user (patch 006) si dispo
       if (origLogin) origLogin(user, opts);
       else {
         var payload = user && typeof user==='object' ? user : { id:'demo' };
@@ -5211,60 +5151,44 @@ else boot();
         }
         lsSet(AUTH_USER_KEY, JSON.stringify(payload));
       }
-      // miroir pt_auth_v1 si on a un email
       if (user && user.email){
         PT.auth.sha256(user.password||user.pwd||'', function(hash){
           PT.auth.save({ email: user.email, pwdHash: hash });
         });
+      } else {
+        if (PT.auth.updateUI) PT.auth.updateUI();
       }
     }catch(_){}
   };
 
-  // e) logout : nettoie tout (les deux clés)
   var origLogout = PT.auth.logout;
   PT.auth.logout = function(){
     try{ if (origLogout) origLogout(); }catch(_){}
     try{ lsDel(AUTH_USER_KEY); }catch(_){}
     try{ lsDel(AUTH_LOCAL_KEY); }catch(_){}
+    if (PT.auth.updateUI) PT.auth.updateUI();
   };
 
-  // ---- 2) Init douce Auth : focus automatique sur #/login ou #/auth
-  if (typeof PT.initAuth !== 'function'){
-    PT.initAuth = function(){
-      try{
-        var h = (location.hash||'').toLowerCase();
-        if (h.indexOf('#/login')===0 || h.indexOf('#/auth')===0){
-          setTimeout(function(){
-            var el = document.getElementById('loginEmail') || document.querySelector('#view-login input[type="email"]');
-            if (el && el.focus) el.focus();
-          }, 0);
-        }
-      }catch(_){}
-    };
-  }
-
-  // ---- 3) Sync multi-onglets : écoute aussi pt_auth_v1
   if (!window.__ptAuthLocalSync){
     window.__ptAuthLocalSync = 1;
     window.addEventListener('storage', function(e){
       if (!e) return;
       if (e.key === AUTH_LOCAL_KEY){
         try{
-          // si on vient d’être connecté ailleurs, appliquer le post-login redirect si présent
           var a = JSON.parse(lsGet(AUTH_LOCAL_KEY)||'null');
           if (a && a.email){
             var target = lsGet(POST_LOGIN_KEY) || sessionStorage.getItem(POST_LOGIN_KEY);
-            if (target){ try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
+            if (target){
+              try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
               try{ lsDel(POST_LOGIN_KEY); }catch(_){}
               try{ location.hash = target; }catch(_){}
               try{ if (PT.route) PT.route(); }catch(_){}
             }
           }
-          // notifier l’UI (si ton patch 006 a updateUI/onChange)
           if (PT.auth.updateUI) PT.auth.updateUI();
         }catch(_){}
       }
     }, false);
   }
 })();
-
+</script>
