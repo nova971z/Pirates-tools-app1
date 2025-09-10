@@ -5132,7 +5132,9 @@ else boot();
           try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
           try{ lsDel(POST_LOGIN_KEY); }catch(_){}
           try{ location.hash = target; }catch(_){}
-          try{ if (PT.route) PT.route(); }catch(_){}
+          try{
+            if (PT.router && typeof PT.router.route === 'function') PT.router.route();
+          }catch(_){}
         }
         if (PT.auth.updateUI) PT.auth.updateUI();
       }catch(_){}
@@ -5181,7 +5183,9 @@ else boot();
               try{ sessionStorage.removeItem(POST_LOGIN_KEY); }catch(_){}
               try{ lsDel(POST_LOGIN_KEY); }catch(_){}
               try{ location.hash = target; }catch(_){}
-              try{ if (PT.route) PT.route(); }catch(_){}
+              try{
+                if (PT.router && typeof PT.router.route === 'function') PT.router.route();
+              }catch(_){}
             }
           }
           if (PT.auth.updateUI) PT.auth.updateUI();
@@ -5190,4 +5194,3 @@ else boot();
     }, false);
   }
 })();
-
