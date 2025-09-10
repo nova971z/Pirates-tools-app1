@@ -1,166 +1,234 @@
 [
   {
-    "id": "dewalt-dcf887-n",
-    "slug": "dewalt-dcf887-n",
-    "title": "DeWALT DCF887 — Visseuse à chocs (nu)",
+    "id": "dewalt-dcf894p2",
+    "slug": "dewalt-dcf894p2-18v-5ah-1-2-impact-wrench",
+    "title": "DeWALT DCF894P2 — Boulonneuse à chocs 1/2\" 18V XR (2×5Ah)",
+    "name": "DCF894P2",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF887N",
-    "price": 185.0,
-    "description": "205 Nm, 3 vitesses, LED 3-anneaux, mandrin hex 1/4\".",
-    "specs": [
-      "Plateforme : 18V XR",
-      "Moteur : Brushless",
-      "Couple max : 205 Nm",
-      "Vitesses : 0–1000 / 0–2800 / 0–3250 tr/min",
-      "Cadence de chocs : 0–3800 ipm",
-      "Mandrin : 1/4\" Hex",
-      "Longueur : 134 mm",
-      "Poids : 0.94 kg",
-      "Garantie : 24 mois"
+    "category": "Boulonneuses à chocs",
+    "description": "Boulonneuse à chocs XR 18V 1/2\" compacte avec 3 modes, idéale pour l’automobile et la maintenance lourde. Livrée avec 2 batteries 5Ah + chargeur + coffret TSTAK.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894p2/dewalt-dcf894p2-kit-5ah-hero.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894p2/dewalt-dcf894p2-kit-5ah-hero.jpg",
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894p2/dewalt-dcf894p2-angle.jpg",
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894p2/dewalt-dcf894p2-case.jpg"
     ],
-    "tag": "Brushless",
-    "image": "icons/icon-256.png",
-    "images": []
+    "features": [
+      "Moteur brushless XR 18V",
+      "Carré 1/2\" avec goupille",
+      "3 modes : Precision Wrench™, High/Low"
+    ],
+    "specs": {
+      "Tension": "18V XR",
+      "Couple max": "447 Nm (serrage)",
+      "Couple de desserrage": "813 Nm (breakaway)",
+      "Vitesse à vide": "0–900 / 0–2000 tr/min",
+      "Impacts par minute": "0–3100 ipm",
+      "Carré": "1/2\"",
+      "Poids": "1,5 kg (outil nu)",
+      "Longueur": "178 mm",
+      "Éclairage": "LED",
+      "Modes": "3 (Precision / High / Low)"
+    },
+    "kit": [
+      "Boulonneuse DCF894",
+      "2× batteries 5Ah",
+      "Chargeur multi-voltage",
+      "Coffret TSTAK"
+    ],
+    "vat": 0.2
+  },
+  {
+    "id": "dewalt-dcf894n",
+    "slug": "dewalt-dcf894n-18v-1-2-impact-wrench-nu",
+    "title": "DeWALT DCF894N — Boulonneuse 1/2\" 18V XR (outil nu)",
+    "name": "DCF894N",
+    "brand": "DeWALT",
+    "category": "Boulonneuses à chocs",
+    "description": "Version sans batterie/chargeur de la DCF894 pour ceux déjà équipés en XR 18V.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894n/dewalt-dcf894n-bare.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894n/dewalt-dcf894n-bare.jpg"
+    ],
+    "features": [
+      "Brushless 18V XR",
+      "Carré 1/2\"",
+      "Precision Wrench™"
+    ],
+    "specs": {
+      "Tension": "18V XR",
+      "Couple max": "447 Nm",
+      "Breakaway": "813 Nm",
+      "Poids": "1,5 kg",
+      "Longueur": "178 mm"
+    },
+    "vat": 0.2
   },
   {
     "id": "dewalt-dcf887p2",
-    "slug": "dewalt-dcf887p2",
-    "title": "DeWALT DCF887P2 — Kit 2×5.0Ah + chargeur + TSTAK",
+    "slug": "dewalt-dcf887p2-18v-5ah-percussion-1-4",
+    "title": "DeWALT DCF887P2 — Visseuse à chocs 1/4\" 18V XR (2×5Ah)",
+    "name": "DCF887P2",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF887P2",
-    "price": 365.0,
-    "description": "DCF887 avec 2 batteries 5.0Ah, chargeur DCB115 et coffret TSTAK.",
-    "specs": [
-      "Batteries : 2× 5.0Ah",
-      "Chargeur : DCB115",
-      "Coffret : TSTAK",
-      "Couple : 205 Nm",
-      "Moteur : Brushless"
+    "category": "Visseuses à chocs",
+    "description": "Visseuse à chocs 1/4\" 18V XR hautes performances avec 3 vitesses et moteur brushless, livrée en kit 2×5Ah.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf887p2/dewalt-dcf887p2-kit-hero.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf887p2/dewalt-dcf887p2-kit-hero.jpg",
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf887p2/dewalt-dcf887p2-close.jpg"
     ],
-    "tag": "Kit 5.0Ah",
-    "image": "icons/icon-256.png",
-    "images": []
+    "features": [
+      "Moteur brushless",
+      "3 vitesses / 3 modes",
+      "Mandrin 1/4\" hex"
+    ],
+    "specs": {
+      "Tension": "18V XR",
+      "Couple max": "205 Nm",
+      "Vitesse à vide": "0–1000 / 2800 / 3250 tr/min",
+      "Impacts": "0–3800 ipm",
+      "Porte-outil": "1/4\" hex",
+      "Poids": "1,56 kg (avec 5Ah)"
+    },
+    "kit": [
+      "DCF887",
+      "2× batteries 5Ah",
+      "Chargeur",
+      "Coffret TSTAK"
+    ],
+    "vat": 0.2
   },
   {
-    "id": "dewalt-dcf887d2",
-    "slug": "dewalt-dcf887d2",
-    "title": "DeWALT DCF887D2 — Kit 2×2.0Ah + chargeur + coffret",
+    "id": "dewalt-dcf887n",
+    "slug": "dewalt-dcf887n-18v-1-4-impact-driver-nu",
+    "title": "DeWALT DCF887N — Visseuse à chocs 1/4\" 18V XR (outil nu)",
+    "name": "DCF887N",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF887D2",
-    "price": 289.0,
-    "description": "DCF887 avec 2 batteries 2.0Ah, chargeur et coffret.",
-    "specs": [
-      "Batteries : 2× 2.0Ah",
-      "Couple : 205 Nm",
+    "category": "Visseuses à chocs",
+    "description": "La référence 18V XR 1/4\" en version bare-tool pour compléter votre plateforme.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf887n/dewalt-dcf887n-bare.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf887n/dewalt-dcf887n-bare.jpg"
+    ],
+    "features": [
+      "Brushless 18V",
       "3 vitesses",
-      "Moteur : Brushless"
+      "LED triple"
     ],
-    "tag": "Kit 2.0Ah",
-    "image": "icons/icon-256.png",
-    "images": []
+    "specs": {
+      "Couple": "205 Nm",
+      "Vitesse": "0–3250 tr/min",
+      "Impacts": "0–3800 ipm",
+      "Porte-outil": "1/4\"",
+      "Poids": "1,0 kg (nu)"
+    },
+    "vat": 0.2
   },
   {
-    "id": "dewalt-dcf809-n",
-    "slug": "dewalt-dcf809-n",
-    "title": "DeWALT DCF809 — Visseuse à chocs compacte (nu)",
+    "id": "dewalt-dcf899p2",
+    "slug": "dewalt-dcf899p2-18v-5ah-1-2-high-torque",
+    "title": "DeWALT DCF899P2 — Boulonneuse 1/2\" 18V XR High Torque (2×5Ah)",
+    "name": "DCF899P2",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF809N",
-    "price": 139.0,
-    "description": "170 Nm, format compact Atomic, poids plume.",
-    "specs": [
-      "Plateforme : 18V XR",
-      "Série : Atomic",
-      "Couple : 170 Nm",
-      "Longueur : 131 mm",
-      "Poids : 0.96 kg"
+    "category": "Boulonneuses à chocs",
+    "description": "Couple élevé pour applications lourdes (écrous de roue, chantiers). Kit 2×5Ah.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf899p2/dewalt-dcf899p2-kit-hero.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf899p2/dewalt-dcf899p2-kit-hero.jpg",
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf899p2/dewalt-dcf899p2-side.jpg"
     ],
-    "tag": "Atomic",
-    "image": "icons/icon-256.png",
-    "images": []
+    "features": [
+      "Brushless couple élevé",
+      "3 vitesses",
+      "Carré 1/2\""
+    ],
+    "specs": {
+      "Couple max": "950 Nm",
+      "Breakaway": "1625 Nm",
+      "Vitesse": "0–2400 tr/min",
+      "Impacts": "0–2400 ipm",
+      "Poids": "3,1 kg (avec 5Ah)"
+    },
+    "kit": [
+      "DCF899",
+      "2× 5Ah",
+      "Chargeur",
+      "Coffret"
+    ],
+    "vat": 0.2
   },
   {
-    "id": "dewalt-dcf809d2t",
-    "slug": "dewalt-dcf809d2t",
-    "title": "DeWALT DCF809D2T — Kit 2×2.0Ah + chargeur + TSTAK",
+    "id": "dewalt-dcf899n",
+    "slug": "dewalt-dcf899n-18v-1-2-high-torque-nu",
+    "title": "DeWALT DCF899N — Boulonneuse 1/2\" High Torque 18V (outil nu)",
+    "name": "DCF899N",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF809D2T",
-    "price": 249.0,
-    "description": "DCF809 avec 2×2.0Ah, chargeur et coffret TSTAK.",
-    "specs": [
-      "Batteries : 2× 2.0Ah",
-      "Couple : 170 Nm",
-      "Série : Atomic",
-      "Coffret : TSTAK"
+    "category": "Boulonneuses à chocs",
+    "description": "Version nu de la DCF899 pour utilisateurs XR existants.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf899n/dewalt-dcf899n-bare.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf899n/dewalt-dcf899n-bare.jpg"
     ],
-    "tag": "Kit Atomic",
-    "image": "icons/icon-256.png",
-    "images": []
+    "features": [
+      "Couple 950 Nm",
+      "Breakaway 1625 Nm",
+      "3 vitesses"
+    ],
+    "specs": {
+      "Carré": "1/2\"",
+      "Vitesse": "0–2400 tr/min",
+      "Impacts": "0–2400 ipm",
+      "Poids": "2,6 kg (nu)"
+    },
+    "vat": 0.2
   },
   {
-    "id": "dewalt-dcf891p2",
-    "slug": "dewalt-dcf891p2",
-    "title": "DeWALT DCF891P2 — Boulonneuse 1/2\" 812 Nm (kit 2×5.0Ah)",
+    "id": "dewalt-dcf894xp2",
+    "slug": "dewalt-dcf894xp2-18v-5ah-1-2-impact-wrench-xr",
+    "title": "DeWALT DCF894XP2 — Kit 1/2\" XR 18V (2×5Ah) + accessoires",
+    "name": "DCF894XP2",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF891P2",
-    "price": 469.0,
-    "description": "Clé à chocs 1/2\" compacte, couple de serrage 812 Nm, kit 2×5.0Ah.",
-    "specs": [
-      "Plateforme : 18V XR",
-      "Carré : 1/2\"",
-      "Couple de serrage : 812 Nm",
-      "Batteries : 2× 5.0Ah"
+    "category": "Boulonneuses à chocs",
+    "description": "Variante bundle de la DCF894 avec accessoires selon arrivage.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894xp2/dewalt-dcf894xp2-bundle.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf894xp2/dewalt-dcf894xp2-bundle.jpg"
     ],
-    "tag": "1/2\" XR",
-    "image": "icons/icon-256.png",
-    "images": []
+    "features": [
+      "Même base DCF894",
+      "Kit 2×5Ah",
+      "Accessoires inclus"
+    ],
+    "specs": {
+      "Tension": "18V",
+      "Couple": "447 Nm",
+      "Breakaway": "813 Nm",
+      "Modes": "3"
+    },
+    "vat": 0.2
   },
   {
-    "id": "dewalt-dcf840p2",
-    "slug": "dewalt-dcf840p2",
-    "title": "DeWALT DCF840P2 — Visseuse à chocs 170 Nm (kit 2×5.0Ah)",
+    "id": "dewalt-dcf997nt",
+    "slug": "dewalt-dcf997nt-18v-1-2-impact-wrench-toolconnect",
+    "title": "DeWALT DCF997NT — 1/2\" XR ToolConnect (outil nu)",
+    "name": "DCF997NT",
     "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF840P2",
-    "price": 329.0,
-    "description": "Forme compacte, 170 Nm, 2×5.0Ah pour l’autonomie.",
-    "specs": [
-      "Plateforme : 18V XR",
-      "Couple : 170 Nm",
-      "Batteries : 2× 5.0Ah",
-      "Chargeur : DCB115"
+    "category": "Boulonneuses à chocs",
+    "description": "Version ToolConnect (Bluetooth) avec suivi d’outil et configuration via l’app DeWALT.",
+    "img": "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf997nt/dewalt-dcf997nt-bare.jpg",
+    "images": [
+      "https://inksnova9.blob.core.windows.net/pirates-tools/dewalt/dcf997nt/dewalt-dcf997nt-bare.jpg"
     ],
-    "tag": "Kit 5.0Ah",
-    "image": "icons/icon-256.png",
-    "images": []
-  },
-  {
-    "id": "dewalt-dcf801-n",
-    "slug": "dewalt-dcf801-n",
-    "title": "DeWALT DCF801 — Visseuse à chocs 12V (nu)",
-    "brand": "DeWALT",
-    "category": "Visseuse à chocs",
-    "sku": "DCF801N",
-    "price": 149.0,
-    "description": "12V Xtreme Sub-Compact, 163 Nm, 3 modes.",
-    "specs": [
-      "Plateforme : 12V Xtreme",
-      "Moteur : Brushless",
-      "Couple max : 163 Nm",
-      "Vitesses : 0–950 / 0–1950 / 0–2850 tr/min",
-      "Cadence de chocs : 0–3600 ipm",
-      "Mandrin : 1/4\" Hex",
-      "Longueur : 125 mm",
-      "Poids : 0.8 kg",
-      "Garantie : 24 mois"
+    "features": [
+      "ToolConnect (Bluetooth)",
+      "Brushless",
+      "Carré 1/2\""
     ],
-    "tag": "12V Xtreme",
-    "image": "icons/icon-256.png",
-    "images": []
+    "specs": {
+      "Couple": "950 Nm",
+      "Breakaway": "1625 Nm",
+      "Poids": "2,5 kg (nu)"
+    },
+    "vat": 0.2
   }
 ]
