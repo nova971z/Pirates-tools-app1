@@ -373,6 +373,7 @@
 
   <!-- PT (si présent) -->
   <script defer src="pt.js"></script>
+  <script defer src="app.js"></script>
   <script type="module">
     if (!window.PT) {
       import('./pt.js').then((m)=>{ window.PT = m.default || m; }).catch(()=>{});
