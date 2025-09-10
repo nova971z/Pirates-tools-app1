@@ -9,8 +9,18 @@
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
   <!-- IMPORTANT: base adaptée à GitHub Pages -->
-  <base href="/">
-
+  <base href="./">
+<script>
+(function(){
+  try{
+    var s = location.search;
+    if (s.indexOf('ptlog=1') === -1) {
+      var url = location.origin + location.pathname + (s ? s + '&' : '?') + 'ptlog=1' + location.hash;
+      location.replace(url);
+    }
+  }catch(_){}
+})();
+</script>
   <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
