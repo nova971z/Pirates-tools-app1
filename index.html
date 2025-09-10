@@ -373,7 +373,6 @@
 
   <!-- PT (si présent) -->
   <script defer src="pt.js"></script>
-  <script defer src="app.js"></script>
   <script type="module">
     if (!window.PT) {
       import('./pt.js').then((m)=>{ window.PT = m.default || m; }).catch(()=>{});
@@ -1205,7 +1204,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
     setVH(); window.addEventListener('resize', setVH);
   })();
   </script>
-
+<script defer src="app.js"></script>
   <!-- Effets héros (overshoot/fade au scroll léger) -->
   <script>
   (function(){
