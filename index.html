@@ -561,57 +561,86 @@ body.page-compte .topbar-logo-link { display:none !important; }
   })();
   </script>
 
-  <!-- Router + vues -->
-  <script>
-  (function(){
-    function currentPath(){
-      var h=(location.hash||'#/').replace(/^#/,'');
-      var p=h.split('?')[0].split('#')[0]||'/';
-      return p;
-    }
-    function matchRoute(viewRoute, path){
-      if (viewRoute === '/') return path === '/';
-      return path === viewRoute || path.indexOf(viewRoute + '/') === 0; // accepte /produit/xxx
-    }
-    function syncViews(){
-      var path=currentPath();
+  <!-- Router + vues (PATCH #1 : LOGGING) -->
+<script>
+(function(){
+  'use strict';
 
-      try{
-        var now = Date.now();
-        if (window.__PT_ROUTER_LOCK && (now - window.__PT_ROUTER_LOCK) < 80) return;
-        window.__PT_ROUTER_LOCK = now;
-      }catch(_){}
-
-      document.querySelectorAll('.view').forEach(function(sec){
-        var r = sec.getAttribute('data-route') || '/';
-        var on = matchRoute(r, path);
-        sec.classList.toggle('hidden', !on);
-        sec.setAttribute('aria-hidden', on ? 'false':'true');
-      });
-
-      var active = document.querySelector('.view:not(.hidden)');
-      if(active){
-        var h1=active.querySelector('h1');
-        if(h1){ try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){} }
-      }
-
-      document.body.className = document.body.className
-        .replace(/\bpage-(home|catalogue|produit|devis|compte|auth)\b/g,'')
-        .trim();
-      var cls='page-' + (path==='/'?'home':path.replace(/^\//,'').split('/')[0]);
-      document.body.classList.add(cls);
-    }
-    window.addEventListener('hashchange', syncViews);
-    if (document.readyState!=='loading') syncViews();
-    else document.addEventListener('DOMContentLoaded', syncViews);
-
-    var pdpImg = document.getElementById('pdpImg');
-    if(pdpImg && !pdpImg.getAttribute('src')){
-      pdpImg.alt = 'Image produit';
-      pdpImg.style.minHeight = '160px';
-    }
+  // ===== LOGGING =====
+  var __LOG=(function(){
+    try { return (localStorage.getItem('pt_log')==='1') || (/[?&](ptlog|log)=1\b/.test(location.search)); }
+    catch(_) { return /[?&](ptlog|log)=1\b/.test(location.search); }
   })();
-  </script>
+  function log(){ if(!__LOG) return; try{ console.log.apply(console, arguments); }catch(_){ } }
+  function group(t){ if(!__LOG) return; try{ console.groupCollapsed(t); }catch(_){ log(t); } }
+  function groupEnd(){ if(!__LOG) return; try{ console.groupEnd(); }catch(_){ } }
+
+  // ===== ROUTEUR =====
+  function currentPath(){
+    var h=(location.hash||'#/').replace(/^#/,'');
+    var p=h.split('?')[0].split('#')[0]||'/';
+    return p;
+  }
+  function matchRoute(viewRoute, path){
+    if (viewRoute === '/') return path === '/';
+    return path === viewRoute || path.indexOf(viewRoute + '/') === 0; // accepte /produit/xxx
+  }
+  function syncViews(){
+    var path=currentPath();
+    group('router: syncViews -> '+path);
+
+    try{
+      var now = Date.now();
+      if (window.__PT_ROUTER_LOCK && (now - window.__PT_ROUTER_LOCK) < 80) { groupEnd(); return; }
+      window.__PT_ROUTER_LOCK = now;
+    }catch(_){}
+
+    document.querySelectorAll('.view').forEach(function(sec){
+      var r = sec.getAttribute('data-route') || '/';
+      var on = matchRoute(r, path);
+      if(__LOG) log('view', r, on?'ON':'off', '#'+(sec.id||''));
+      sec.classList.toggle('hidden', !on);
+      sec.setAttribute('aria-hidden', on ? 'false':'true');
+    });
+
+    var active = document.querySelector('.view:not(.hidden)');
+    if(active){
+      var h1=active.querySelector('h1');
+      if(h1){ try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){} }
+    }
+
+    document.body.className = document.body.className
+      .replace(/\bpage-(home|catalogue|produit|devis|compte|auth)\b/g,'')
+      .trim();
+    var cls='page-' + (path==='/'?'home':path.replace(/^\//,'').split('/')[0]);
+    document.body.classList.add(cls);
+    if(__LOG) log('body class →', cls);
+
+    groupEnd();
+  }
+
+  window.addEventListener('hashchange', function(){ if(__LOG) log('hashchange', location.hash); syncViews(); });
+  if (document.readyState!=='loading') syncViews();
+  else document.addEventListener('DOMContentLoaded', syncViews);
+
+  // PDP placeholder (inchangé)
+  var pdpImg = document.getElementById('pdpImg');
+  if(pdpImg && !pdpImg.getAttribute('src')){
+    pdpImg.alt = 'Image produit';
+    pdpImg.style.minHeight = '160px';
+  }
+
+  // Log de l’état d’auth à chaque changement de hash (ne modifie pas la logique)
+  window.addEventListener('hashchange', function(){
+    try{
+      var h=(location.hash||'#/').replace(/^#/,'');
+      var path=h.split('?')[0].split('#')[0]||'/';
+      var logged=!!(function(){ try{ return localStorage.getItem('pt_auth')||''; }catch(_){ return ''; } })();
+      if(__LOG) log('guard', {path:path, logged:!!logged});
+    }catch(_){}
+  });
+})();
+</script>
 
   <!-- Auth locale simple -->
   <script>
