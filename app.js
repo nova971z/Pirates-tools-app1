@@ -713,8 +713,7 @@
 }
 
 
-  if (!product){ if(elT) elT.textContent='Produit introuvable'; return; }
-
+  
   // Image
   var img = firstDefined(product.img, (product.gallery && product.gallery[0]));
   setSafeImg(elImg, img||IMG_FALLBACK, firstDefined(product.title, product.sku, ''));
@@ -760,8 +759,8 @@
           return;
         }
       }catch(_){}
-      try{ navigator.clipboard && navigator.clipboard.writeText(text); toast('Lien copié','success'); }
-      catch(_){ prompt('Copiez le lien', text); }
+      try{ navigator.clipboard && navigator.clipboard.writeText(text); window.toast('Lien copié','success'); } // qualifier l'appel global
+        catch(_){ prompt('Copiez le lien', text); }
     }, false);
   }
 
@@ -799,7 +798,7 @@
     var descSEO = (product.seo&&product.seo.description) || product.desc || product.description || title;
     var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
     setCanonical(url);
-    setPageMeta(title+' • Pirates Tools', descSEO);
+    window.setPageMeta(title+' • Pirates Tools', descSEO); // setPageMeta est global
     setMetaOg('og:title', title+' • Pirates Tools');
     setMetaOg('og:description', descSEO);
     setMetaOg('og:url', url);
@@ -883,31 +882,6 @@
       elPriceHT.textContent = '';
     }
 
-    // Specs
-    elSpecs.innerHTML = buildSpecsHTML(product.specs||product.spec||product.details||'');
-
-    // Boutons
-    if (btnAdd && !btnAdd.__ptW){
-      btnAdd.__ptW=1;
-      btnAdd.addEventListener('click', function(){ window.addToCart(window.firstDefined(product.id, product.sku, product.__auto_id), 1); }, false);
-    }
-
-    if (btnShare && !btnShare.__ptW){
-      btnShare.__ptW=1;
-      btnShare.addEventListener('click', function(){
-        var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
-        var text= title+' • '+url;
-        try{
-          if (navigator.share && typeof navigator.share==='function'){
-            navigator.share({ title:title, text:title, url:url }).catch(function(){});
-            return;
-          }
-        }catch(_){}
-        try{ navigator.clipboard && navigator.clipboard.writeText(text); toast('Lien copié','success'); }
-        catch(_){ prompt('Copiez le lien', text); }
-      }, false);
-    }
-
     if (aWa && !aWa.__ptW){
       aWa.__ptW=1;
       aWa.addEventListener('click', function(e){
@@ -946,7 +920,7 @@
       var descSEO = (product.seo&&product.seo.description) || product.desc || product.description || title;
       var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
       setCanonical(url);
-      setPageMeta(title+' • Pirates Tools', descSEO);
+      window.setPageMeta(title+' • Pirates Tools', descSEO); // setPageMeta est global
       setMetaOg('og:title', title+' • Pirates Tools');
       setMetaOg('og:description', descSEO);
       setMetaOg('og:url', url);
@@ -983,7 +957,7 @@
     ensureProductsLoaded(function(){
       var p = findProductByKey(key);
       renderPDP(p);
-      showView('produit'); focusView('produit');
+       window.showView('produit'); window.focusView('produit'); // qualifier les appels globaux
     });
   }
 
@@ -1045,7 +1019,7 @@
         btn.addEventListener('click', function(){
           __CAT_STATE.tag = btn.getAttribute('data-chip')||'';
           var sel = document.getElementById('tag'); if (sel) sel.value = __CAT_STATE.tag;
-          try{ announce('Filtre appliqué: '+__CAT_STATE.tag); }catch(_){}
+         try{ window.announce('Filtre appliqué: '+__CAT_STATE.tag); }catch(_){ } // announce est global
           renderCatalogueList();
         }, false);
       })(btns[i]);
@@ -1137,7 +1111,7 @@
       var desc  = 'Catalogue complet — recherchez par marque, référence, description.';
       if (__CAT_STATE.brand){ title = 'Catalogue '+__CAT_STATE.brand+' • Pirates Tools'; }
       if (__CAT_STATE.q){ desc = 'Résultats pour "'+__CAT_STATE.q+'"'; }
-      setPageMeta(title, desc);
+      window.setPageMeta(title, desc); // setPageMeta est global
       setCanonical(absoluteUrl('#/catalogue'));
       setMetaOg('og:title', title);
       setMetaOg('og:description', desc);
@@ -1150,8 +1124,8 @@
       var vtag = (query&&query.tag)||'';
       var vbrand = (query&&query.brand)||'';
       __CAT_STATE.q = vq; __CAT_STATE.tag=vtag; __CAT_STATE.brand=vbrand;
-      showView('catalogue'); focusView('catalogue');
-      // UI
+      window.showView('catalogue'); window.focusView('catalogue'); // qualifier les appels globaux
+      
       var iq=document.getElementById('q'); if(iq) iq.value = __CAT_STATE.q;
       renderTagSelect();
       renderSortSelect();
@@ -1168,8 +1142,7 @@
   // ======== COMPTE (utilisateur localStorage) ========
   var LS_USER='pt_user_v1';
   window.loadUser = window.loadUser || function(){ try{ var raw=localStorage.getItem(LS_USER); return raw?JSON.parse(raw):{}; }catch(_){ return {}; } };
-  window.saveUser = window.saveUser || function(u){ try{ localStorage.setItem(LS_USER, JSON.stringify(u||{})); toast('Compte enregistré','success'); }catch(_){ } };
-
+   window.saveUser = window.saveUser || function(u){ try{ localStorage.setItem(LS_USER, JSON.stringify(u||{})); window.toast('Compte enregistré','success'); }catch(_){ } }; // qualifier toast
   function renderAccount(){
     var host=document.getElementById('accContent'); if(!host) return;
     var u = window.loadUser()||{};
@@ -1193,7 +1166,8 @@
     }, false);}
     // SEO
     try{
-      setPageMeta('Mon compte • Pirates Tools','Enregistrez vos coordonnées pour accélérer les devis.');
+      window.setPageMeta('Mon compte • Pirates Tools','Enregistrez vos coordonnées pour accélérer les devis.'); // setPageMeta est global
+      
       setCanonical(absoluteUrl('#/compte'));
       setMetaOg('og:title','Mon compte • Pirates Tools');
       setMetaOg('og:description','Enregistrez vos coordonnées pour accélérer les devis.');
@@ -1265,7 +1239,7 @@
     if (bSend && !bSend.__ptW){
       bSend.__ptW=1; bSend.addEventListener('click', function(){
         var txt = window.cartToWhatsAppText();
-        if (!txt){ toast('Panier vide','error'); return; }
+        if (!txt){ window.toast('Panier vide','error'); return; } // qualifier toast
         var url = waLinkFromText(txt, window.PHONE_E164);
         try{ window.open(url, '_blank', 'noopener'); }catch(_){ location.href=url; }
       }, false);
@@ -1280,8 +1254,8 @@
     }
     if (bCopy && !bCopy.__ptW){
       bCopy.__ptW=1; bCopy.addEventListener('click', function(){
-        var txt = window.cartToWhatsAppText(); if (!txt){ toast('Panier vide','error'); return; }
-        try{ navigator.clipboard && navigator.clipboard.writeText(txt); toast('Copié','success'); }catch(_){ prompt('Copiez le devis:', txt); }
+        var txt = window.cartToWhatsAppText(); if (!txt){ window.toast('Panier vide','error'); return; } // qualifier toast
+        try{ navigator.clipboard && navigator.clipboard.writeText(txt); window.toast('Copié','success'); }catch(_){ prompt('Copiez le devis:', txt); } // qualifier toast
       }, false);
     }
     if (bMail && !bMail.__ptW){
@@ -1296,9 +1270,9 @@
   })();
 
   function showDevis(){
-    showView('devis'); focusView('devis');
+    window.showView('devis'); window.focusView('devis'); // qualifier les appels globaux
     try{
-      setPageMeta('Mon devis • Pirates Tools','Vérifiez les articles et envoyez votre demande de devis via WhatsApp, email ou copier/coller.');
+      window.setPageMeta('Mon devis • Pirates Tools','Vérifiez les articles et envoyez votre demande de devis via WhatsApp, email ou copier/coller.'); // setPageMeta est global
       setCanonical(absoluteUrl('#/devis'));
       setMetaOg('og:title','Mon devis • Pirates Tools');
       setMetaOg('og:description','Envoyez votre demande de devis en 1 clic.');
@@ -1313,7 +1287,7 @@
     // reset JSON-LD produit si on quitte
     if (v!=='produit'){ try{ clearProductJsonLD(); }catch(_){ } }
     if (!v || v==='home' || v==='/'){
-      resetPageMeta(); showView('home'); focusView('home');
+     window.resetPageMeta(); window.showView('home'); window.focusView('home'); // qualifier les appels globaux
       try{
         setCanonical(absoluteUrl('#/'));
         setMetaOg('og:title','Pirates Tools • Outillage pro (PWA)');
@@ -1330,7 +1304,7 @@
     if (v==='devis'){ showDevis(); return; }
     if (v==='compte'){ showView('compte'); focusView('compte'); renderAccount(); return; }
     // fallback
-    showView('home'); focusView('home');
+   window.showView('home'); window.focusView('home'); // qualifier les appels globaux
   }
   window.addEventListener('hashchange', route, false);
   if (document.readyState==='complete' || document.readyState==='interactive'){ route(); }
