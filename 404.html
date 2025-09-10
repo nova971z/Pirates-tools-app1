@@ -1,1 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Redirection…</title>
+  <meta name="robots" content="noindex">
+  <style>
+    html,body{height:100%;margin:0;background:#0a0f14;color:#e6edf5;
+      display:grid;place-items:center;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto}
+    .box{opacity:.9;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <p>Redirection…</p>
+    <p><a id="link" href="/">Revenir à l’accueil</a></p>
+  </div>
+  <script>
+  (function () {
+    // Détermine la racine à partir du <base href="..."> de index.html
+    var base = (document.createElement('a'),
+      document.head.querySelector('base'));
+    var root = base ? new URL(base.getAttribute('href'), location.origin).pathname : '/';
 
+    // Chemin demandé (ex: /Pirates-tools-app1/produit/xyz)
+    var path = location.pathname.replace(root, '').replace(/^\/+/, '');
+
+    // Construit l’URL hash de la SPA (ex: /Pirates-tools-app1/#/produit/xyz)
+    var dest = root + '#/' + path + (location.search || '') + (location.hash || '');
+
+    // Met à jour le lien visible (fallback) puis redirige
+    document.getElementById('link').setAttribute('href', dest);
+    location.replace(dest);
+  })();
+  </script>
+</body>
+</html>
