@@ -1147,84 +1147,79 @@ body.page-compte .topbar-logo-link { display:none !important; }
       if (slider){ slider.addEventListener('input', syncMeter, false); syncMeter(); }
     })();
 
-    // ---------- Helpers globaux ----------
-    window.ptToast = window.ptToast || function(msg,type){
-      var host=document.getElementById('toasts'); if(!host) return alert(msg);
-      var el=document.createElement('div');
-      el.className='toast toast--'+(type||'info');
-      el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+escapeHTML(msg)+'</div>';
-      host.appendChild(el);
-      setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); }, 200); }, 2000);
-    };
+    /* ---------- Helpers globaux ---------- */
+  window.ptToast = window.ptToast || function(msg,type){
+    var host=document.getElementById('toasts'); if(!host) return alert(msg);
+    var el=document.createElement('div');
+    el.className='toast toast--'+(type||'info');
+    el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+escapeHTML(msg)+'</div>';
+    host.appendChild(el);
+    setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); }, 200); }, 2000);
+  };
 
-           <!-- ---------- INIT ---------- -->
-    <script>
-    (function(){
-      'use strict';
-      // … tout le code au-dessus de INIT ne change pas …
+  /* ---------- INIT ---------- */
+  function init(){
+    updateDockCount();
+    syncMiniCart();
+    loadProducts().then(function(all){
+      renderFilters(all);
+      renderBrandGrid();
+      applySearch();
+    }).catch(function(){});
+    tryRenderPDPFromURL();
+    if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
+    if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
+    if (document.body) document.body.classList.add('after-hero');
 
-      // ---------- INIT ----------
-      function init(){
-        updateDockCount(); 
-        syncMiniCart();
-        loadProducts().then(function(all){
-          renderFilters(all); 
-          renderBrandGrid(); 
-          applySearch();
-        }).catch(function(){});
-        tryRenderPDPFromURL();
-        if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
-        if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
-        if (document.body) document.body.classList.add('after-hero');
+    // Affiche le dock
+    var dock=document.getElementById('dock');
+    if(dock) dock.classList.add('dock--visible');
+  }
 
-        // Affiche le dock
-        var dock=document.getElementById('dock');
-        if(dock) dock.classList.add('dock--visible');
-      }
+  if (document.readyState!=='loading') init();
+  else document.addEventListener('DOMContentLoaded', init);
 
-      if (document.readyState!=='loading') init();
-      else document.addEventListener('DOMContentLoaded', init);
-    })();
-    </script>
+})(); /* ferme l’IIFE “Produits: chargement + PDP” */
+</script>
 
-    <!-- PWA: bouton d’installation + SW -->
-    <script>
-    (function(){
-      var installBtn = document.getElementById('installBtn');
-      var deferred = null;
+<!-- PWA: bouton d’installation + SW -->
+<script>
+(function(){
+  var installBtn = document.getElementById('installBtn');
+  var deferred = null;
 
-      window.addEventListener('beforeinstallprompt', function(e){
-        e.preventDefault();
-        deferred = e;
-        if (installBtn){ installBtn.hidden=false; installBtn.classList.remove('hidden'); }
-      });
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferred = e;
+    if (installBtn){ installBtn.hidden=false; installBtn.classList.remove('hidden'); }
+  });
 
-      if (installBtn){
-        installBtn.addEventListener('click', async function(){
-          if (!deferred) return;
-          deferred.prompt();
-          try{ await deferred.userChoice; }catch(_){}
-          deferred = null;
-          installBtn.hidden=true; installBtn.classList.add('hidden');
-        }, false);
-      }
+  if (installBtn){
+    installBtn.addEventListener('click', async function(){
+      if (!deferred) return;
+      deferred.prompt();
+      try{ await deferred.userChoice; }catch(_){}
+      deferred = null;
+      installBtn.hidden=true; installBtn.classList.add('hidden');
+    }, false);
+  }
 
-      // SW (si présent)
-      if ('serviceWorker' in navigator){
-        try{ navigator.serviceWorker.register('sw.js'); }catch(_){}
-      }
+  // SW (si présent)
+  if ('serviceWorker' in navigator){
+    try{ navigator.serviceWorker.register('sw.js'); }catch(_){}
+  }
 
-      // Ajuste app-vh (viewport mobile)
-      function setVH(){
-        var vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--app-vh', vh+'px');
-      }
-      setVH(); window.addEventListener('resize', setVH);
-    })();
-    </script>
+  // Ajuste app-vh (viewport mobile)
+  function setVH(){
+    var vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--app-vh', vh+'px');
+  }
+  setVH(); window.addEventListener('resize', setVH);
+})();
+</script>
 
-    <!-- Script applicatif (externe) -->
-    <script defer src="app.js"></script>
+<!-- Script applicatif (externe) -->
+<script defer src="app.js"></script>
 <!-- Effets héros (overshoot/fade au scroll léger) -->
 <script>
 (function(){
