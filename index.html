@@ -9,19 +9,21 @@
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
   <!-- IMPORTANT: base adaptée à GitHub Pages -->
-<base href="/Pirates-tools-app1/">
-<link rel="stylesheet" href="https://nova971z.github.io/Pirates-tools-app1/styles.css">
-<script>
-(function(){
-  try{
-    var s = location.search;
-    if (s.indexOf('ptlog=1') === -1) {
-      var url = location.origin + location.pathname + (s ? s + '&' : '?') + 'ptlog=1' + location.hash;
-      location.replace(url);
-    }
-  }catch(_){}
-})();
-</script>
+  <base href="/Pirates-tools-app1/" />
+
+  <!-- Ajout sûr de ?ptlog=1 sans casser le #/catalogue -->
+  <script>
+  (function () {
+    try {
+      var u = new URL(window.location.href);
+      if (!u.searchParams.has('ptlog')) {
+        u.searchParams.set('ptlog','1');
+        window.location.replace(u.toString());
+      }
+    } catch (_) {}
+  })();
+  </script>
+
   <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -32,7 +34,8 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- CSS (unique) -->
+  <link rel="stylesheet" href="styles.css?v=1" />
 
   <!-- ===== HÉRO : styles nécessaires à l’animation pilotée ===== -->
   <style id="pt-hero-overshoot-css">
