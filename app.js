@@ -4107,7 +4107,6 @@ else boot();
    FIN — petits utilitaires d’ergonomie non intrusifs
 ========================================================== */
 
-<script>
 /* =========================================================================
    PT BUNDLE — Patches front
    - Idempotent partout (window.__ptPatchXXX)
@@ -5191,4 +5190,4 @@ else boot();
     }, false);
   }
 })();
-</script>
+
