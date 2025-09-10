@@ -714,98 +714,7 @@
 
 
   
-  // Image
-  var img = firstDefined(product.img, (product.gallery && product.gallery[0]));
-  setSafeImg(elImg, img||IMG_FALLBACK, firstDefined(product.title, product.sku, ''));
-
-  // Titre / Tag / Desc
-  var title = fallback(product.title, ((product.brand||'') + (product.brand?' ':'') + fallback(product.sku,''))).trim();
-  elT.textContent = title;
-  elTag.textContent = fallback(product.badge, (Array.isArray(product.tags)&&product.tags[0]) || fallback(product.tag,''));
-  elDesc.textContent = fallback(product.desc, fallback(product.description,''));
-
-  // Prix
-  var pc  = priceCentsFrom(product);
-  var cur = (product && product.currency) || 'EUR';
-  if (pc!=null){
-    var ttc = fmtCents(Math.round(pc*(1+VAT_RATE)), cur);
-    var ht  = fmtCents(pc, cur);
-    elPrice.innerHTML    = ttc+' <small class="subtle">TTC</small>';
-    elPriceHT.textContent= 'HT: ' + ht + ' • TVA ' + Math.round(VAT_RATE*100) + '%';
-  } else {
-    elPrice.textContent = ''; elPriceHT.textContent = '';
-  }
-
-  // Specs
-  elSpecs.innerHTML = buildSpecsHTML(product.specs||product.spec||product.details||'');
-
-  // Ajouter au panier
-  if (btnAdd && !btnAdd.__ptW){
-    btnAdd.__ptW=1;
-    btnAdd.addEventListener('click', function(){
-      addToCart(firstDefined(product.id, product.sku, product.__auto_id), 1);
-    }, false);
-  }
-
-  // Partage
-  if (btnShare && !btnShare.__ptW){
-    btnShare.__ptW=1;
-    btnShare.addEventListener('click', function(){
-      var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
-      var text= title+' • '+url;
-      try{
-        if (navigator.share && typeof navigator.share==='function'){
-          navigator.share({ title:title, text:title, url:url }).catch(function(){});
-          return;
-        }
-      }catch(_){}
-      try{ navigator.clipboard && navigator.clipboard.writeText(text); window.toast('Lien copié','success'); } // qualifier l'appel global
-        catch(_){ prompt('Copiez le lien', text); }
-    }, false);
-  }
-
-  // Lien WhatsApp (1 article)
-  var singleMsg = (function(){
-    var sku  = product.sku || product.id || product.__auto_id || '';
-    var line = '• '+sku+' – '+title + (pc!=null ? (' — '+fmtCents(Math.round(pc*(1+VAT_RATE)),cur)+' TTC — HT: '+fmtCents(pc,cur)) : '');
-    var contact=''; try{
-      var u=(typeof loadUser==='function')?loadUser():null; var arr=[];
-      if(u&&u.name)arr.push('Nom: '+u.name);
-      if(u&&u.email)arr.push('Email: '+u.email);
-      if(u&&u.phone)arr.push('Téléphone: '+u.phone);
-      if(u&&u.addr)arr.push('Adresse: '+u.addr);
-      contact = arr.length ? '\n\nMes coordonnées:\n' + arr.join('\n') : '';
-    }catch(_){}
-    var link = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
-    return 'Bonjour, je souhaite un devis pour:\n'+line+'\n\nLien: '+link+contact+'\n\nMerci.';
-  })();
-  try{
-    var wa = waLinkFromText(singleMsg, PHONE_E164);
-    aWa.setAttribute('href', wa);
-    aWa.setAttribute('rel','noopener');
-  }catch(_){}
-
-  // Produits liés
-  try{
-    var rel = computeRelated(product, 4);
-    elRel.innerHTML = rel.length ? ('<h3>Produits liés</h3><div class="list">'+rel.map(productCardHTML).join('')+'</div>') : '';
-    wireCardsAddToCart(elRel);
-  }catch(_){}
-
-  // JSON-LD + SEO
-  try{
-    injectProductJsonLD(product);
-    var descSEO = (product.seo&&product.seo.description) || product.desc || product.description || title;
-    var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product)));
-    setCanonical(url);
-    window.setPageMeta(title+' • Pirates Tools', descSEO); // setPageMeta est global
-    setMetaOg('og:title', title+' • Pirates Tools');
-    setMetaOg('og:description', descSEO);
-    setMetaOg('og:url', url);
-    if (img) setMetaOg('og:image', absoluteUrl(img));
-  }catch(_){}
-}
-
+  
  // <!-- Suite du bundle (à coller après la dernière ligne reçue) -->
 
 
@@ -869,8 +778,11 @@
     var title = window.fallback(product.title, ((product.brand||'') + (product.brand?' ':'') + window.fallback(product.sku,''))).trim();
     elT.textContent = title;
     elTag.textContent = window.fallback(product.badge, (Array.isArray(product.tags)&&product.tags[0]) || window.fallback(product.tag,''));
-    elDesc.textContent = window.fallback(product.desc, window.fallback(product.description,''));
-
+        elDesc.textContent = window.fallback(product.desc, window.fallback(product.description,''));
+    // Boutons (PDP)
+    if (btnAdd && !btnAdd.__ptW){ btnAdd.__ptW=1; btnAdd.addEventListener('click', function(){ window.addToCart(window.firstDefined(product.id, product.sku, product.__auto_id), 1); }, false); } // réactive “Ajouter au panier”
+    if (btnShare && !btnShare.__ptW){ btnShare.__ptW=1; btnShare.addEventListener('click', function(){ var url = absoluteUrl('#/produit/'+encodeURIComponent(keyOf(product))); var text= title+' • '+url; try{ if (navigator.share && typeof navigator.share==='function'){ navigator.share({ title:title, text:title, url:url }).catch(function(){}); return; } }catch(_){}
+      try{ navigator.clipboard && navigator.clipboard.writeText(text); window.toast('Lien copié','success'); }catch(_){ prompt('Copiez le lien', text); } }, false); } // réactive “Partager” + toast qualifié
     // Prix
     var pc = priceCentsFrom(product), cur = product && product.currency || 'EUR';
     if (pc!=null){
@@ -879,9 +791,8 @@
       elPriceHT.textContent = 'HT: ' + both.ht + ' • TVA '+Math.round(VAT_RATE*100)+'%';
     } else {
       elPrice.textContent = '';
-      elPriceHT.textContent = '';
-    }
-
+      //      elPriceHT.textContent = '';
+    elSpecs.innerHTML = buildSpecsHTML(product.specs||product.spec||product.details||''); // rétablit l’affichage des spécifications sur la PDP
     if (aWa && !aWa.__ptW){
       aWa.__ptW=1;
       aWa.addEventListener('click', function(e){
@@ -1283,7 +1194,7 @@
 
   // ======== ROUTER ========
   function route(){
-    var p = parseHash(); var v=p.view||'';
+    var p = window.parseHash(); var v=p.view||''; // qualifier l’appel global pour cohérence
     // reset JSON-LD produit si on quitte
     if (v!=='produit'){ try{ clearProductJsonLD(); }catch(_){ } }
     if (!v || v==='home' || v==='/'){
@@ -1302,7 +1213,7 @@
       showPDPByKey(decodeURIComponent(id)); return;
     }
     if (v==='devis'){ showDevis(); return; }
-    if (v==='compte'){ showView('compte'); focusView('compte'); renderAccount(); return; }
+    if (v==='compte'){ window.showView('compte'); window.focusView('compte'); renderAccount(); return; } // qualifier les appels globaux
     // fallback
    window.showView('home'); window.focusView('home'); // qualifier les appels globaux
   }
