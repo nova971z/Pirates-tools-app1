@@ -1159,19 +1159,17 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
     // ---------- INIT ----------
     function init(){
-      updateDockCount(); syncMiniCart();
-      loadProducts().then(function(all){ renderFilters(all); renderBrandGrid(); applySearch(); }).catch(function(){});
-      tryRenderPDPFromURL();
-      if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
-      if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
-      if (document.body) document.body.classList.add('after-hero'); // permet de passer le héros si nécessaire
-    }
-    if (document.readyState!=='loading') init();
-    else document.addEventListener('DOMContentLoaded', init);
-  })();
-  </script>
-
-  <!-- PWA: bouton d’installation + SW -->
+  updateDockCount(); syncMiniCart();
+  loadProducts().then(function(all){ renderFilters(all); renderBrandGrid(); applySearch(); }).catch(function(){});
+  tryRenderPDPFromURL();
+  if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
+  if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
+  if (document.body) document.body.classList.add('after-hero');
+  // ➜ Ajout :
+  var dock=document.getElementById('dock');
+  if(dock) dock.classList.add('dock--visible');
+}
+  //<!-- PWA: bouton d’installation + SW -->
   <script>
   (function(){
     var installBtn = document.getElementById('installBtn');
