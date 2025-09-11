@@ -3916,200 +3916,246 @@ else boot();
 
 
 
-  /* =========================================================
+   /* =========================================================
      6B — MENU A11y avancé (open/close + focus trap + actif)
-     Expose PT.menu { open, close, setActive, wire }
+     Expose PT.menu { open, close, isOpen, setActive, wire }
+     - ES5-safe, idempotent (pas de doublons d'écouteurs)
+     - Gère href="#/..." ET [data-route^="#/"]
   ========================================================== */
-  (function menuA11y() {
-    var W = window, D = document, PT = W.PT = (W.PT || {});
-    function $(s, r){ try{ return (r||D).querySelector(s); }catch(_){ return null; } }
-    function $$(s, r){ try{ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }catch(_){ return []; } }
-    function on(el, ev, fn){ if (el && !el.__ptOn){ el.__ptOn = 1; el.addEventListener(ev, fn, false); } }
-    function announce(msg){ try{ if (W.announce) W.announce(msg); }catch(_){ } }
-    function log(){ try{ if (W.console && console.log) console.log.apply(console, arguments); }catch(_){ } }
-    if (W.__ptP6BNav === 1) return; W.__ptP6BNav = 1; // Informe P5 de ne pas écrire aria-current
-    log('[P6B] boot');
+(function menuA11y(){
+  'use strict';
+  var W=window, D=document, PT=(W.PT=W.PT||{});
 
-    var drawer = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
-    var topnav = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
-    var toggle = $('#menuBtn') || $('#menu-toggle') || $('.hamburger') || $('.menu-toggle') || $('[data-menu-toggle]');
-    var backdrop = $('#drawerBackdrop') || $('#menuBackdrop') || $('.drawer__backdrop') || $('.backdrop') || $('#menu-overlay');
-    var body = D.body;
+  // Informe la P5 de ne pas poser aria-current
+  if (W.__ptP6BNav===1) {/* no-op */} else { W.__ptP6BNav = 1; }
 
-    // Focusables selector
-    var FSEL = ['a[href]','button:not([disabled])','input:not([disabled])','select:not([disabled])','textarea:not([disabled])','[tabindex]:not([tabindex="-1"])'].join(',');
+  // Utils
+  function $(s,r){ try{ return (r||D).querySelector(s); }catch(_){ return null; } }
+  function $$(s,r){ try{ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }catch(_){ return []; } }
+  function on(el, ev, fn){
+    if (!el) return;
+    var k='__ptOn_'+ev;
+    if (el[k]) return;
+    el[k]=1; el.addEventListener(ev, fn, false);
+  }
+  function announce(msg){ try{ if (W.announce) W.announce(msg); }catch(_){ } }
+  function log(){ try{ if (W.console && console.log) console.log.apply(console, arguments); }catch(_){ } }
 
-    function isOpen() {
-      return (drawer && drawer.classList && (drawer.classList.contains('open') || drawer.classList.contains('is-open') || drawer.classList.contains('active')))
-          || (body && body.classList && body.classList.contains('menu-open'));
-    }
+  var body = D.body;
+  var drawer, topnav, toggle, backdrop;
 
-    function setAriaOpen(open) {
-      try {
-        if (toggle) {
-          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-          toggle.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
-          if (drawer && drawer.id) toggle.setAttribute('aria-controls', drawer.id);
-        }
-        if (drawer) {
-          if (!drawer.getAttribute('role')) drawer.setAttribute('role', 'dialog');
-          drawer.setAttribute('aria-modal', 'true');
-          drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
-        }
-        if (backdrop) backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
-      } catch (_){ }
-    }
+  // Focusables
+  var FSEL = [
+    'a[href]','button:not([disabled])','input:not([disabled])',
+    'select:not([disabled])','textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
 
-    function lockScroll(on) {
-      try {
-        if (!body) return;
-        if (on) body.classList.add('menu-open'); else body.classList.remove('menu-open');
-      } catch (_){ }
-    }
+  function resolveNodes(){
+    drawer   = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
+    topnav   = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
+    toggle   = $('#menuBtn') || $('#menu-toggle') || $('.hamburger') || $('.menu-toggle') || $('[data-menu-toggle]');
+    backdrop = $('#drawerBackdrop') || $('#menuBackdrop') || $('.drawer__backdrop') || $('.backdrop') || $('#menu-overlay');
+  }
+  resolveNodes();
 
-    function open() {
-      if (!drawer) return;
-      drawer.classList.add('open');
-      lockScroll(true);
-      setAriaOpen(true);
-      // Focus premier item
-      try {
-        var first = (drawer.querySelector(FSEL) || toggle);
-        if (first) { first.focus && first.focus(); }
-      } catch (_){ }
-      announce('Menu ouvert');
-      log('[P6B] menu open');
-      wireTrap(); // s’assure que le trap est câblé
-    }
+  function isOpen(){
+    return (!!drawer && drawer.classList && (drawer.classList.contains('open')||drawer.classList.contains('is-open')||drawer.classList.contains('active')))
+        || (!!body && body.classList && body.classList.contains('menu-open'));
+  }
 
-    function close() {
-      if (!drawer) return;
-      drawer.classList.remove('open'); drawer.classList.remove('is-open'); drawer.classList.remove('active');
-      lockScroll(false);
-      setAriaOpen(false);
-      // Retour focus sur le toggle
-      try { if (toggle && toggle.focus) toggle.focus(); } catch (_){ }
-      announce('Menu fermé');
-      log('[P6B] menu close');
-    }
-
-    // Focus trap (idempotent)
-    function wireTrap() {
-      if (!drawer || drawer.__ptTrap) return;
-      drawer.__ptTrap = 1;
-      on(drawer, 'keydown', function (e) {
-        if (!isOpen()) return;
-        var k = e.key || e.keyCode;
-        if (k === 'Escape' || k === 27) { e.preventDefault(); close(); return; }
-        if (k !== 'Tab' && k !== 9) return;
-        try {
-          var focusables = $$(FSEL, drawer);
-          if (!focusables.length) return;
-          var first = focusables[0], last = focusables[focusables.length - 1];
-          var active = D.activeElement;
-          var shift = !!(e.shiftKey);
-          if (shift && active === first) { e.preventDefault(); last.focus(); }
-          else if (!shift && active === last) { e.preventDefault(); first.focus(); }
-        } catch (_){ }
-      }, false);
-    }
-
-    // Toggle listeners
-    if (toggle && !toggle.__pt6B) {
-      toggle.__pt6B = 1;
-      toggle.setAttribute('role', 'button');
-      toggle.setAttribute('aria-expanded', 'false');
-      toggle.addEventListener('click', function (e) { e.preventDefault(); isOpen() ? close() : open(); }, false);
-      toggle.addEventListener('pointerup', function (e) { if (e && e.pointerType === 'touch') { e.preventDefault(); isOpen() ? close() : open(); } }, false);
-    }
-
-    // Backdrop click → ferme
-    if (backdrop && !backdrop.__pt6B) { backdrop.__pt6B = 1; backdrop.addEventListener('click', function () { close(); }, false); }
-
-    // Hashchange (navigation) → ferme
-    on(W, 'hashchange', function () { setTimeout(close, 0); markActive(); toggleFabAccount(); }, false);
-
-    // Liens du drawer : ferme après click
-    if (drawer && !drawer.__pt6BLinks) {
-      drawer.__pt6BLinks = 1;
-      drawer.addEventListener('click', function (e) {
-        var a = e.target && e.target.closest ? e.target.closest('a,[role="menuitem"],[data-route]') : null;
-        if (a) setTimeout(close, 30);
-      }, false);
-    }
-
-    // Roving focus horizontal (topbar desktop uniquement)
-    (function wireRovingTopbar() {
-      if (!topnav || topnav.__ptRoving) return;
-      topnav.__ptRoving = 1;
-      topnav.addEventListener('keydown', function (e) {
-        var k = e.key || e.keyCode;
-        if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'Home' && k !== 'End' && k !== 37 && k !== 39) return;
-        var links = $$(FSEL, topnav).filter(function (el) { return el.tagName === 'A' || el.getAttribute('role') === 'menuitem' || el.getAttribute('tabindex') !== null; });
-        if (!links.length) return;
-        var idx = Math.max(0, links.indexOf(D.activeElement));
-        if (k === 'ArrowRight' || k === 39) idx = (idx + 1) % links.length;
-        else if (k === 'ArrowLeft' || k === 37) idx = (idx - 1 + links.length) % links.length;
-        else if (k === 'Home') idx = 0; else if (k === 'End') idx = links.length - 1;
-        try { links[idx].focus(); } catch (_){ }
-      }, false);
-    })();
-
-    // État actif + aria-current (source d’autorité)
-    function mapRouteToKey(href) {
-      var h = href || (W.location && W.location.hash) || '#/';
-      if (!h || h === '#') h = '#/';
-      if (h.indexOf('#/produit/') === 0) return '#/catalogue';
-      if (h.indexOf('#/home') === 0 || h === '#/') return '#/';
-      if (h.indexOf('#/catalogue') === 0) return '#/catalogue';
-      if (h.indexOf('#/devis') === 0) return '#/devis';
-      if (h.indexOf('#/compte') === 0) return '#/compte';
-      return ''; // rien d’actif
-    }
-    function markActive() {
-      var cur = mapRouteToKey();
-      var scopes = [drawer, topnav];
-      for (var s = 0; s < scopes.length; s++) {
-        var host = scopes[s]; if (!host) continue;
-        var links = $$('a[href^="#/"]', host);
-        for (var i = 0; i < links.length; i++) {
-          var href = links[i].getAttribute('href') || '';
-          var match = (mapRouteToKey(href) === cur && cur);
-          if (match) { links[i].setAttribute('aria-current', 'page'); links[i].classList.add('is-active'); }
-          else { links[i].removeAttribute('aria-current'); links[i].classList.remove('is-active'); }
-        }
+  function setAriaOpen(open){
+    try{
+      if (toggle){
+        toggle.setAttribute('role','button');
+        toggle.setAttribute('aria-expanded', open?'true':'false');
+        toggle.setAttribute('aria-label', open?'Fermer le menu':'Ouvrir le menu');
+        if (drawer && drawer.id) toggle.setAttribute('aria-controls', drawer.id);
       }
-      if (cur) announce('Lien actif mis à jour');
-      log('[P6B] active →', cur);
+      if (drawer){
+        if (!drawer.getAttribute('role')) drawer.setAttribute('role','dialog');
+        drawer.setAttribute('aria-modal','true');
+        drawer.setAttribute('aria-hidden', open?'false':'true');
+      }
+      if (backdrop){
+        backdrop.setAttribute('aria-hidden', open?'false':'true');
+        if (open){ backdrop.classList && backdrop.classList.remove('hidden'); backdrop.style.display=''; }
+        else { backdrop.classList && backdrop.classList.add('hidden'); backdrop.style.display='none'; }
+      }
+    }catch(_){}
+  }
+
+  function lockScroll(onFlag){
+    try{
+      if (!body) return;
+      if (onFlag) body.classList.add('menu-open'); else body.classList.remove('menu-open');
+    }catch(_){}
+  }
+
+  function focusFirst(){
+    try{
+      var focusables = $$(FSEL, drawer);
+      var first = focusables[0] || drawer || toggle;
+      if (first){ if (first===drawer && !drawer.hasAttribute('tabindex')) drawer.setAttribute('tabindex','-1'); first.focus(); }
+    }catch(_){}
+  }
+
+  function open(){
+    if (!drawer) return;
+    drawer.classList.add('open');
+    lockScroll(true);
+    setAriaOpen(true);
+    focusFirst();
+    announce('Menu ouvert');
+    wireTrap(); // s’assure que le trap est câblé
+    log('[P6B] open');
+  }
+
+  function close(){
+    if (!drawer) return;
+    drawer.classList.remove('open'); drawer.classList.remove('is-open'); drawer.classList.remove('active');
+    lockScroll(false);
+    setAriaOpen(false);
+    try{ if (toggle && toggle.focus) toggle.focus(); }catch(_){}
+    announce('Menu fermé');
+    log('[P6B] close');
+  }
+
+  // Focus trap + ESC (idempotent)
+  function wireTrap(){
+    if (!drawer || drawer.__ptTrap) return;
+    drawer.__ptTrap = 1;
+    on(drawer,'keydown',function(e){
+      if (!isOpen()) return;
+      var k=e.key||e.keyCode;
+      if (k==='Escape'||k===27){ e.preventDefault(); close(); return; }
+      if (!(k==='Tab'||k===9)) return;
+      try{
+        var list=$$(FSEL, drawer);
+        if (!list.length) return;
+        var first=list[0], last=list[list.length-1];
+        var active=D.activeElement, shift=!!e.shiftKey;
+        var inside = drawer.contains(active);
+        if (shift && (!inside || active===first)){ e.preventDefault(); last.focus(); }
+        else if (!shift && (!inside || active===last)){ e.preventDefault(); first.focus(); }
+      }catch(_){}
+    });
+    // ESC global si focus sort (sécurité)
+    on(D,'keydown',function(e){
+      var k=e.key||e.keyCode;
+      if (!isOpen()) return;
+      if (k==='Escape'||k===27){ e.preventDefault(); close(); }
+    });
+  }
+
+  function wireToggles(){
+    if (toggle && !toggle.__pt6B){
+      toggle.__pt6B=1;
+      toggle.setAttribute('aria-expanded','false');
+      on(toggle,'click',function(e){ e.preventDefault(); isOpen()?close():open(); });
+      on(toggle,'pointerup',function(e){ if (e&&e.pointerType==='touch'){ e.preventDefault(); isOpen()?close():open(); } });
     }
-
-    // FAB Compte visible partout sauf #/compte
-    function toggleFabAccount() {
-      var fab = $('#fabAccount'); if (!fab) return;
-      var cur = mapRouteToKey();
-      fab.style.display = (cur === '#/compte') ? 'none' : '';
+    if (backdrop && !backdrop.__pt6B){
+      backdrop.__pt6B=1;
+      on(backdrop,'click',function(){ close(); });
     }
+    if (drawer && !drawer.__pt6BLinks){
+      drawer.__pt6BLinks=1;
+      on(drawer,'click',function(e){
+        var a = e.target && e.target.closest ? e.target.closest('a,[role="menuitem"],[data-route]') : null;
+        if (a) setTimeout(close,30);
+      });
+    }
+  }
+  wireToggles();
 
-    // Boot initial
-    markActive(); toggleFabAccount();
+  // Roving focus (topbar desktop)
+  (function wireRovingTopbar(){
+    if (!topnav || topnav.__ptRoving) return;
+    topnav.__ptRoving=1;
+    on(topnav,'keydown',function(e){
+      var k=e.key||e.keyCode;
+      if(!(k==='ArrowRight'||k===39||k==='ArrowLeft'||k===37||k==='Home'||k===36||k==='End'||k===35)) return;
+      var links=$$(FSEL, topnav).filter(function(el){
+        return el && (el.tagName==='A' || el.getAttribute('role')==='menuitem' || el.hasAttribute('tabindex'));
+      });
+      if(!links.length) return;
+      var idx=Math.max(0, links.indexOf(D.activeElement));
+      if (k==='ArrowRight'||k===39) idx=(idx+1)%links.length;
+      else if (k==='ArrowLeft'||k===37) idx=(idx-1+links.length)%links.length;
+      else if (k==='Home'||k===36) idx=0;
+      else if (k==='End'||k===35) idx=links.length-1;
+      try{ links[idx].focus(); }catch(_){}
+    });
+  })();
 
-     // Exposer API
+  // Actif + aria-current: source d’autorité
+  function mapRouteToKey(href){
+    var h = href || (W.location && W.location.hash) || '#/';
+    if (!h || h==='#') h='#/';
+    if (h.indexOf('#/produit/')===0) return '#/catalogue';
+    if (h.indexOf('#/home')===0 || h==='#/') return '#/';
+    if (h.indexOf('#/catalogue')===0) return '#/catalogue';
+    if (h.indexOf('#/devis')===0) return '#/devis';
+    if (h.indexOf('#/compte')===0) return '#/compte';
+    return '';
+  }
+  function markActive(){
+    var cur = mapRouteToKey();
+    var scopes=[drawer, topnav];
+    for (var s=0;s<scopes.length;s++){
+      var host=scopes[s]; if (!host) continue;
+      // href et data-route
+      var links = $$('a[href^="#/"]', host).concat($$('[data-route^="#/"]', host));
+      for (var i=0;i<links.length;i++){
+        var href = links[i].getAttribute('href') || links[i].getAttribute('data-route') || '';
+        var match = (mapRouteToKey(href)===cur && cur);
+        if (match){ links[i].setAttribute('aria-current','page'); links[i].classList.add('is-active'); }
+        else { links[i].removeAttribute('aria-current'); links[i].classList.remove('is-active'); }
+      }
+    }
+    if (cur) announce('Lien actif mis à jour');
+    log('[P6B] active →', cur);
+  }
+
+  // FAB Compte visible partout sauf #/compte
+  function toggleFabAccount(){
+    var fab = $('#fabAccount'); if (!fab) return;
+    var cur = mapRouteToKey();
+    fab.style.display = (cur==='#/compte') ? 'none' : '';
+  }
+
+  // Hashchange → ferme + MAJ actif + FAB
+  on(W,'hashchange',function(){
+    setTimeout(close,0);
+    markActive();
+    toggleFabAccount();
+  });
+
+  // Init ARIA selon état courant puis boot
+  setAriaOpen(isOpen());
+  markActive();
+  toggleFabAccount();
+  wireTrap();
+
+  // API
   PT.menu = PT.menu || {};
   PT.menu.open = open;
   PT.menu.close = close;
   PT.menu.isOpen = isOpen;
-  PT.menu.setActive = function (route) {
-    try { if (route) W.location.hash = route; } catch (_){ }
+  PT.menu.setActive = function(route){
+    try{ if (route) W.location.hash = route; }catch(_){}
     markActive();
   };
-  PT.menu.wire = function () { // à appeler si le DOM nav est remplacé
-    drawer = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
-    topnav = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
-    toggleFabAccount();
+  PT.menu.wire = function(){ // à rappeler si le DOM nav est remplacé
+    resolveNodes();
+    setAriaOpen(isOpen());
+    wireToggles();
     markActive();
+    toggleFabAccount();
     wireTrap();
   };
-})(); // ← fin 6B (menu A11y)
+})();
 
 /* =========================================================
    FIN — petits utilitaires d’ergonomie non intrusifs
