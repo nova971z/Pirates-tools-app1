@@ -13,10 +13,13 @@
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
+ <!-- Cache-bust assets -->
+  <script>window.__ASSET_VER="22";</script>
+
   <!-- CSS (Android + iOS) -->
   
-<link rel="preload" href="styles.css?v=21" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=21">
+<link rel="preload" href="styles.css?v=22" as="style">
+<link id="app-css" rel="stylesheet" href="styles.css?v=22">
 <link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
   
   <!-- PWA -->
@@ -58,7 +61,7 @@
     setTimeout(function () {
       if (!cssPresent()) {
         var link = document.getElementById('app-css');
-        var href = (document.baseURI ? new URL('styles.css?v=21', document.baseURI).href : 'styles.css?v=21');
+        var href = (document.baseURI ? new URL('styles.css?v=22', document.baseURI).href : 'styles.css?v=22');
         if (!link) {
           link = document.createElement('link');
           link.id = 'app-css';
