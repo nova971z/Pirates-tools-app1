@@ -1378,6 +1378,37 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 <script src="scripts/menu-6b.js" defer></script>
 
+
+
+<script>
+/* Fallback menu iOS/Safari — s'active si PT.menu absent */
+(function () {
+  if (window.PT && PT.menu && typeof PT.menu.wire === 'function') { try{ PT.menu.wire(); }catch(_){} return; }
+  var btn = document.getElementById('menu-toggle');
+  var menu = document.getElementById('side-menu');
+  var bd = document.getElementById('menuBackdrop');
+
+  function openMenu(){
+    document.body.classList.add('menu-open');
+    if (menu){ menu.classList.add('open'); menu.removeAttribute('hidden'); menu.setAttribute('aria-hidden','false'); }
+    if (bd){ bd.removeAttribute('hidden'); bd.setAttribute('aria-hidden','false'); }
+    if (btn){ btn.setAttribute('aria-expanded','true'); }
+    try{ menu && menu.focus(); }catch(_){}
+  }
+  function closeMenu(){
+    document.body.classList.remove('menu-open');
+    if (menu){ menu.classList.remove('open'); menu.setAttribute('hidden',''); menu.setAttribute('aria-hidden','true'); }
+    if (bd){ bd.setAttribute('hidden',''); bd.setAttribute('aria-hidden','true'); }
+    if (btn){ btn.setAttribute('aria-expanded','false'); }
+  }
+  function toggle(){ document.body.classList.contains('menu-open') ? closeMenu() : openMenu(); }
+
+  if (btn) btn.addEventListener('click', function(e){ e.preventDefault(); toggle(); }, false);
+  if (bd)  bd.addEventListener('click', closeMenu, false);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); }, false);
+})();
+</script>
+
 <!-- Effets héros (overshoot/fade au scroll léger) -->
 
 <script>
