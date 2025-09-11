@@ -11,10 +11,9 @@
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
-  <!-- CSS : une seule feuille, versionnée -->
-  <link rel="preload" as="style" href="styles.css?v=17" onload="this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="styles.css?v=17"></noscript>
-
+  <!-- CSS cross-browser (Android + iOS OK) -->
+<link rel="preload" href="styles.css?v=18" as="style">
+<link id="app-css" rel="stylesheet" href="styles.css?v=18" media="all">
   <!-- Ajoute ?ptlog=1 une seule fois + fallback CSS -->
   <script>
   (function () {
