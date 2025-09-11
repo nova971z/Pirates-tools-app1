@@ -502,127 +502,106 @@ body.page-compte .topbar-logo-link { display:none !important; }
   </style>
 
   <!-- Micro-scripts UI (menu + a11y + tabs + avatar + mini-panier + nav boutons) -->
+  
+  
+  
   <script>
+(function(){
+  'use strict';
+
+  // Backdrop : classe cohérente
+  var ovl = document.getElementById('menuBackdrop');
+  if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
+
+  // ⚙️ Menu A11y 6B (pas de doublons)
+  try{ if (window.PT && PT.menu && typeof PT.menu.wire==='function') PT.menu.wire(); }catch(_){}
+
+  // lien "Aller au contenu"
   (function(){
-    var btn  = document.getElementById('menu-toggle');
-    var ovl  = document.getElementById('menuBackdrop');
-    var side = document.getElementById('side-menu');
-
-    if (ovl) { ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
-
-    function open(){
-      document.body.classList.add('menu-open');
-      if (ovl)  ovl.hidden = false;
-      if (side){
-        side.hidden = false;
-        side.classList.add('open');
-        side.setAttribute('aria-hidden','false');
-        try{ side.focus(); }catch(_){}
+    var sk = document.querySelector('.skip-link');
+    if (!sk) return;
+    sk.addEventListener('click', function(e){
+      var id  = (sk.getAttribute('href')||'').replace(/^#/, '');
+      var tgt = id && document.getElementById(id);
+      if (!tgt){
+        var view = document.querySelector('.view:not(.hidden)') || document.getElementById('view-home');
+        tgt = (view && view.querySelector('h1')) || document.getElementById('home-h1');
       }
-      if (btn)  btn.setAttribute('aria-expanded','true');
-    }
-    function close(){
-      document.body.classList.remove('menu-open');
-      if (ovl)  ovl.hidden = true;
-      if (side){
-        side.hidden = true;
-        side.classList.remove('open');
-        side.setAttribute('aria-hidden','true');
-      }
-      if (btn)  btn.setAttribute('aria-expanded','false');
-    }
-
-    if (btn){ btn.addEventListener('click', function(){
-      document.body.classList.contains('menu-open') ? close() : open();
-    }); }
-    if (ovl){ ovl.addEventListener('click', close); }
-
-    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); }, false);
-    window.addEventListener('hashchange', function(){ close(); }, false);
-
-    // lien "Aller au contenu"
-    (function(){
-      var sk = document.querySelector('.skip-link');
-      if (!sk) return;
-      sk.addEventListener('click', function(e){
-        var id = (sk.getAttribute('href')||'').replace(/^#/, '');
-        var tgt = id && document.getElementById(id);
-        if (!tgt){
-          var view = document.querySelector('.view:not(.hidden)') || document.getElementById('view-home');
-          tgt = (view && view.querySelector('h1')) || document.getElementById('home-h1');
-        }
-        if (!tgt) return;
-        e.preventDefault();
-        try{ tgt.setAttribute('tabindex','-1'); }catch(_){}
-        try{ tgt.focus({preventScroll:true}); }catch(_){}
-        try{ tgt.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ window.scrollTo(0, tgt.offsetTop||0); }
-      }, false);
-    })();
-
-    // Boutons data-nav (pour <button>)
-    document.addEventListener('click', function(e){
-      var el = e.target && e.target.closest && e.target.closest('[data-nav]');
-      if (!el) return;
-      if (el.tagName && el.tagName.toLowerCase() === 'a') return;
-      var to = el.getAttribute('data-nav') || '/';
-      try{ location.hash = '#' + to.replace(/^#?/, ''); }catch(_){}
+      if (!tgt) return;
       e.preventDefault();
+      try{ tgt.setAttribute('tabindex','-1'); }catch(_){}
+      try{ tgt.focus({preventScroll:true}); }catch(_){}
+      try{ tgt.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ window.scrollTo(0, tgt.offsetTop||0); }
     }, false);
-
-    // Tabs Auth
-    var tabLogin = document.getElementById('authLoginTab');
-    var tabReg   = document.getElementById('authRegisterTab');
-    var panLogin = document.getElementById('authLogin');
-    var panReg   = document.getElementById('authRegister');
-
-    function showLogin(){
-      if (!tabLogin || !tabReg) return;
-      tabLogin.setAttribute('aria-selected','true');
-      tabReg.setAttribute('aria-selected','false');
-      if (panLogin) panLogin.hidden = false;
-      if (panReg)   panReg.hidden   = true;
-    }
-    function showRegister(){
-      if (!tabLogin || !tabReg) return;
-      tabLogin.setAttribute('aria-selected','false');
-      tabReg.setAttribute('aria-selected','true');
-      if (panLogin) panLogin.hidden = true;
-      if (panReg)   panReg.hidden   = false;
-    }
-    if (tabLogin) tabLogin.addEventListener('click', showLogin);
-    if (tabReg)   tabReg.addEventListener('click', showRegister);
-
-    // Avatar aperçu
-    var fileInp = document.getElementById('accAvatar');
-    var imgOut  = document.getElementById('accAvatarImg');
-    if (fileInp && imgOut){
-      fileInp.addEventListener('change', function(){
-        var f = this.files && this.files[0];
-        if (!f) return;
-        var r = new FileReader();
-        r.onload = function(){ imgOut.src = r.result; };
-        r.readAsDataURL(f);
-      });
-    }
-
-    // Mini panier (compte)
-    try{
-      var miniTxt = document.getElementById('accCartMiniTxt');
-      if (miniTxt){
-        var raw = localStorage.getItem('cart') || localStorage.getItem('pt_cart');
-        if (raw){
-          try{
-            var cart = JSON.parse(raw);
-            var items = Array.isArray(cart) ? cart : (cart.items || []);
-            var count = items.length || 0;
-            var total = (items.reduce(function(s,x){ var p = (+x.price||0), q = (+x.qty||1); return s + p*q; },0)).toFixed(2);
-            miniTxt.textContent = count + ' article' + (count>1?'s':'') + ' — total ' + total + ' €';
-          }catch(_){}
-        }
-      }
-    }catch(_){}
   })();
-  </script>
+
+  // Boutons data-nav (pour <button>)
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest && e.target.closest('[data-nav]');
+    if (!el) return;
+    if (el.tagName && el.tagName.toLowerCase()==='a') return;
+    var to = el.getAttribute('data-nav') || '/';
+    try{ location.hash = '#' + to.replace(/^#?/, ''); }catch(_){}
+    e.preventDefault();
+  }, false);
+
+  // Tabs Auth
+  var tabLogin = document.getElementById('authLoginTab');
+  var tabReg   = document.getElementById('authRegisterTab');
+  var panLogin = document.getElementById('authLogin');
+  var panReg   = document.getElementById('authRegister');
+
+  function showLogin(){
+    if (!tabLogin || !tabReg) return;
+    tabLogin.setAttribute('aria-selected','true');
+    tabReg.setAttribute('aria-selected','false');
+    if (panLogin) panLogin.hidden = false;
+    if (panReg)   panReg.hidden   = true;
+  }
+  function showRegister(){
+    if (!tabLogin || !tabReg) return;
+    tabLogin.setAttribute('aria-selected','false');
+    tabReg.setAttribute('aria-selected','true');
+    if (panLogin) panLogin.hidden = true;
+    if (panReg)   panReg.hidden   = false;
+  }
+  if (tabLogin) tabLogin.addEventListener('click', showLogin);
+  if (tabReg)   tabReg.addEventListener('click', showRegister);
+
+  // Avatar aperçu
+  var fileInp = document.getElementById('accAvatar');
+  var imgOut  = document.getElementById('accAvatarImg');
+  if (fileInp && imgOut){
+    fileInp.addEventListener('change', function(){
+      var f = this.files && this.files[0]; if (!f) return;
+      var r = new FileReader();
+      r.onload = function(){ imgOut.src = r.result; };
+      r.readAsDataURL(f);
+    });
+  }
+
+  // Mini panier (compte)
+  try{
+    var miniTxt = document.getElementById('accCartMiniTxt');
+    if (miniTxt){
+      var raw = localStorage.getItem('cart') || localStorage.getItem('pt_cart');
+      if (raw){
+        try{
+          var cart  = JSON.parse(raw);
+          var items = Array.isArray(cart) ? cart : (cart.items || []);
+          var count = items.length || 0;
+          var total = (items.reduce(function(s,x){ var p=(+x.price||0), q=(+x.qty||1); return s+p*q; },0)).toFixed(2);
+          miniTxt.textContent = count + ' article' + (count>1?'s':'') + ' — total ' + total + ' €';
+        }catch(_){}
+      }
+    }
+  }catch(_){}
+})();
+</script>
+  
+  
+  
+  
 
   <!-- Router + vues (PATCH #1 : LOGGING) -->
 <script>
