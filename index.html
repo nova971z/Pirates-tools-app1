@@ -25,41 +25,52 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
 </head>
 
-  (function(){
-    try {
-      var s = location.search || '';
-      if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
-        var q = s ? s + '&ptlog=1' : '?ptlog=1';
-        location.replace(location.origin + location.pathname + q + (location.hash || ''));
-        return; // la page va recharger
-      }
-    } catch (_) {}
+  <script>
+(function () {
+  'use strict';
 
-    // Fallback : si la feuille CSS n'est pas vue rapidement, on la (ré)injecte
-    setTimeout(function () {
-      var ok = Array.prototype.some.call(document.styleSheets || [], function (ss) {
-        try { return (ss.href || '').indexOf('/Pirates-tools-app1/styles.css') > -1; } catch(e){ return false; }
-      });
-      if (!ok) {
-        var href = new URL('styles.css?v=17', document.baseURI).href;
-        var l = document.createElement('link');
-        l.rel = 'stylesheet';
-        l.href = href;
-        document.head.appendChild(l);
-      }
-    }, 800);
-  })();
-  </script>
+  // Ajoute ?ptlog=1 une seule fois (et garde le hash)
+  try {
+    var u = new URL(location.href);
+    if (u.searchParams.get('ptlog') !== '1') {
+      u.searchParams.set('ptlog', '1');
+      location.replace(u.toString());
+      return; // la page va recharger une fois
+    }
+  } catch (_) {}
 
-  <!-- PWA -->
-  <meta name="theme-color" content="#0a0f14" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
+  // Fallback CSS : si la feuille n'est pas appliquée, on la (ré)injecte
+  function cssPrésente() {
+    var ss = document.styleSheets || [];
+    for (var i = 0; i < ss.length; i++) {
+      try {
+        var href = ss[i].href || '';
+        if (href.indexOf('/Pirates-tools-app1/styles.css') > -1 || href.indexOf('styles.css') > -1) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  setTimeout(function () {
+    if (!cssPrésente()) {
+      var link = document.getElementById('app-css');
+      var href = (document.baseURI ? new URL('styles.css?v=18', document.baseURI).href : 'styles.css?v=18');
+      if (!link) {
+        link = document.createElement('link');
+        link.id = 'app-css';
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      } else {
+        // force un rechargement si déjà présent
+        link.href = href.replace(/([?&])v=\d+/, '$1v=' + Date.now());
+      }
+    }
+  }, 600);
+})();
+</script>
+
+  
 
   <!-- ===== Patch UI : haut non tronqué + dock centré + bulles marques ===== -->
   <style id="pt-fix">
