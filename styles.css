@@ -572,41 +572,40 @@ body.after-hero::after{ opacity:1 }
   .tool--exit-left,.tool--exit-right{ animation:none; opacity:0 }
 }
 
-/* ========== 23) OVERLAY + MENU LATÉRAL (unifié .drawer/.menu-backdrop) ========== */
-.menu-backdrop{
-  position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000;
-}
-.menu-backdrop[hidden]{ display:none !important }
 
-.drawer{
-  position:fixed; inset:0 0 0 auto; width:min(86vw,360px); max-width:92vw;
-  background:rgba(0,0,0,.9);
-  -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
-  transform:translateX(100%); transition:transform .25s ease; z-index:1001;
-  padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
+/* ========== 23) OVERLAY + MENU LATÉRAL (robuste) ========== */
+
+/* Overlay (id + classe générique) */
+#menuBackdrop,
+.backdrop{
+  position: fixed; top:0; right:0; bottom:0; left:0;
+  background: rgba(0,0,0,.5); z-index:1000; display:none;
+}
+#menuBackdrop[aria-hidden="false"],
+.backdrop[aria-hidden="false"],
+body.menu-open #menuBackdrop{ display:block; }
+#menuBackdrop[hidden]{ display:none !important; }
+
+/* Tiroir (ID pour gagner la spécificité sur mobile) */
+#side-menu.drawer{
+  position: fixed; top:0; right:0; bottom:0; left:auto;
+  width:min(86vw,360px); max-width:92vw;
+  background: rgba(0,0,0,.9);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+          backdrop-filter: saturate(120%) blur(8px);
+  transform: translate3d(100%,0,0);     /* fermé */
+  transition: transform .25s ease;
+  z-index:1001;
+  padding:90px 0 28px 18px;
+  display:grid; grid-auto-rows:min-content; gap:28px;
   align-content:start; justify-items:start;
 }
-.drawer.open{ transform:none }
-.drawer .app-link{ pointer-events:auto; display:inline-flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none }
-.drawer .app-bubble{
-  position:relative; width:64px; height:64px; border-radius:50%;
-  background:rgba(255,255,255,0.10); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:0 8px 22px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22);
-  transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
-}
-.drawer .app-bubble::before{
-  content:""; position:absolute; inset:-8px; border-radius:50%;
-  background:radial-gradient(closest-side, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
-  filter:blur(10px); opacity:.55; z-index:-1;
-}
-.drawer .app-icon-img{ width:65%; height:65%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)) }
-.drawer .app-bubble svg{ width:22px; height:22px; display:block; color:#fff; stroke:currentColor; fill:none }
-.drawer .app-label{ font-size:.88rem; font-weight:600; line-height:1.1; color:rgba(255,255,255,0.96); text-shadow:0 1px 2px rgba(0,0,0,0.35) }
-.drawer .app-link:hover .app-bubble{ transform:translateY(-2px) scale(1.06); background:rgba(255,255,255,0.14) }
-.drawer .app-link:focus-visible .app-bubble{ outline:2px solid var(--brand); outline-offset:3px }
-.drawer .app-link:active .app-bubble{ transform:scale(0.96) }
-@media (max-width:360px){ .drawer{ padding-left:14px; gap:24px } .drawer .app-bubble{ width:60px; height:60px } .drawer .app-label{ font-size:.82rem } }
+#side-menu.drawer.open,
+body.menu-open #side-menu{ transform: translate3d(0,0,0) !important; }
+
+/* Verrouille le scroll quand le menu est ouvert */
+body.menu-open{ overflow:hidden; }
+
 
 /* iOS fix : forcer les sélecteurs par ID */
 
@@ -762,18 +761,6 @@ html, body{
 }
 #dock.dock--visible, .dock.dock--visible{ transform:translateX(-50%) translateY(0) }
 #dock .dock__shell, .dock .dock__shell{ pointer-events:auto }
-
-
-/* PATCH B — Drawer flush à droite + verrouillage du scroll lorsque le menu est ouvert */
-body.menu-open{ overflow:hidden }
-
-.drawer{
-  left:auto !important;
-  right:0 !important;
-  margin:0 !important;
-  transform:translateX(100%) !important;
-}
-.drawer.open{ transform:translateX(0) !important }
 
 
 
