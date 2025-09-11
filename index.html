@@ -13,8 +13,8 @@
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
   <!-- CSS (Android + iOS) -->
-  <link rel="preload" href="styles.css?v=20" as="style">
-  <link id="app-css" rel="stylesheet" href="styles.css?v=20" media="all">
+<link rel="preload" href="styles.css?v=20" as="style">
+<link id="app-css" rel="stylesheet" href="styles.css?v=20" media="all" data-ci="true">
 
   <link rel="stylesheet" href="styles.css" data-ci="true">
   <!-- PWA -->
@@ -398,9 +398,10 @@
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-  <div id="menuBackdrop" class="backdrop" hidden aria-hidden="true"></div>
-  <aside id="side-menu" class="drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
-    <h2 id="menuTitle" class="sr-only">Menu</h2>
+  <div id="menuBackdrop" class="backdrop" aria-hidden="true"></div>
+<aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
+       aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
+  <h2 id="menuTitle" class="sr-only">Menu</h2>
     <a class="app-link" href="#/" data-nav="/">
       <span class="app-bubble">🏠</span>
       <span class="app-label">Accueil</span>
@@ -436,7 +437,6 @@
 
   <!-- PT (si présent) -->
   <script defer src="pt.js"></script>
-  <script type="module">
     if (!window.PT) {
       import('./pt.js').then((m)=>{ window.PT = m.default || m; }).catch(()=>{});
     }
