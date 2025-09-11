@@ -7,41 +7,42 @@
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
-<!-- IMPORTANT: base + canonique + CSS -->
-<base href="/Pirates-tools-app1/">
-<link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
+  <!-- IMPORTANT: base + canonique -->
+  <base href="/Pirates-tools-app1/">
+  <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
-<!-- CSS : preload + anti-cache -->
-<link rel="preload" as="style" href="./styles.css?v=17" onload="this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="./styles.css?v=17"></noscript>
+  <!-- CSS : une seule feuille, versionnée -->
+  <link rel="preload" as="style" href="styles.css?v=17" onload="this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="styles.css?v=17"></noscript>
 
-<!-- Ajoute ?ptlog=1 une seule fois + fallback CSS -->
-<script>
-(function () {
-  try {
-    var s = location.search || '';
-    if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
-      var q = s ? s + '&ptlog=1' : '?ptlog=1';
-      location.replace(location.origin + location.pathname + q + (location.hash || ''));
-      return; // stop ici, la page va recharger
-    }
-  } catch (_) {}
+  <!-- Ajoute ?ptlog=1 une seule fois + fallback CSS -->
+  <script>
+  (function () {
+    try {
+      var s = location.search || '';
+      if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
+        var q = s ? s + '&ptlog=1' : '?ptlog=1';
+        location.replace(location.origin + location.pathname + q + (location.hash || ''));
+        return; // la page va recharger
+      }
+    } catch (_) {}
 
-  // Fallback : si la feuille CSS n'est pas vue rapidement, on la (ré)injecte
-  setTimeout(function () {
-    var ok = Array.prototype.some.call(document.styleSheets || [], function (ss) {
-      try { return (ss.href || '').indexOf('/Pirates-tools-app1/styles.css') > -1; } catch(e){ return false; }
-    });
-    if (!ok) {
-      var href = new URL('styles.css?v=16', document.baseURI).href;
-      var l = document.createElement('link');
-      l.rel = 'stylesheet';
-      l.href = href;
-      document.head.appendChild(l);
-    }
-  }, 800);
-})();
-</script>
+    // Fallback : si la feuille CSS n'est pas vue rapidement, on la (ré)injecte
+    setTimeout(function () {
+      var ok = Array.prototype.some.call(document.styleSheets || [], function (ss) {
+        try { return (ss.href || '').indexOf('/Pirates-tools-app1/styles.css') > -1; } catch(e){ return false; }
+      });
+      if (!ok) {
+        var href = new URL('styles.css?v=17', document.baseURI).href;
+        var l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = href;
+        document.head.appendChild(l);
+      }
+    }, 800);
+  })();
+  </script>
+
   <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -52,35 +53,64 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
 
-  <!-- Feuille de style (une seule, relative à <base>) -->
-  <link rel="stylesheet" href="styles.css" />
+  <!-- ===== Patch UI : haut non tronqué + dock centré + bulles marques ===== -->
+  <style id="pt-fix">
+    :root{ --safe-top:70px; --dock-bottom:14px; }
+    /* 1) Décaler le contenu pour laisser passer la topbar */
+    #app{ padding-top: calc(var(--safe-top) + 10px); }
+
+    /* 2) Dock centré en bas */
+    #dock{
+      position:fixed !important;
+      left:50% !important; right:auto !important;
+      bottom: calc(var(--dock-bottom) + var(--safe-bottom,0px)) !important;
+      transform: translateX(-50%) !important;
+      width:auto !important; padding:0 !important;
+      z-index:999;
+    }
+    #dock.dock--visible{ transform: translateX(-50%) !important; }
+
+    /* 3) Bulles de marque visibles en grille */
+    .brand-grid{ display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:.8rem !important; justify-items:center !important; }
+    @media (min-width:680px){ .brand-grid{ grid-template-columns:repeat(3,minmax(0,1fr)) !important; } }
+    .brand{ background:transparent !important; border:0 !important; padding:0 !important; }
+    .brand__bubble{
+      width:92px; height:92px; border-radius:50% !important; overflow:hidden;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      display:block;
+    }
+    .brand__bubble img, .brand__logo{ width:100%; height:100%; object-fit:cover; }
+  </style>
+
+  <!-- Ajuste automatiquement --safe-top selon la hauteur de la topbar -->
+  <script>
+  (function(){
+    function setSafeTop(){
+      var tb=document.querySelector('.topbar');
+      var h=tb ? tb.offsetHeight : 70;
+      document.documentElement.style.setProperty('--safe-top', h + 'px');
+    }
+    if (document.readyState!=='loading') setSafeTop();
+    else document.addEventListener('DOMContentLoaded', setSafeTop);
+    window.addEventListener('resize', setSafeTop, {passive:true});
+  })();
+  </script>
 
   <!-- ===== HÉRO : styles nécessaires à l’animation pilotée ===== -->
   <style id="pt-hero-overshoot-css">
-  :root{ --listGap: 22vh; --heroFadeH: 28vh; }
-
-  #hero{ position:relative; z-index:0; }
-  body.after-hero #hero{ z-index:-1; pointer-events:none; }
-
-  #hero .hero-fade{
-    position:absolute; inset:auto 0 0 0; height:var(--heroFadeH, 28vh);
-    background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
-    pointer-events:none;
-  }
-
-  #view-home .container{
-    margin-top: var(--listGap, 22vh);
-    transition: margin-top .22s ease-out;
-  }
-
-  .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
-  .hero-logo.on{ opacity:1; }
+    :root{ --listGap: 22vh; --heroFadeH: 28vh; }
+    #hero{ position:relative; z-index:0; }
+    body.after-hero #hero{ z-index:-1; pointer-events:none; }
+    #hero .hero-fade{
+      position:absolute; inset:auto 0 0 0; height:var(--heroFadeH, 28vh);
+      background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg, #0a0f14) 100%);
+      pointer-events:none;
+    }
+    #view-home .container{ margin-top: var(--listGap, 22vh); transition: margin-top .22s ease-out; }
+    .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
+    .hero-logo.on{ opacity:1; }
   </style>
 </head>
-
-<body data-router-root>
-  <a class="skip-link" href="#list">Aller au contenu</a>
-
   <!-- =================== TOPBAR =================== -->
   <header class="topbar" role="banner">
     <div class="topbar-left">
