@@ -445,7 +445,7 @@
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
   
-  <div id="menuBackdrop" class="backdrop" hidden aria-hidden="true"></div>
+  <div id="menuBackdrop" class="backdrop" aria-hidden="true"></div>
 <aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
        aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
       
@@ -549,10 +549,17 @@
 
 .view.hidden{ display:none !important; }
 
-#dock{ position:fixed; left:0; right:0; bottom:0; padding:.5rem; transform:translateY(100%); transition:transform .2s ease; z-index:999; }
-#dock.dock--visible{ transform:translateY(0); }
-#dock.dock--pulse{ animation:dockPulse .46s ease; }
-@keyframes dockPulse{ 0%{transform:translateY(0) scale(1);} 40%{transform:translateY(0) scale(1.03);} 100%{transform:translateY(0) scale(1);} }
+#dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
+#dock .dock__shell{ pointer-events:auto }
+
+/* pulse sur #dock, en gardant le centrage */
+#dock.dock--pulse{ animation:dockPulse .46s ease }
+@keyframes dockPulse{
+  0%   { transform:translateX(-50%) translateY(0) scale(1) }
+  40%  { transform:translateX(-50%) translateY(0) scale(1.03) }
+  100% { transform:translateX(-50%) translateY(0) scale(1) }
+}
+
 
 .pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
 .pdp__price{ font-size:1.25rem; font-weight:700; }
