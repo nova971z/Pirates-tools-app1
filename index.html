@@ -11,16 +11,16 @@
   <!-- IMPORTANT: base adaptée à GitHub Pages -->
   <base href="/Pirates-tools-app1/" />
 
-  <!-- Ajout sûr de ?ptlog=1 sans casser le #/catalogue -->
+  <!-- Ajoute ?ptlog=1 une seule fois et conserve le hash -->
   <script>
-  (function () {
-    try {
-      var u = new URL(window.location.href);
-      if (!u.searchParams.has('ptlog')) {
-        u.searchParams.set('ptlog','1');
-        window.location.replace(u.toString());
+  (function(){
+    try{
+      var s = location.search || '';
+      if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
+        var q = s ? s + '&ptlog=1' : '?ptlog=1';
+        location.replace(location.origin + location.pathname + q + (location.hash || ''));
       }
-    } catch (_) {}
+    }catch(_){}
   })();
   </script>
 
@@ -34,8 +34,8 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
 
-  <!-- CSS (unique) -->
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <!-- Feuille de style (une seule, relative à <base>) -->
+  <link rel="stylesheet" href="styles.css" />
 
   <!-- ===== HÉRO : styles nécessaires à l’animation pilotée ===== -->
   <style id="pt-hero-overshoot-css">
