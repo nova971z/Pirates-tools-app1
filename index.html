@@ -1,4 +1,3 @@
-<html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge" />
@@ -11,11 +10,20 @@
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
-  <!-- CSS cross-browser (Android + iOS OK) -->
-<link rel="preload" href="styles.css?v=18" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=18" media="all">
-  <!-- Ajoute ?ptlog=1 une seule fois + fallback CSS -->
-  <script>
+  <!-- CSS cross-browser (Android + iOS) -->
+  <link rel="preload" href="styles.css?v=18" as="style">
+  <link id="app-css" rel="stylesheet" href="styles.css?v=18" media="all">
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#0a0f14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Pirates Tools" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
+</head>
   (function () {
     try {
       var s = location.search || '';
