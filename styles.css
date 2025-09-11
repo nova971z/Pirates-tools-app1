@@ -751,3 +751,41 @@ body.menu-open{ overflow:hidden }
   transform:translateX(100%) !important;
 }
 .drawer.open{ transform:translateX(0) !important }
+
+
+
+/* === DOCK — centré et verrouillé en bas (final) === */
+#dock{
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: calc(var(--dock-bottom,14px) + max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px)));
+  transform: translateX(-50%);           /* centre horizontal */
+  z-index: 1000;
+  pointer-events: none;                   /* clics uniquement sur la coque */
+}
+#dock.dock--visible{                      /* conserve l’animation/pulse existants */
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#dock .dock__shell{
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .45rem 24px;
+  border-radius: 999px;
+  background: rgba(10,15,20,.66);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  max-width: 96vw;                        /* évite tout dépassement */
+}
+
+#dock .dock__btn{
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+}
