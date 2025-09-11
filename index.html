@@ -9,14 +9,19 @@
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
 
   <!-- IMPORTANT: base + canonique -->
+  
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
 
   <!-- CSS (Android + iOS) -->
+  
 <link rel="preload" href="styles.css?v=21" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=21" media="all" data-ci="true">
-<link rel="stylesheet" href="styles.css"> <!-- pour la CI -->
+<link id="app-css" rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css" data-ci="true" media="print" onload="this.media='all'">
+  
+  
   <!-- PWA -->
+  
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -27,6 +32,7 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
 
   <!-- ?ptlog=1 + fallback CSS -->
+  
   <script>
   (function () {
     'use strict';
@@ -69,6 +75,7 @@
   </script>
 
   <!-- Patch UI : haut non tronqué + dock centré + bulles -->
+  
   <style id="pt-fix">
     :root{ --safe-top:70px; --dock-bottom:14px; }
     #app{ padding-top: calc(var(--safe-top) + 10px); }
@@ -85,6 +92,7 @@
   </style>
 
   <!-- Ajuste --safe-top à la hauteur réelle de la topbar -->
+  
   <script>
   (function(){
     function setSafeTop(){
@@ -99,6 +107,7 @@
   </script>
 
   <!-- HÉRO : styles -->
+  
   <style id="pt-hero-overshoot-css">
     :root{ --listGap:22vh; --heroFadeH:28vh; }
     #hero{ position:relative; z-index:0; }
@@ -111,7 +120,11 @@
   </style>
 </head>
 <body data-router-root>
+  
+  
+  
   <!-- =================== TOPBAR =================== -->
+  
   <header class="topbar" role="banner">
     <div class="topbar-left">
       <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
@@ -134,8 +147,11 @@
       <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
     </div>
   </header>
+  
+  
 
   <!-- =================== HÉRO =================== -->
+  
   <section id="hero" class="hero-full" aria-hidden="true" data-hero>
     <img
       id="heroLogo"
@@ -148,6 +164,8 @@
   </section>
 
   <div class="hero-fade-fixed" aria-hidden="true"></div>
+  
+  
 
   <!-- ===== Loader robuste (topbar + hero) ===== -->
   <script>
@@ -170,8 +188,11 @@
     onReady(function(){
       var topImg  = D.getElementById('topbarLogo');
       var heroImg = D.getElementById('heroLogo');
+      
+      
 
       // TOPBAR: logo fichier si présent, sinon icône
+
       if (topImg){
         var brand = 'images/pirates-tools-logo.png';
         var probe = new Image();
@@ -187,6 +208,7 @@
       }
 
       // HERO: icône HD + srcset
+
       if (heroImg){
         heroImg.setAttribute('srcset',
           'icons/icon-180.png 180w, icons/icon-192.png 192w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w'
@@ -196,6 +218,7 @@
       }
 
       // Dock « Compte » (sécurité)
+
       (function(){
         var btn = D.getElementById('dockAccountBtn');
         if (!btn || btn.__wired) return;
@@ -207,9 +230,11 @@
   </script>
 
   <!-- =================== VUES (SPA) =================== -->
+  
   <main id="app" role="main">
 
     <!-- HOME -->
+    
     <section id="view-home" class="view" data-route="/" role="region" aria-labelledby="home-h1">
       <div class="container">
         <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
@@ -219,6 +244,7 @@
     </section>
 
     <!-- CATALOGUE -->
+    
     <section id="view-catalogue" class="view hidden" data-route="/catalogue" role="region" aria-labelledby="catalogue-h1">
       <div class="container">
         <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
@@ -236,6 +262,7 @@
     </section>
 
     <!-- PRODUIT (PDP) -->
+    
     <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
       <div class="container pdp" id="pdp">
         <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
@@ -265,6 +292,7 @@
     </section>
 
     <!-- DEVIS (panier) -->
+    
     <section id="view-devis" class="view hidden" data-route="/devis" role="region" aria-labelledby="devis-h1">
       <div class="container">
         <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
@@ -281,8 +309,12 @@
         </div>
       </div>
     </section>
+    
+    
 
     <!-- COMPTE -->
+    
+    
     <section id="view-compte" class="view hidden" data-route="/compte" role="region" aria-labelledby="compte-h1">
       <div class="container">
         <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
@@ -290,7 +322,11 @@
         <div class="card">
           <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
           <div class="specs">
+            
+            
             <!-- Avatar -->
+            
+            
             <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
               <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
               <label class="chip" style="cursor:pointer">
@@ -312,6 +348,8 @@
             </form>
 
             <!-- Mini récap panier -->
+            
+            
             <div class="card" style="margin-top:1rem;max-width:520px">
               <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
               <div id="accCartMini" class="specs">
@@ -321,6 +359,8 @@
             </div>
 
             <!-- Jauge fidélité -->
+            
+            
             <div class="meter" style="max-width:520px;margin-top:1rem">
               <div class="meter__rail">
                 <div id="accFill" class="meter__fill"></div>
@@ -333,8 +373,12 @@
         </div>
       </div>
     </section>
+    
+    
 
        <!-- AUTH -->
+      
+      
     <section id="view-auth" class="view hidden" data-route="/auth" role="region" aria-labelledby="auth-h1">
       <div class="container">
         <h1 id="auth-h1" tabindex="-1">Compte</h1>
@@ -385,6 +429,7 @@
   </main>
 
   <!-- =================== DOCK =================== -->
+  
   <nav id="dock" class="dock" aria-label="Barre d’action">
     <div class="dock__shell">
       <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" aria-label="Devis WhatsApp" data-nav="/catalogue">🛠️</button>
@@ -397,9 +442,11 @@
   </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-  <div id="menuBackdrop" class="backdrop" aria-hidden="true"></div>
+  
+  <div id="menuBackdrop" class="backdrop" hidden aria-hidden="true"></div>
 <aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
-       aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
+       aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
+      
   <h2 id="menuTitle" class="sr-only">Menu</h2>
     <a class="app-link" href="#/" data-nav="/">
       <span class="app-bubble">🏠</span>
@@ -443,7 +490,8 @@
 </script>
 
   <!-- Micro-styles UI complémentaires -->
-  <style id="pt-ui">
+  
+<style id="pt-ui">
 :root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
 
 .hero-logo{ transition: transform .28s ease, filter .28s ease, opacity .28s ease; will-change: transform,filter,opacity; }
@@ -478,9 +526,21 @@
 .sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0; }
 .pt-root{ z-index:2147483000; }
 
-.drawer{ position:fixed; inset:0 0 0 auto; width:min(86vw,360px); max-width:92vw; background:rgba(0,0,0,.9);
-  backdrop-filter:saturate(120%) blur(8px); transform:translateX(100%); transition:transform .25s ease; z-index:1001; }
-.drawer.open{ transform:none; }
+/* = Drawer (menu latéral) = */
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; left:auto;
+  width:min(86vw,360px); max-width:92vw; box-sizing:border-box;
+  background:rgba(0,0,0,.9);
+  -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
+  transform:translate3d(100%,0,0); transition:transform .25s ease; z-index:1001;
+  padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
+  align-content:start; justify-items:start;
+}
+.drawer.open{ transform:translate3d(0,0,0); }
+/* si le script ne met que .menu-open sur <body> */
+.menu-open #side-menu{ transform:translate3d(0,0,0); }
+.menu-open #menuBackdrop{ display:block; }
+
 .backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
 .backdrop.hidden{ display:none; }
 [hidden]{ display:none !important; }
@@ -499,7 +559,7 @@
 body.page-catalogue .topbar-logo-link,
 body.page-devis .topbar-logo-link,
 body.page-compte .topbar-logo-link { display:none !important; }
-  </style>
+</style>
 
   <!-- Micro-scripts UI (menu + a11y + tabs + avatar + mini-panier + nav boutons) -->
   
@@ -1302,12 +1362,15 @@ body.page-compte .topbar-logo-link { display:none !important; }
 </script>
 
 <!-- Script applicatif (externe) -->
+
 <script defer src="app.js"></script>
 
 <!-- Menu A11y avancé (6B) -->
-<script src="scripts/menu-6b.js"></script>
+
+<script src="scripts/menu-6b.js" defer></script>
 
 <!-- Effets héros (overshoot/fade au scroll léger) -->
+
 <script>
 (function(){
   var hero = document.getElementById('hero');
