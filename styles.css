@@ -607,27 +607,6 @@ body.menu-open #side-menu{ transform: translate3d(0,0,0) !important; }
 body.menu-open{ overflow:hidden; }
 
 
-/* iOS fix : forcer les sélecteurs par ID */
-
-/* Overlay (compat .menu-backdrop et #menuBackdrop) */
-#menuBackdrop,
-.menu-backdrop{
-  position: fixed; top:0; right:0; bottom:0; left:0;
-  background: rgba(0,0,0,.5); z-index:1000; display:none;
-}
-#menuBackdrop[aria-hidden="false"],
-.menu-backdrop[aria-hidden="false"]{ display:block; }
-
-/* Tiroir */
-#side-menu.drawer{
-  position: fixed;
-  top:0; right:0; bottom:0; left:auto;      /* au lieu de inset */
-  width: min(86vw,360px); max-width: 92vw;
-  transform: translateX(100%);               /* fermé */
-  transition: transform .25s ease;
-  z-index: 1001;
-}
-#side-menu.drawer.open{ transform: translateX(0) !important; }
 
 
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
@@ -749,37 +728,23 @@ html, body{
   transform: translateZ(0);
 }
 
-/* PATCH A — Dock centré et fixe */
+/* === DOCK — bloc unique (centré & verrouillé en bas) === */
 #dock, .dock{
-  position:fixed;
-  left:50%;
-  right:auto;
-  bottom:calc(var(--dock-bottom,14px) + var(--safe-bottom, 0px));
-  transform:translateX(-50%);
-  z-index:1000;
-  pointer-events:none;
-}
-#dock.dock--visible, .dock.dock--visible{ transform:translateX(-50%) translateY(0) }
-#dock .dock__shell, .dock .dock__shell{ pointer-events:auto }
-
-
-
-/* === DOCK — centré et verrouillé en bas (final) === */
-#dock{
   position: fixed;
   left: 50%;
   right: auto;
   bottom: calc(var(--dock-bottom,14px) + max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px)));
-  transform: translateX(-50%);           /* centre horizontal */
+  transform: translateX(-50%) translateY(12px); /* offset d’apparition */
   z-index: 1000;
-  pointer-events: none;                   /* clics uniquement sur la coque */
+  pointer-events: none;                        /* clics seulement sur la coque */
+  transition: opacity .28s ease-out, transform .28s ease-out;
 }
-#dock.dock--visible{                      /* conserve l’animation/pulse existants */
+#dock.dock--visible, .dock.dock--visible{
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-#dock .dock__shell{
+#dock .dock__shell, .dock .dock__shell{
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
@@ -791,11 +756,13 @@ html, body{
           backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  max-width: 96vw;                        /* évite tout dépassement */
+  max-width: 96vw; /* évite tout dépassement */
 }
 
-#dock .dock__btn{
-  width: 40px; height: 40px;
-  display: grid; place-items: center;
+#dock .dock__btn, .dock .dock__btn{
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
   border-radius: 12px;
 }
