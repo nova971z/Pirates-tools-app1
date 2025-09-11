@@ -437,6 +437,21 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
 
   function renderBrandGridFromProducts(products){
     var host = document.getElementById('brandGrid'); if (!host) return;
+    // Patch: si brand absent, essaie d'inférer depuis le titre
+(all||[]).forEach(p=>{
+  if (!(p.brand || p.marque)) {
+    const t = (p.title||p.name||'').toLowerCase();
+    p.brand =
+      /dewalt|de-walt/.test(t) ? 'DeWALT' :
+      /makita/.test(t)         ? 'Makita' :
+      /bosch/.test(t)          ? 'Bosch' :
+      /milwaukee/.test(t)      ? 'Milwaukee' :
+      /stanley/.test(t)        ? 'Stanley' :
+      /ryobi/.test(t)          ? 'Ryobi' :
+      /hikoki|hitachi/.test(t) ? 'HiKOKI' :
+      (p.brand||p.marque||'');
+  }
+});
     var brands = computeBrands(products);
     var html = '';
     for (var i=0;i<brands.length;i++){
