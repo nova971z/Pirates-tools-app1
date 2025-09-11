@@ -1,33 +1,38 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="x-ua-compatible" content="ie=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-
-  <title>Pirates Tools • Outillage pro (PWA)</title>
-  <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-
-   <!-- IMPORTANT: base + canonique + CSS -->
-  
-  <base href="/Pirates-tools-app1/">
+<!-- IMPORTANT: base + canonique + CSS -->
+<base href="/Pirates-tools-app1/">
 <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
-<link rel="stylesheet" href="https://nova971z.github.io/Pirates-tools-app1/styles.css?v=14">
-  
-  
-   <!-- Ajoute ?ptlog=1 une seule fois et conserve le hash -->
-  <script>
-  (function(){
-    try{
-      var s = location.search || '';
-      if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
-        var q = s ? s + '&ptlog=1' : '?ptlog=1';
-        location.replace(location.origin + location.pathname + q + (location.hash || ''));
-      }
-    }catch(_){}
-  })();
-  </script>
 
+<!-- CSS : preload + anti-cache -->
+<link rel="preload" as="style" href="./styles.css?v=16" onload="this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="./styles.css?v=16"></noscript>
+
+<!-- Ajoute ?ptlog=1 une seule fois + fallback CSS -->
+<script>
+(function () {
+  try {
+    var s = location.search || '';
+    if (!/[?&]ptlog=1(?:&|$)/.test(s)) {
+      var q = s ? s + '&ptlog=1' : '?ptlog=1';
+      location.replace(location.origin + location.pathname + q + (location.hash || ''));
+      return; // stop ici, la page va recharger
+    }
+  } catch (_) {}
+
+  // Fallback : si la feuille CSS n'est pas vue rapidement, on la (ré)injecte
+  setTimeout(function () {
+    var ok = Array.prototype.some.call(document.styleSheets || [], function (ss) {
+      try { return (ss.href || '').indexOf('/Pirates-tools-app1/styles.css') > -1; } catch(e){ return false; }
+    });
+    if (!ok) {
+      var href = new URL('styles.css?v=16', document.baseURI).href;
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = href;
+      document.head.appendChild(l);
+    }
+  }, 800);
+})();
+</script>
   <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
