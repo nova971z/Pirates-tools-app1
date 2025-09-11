@@ -436,11 +436,12 @@
   <!-- =================== JS =================== -->
 
   <!-- PT (si présent) -->
-  <script defer src="pt.js"></script>
-    if (!window.PT) {
-      import('./pt.js').then((m)=>{ window.PT = m.default || m; }).catch(()=>{});
-    }
-  </script>
+<script defer src="pt.js"></script>
+<script type="module">
+  if (!window.PT) {
+    import('./pt.js').then(m => { window.PT = m.default || m; }).catch(()=>{});
+  }
+</script>
 
   <!-- Micro-styles UI complémentaires -->
   <style id="pt-ui">
@@ -513,9 +514,21 @@ body.page-compte .topbar-logo-link { display:none !important; }
   var ovl = document.getElementById('menuBackdrop');
   if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
 
-  // ⚙️ Menu A11y 6B (pas de doublons)
-  try{ if (window.PT && PT.menu && typeof PT.menu.wire==='function') PT.menu.wire(); }catch(_){}
-
+    // ⚙️ Menu A11y 6B (wire quand le script est chargé, 1 seule fois)
+  (function(){
+    function wire(){
+      try{
+        if (window.PT && PT.menu && typeof PT.menu.wire === 'function' && !PT.menu.__wired){
+          PT.menu.wire();
+          PT.menu.__wired = 1;
+        }
+      }catch(_){}
+    }
+    if (document.readyState !== 'loading') wire();
+    else document.addEventListener('DOMContentLoaded', wire, {once:true});
+  })();
+  
+  
   // lien "Aller au contenu"
   (function(){
     var sk = document.querySelector('.skip-link');
