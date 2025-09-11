@@ -608,6 +608,29 @@ body.after-hero::after{ opacity:1 }
 .drawer .app-link:active .app-bubble{ transform:scale(0.96) }
 @media (max-width:360px){ .drawer{ padding-left:14px; gap:24px } .drawer .app-bubble{ width:60px; height:60px } .drawer .app-label{ font-size:.82rem } }
 
+/* iOS fix : forcer les sélecteurs par ID */
+
+/* Overlay (compat .menu-backdrop et #menuBackdrop) */
+#menuBackdrop,
+.menu-backdrop{
+  position: fixed; top:0; right:0; bottom:0; left:0;
+  background: rgba(0,0,0,.5); z-index:1000; display:none;
+}
+#menuBackdrop[aria-hidden="false"],
+.menu-backdrop[aria-hidden="false"]{ display:block; }
+
+/* Tiroir */
+#side-menu.drawer{
+  position: fixed;
+  top:0; right:0; bottom:0; left:auto;      /* au lieu de inset */
+  width: min(86vw,360px); max-width: 92vw;
+  transform: translateX(100%);               /* fermé */
+  transition: transform .25s ease;
+  z-index: 1001;
+}
+#side-menu.drawer.open{ transform: translateX(0) !important; }
+
+
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
 .auth-switch{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem }
 .auth-switch .chip{ border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.06); cursor:pointer; user-select:none }
