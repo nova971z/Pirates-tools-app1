@@ -821,17 +821,43 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
   var css = `
 :root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
 
-/* Drawer (menu hamburger) aligné à droite, glisse propre */
-.drawer{
-  position:fixed; inset:0 0 0 auto; width:min(86vw,360px); max-width:92vw;
-  background:rgba(0,0,0,.9); -webkit-backdrop-filter:saturate(120%) blur(8px);
-  backdrop-filter:saturate(120%) blur(8px);
-  transform:translateX(100%); transition:transform .25s ease; z-index:1001;
+/* Drawer (menu hamburger) aligné à gauche, glisse propre */
+.drawer,
+#side-menu,
+#sideMenu,
+[data-drawer]{
+  position: fixed;
+  inset: 0 auto 0 0;                 /* gauche */
+  width: min(86vw, 360px);
+  max-width: 92vw;
+  transform: translateX(-100%);      /* caché à gauche */
+  transition: transform .28s ease;
+  z-index: 1001;
+
+  /* style “verre” comme avant */
+  background: rgba(10,15,20,.94);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+          backdrop-filter: saturate(120%) blur(8px);
+  border-right: 1px solid var(--border, rgba(255,255,255,.08));
+  border-left: none;
+  border-radius: 0 12px 12px 0;
 }
-.drawer.open{ transform:none; }
-.backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
-.backdrop.hidden{ display:none; }
-[hidden]{ display:none !important; }
+.drawer.open,
+#side-menu.open,
+#sideMenu.open,
+[data-drawer].open{
+  transform: translateX(0);          /* entre depuis la gauche */
+}
+
+.backdrop,
+#menuBackdrop,
+#drawerBackdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 1000;
+}
+.backdrop.hidden{ display: none; }
 
 /* Dock — centré, fixe, avec safe-area bottom */
 #dock{
