@@ -947,52 +947,7 @@ body.menu-open{ overflow:hidden; }
   }
 })();
 
-/* Dock — centré, fixe, avec safe-area bottom */
-#dock{
-  position:fixed; left:50%;
-  bottom:calc(14px + var(--safe-bottom,0px));
-  z-index:999; transform:translateX(-50%) translateY(12px); opacity:0;
-  transition:opacity .28s ease-out, transform .28s ease-out;
-  pointer-events:none; overflow:visible;
-}
-#dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
-#dock.dock--pulse{ animation:dockPulse .46s ease }
-@keyframes dockPulse{
-  0%{ transform:translateX(-50%) translateY(0) scale(1) }
-  40%{ transform:translateX(-50%) translateY(0) scale(1.03) }
-  100%{ transform:translateX(-50%) translateY(0) scale(1) }
-}
 
-/* PDP petites choses pour que tout réapparaisse nickel */
-.pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
-.pdp__price{ font-size:1.25rem; font-weight:700; }
-.pdp__price-ht{ opacity:.8; }
-
-/* Masquer le logo topbar hors Accueil (si présent) */
-body.page-catalogue .topbar-logo-link,
-body.page-devis .topbar-logo-link,
-body.page-compte .topbar-logo-link { display:none; }
-/* Grille de marques */
-.brand-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(84px,1fr));
-  gap:22px 18px;
-  padding:16px 12px 24px;
-  list-style:none;
-}
-.brand-grid .brand{ display:flex; flex-direction:column; align-items:center; gap:.5rem; }
-.brand-grid .brand .img{
-  width:84px; height:84px; border-radius:50%;
-  overflow:hidden; background:#0b1116;
-  box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-}
-.brand-grid .brand img{ width:100%; height:100%; object-fit:cover; display:block; }
-.brand-grid .brand .name{ font-weight:600; font-size:.9rem; color:#c8d4df; }
-[data-home-brands]:empty{ display:none; }`;
-  var s = document.createElement('style');
-  s.id = 'pt-ui'; s.textContent = css;
-  document.head.appendChild(s);
-})();
 
 
 
