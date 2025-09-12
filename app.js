@@ -848,58 +848,72 @@ for (var i = 0; i < (products || []).length; i++) {
   const qsa = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
 
   const css = `
-/* --- Drawer à GAUCHE --- */
+  
+  
+(function(){
+  'use strict';
+  var qs  = (s,r)=> (r||document).querySelector(s);
+  var qsa = (s,r)=> Array.prototype.slice.call((r||document).querySelectorAll(s));
+
+  /* --- Drawer GAUCHE + iOS glass + bulles --- */
+  const css = `
+/* Drawer (force à GAUCHE) */
 #drawer,.drawer,#side-menu,#sideMenu,[data-drawer]{
-  position:fixed; top:0; bottom:0; left:0; right:auto;
-  width:min(86vw,360px); max-width:92vw;
-  padding:clamp(10px,2vh,16px) 14px 24px;
-  background:rgba(12,14,18,.94);
-  -webkit-backdrop-filter:saturate(120%) blur(10px);
-          backdrop-filter:saturate(120%) blur(10px);
-  border-right:1px solid rgba(255,255,255,.06);
-  box-shadow:6px 0 24px rgba(0,0,0,.35);
-  transform:translate3d(-102%,0,0);
+  position:fixed; top:0; bottom:0; left:0 !important; right:auto !important;
+  width:min(86vw,420px); max-width:92vw;
+  padding:calc(env(safe-area-inset-top) + 12px) 14px 24px calc(env(safe-area-inset-left) + 14px);
+  background:rgba(12,14,18,.60);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+          backdrop-filter:saturate(180%) blur(14px);
+  border-right:1px solid rgba(255,255,255,.08);
+  box-shadow:6px 0 26px rgba(0,0,0,.35);
+  transform:translate3d(-104%,0,0);
   will-change:transform;
   transition:transform .28s cubic-bezier(.22,.61,.36,1);
   z-index:1001; overscroll-behavior:contain;
 }
-#drawer.open,.drawer.open,#side-menu.open,#sideMenu.open,[data-drawer].open{
-  transform:translate3d(0,0,0);
-}
+#drawer.open,.drawer.open,#side-menu.open,#sideMenu.open,[data-drawer].open{ transform:translate3d(0,0,0); }
+
 /* Overlay */
-#pt-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5);
+#pt-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.38);
   opacity:0; pointer-events:none; z-index:1000; transition:opacity .26s ease; }
 #pt-overlay.show{ opacity:1; pointer-events:auto; }
 body.menu-open{ overflow:hidden; }
 
-/* Liste + bulles — SCOPÉ AU DRAWER SEULEMENT */
+/* MENU en bulles iOS */
 :where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu{
-  margin-top:10vh; display:flex; flex-direction:column; gap:28px;
+  margin-top:8vh; display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  padding:0 4px;
 }
 :where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a{
-  display:flex; align-items:center; gap:14px; text-decoration:none;
+  display:flex; align-items:center; gap:12px; text-decoration:none;
   color:#eaf0ff; font-weight:600; -webkit-tap-highlight-color:transparent;
+  padding:14px 16px; border-radius:20px;
+  background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 24px rgba(0,0,0,.28);
+  transition:box-shadow .18s ease, transform .18s ease, background .18s ease;
 }
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu .icon{
-  width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
-  background: radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%), rgba(34,34,38,.7);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 16px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
-  font-size:22px; color:#dfe7ff; transition:box-shadow .18s ease, transform .18s ease;
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:hover,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:focus-visible{
+  transform:translateY(-1px);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), 0 14px 30px rgba(0,0,0,.34);
+}
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-active,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a[aria-current="page"]{
+  background:linear-gradient(180deg,#1ee5b0,#0bb3e0);
+  color:#071218;
+}
+/* Icônes (SVG only, pas d’emojis) */
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu svg{
+  width:22px; height:22px; flex:0 0 22px; opacity:.95; display:block;
 }
 
-/* Halo bleu — UNIQUEMENT dans le drawer */
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:hover .icon,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:focus-visible .icon,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:active .icon,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-tap .icon,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-active .icon,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a[aria-current="page"] .icon{
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.08),
-    inset 0 -8px 16px rgba(0,0,0,.45),
-    0 0 0 2px rgba(0,150,255,.35),
-    0 0 18px rgba(0,150,255,.45);
-  transform:scale(1.02);
+/* (option) cercle d’icône si tu gardes .icon */
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu .icon{
+  width:42px; height:42px; border-radius:999px; display:grid; place-items:center;
+  background:radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%), rgba(34,34,38,.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 16px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
+  transition:box-shadow .18s ease, transform .18s ease;
 }
 
 /* Grille bulles marques (3 colonnes) */
@@ -913,8 +927,8 @@ body.menu-open{ overflow:hidden; }
 @media (prefers-reduced-motion:reduce){
   #drawer,.drawer,#side-menu,#sideMenu,[data-drawer],#pt-overlay{ transition:none !important; }
 }
-
 `;
+
   const style = document.createElement('style');
   style.id = 'pt-ui-v25';
   style.textContent = css;
@@ -928,12 +942,27 @@ body.menu-open{ overflow:hidden; }
   const drawer = qs('#drawer, .drawer, #side-menu, #sideMenu, [data-drawer]');
   if (!drawer) return;
 
-  const open  = () => { drawer.classList.add('open'); overlay.classList.add('show'); document.body.classList.add('menu-open'); setAria(true); };
-  const close = () => { drawer.classList.remove('open'); overlay.classList.remove('show'); document.body.classList.remove('menu-open'); setAria(false); };
+  // accessibilité
+  drawer.setAttribute('role','dialog');
+  drawer.setAttribute('aria-modal','true');
+  drawer.setAttribute('aria-hidden','true');
+
+  const open  = () => {
+    drawer.classList.add('open'); overlay.classList.add('show'); document.body.classList.add('menu-open');
+    setAria(true);
+  };
+  const close = () => {
+    drawer.classList.remove('open'); overlay.classList.remove('show'); document.body.classList.remove('menu-open');
+    setAria(false);
+  };
 
   function setAria(expanded){
     const toggles = qsa('#menuBtn, #menu-toggle, .hamburger, .menu-toggle, [data-menu-toggle], [data-drawer-open]');
-    toggles.forEach(t => t.setAttribute('aria-expanded', expanded ? 'true' : 'false'));
+    toggles.forEach(t => {
+      t.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      if (drawer.id) t.setAttribute('aria-controls', drawer.id);
+    });
+    drawer.setAttribute('aria-hidden', expanded ? 'false' : 'true');
   }
 
   // Toggles (hamburger)
@@ -951,7 +980,7 @@ body.menu-open{ overflow:hidden; }
     if (a) setTimeout(close, 30);
   }, false);
 
-  // Effet tactile “tap” pour halo sur mobile
+  // Effet tactile “tap”
   qsa('#drawer .menu a, .drawer .menu a').forEach(a=>{
     if (a.__ptTap) return; a.__ptTap = 1;
     a.addEventListener('pointerdown', ()=>a.classList.add('is-tap'), false);
@@ -961,46 +990,12 @@ body.menu-open{ overflow:hidden; }
     a.addEventListener('mouseleave', clear, false);
   });
 
-  // Observer pour garder overlay en phase si la classe change ailleurs
+  // Sync overlay si une autre logique ouvre/ferme
   new MutationObserver(() => {
     if (drawer.classList.contains('open')) { overlay.classList.add('show'); document.body.classList.add('menu-open'); setAria(true); }
     else { overlay.classList.remove('show'); document.body.classList.remove('menu-open'); setAria(false); }
   }).observe(drawer, { attributes:true, attributeFilter:['class'] });
 })();
-
-
-
-
-
-// === Patches UI “classe-first” (laisser le CSS piloter) ===
-(function(){
-  'use strict';
-
-  // Hero timeline (classes uniquement)
-  /* NEW: activer le Hero uniquement sur l'accueil */
-  function __ptIsHome(){
-    try{
-      var p = (window.parseHash ? window.parseHash() : { view:'' });
-      return (!p.view || p.view==='home' || p.view==='/');
-    }catch(_){ return true; }
-  }
-  if (!__ptIsHome()){
-    // Pas d'init Hero en dehors de l'accueil
-    return;
-  }
-
-  var heroLogo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
-  function runHeroTimeline(){
-    if (!heroLogo) return;
-    heroLogo.classList.add('on','fx-overshoot');
-    setTimeout(function(){ heroLogo.classList.add('fx-preblur'); }, 220);
-    setTimeout(function(){ heroLogo.classList.remove('fx-overshoot'); }, 260);
-  }
-  if (document.readyState === 'complete' || document.readyState === 'interactive'){
-    requestAnimationFrame(runHeroTimeline);
-  } else {
-    document.addEventListener('DOMContentLoaded', runHeroTimeline, false);
-  }
 
   // Pilotage unique via IntersectionObserver : bascule after-hero/hero-out + --listGap (22vh → 4vh)
 // Ne touche PAS aux classes FX du logo (laisse le CSS ou le fallback d’en bas faire le travail).
