@@ -368,9 +368,8 @@ body.after-hero::after{ opacity:1 }
 .dock__btn{ width:40px; height:40px; display:grid; place-items:center; border-radius:12px }
 .dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
 .dock__btn--wa{ background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-               /* Badge caché par défaut, visible avec .is-on */
-.dock__badge{ display:none }
-.dock__badge.is-on{ display:inline-flex }
+              
+#dockCount, .dock__badge{ display:none }
 .dock__btn--cart{ animation:cart-idle 8s cubic-bezier(.22,.61,.36,1) infinite .8s }
 @keyframes cart-idle{
   0%,76%{ transform:translateZ(0) scale(1) rotate(0) }
