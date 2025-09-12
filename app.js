@@ -815,49 +815,96 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
 })();
 
 
-/* PT — UI micro-styles injectés (dock centré + drawer propre + PDP détails) */
-(function(){
-  if (document.getElementById('pt-ui')) return;
-  var css = `
-:root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
+// PT — Drawer gauche + overlay + icônes (version JS pour app.js)
+(() => {
+  const boot = () => {
+    if (document.getElementById('pt-ui')) return;
 
-/* Drawer (menu hamburger) aligné à gauche, glisse propre */
-.drawer,
-#side-menu,
-#sideMenu,
-[data-drawer]{
-  position: fixed;
-  inset: 0 auto 0 0;                 /* gauche */
-  width: min(86vw, 360px);
-  max-width: 92vw;
-  transform: translateX(-100%);      /* caché à gauche */
-  transition: transform .28s ease;
-  z-index: 1001;
+    const css = `
+:root{ --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
 
-  /* style “verre” comme avant */
-  background: rgba(10,15,20,.94);
-  -webkit-backdrop-filter: saturate(120%) blur(8px);
-          backdrop-filter: saturate(120%) blur(8px);
-  border-right: 1px solid var(--border, rgba(255,255,255,.08));
-  border-left: none;
-  border-radius: 0 12px 12px 0;
+#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]{
+  position:fixed; top:0; bottom:0; left:0; right:auto;
+  width:min(86vw,360px); max-width:92vw;
+  padding:clamp(8px,2vh,14px) 14px 24px;
+  background:rgba(12,14,18,.94);
+  -webkit-backdrop-filter:saturate(120%) blur(10px);
+          backdrop-filter:saturate(120%) blur(10px);
+  border-right:1px solid rgba(255,255,255,.06);
+  box-shadow:6px 0 24px rgba(0,0,0,.35);
+  transform:translate3d(-102%,0,0);
+  will-change:transform;
+  transition:transform .28s cubic-bezier(.22,.61,.36,1);
+  z-index:1001; overscroll-behavior:contain;
 }
-.drawer.open,
-#side-menu.open,
-#sideMenu.open,
-[data-drawer].open{
-  transform: translateX(0);          /* entre depuis la gauche */
+#drawer.open,.drawer.open,#side-menu.open,#sideMenu.open,[data-drawer].open{
+  transform:translate3d(0,0,0);
 }
 
-.backdrop,
-#menuBackdrop,
-#drawerBackdrop{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  z-index: 1000;
+/* Overlay (shading) */
+#pt-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.5);
+  opacity:0; pointer-events:none; z-index:1000;
+  transition:opacity .26s ease;
 }
-.backdrop.hidden{ display: none; }
+#pt-overlay.show{ opacity:1; pointer-events:auto; }
+body.menu-open{ overflow:hidden; }
+
+/* Liste + icônes */
+#drawer .menu, .drawer .menu, #side-menu .menu, #sideMenu .menu{
+  margin-top:10vh; display:flex; flex-direction:column; gap:28px;
+}
+#drawer .menu a, .drawer .menu a{
+  display:flex; align-items:center; gap:14px;
+  text-decoration:none; color:#eaf0ff; font-weight:600;
+}
+.menu .icon, .drawer .icon, #drawer .icon{
+  width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
+  background: radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%), rgba(34,34,38,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 16px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
+  font-size:22px; color:#dfe7ff;
+}
+@media (prefers-reduced-motion:reduce){
+  #drawer,.drawer,#side-menu,#sideMenu,[data-drawer],#pt-overlay{ transition:none !important; }
+}
+`;
+    const style = document.createElement('style');
+    style.id = 'pt-ui';
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    if (!document.getElementById('pt-overlay')) {
+      const ov = document.createElement('div');
+      ov.id = 'pt-overlay';
+      document.body.appendChild(ov);
+    }
+    const overlay = document.getElementById('pt-overlay');
+
+    const drawer = document.querySelector('#drawer, .drawer, #side-menu, #sideMenu, [data-drawer]');
+    if (!drawer) return;
+
+    const open  = () => { drawer.classList.add('open'); overlay.classList.add('show'); document.body.classList.add('menu-open'); };
+    const close = () => { drawer.classList.remove('open'); overlay.classList.remove('show'); document.body.classList.remove('menu-open'); };
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-drawer-open]')) open();
+      if (e.target.closest('[data-drawer-close]')) close();
+    });
+    overlay.addEventListener('click', close);
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') close(); });
+
+    new MutationObserver(() => {
+      if (drawer.classList.contains('open')) { overlay.classList.add('show'); document.body.classList.add('menu-open'); }
+      else { overlay.classList.remove('show'); document.body.classList.remove('menu-open'); }
+    }).observe(drawer, { attributes:true, attributeFilter:['class'] });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once:true });
+  } else {
+    boot();
+  }
+})();
 
 /* Dock — centré, fixe, avec safe-area bottom */
 #dock{
