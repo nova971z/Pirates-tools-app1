@@ -3885,7 +3885,7 @@ function wireDock(){
       if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', map[k]);
       attachNav(el);
     }
-  }
+  
 
   /* --------- Nav actif + a11y --------- */
   function findNavContainers(){
