@@ -888,34 +888,28 @@ for (var i = 0; i < (products || []).length; i++) {
 #pt-overlay.show{ opacity:1; pointer-events:auto; }
 body.menu-open{ overflow:hidden; }
 
-/* Liste + bulles icônes */
-#drawer .menu, .drawer .menu, #side-menu .menu, #sideMenu .menu{ 
-  margin-top:10vh; display:flex; flex-direction:column; gap:28px; 
+/* Liste + bulles — SCOPÉ AU DRAWER SEULEMENT */
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu{
+  margin-top:10vh; display:flex; flex-direction:column; gap:28px;
 }
-#drawer .menu a, .drawer .menu a, #side-menu .menu a, #sideMenu .menu a{
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a{
   display:flex; align-items:center; gap:14px; text-decoration:none;
   color:#eaf0ff; font-weight:600; -webkit-tap-highlight-color:transparent;
 }
-.menu .icon, .drawer .icon, #drawer .icon, #side-menu .icon, #sideMenu .icon{
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu .icon{
   width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
   background: radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%), rgba(34,34,38,.7);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 16px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
   font-size:22px; color:#dfe7ff; transition:box-shadow .18s ease, transform .18s ease;
 }
 
-/* Halo bleu au survol / focus / clic / actif */
-#drawer .menu a:hover .icon,
-#drawer .menu a:focus-visible .icon,
-#drawer .menu a:active .icon,
-#drawer .menu a.is-tap .icon,
-#drawer .menu a.is-active .icon,
-#drawer .menu a[aria-current="page"] .icon,
-.drawer .menu a:hover .icon,
-.drawer .menu a:focus-visible .icon,
-.drawer .menu a:active .icon,
-.drawer .menu a.is-tap .icon,
-.drawer .menu a.is-active .icon,
-.drawer .menu a[aria-current="page"] .icon{
+/* Halo bleu — UNIQUEMENT dans le drawer */
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:hover .icon,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:focus-visible .icon,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:active .icon,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-tap .icon,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-active .icon,
+:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a[aria-current="page"] .icon{
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.08),
     inset 0 -8px 16px rgba(0,0,0,.45),
@@ -927,6 +921,7 @@ body.menu-open{ overflow:hidden; }
 @media (prefers-reduced-motion:reduce){
   #drawer,.drawer,#side-menu,#sideMenu,[data-drawer],#pt-overlay{ transition:none !important; }
 }
+
 `;
   const style = document.createElement('style');
   style.id = 'pt-ui-v25';
