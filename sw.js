@@ -7,7 +7,7 @@ const DATA_CACHE     = `pt-data-${VERSION}`;
 const ORIGIN         = self.location.origin;
 
 // Aligner avec le HTML (cache-busting des assets)
-const ASSET_VER      = '23';
+const ASSET_VER      = '24';
 
 // IMPORTANT : le site tourne sous /Pirates-tools-app1/ (GitHub Pages).
 // On reste en chemins relatifs (./) pour que le SW fonctionne en local et en prod.
