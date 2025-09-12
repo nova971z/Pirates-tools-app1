@@ -3838,42 +3838,48 @@ function onRegisterSubmit(e){
   }
 
   /* --------- Menu & Dock mapping (idempotent) --------- */
-  function wireDrawerLinks(){
-    var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
-    if (!drawer) return;
-    var items = qsa('a,button,[role="menuitem"]', drawer);
-    for (var i=0;i<items.length;i++){
-      var it = items[i];
-      if (!it.getAttribute('href') && !it.getAttribute('data-nav') && !it.getAttribute('data-route')){
-        var txt = (it.textContent||'').toLowerCase();
-        if (txt.indexOf('accueil')>-1 || txt==='home') it.setAttribute('href','#/');
-        else if (txt.indexOf('catalogue')>-1) it.setAttribute('href','#/catalogue');
-        else if (txt.indexOf('devis')>-1 || txt.indexOf('panier')>-1) it.setAttribute('href','#/devis');
-        else if (txt.indexOf('compte')>-1 || txt.indexOf('profil')>-1) it.setAttribute('href','#/compte');
-        else if (txt.indexOf('whatsapp')>-1 || txt.indexOf('message')>-1) it.setAttribute('data-nav','wa');
-        else if (txt.indexOf('appel')>-1 || txt.indexOf('phone')>-1 || txt.indexOf('téléphone')>-1) it.setAttribute('data-nav','phone');
-      }
-      attachNav(it);
+function wireDrawerLinks(){
+  var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
+  if (!drawer) return;
+  var items = qsa('a,button,[role="menuitem"]', drawer);
+  for (var i=0;i<items.length;i++){
+    var it = items[i];
+    if (!it.getAttribute('href') && !it.getAttribute('data-nav') && !it.getAttribute('data-route')){
+      var txt = (it.textContent||'').toLowerCase();
+      if (txt.indexOf('accueil')>-1 || txt==='home') it.setAttribute('href','#/');
+      else if (txt.indexOf('catalogue')>-1) it.setAttribute('href','#/catalogue');
+      else if (txt.indexOf('devis')>-1 || txt.indexOf('panier')>-1) it.setAttribute('href','#/devis');
+      else if (txt.indexOf('compte')>-1 || txt.indexOf('profil')>-1) it.setAttribute('href','#/compte');
+      else if (txt.indexOf('whatsapp')>-1 || txt.indexOf('message')>-1) it.setAttribute('data-nav','wa');
+      else if (txt.indexOf('appel')>-1 || txt.indexOf('phone')>-1 || txt.indexOf('téléphone')>-1) it.setAttribute('data-nav','phone');
     }
-    drawer.setAttribute('data-pt-nav-wired','1');
+    attachNav(it);
   }
-  function wireDock(){
-    var dock = qs('#dock'); if (!dock) return;
-    addClass(dock,'dock--safe');
-    var btns = qsa('a,button,[data-go],[data-route]', dock);
-    var i, b, t;
-    for (i=0;i<btns.length;i++){
-      b = btns[i];
-      if (!b.getAttribute('data-nav') && !b.getAttribute('data-route')){
-        t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
-        if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-route','#/catalogue');
-        else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-route','#/devis');
-        else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-route','#/compte');
-        else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav','wa');
-        else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav','phone');
-      }
-      attachNav(b);
+  drawer.setAttribute('data-pt-nav-wired','1');
+}
+
+function wireDock(){
+  var dock = qs('#dock'); 
+  if (!dock) return;
+  if (dock.getAttribute('data-pt-dock-wired') === '1') return; // garde idempotente
+  dock.setAttribute('data-pt-dock-wired','1');
+
+  addClass(dock,'dock--safe');
+  var btns = qsa('a,button,[data-go],[data-route]', dock);
+  var i, b, t;
+  for (i=0;i<btns.length;i++){
+    b = btns[i];
+    if (!b.getAttribute('data-nav') && !b.getAttribute('data-route')){
+      t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
+      if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-route','#/catalogue');
+      else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-route','#/devis');
+      else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-route','#/compte');
+      else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav','wa');
+      else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav','phone');
     }
+    attachNav(b);
+  }
+}
     // IDs connus → data-route
     var map = { dockToolsBtn:'#/catalogue', dockCartBtn:'#/devis', dockAccountBtn:'#/compte', homeLink:'#/' };
     for (var k in map){
