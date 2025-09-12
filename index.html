@@ -444,30 +444,53 @@
     </div>
   </nav>
 
-  <!-- =================== OVERLAY + MENU LATÉRAL =================== -->
-  
-  <div id="menuBackdrop" class="backdrop" aria-hidden="true"></div>
+  <!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
+<div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
+
 <aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
-       aria-labelledby="menuTitle" aria-hidden="true" hidden tabindex="-1">
-      
+       aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
   <h2 id="menuTitle" class="sr-only">Menu</h2>
-    <a class="app-link" href="#/" data-nav="/">
-      <span class="app-bubble">🏠</span>
-      <span class="app-label">Accueil</span>
+
+  <nav class="menu" aria-label="Navigation principale">
+    <a href="#/" data-route="#/">
+      <!-- Home -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Accueil</span>
     </a>
-    <a class="app-link" href="#/catalogue" data-nav="/catalogue">
-      <span class="app-bubble">🧰</span>
-      <span class="app-label">Catalogue</span>
+
+    <a href="#/catalogue" data-route="#/catalogue">
+      <!-- Toolbox -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="7" width="18" height="12" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <span>Catalogue</span>
     </a>
-    <a class="app-link" href="#/devis" data-nav="/devis">
-      <span class="app-bubble">🛒</span>
-      <span class="app-label">Devis</span>
+
+    <a href="#/devis" data-route="#/devis">
+      <!-- Cart -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="9" cy="20" r="1.8" fill="currentColor"/>
+        <circle cx="17" cy="20" r="1.8" fill="currentColor"/>
+        <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Devis</span>
     </a>
-    <a class="app-link" href="#/compte" data-nav="/compte">
-      <span class="app-bubble">👤</span>
-      <span class="app-label">Compte</span>
+
+    <a href="#/compte" data-route="#/compte">
+      <!-- User -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Compte</span>
     </a>
-  </aside>
+  </nav>
+</aside>
 
   <!-- =================== TOASTS + A11y roots =================== -->
   <div id="toasts" aria-live="polite"></div>
@@ -531,11 +554,11 @@
 
 /* = Drawer (menu latéral) = */
 .drawer{
-  position:fixed; top:0; right:0; bottom:0; left:auto;
+  position:fixed; top:0; bottom:0; left:0; right:auto;
   width:min(86vw,360px); max-width:92vw; box-sizing:border-box;
   background:rgba(0,0,0,.9);
   -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
-  transform:translate3d(100%,0,0); transition:transform .25s ease; z-index:1001;
+  transform:translate3d(-102%,0,0); transition:transform .25s ease; z-index:1001;
   padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
   align-content:start; justify-items:start;
 }
@@ -1429,6 +1452,22 @@ body.page-compte .topbar-logo-link { display:none !important; }
   window.addEventListener('scroll', onScroll, {passive:true});
   onScroll();
 })();
+
+<script>
+(function fixBrandLogos(){
+  var base = window.ASSET_BASE || (location.pathname.indexOf('/Pirates-tools-app1')>-1 ? '/Pirates-tools-app1' : '');
+  var list = document.querySelectorAll('#brandGrid img');
+  for (var i=0;i<list.length;i++){
+    var img=list[i], src=img.getAttribute('data-src')||img.getAttribute('src')||'';
+    if (!src) continue;
+    if (src.charAt(0)==='/' && base) src = base + src;
+    img.setAttribute('src', src);
+    img.setAttribute('loading','lazy');
+    img.setAttribute('decoding','async');
+  }
+})();
+</script>
+
 </script>
 </body>
 </html>
