@@ -434,19 +434,15 @@
   <!-- =================== DOCK =================== -->
   
  <nav id="dock" class="dock" aria-label="Barre d’action">
-  <div class="dock__shell">
-    <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" data-nav="/catalogue">🛠️</button>
-    <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" data-nav="/compte">👤</button>
-
-    <button id="dockCartBtn" class="dock__btn dock__btn--cart" type="button" data-nav="/devis" aria-label="Voir le panier">
-      🛒
+    <div class="dock__shell">
+      <button id="dockQuoteBtn"   class="dock__btn dock__btn--tools"   type="button" aria-label="Devis WhatsApp" data-nav="/catalogue">🛠️</button>
+      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte" data-nav="/compte">👤</button>
+      <button id="dockCartBtn"    class="dock__btn dock__btn--cart"    type="button" aria-label="Voir le panier" data-nav="/devis">🛒</button>
       <span id="dockCount" class="dock__badge" aria-label="Articles dans le panier">0</span>
-    </button>
-
-    <a class="dock__btn dock__btn--call" href="tel:+33774230195" data-action="call">📞</a>
-    <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener" data-action="open-wa">💬</a>
-  </div>
-</nav>
+      <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler" data-action="call">📞</a>
+      <a class="dock__btn dock__btn--wa"   href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
+    </div>
+  </nav>
 
   <!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
 <div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
