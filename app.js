@@ -264,7 +264,47 @@
       '<div id="brandGrid" class="brand-grid" role="list"></div>'+
     '</div>'
   );
+  
+  // === Marques (doivent exister dans /images/brands/) ===
+var PT_BRANDS = [
+  { id:'dewalt',  name:'DeWALT'  },
+  { id:'facom',   name:'Facom'   },
+  { id:'festool', name:'Festool' },
+  { id:'flex',    name:'FLEX'    },
+  { id:'makita',  name:'Makita'  },
+  { id:'stanley', name:'Stanley' },
+  { id:'wera',    name:'Wera'    }
+];
 
+function mountHomeBrands(){
+  var host = document.getElementById('brandGrid');
+  if(!host || host.__ptHomeBrandsDone) return;
+  host.__ptHomeBrandsDone = 1;
+
+  var html = '';
+  for (var i=0;i<PT_BRANDS.length;i++){
+    var b = PT_BRANDS[i];
+    html +=
+      '<li class="brand">' +
+      '  <button class="img brand-btn" data-brand="'+b.id+'" aria-label="'+b.name+'">' +
+      '    <img loading="lazy" src="images/brands/'+b.id+'.png" alt="'+b.name+'">' +
+      '  </button>' +
+      '  <span class="name">'+b.name+'</span>' +
+      '</li>';
+  }
+  host.innerHTML = html;
+
+  host.addEventListener('click', function(e){
+    var btn = e.target && e.target.closest ? e.target.closest('.brand-btn') : null;
+    if(!btn) return;
+    var brand = btn.getAttribute('data-brand') || '';
+    if(!brand) return;
+    location.hash = '#/catalogue?brand=' + encodeURIComponent(brand);
+  }, false);
+}
+
+document.addEventListener('DOMContentLoaded', mountHomeBrands, false);
+  
 
   ensureView('view-catalogue',
         '<div class="container" id="main">'+
@@ -437,10 +477,11 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
 
   function renderBrandGridFromProducts(products){
     var host = document.getElementById('brandGrid'); if (!host) return;
-    // Patch: si brand absent, essaie d'inférer depuis le titre
-(all||[]).forEach(p=>{
+    /* FIX: utiliser products (pas all) + ES5 */
+for (var i = 0; i < (products || []).length; i++) {
+  var p = products[i] || {};
   if (!(p.brand || p.marque)) {
-    const t = (p.title||p.name||'').toLowerCase();
+    var t = String(p.title || p.name || '').toLowerCase();
     p.brand =
       /dewalt|de-walt/.test(t) ? 'DeWALT' :
       /makita/.test(t)         ? 'Makita' :
@@ -449,9 +490,9 @@ try{ new MutationObserver(ensureDockVisible).observe(document.body, {childList:t
       /stanley/.test(t)        ? 'Stanley' :
       /ryobi/.test(t)          ? 'Ryobi' :
       /hikoki|hitachi/.test(t) ? 'HiKOKI' :
-      (p.brand||p.marque||'');
+      (p.brand || p.marque || '');
   }
-});
+}
     var brands = computeBrands(products);
     var html = '';
     for (var i=0;i<brands.length;i++){
@@ -930,7 +971,24 @@ body.menu-open{ overflow:hidden; }
 /* Masquer le logo topbar hors Accueil (si présent) */
 body.page-catalogue .topbar-logo-link,
 body.page-devis .topbar-logo-link,
-body.page-compte .topbar-logo-link { display:none; }`;
+body.page-compte .topbar-logo-link { display:none; }
+/* Grille de marques */
+.brand-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(84px,1fr));
+  gap:22px 18px;
+  padding:16px 12px 24px;
+  list-style:none;
+}
+.brand-grid .brand{ display:flex; flex-direction:column; align-items:center; gap:.5rem; }
+.brand-grid .brand .img{
+  width:84px; height:84px; border-radius:50%;
+  overflow:hidden; background:#0b1116;
+  box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.brand-grid .brand img{ width:100%; height:100%; object-fit:cover; display:block; }
+.brand-grid .brand .name{ font-weight:600; font-size:.9rem; color:#c8d4df; }
+[data-home-brands]:empty{ display:none; }`;
   var s = document.createElement('style');
   s.id = 'pt-ui'; s.textContent = css;
   document.head.appendChild(s);
