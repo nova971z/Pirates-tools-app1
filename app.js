@@ -1968,7 +1968,7 @@ if (VIRT.current < VIRT.data.length) {
   if (VIRT._io && VIRT._io.disconnect){ VIRT._io.disconnect(); VIRT._io=null; }
   if (VIRT.sentinel){ VIRT.sentinel.parentNode.removeChild(VIRT.sentinel); VIRT.sentinel=null; }
 }
-
+} 
   // Etat filtres/tri
   var CAT_STATE = { q:'', tags:[], sort:'', brand:'', type:'' };
 
