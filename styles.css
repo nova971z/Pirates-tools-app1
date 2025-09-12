@@ -574,14 +574,19 @@ body.after-hero::after{ opacity:1 }
 body.menu-open #menuBackdrop{ display:block; }
 #menuBackdrop[hidden]{ display:none !important; }
 
+
+
+/* Verrouille le scroll quand le menu est ouvert */
+body.menu-open{ overflow:hidden; }
+
 /* Tiroir (ID pour gagner la spécificité sur mobile) */
 #side-menu.drawer{
-  position: fixed; top:0; right:0; bottom:0; left:auto;
+  position: fixed; top:0; left:0; bottom:0; right:auto;  /* ✅ CORRIGÉ: left:0 */
   width:min(86vw,360px); max-width:92vw;
   background: rgba(0,0,0,.9);
   -webkit-backdrop-filter: saturate(120%) blur(8px);
           backdrop-filter: saturate(120%) blur(8px);
-  transform: translate3d(100%,0,0);     /* fermé */
+  transform: translate3d(-100%,0,0);     /* ✅ CORRIGÉ: translate vers la gauche */
   transition: transform .25s ease;
   z-index:1001;
   padding:90px 0 28px 18px;
@@ -590,11 +595,6 @@ body.menu-open #menuBackdrop{ display:block; }
 }
 #side-menu.drawer.open,
 body.menu-open #side-menu{ transform: translate3d(0,0,0) !important; }
-
-/* Verrouille le scroll quand le menu est ouvert */
-body.menu-open{ overflow:hidden; }
-
-
 
 
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
