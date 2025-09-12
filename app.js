@@ -1942,34 +1942,32 @@ if (elRel){
     VIRT.current = max;
     DOM.list.setAttribute('aria-busy','false');
 
-    // "Afficher plus"
-    if (VIRT.current < VIRT.data.length){
-      if (!VIRT.moreBtn){
-         VIRT.moreBtn = document.createElement('button');
-        VIRT.moreBtn.className = 'btn btn--block';
-        VIRT.moreBtn.type = 'button';
-        VIRT.moreBtn.textContent = 'Afficher plus';
-        VIRT.moreBtn.addEventListener('click', function(){ appendNextChunk(false); }, false);
-        DOM.list.appendChild(VIRT.moreBtn);
+  // "Afficher plus"
+if (VIRT.current < VIRT.data.length) {
+  if (!VIRT.moreBtn) {
+    VIRT.moreBtn = document.createElement('button');
+    VIRT.moreBtn.className = 'btn btn--block';
+    VIRT.moreBtn.type = 'button';
+    VIRT.moreBtn.textContent = 'Afficher plus';
+    VIRT.moreBtn.addEventListener('click', function(){ appendNextChunk(false); });
+    DOM.list.appendChild(VIRT.moreBtn);
 
-        if ('IntersectionObserver' in window){
-          VIRT.sentinel = document.createElement('div');
-          VIRT.sentinel.className = 'virt-sentinel';
-          DOM.list.appendChild(VIRT.sentinel);
-          VIRT._io = new IntersectionObserver(function(entries){
-            var e = entries && entries[0]; if (!e) return;
-            if (e.isIntersecting) appendNextChunk(false);
-          }, {threshold:[1]});
-          VIRT._io.observe(VIRT.sentinel)
-          ; // ← point-virgule pour éviter une concaténation involontaire lors de la minification
-        }
-      }
-       } else {
-      if (VIRT.moreBtn){ VIRT.moreBtn.parentNode.removeChild(VIRT.moreBtn); VIRT.moreBtn=null; }
-      if (VIRT._io && VIRT._io.disconnect){ VIRT._io.disconnect(); VIRT._io=null; }
-      if (VIRT.sentinel){ VIRT.sentinel.parentNode.removeChild(VIRT.sentinel); VIRT.sentinel=null; }
+    if ('IntersectionObserver' in window) {
+      VIRT.sentinel = document.createElement('div');
+      VIRT.sentinel.className = 'virt-sentinel';
+      DOM.list.appendChild(VIRT.sentinel);
+      VIRT._io = new IntersectionObserver(function(entries){
+        var e = entries && entries[0]; if (!e) return;
+        if (e.isIntersecting) appendNextChunk(false);
+      }, { threshold:[1] });
+      VIRT._io.observe(VIRT.sentinel);
     }
   }
+} else {
+  if (VIRT.moreBtn){ VIRT.moreBtn.parentNode.removeChild(VIRT.moreBtn); VIRT.moreBtn=null; }
+  if (VIRT._io && VIRT._io.disconnect){ VIRT._io.disconnect(); VIRT._io=null; }
+  if (VIRT.sentinel){ VIRT.sentinel.parentNode.removeChild(VIRT.sentinel); VIRT.sentinel=null; }
+}
 
   // Etat filtres/tri
   var CAT_STATE = { q:'', tags:[], sort:'', brand:'', type:'' };
