@@ -18,8 +18,8 @@
 
   <!-- CSS (Android + iOS) -->
   
-<link rel="preload" href="styles.css?v=22" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=22">
+<link rel="preload" href="styles.css?v=23" as="style">
+<link id="app-css" rel="stylesheet" href="styles.css?v=23">
 <link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
   
   <!-- PWA -->
@@ -61,7 +61,7 @@
     setTimeout(function () {
       if (!cssPresent()) {
         var link = document.getElementById('app-css');
-        var href = (document.baseURI ? new URL('styles.css?v=22', document.baseURI).href : 'styles.css?v=22');
+        var href = (document.baseURI ? new URL('styles.css?v=23', document.baseURI).href : 'styles.css?v=23');
         if (!link) {
           link = document.createElement('link');
           link.id = 'app-css';
