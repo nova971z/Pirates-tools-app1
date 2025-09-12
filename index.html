@@ -443,7 +443,8 @@
   </div>
 </nav>
  
-  <!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
+<!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
+
 <div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
 
 <aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
@@ -454,42 +455,295 @@
     <a href="#/" data-route="#/">
       <!-- Home -->
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span>Accueil</span>
     </a>
 
-    <a href="#/catalogue" data-route="#/catalogue">
-      <!-- Toolbox -->
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="7" width="18" height="12" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      <span>Catalogue</span>
-    </a>
+```
+<a href="#/catalogue" data-route="#/catalogue">
+  <!-- Toolbox -->
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="3" y="7" width="18" height="12" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <circle cx="9" cy="15" r="1" fill="currentColor"/>
+    <circle cx="15" cy="15" r="1" fill="currentColor"/>
+  </svg>
+  <span>Catalogue</span>
+</a>
 
-    <a href="#/devis" data-route="#/devis">
-      <!-- Cart -->
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="9" cy="20" r="1.8" fill="currentColor"/>
-        <circle cx="17" cy="20" r="1.8" fill="currentColor"/>
-        <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>Devis</span>
-    </a>
+<a href="#/devis" data-route="#/devis">
+  <!-- Cart -->
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="9" cy="20" r="2" fill="currentColor"/>
+    <circle cx="17" cy="20" r="2" fill="currentColor"/>
+    <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M7 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M12 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  </svg>
+  <span>Devis</span>
+</a>
 
-    <a href="#/compte" data-route="#/compte">
-      <!-- User -->
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <span>Compte</span>
-    </a>
+<a href="#/compte" data-route="#/compte">
+  <!-- User -->
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="12" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  </svg>
+  <span>Compte</span>
+</a>
+```
+
   </nav>
 </aside>
+
+<style>
+/* =================== BACKDROP =================== */
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.backdrop:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* =================== MENU LATÉRAL =================== */
+.drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    background: linear-gradient(145deg, 
+        rgba(13, 27, 42, 0.95) 0%, 
+        rgba(27, 38, 59, 0.9) 50%, 
+        rgba(65, 105, 225, 0.1) 100%);
+    backdrop-filter: blur(20px);
+    border-left: 2px solid rgba(65, 105, 225, 0.3);
+    box-shadow: 
+        -10px 0 50px rgba(65, 105, 225, 0.2),
+        inset 1px 0 1px rgba(255, 255, 255, 0.1);
+    z-index: 999;
+    transform: translateX(100%);
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    padding: 60px 0 40px 0;
+}
+
+.drawer:not([aria-hidden="true"]) {
+    transform: translateX(0);
+}
+
+/* =================== NAVIGATION =================== */
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 20px;
+    height: 100%;
+}
+
+.menu a {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 24px;
+    color: #e1e5e9;
+    text-decoration: none;
+    border-radius: 16px;
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.05) 0%, 
+        rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(65, 105, 225, 0.2);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-style: preserve-3d;
+    perspective: 1000px;
+}
+
+.menu a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(65, 105, 225, 0.4) 50%, 
+        transparent 100%);
+    transition: left 0.6s ease;
+    z-index: 1;
+}
+
+.menu a:hover::before {
+    left: 100%;
+}
+
+.menu a:hover {
+    transform: translateZ(20px) rotateY(-5deg);
+    background: linear-gradient(145deg, 
+        rgba(65, 105, 225, 0.15) 0%, 
+        rgba(30, 144, 255, 0.1) 100%);
+    border-color: rgba(65, 105, 225, 0.6);
+    box-shadow: 
+        0 15px 35px rgba(65, 105, 225, 0.3),
+        0 5px 15px rgba(0, 191, 255, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    color: #00bfff;
+}
+
+/* =================== ICÔNES 3D =================== */
+.menu svg {
+    width: 28px;
+    height: 28px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    filter: drop-shadow(0 0 10px rgba(65, 105, 225, 0.3));
+    transform-style: preserve-3d;
+    z-index: 2;
+    position: relative;
+}
+
+.menu a:hover svg {
+    transform: translateZ(30px) rotateY(15deg) scale(1.2);
+    filter: 
+        drop-shadow(0 0 20px rgba(0, 191, 255, 0.8))
+        drop-shadow(0 0 40px rgba(65, 105, 225, 0.6));
+    color: #00bfff;
+}
+
+/* =================== TEXTE =================== */
+.menu span {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    z-index: 2;
+    position: relative;
+    text-shadow: 0 0 10px rgba(65, 105, 225, 0.3);
+}
+
+.menu a:hover span {
+    transform: translateZ(20px);
+    text-shadow: 
+        0 0 20px rgba(0, 191, 255, 0.8),
+        0 0 40px rgba(65, 105, 225, 0.6);
+}
+
+/* =================== EFFETS SPÉCIAUX =================== */
+.menu a:active {
+    transform: translateZ(10px) scale(0.98);
+}
+
+/* Animation d'entrée pour les éléments du menu */
+.menu a {
+    opacity: 0;
+    transform: translateX(50px);
+    animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.menu a:nth-child(1) { animation-delay: 0.1s; }
+.menu a:nth-child(2) { animation-delay: 0.2s; }
+.menu a:nth-child(3) { animation-delay: 0.3s; }
+.menu a:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes slideInRight {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 768px) {
+    .drawer {
+        width: 280px;
+    }
+    
+    .menu a {
+        padding: 16px 20px;
+        gap: 16px;
+    }
+    
+    .menu svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .menu span {
+        font-size: 14px;
+    }
+}
+
+/* Classes utilitaires */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+
+<script>
+// JavaScript pour gérer l'ouverture/fermeture du menu
+function openSideMenu() {
+    const menu = document.getElementById('side-menu');
+    const backdrop = document.getElementById('menuBackdrop');
+    
+    menu.setAttribute('aria-hidden', 'false');
+    backdrop.classList.remove('hidden');
+    backdrop.setAttribute('aria-hidden', 'false');
+    backdrop.removeAttribute('hidden');
+}
+
+function closeSideMenu() {
+    const menu = document.getElementById('side-menu');
+    const backdrop = document.getElementById('menuBackdrop');
+    
+    menu.setAttribute('aria-hidden', 'true');
+    backdrop.classList.add('hidden');
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.setAttribute('hidden', '');
+}
+
+// Fermer le menu en cliquant sur le backdrop
+document.getElementById('menuBackdrop').addEventListener('click', closeSideMenu);
+
+// Fermer le menu avec la touche Échap
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeSideMenu();
+    }
+});
+
+// Optionnel : fermer le menu en cliquant sur un lien de navigation
+document.querySelectorAll('.menu a').forEach(link => {
+    link.addEventListener('click', closeSideMenu);
+});
+</script> 
 
   <!-- =================== TOASTS + A11y roots =================== -->
   <div id="toasts" aria-live="polite"></div>
