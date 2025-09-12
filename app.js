@@ -265,75 +265,59 @@
     '</div>'
   );
   
-  // === Marques (doivent exister dans /images/brands/) ===
-var PT_BRANDS = [
-  { id:'dewalt',  name:'DeWALT'  },
-  { id:'facom',   name:'Facom'   },
-  { id:'festool', name:'Festool' },
-  { id:'flex',    name:'FLEX'    },
-  { id:'makita',  name:'Makita'  },
-  { id:'stanley', name:'Stanley' },
-  { id:'wera',    name:'Wera'    }
-];
+  // === Marques — rendu unifié via PT.renderBrandGridFromProducts ===
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    var host = document.getElementById('brandGrid');
+    if (!host) return;
 
-function mountHomeBrands(){
-  var host = document.getElementById('brandGrid');
-  if(!host || host.__ptHomeBrandsDone) return;
-  host.__ptHomeBrandsDone = 1;
+    // Assure l’affichage et le layout 3 colonnes
+    host.classList.add('brand-grid--3col');
+    host.style.display = 'grid';
+    host.classList.remove('hidden','off','is-hidden');
+    host.removeAttribute('aria-hidden');
 
-  var html = '';
-  for (var i=0;i<PT_BRANDS.length;i++){
-    var b = PT_BRANDS[i];
-    html +=
-      '<li class="brand">' +
-      '  <button class="img brand-btn" data-brand="'+b.id+'" aria-label="'+b.name+'">' +
-      '    <img loading="lazy" src="images/brands/'+b.id+'.png" alt="'+b.name+'">' +
-      '  </button>' +
-      '  <span class="name">'+b.name+'</span>' +
-      '</li>';
-  }
-  host.innerHTML = html;
+    function renderNow(){
+      try{
+        if (window.PT && typeof window.PT.renderBrandGridFromProducts === 'function'){
+          var arr = Array.isArray(window.MODELS) ? window.MODELS : [];
+          window.PT.renderBrandGridFromProducts(arr);
+        }
+      }catch(_){}
+    }
 
-  host.addEventListener('click', function(e){
-    var btn = e.target && e.target.closest ? e.target.closest('.brand-btn') : null;
-    if(!btn) return;
-    var brand = btn.getAttribute('data-brand') || '';
-    if(!brand) return;
-    location.hash = '#/catalogue?brand=' + encodeURIComponent(brand);
+    if (window.MODELS && window.MODELS.length) renderNow();
+    else window.addEventListener('pt:productsLoaded', renderNow, { once:true });
   }, false);
-}
+})();
 
-document.addEventListener('DOMContentLoaded', mountHomeBrands, false);
-  
+ensureView('view-catalogue',
+  '<div class="container" id="main">'+
+    '<h1 tabindex="-1">Catalogue</h1>'+
+    '<div class="toolbar">'+
+      '<input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)">'+
+      '<select id="tag" class="select"><option value="">Tous</option></select>'+
+    '</div>'+
+    '<div id="catList" class="cat-list" aria-label="Catégories"></div>'+
+    '<div id="list" class="list" aria-live="polite" aria-busy="false"></div>'+
+  '</div>'
+);
 
-  ensureView('view-catalogue',
-        '<div class="container" id="main">'+
-      '<h1 tabindex="-1">Catalogue</h1>'+
-      '<div class="toolbar">'+
-        '<input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)">'+
-        '<select id="tag" class="select"><option value="">Tous</option></select>'+
+ensureView('view-devis',
+  '<div class="container" id="main">'+
+    '<h1 tabindex="-1">Mon devis</h1>'+
+    '<div class="card">'+
+      '<div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>'+
+      '<div id="devisList" class="specs"></div>'+
+      '<div class="actions">'+
+        '<button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>'+
+        '<button id="devisClear" class="btn" type="button">Vider</button>'+
+        '<button id="devisCopy" class="btn" type="button">Copier</button>'+
+        '<button id="devisMail" class="btn" type="button">Email</button>'+
       '</div>'+
-      '<div id="catList" class="cat-list" aria-label="Catégories"></div>'+
-      '<div id="list" class="list" aria-live="polite" aria-busy="false"></div>'+
-    '</div>'
-  );
-
-  ensureView('view-devis',
-        '<div class="container" id="main">'+
-      '<h1 tabindex="-1">Mon devis</h1>'+
-      '<div class="card">'+
-        '<div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>'+
-        '<div id="devisList" class="specs"></div>'+
-        '<div class="actions">'+
-          '<button id="devisSend" class="btn primary" type="button">Envoyer le devis (WhatsApp)</button>'+
-          '<button id="devisClear" class="btn" type="button">Vider</button>'+
-                    '<button id="devisCopy" class="btn" type="button">Copier</button>'+
-          '<button id="devisMail" class="btn" type="button">Email</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>'
-  );
-
+    '</div>'+
+  '</div>'
+);
   // Vue Compte: seulement si la Partie 3 n'a pas déjà booté
   if (!window.__ptP3Booted){
     ensureView('view-compte',
