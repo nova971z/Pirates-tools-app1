@@ -902,6 +902,14 @@ body.menu-open{ overflow:hidden; }
   transform:scale(1.02);
 }
 
+/* Grille bulles marques (3 colonnes) */
+#brandGrid.brand-grid--3col{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:22px;
+  align-items:start;
+  justify-items:center;
+}
 @media (prefers-reduced-motion:reduce){
   #drawer,.drawer,#side-menu,#sideMenu,[data-drawer],#pt-overlay{ transition:none !important; }
 }
