@@ -351,40 +351,82 @@ body.after-hero::after{ opacity:1 }
 
 
 /* DOCK — bloc unifié */
-#dock, .dock{
-  position:fixed; left:50%; right:auto;
-  bottom:calc(var(--dock-bottom,14px) + max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px)));
-  transform:translateX(-50%) translateY(12px);
-  z-index:1000; opacity:0; pointer-events:none;
-  transition:opacity .28s ease-out, transform .28s ease-out;
+#dock, .dock {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: calc(var(--dock-bottom,14px) + max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px)));
+  transform: translateX(-50%);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .28s ease-out, transform .28s ease-out;
 }
-#dock.dock--visible, .dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
-#dock .dock__shell, .dock .dock__shell{
-  pointer-events:auto; display:inline-flex; align-items:center; gap:.6rem;
-  padding:.45rem 24px; border-radius:999px; max-width:96vw;
-  background:rgba(10,15,20,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  border:1px solid var(--border); box-shadow:var(--shadow);
+
+#dock.dock--visible, .dock.dock--visible {
+  opacity: 1;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
-.dock__btn{ width:40px; height:40px; display:grid; place-items:center; border-radius:12px }
-.dock__btn--call{ background:linear-gradient(90deg, var(--brand) 0%, #7cf4ff 100%); color:#001018 }
-.dock__btn--wa{ background:linear-gradient(90deg, var(--wa-1) 0%, var(--wa-2) 100%); color:#042016 }
-              
-#dockCount, .dock__badge{ display:none }
-.dock__btn--cart{ animation:cart-idle 8s cubic-bezier(.22,.61,.36,1) infinite .8s }
-@keyframes cart-idle{
-  0%,76%{ transform:translateZ(0) scale(1) rotate(0) }
-  78%{ transform:translateZ(0) scale(1.02) rotate(-8deg) }
-  80%{ transform:translateZ(0) scale(1.02) rotate(6deg) }
-  82%{ transform:translateZ(0) scale(1.01) rotate(-4deg) }
-  84%{ transform:translateZ(0) scale(1.01) rotate(3deg) }
-  86%{ transform:translateZ(0) scale(1.005) rotate(-2deg) }
-  90%,100%{ transform:translateZ(0) scale(1) rotate(0) }
+
+#dock .dock__shell, .dock .dock__shell {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .45rem 24px;
+  border-radius: 999px;
+  max-width: 96vw;
+  background: rgba(10,15,20,.66);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
-#dock.dock--pulse{ animation:dockPulse .46s ease }
-@keyframes dockPulse{
-  0%{ transform:translateX(-50%) translateY(0) scale(1) }
-  40%{ transform:translateX(-50%) translateY(0) scale(1.03) }
-  100%{ transform:translateX(-50%) translateY(0) scale(1) }
+
+/* Uniformiser TOUTES les icônes */
+.dock__btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  text-decoration: none;
+  transition: transform .15s ease;
+  cursor: pointer;
+}
+
+.dock__btn:active {
+  transform: scale(0.95);
+}
+
+/* 3 premières icônes : fond gris uniforme */
+.dock__btn--tools,
+.dock__btn--account,
+.dock__btn--cart {
+  background: rgba(255,255,255,.08) !important;
+  color: #e1e5e9 !important;
+}
+
+/* 2 dernières icônes : couleurs vives */
+.dock__btn--call {
+  background: linear-gradient(90deg, #42c9ff, #00aaff) !important;
+  color: #001018 !important;
+}
+
+.dock__btn--wa {
+  background: linear-gradient(90deg, #25d366, #128c7e) !important;
+  color: #042016 !important;
+}
+
+/* MASQUER COMPLÈTEMENT LE COMPTEUR */
+#dockCount,
+.dock__badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 /* ========== 13) VUES / ROUTER ========== */
 .view{
