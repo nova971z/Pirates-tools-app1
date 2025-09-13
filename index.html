@@ -169,83 +169,90 @@
   
 
   <!-- =================== HÉRO =================== -->
+<section id="hero" class="hero-full" aria-hidden="true" data-hero>
+  <img
+    id="heroLogo"
+    class="hero-logo on"
+    alt="Pirates Tools"
+    src="icons/icon-512.png"
+    srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
+    sizes="min(66vmin, 512px)"
+    width="512" height="512"
+    decoding="async" loading="eager" referrerpolicy="no-referrer" />
+  <div class="hero-fade" aria-hidden="true"></div>
+</section>
+
+<div class="hero-fade-fixed" aria-hidden="true"></div>
   
-  <section id="hero" class="hero-full" aria-hidden="true" data-hero>
-    <img
-      id="heroLogo"
-      class="hero-logo"
-      alt="Pirates Tools"
-      src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
-      width="512" height="512"
-      decoding="async" loading="eager" referrerpolicy="no-referrer" />
-    <div class="hero-fade" aria-hidden="true"></div>
-  </section>
 
-  <div class="hero-fade-fixed" aria-hidden="true"></div>
-  
-  
+  <!-- ===== Loader robuste CORRIGÉ (topbar + hero) ===== -->
+<script>
+(function(){
+  'use strict';
+  var D = document;
 
-  <!-- ===== Loader robuste (topbar + hero) ===== -->
-  <script>
-  (function(){
-    'use strict';
-    var D = document;
+  function onReady(fn){
+    if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
+  }
 
-    function onReady(fn){
-      if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', fn, {once:true});
-      else fn();
-    }
-    function setImg(img, url, bust){
-      try{
-        img.src = url + (url.indexOf('?')>-1 ? '&' : '?') + (bust || ('v='+(window.__ASSET_VER||'10')));
-      }catch(_){ img.setAttribute('src', url); }
-      if (img.complete) requestAnimationFrame(function(){ img.classList.add('on'); });
-      else img.addEventListener('load', function(){ img.classList.add('on'); }, { once:true });
-    }
-
-    onReady(function(){
-      var topImg  = D.getElementById('topbarLogo');
-      var heroImg = D.getElementById('heroLogo');
-      
-      
-
-      // TOPBAR: logo fichier si présent, sinon icône
-
-      if (topImg){
-        var brand = 'images/pirates-tools-logo.png';
-        var probe = new Image();
-        probe.onload = function(){ setImg(topImg, brand, 'v=7'); };
-        probe.onerror = function(){
-          setImg(topImg, 'icons/icon-384.png');
-          topImg.setAttribute('srcset',
-            'icons/icon-180.png 180w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w'
-          );
-          topImg.setAttribute('sizes','140px');
-        };
-        probe.src = brand;
+  function setImg(img, url, fallback){
+    if (!img) return;
+    
+    // Test si l'image existe
+    var testImg = new Image();
+    testImg.onload = function(){
+      img.src = url;
+      img.classList.add('on');
+      console.log('Image chargée:', url);
+    };
+    testImg.onerror = function(){
+      if (fallback) {
+        img.src = fallback;
+        img.classList.add('on');
+        console.log('Fallback utilisé:', fallback);
       }
+    };
+    testImg.src = url;
+  }
 
-      // HERO: icône HD + srcset
+  onReady(function(){
+    var topImg  = D.getElementById('topbarLogo');
+    var heroImg = D.getElementById('heroLogo');
+    
+    console.log('Loader démarré');
+    console.log('Hero img trouvé:', !!heroImg);
 
-      if (heroImg){
-        heroImg.setAttribute('srcset',
-          'icons/icon-180.png 180w, icons/icon-192.png 192w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w'
-        );
-        heroImg.setAttribute('sizes','min(62vmin, 560px)');
-        setImg(heroImg, 'icons/icon-512.png');
-      }
+    // TOPBAR: logo fichier si présent, sinon icône
+    if (topImg){
+      setImg(topImg, 'images/pirates-tools-logo.png?v=7', 'icons/icon-384.png');
+    }
 
-      // Dock « Compte » (sécurité)
+    // HERO: force l'icône avec srcset
+    if (heroImg){
+      heroImg.setAttribute('srcset',
+        'icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w'
+      );
+      heroImg.setAttribute('sizes','min(66vmin, 512px)');
+      
+      // Force l'état visible immédiatement
+      heroImg.classList.add('on');
+      heroImg.style.opacity = '1';
+      
+      setImg(heroImg, 'icons/icon-512.png', 'icons/icon-384.png');
+    }
 
-      (function(){
-        var btn = D.getElementById('dockAccountBtn');
-        if (!btn || btn.__wired) return;
-        btn.__wired = 1;
-        btn.addEventListener('click', function(){ try{ location.hash = '#/compte'; }catch(_){} }, false);
-      })();
-    });
-  })();
-  </script>
+    // Dock Compte
+    var btn = D.getElementById('dockAccountBtn');
+    if (btn && !btn.__wired) {
+      btn.__wired = 1;
+      btn.addEventListener('click', function(){ 
+        try{ location.hash = '#/compte'; }catch(_){} 
+      }, false);
+    }
+  });
+})();
+</script>
 
   <!-- =================== VUES (SPA) =================== -->
   
@@ -1561,32 +1568,76 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 <script>
-/* Animation HERO corrigée - scroll progressif */
+/* Animation HERO - Version finale avec vos icônes */
 (function(){
-  var logo = document.getElementById('heroLogo');
-  if (!logo) return;
+  'use strict';
   
-  function updateHero(){
-    var scroll = window.scrollY || 0;
-    var vh = window.innerHeight || 800;
-    var progress = Math.min(scroll / (vh * 0.8), 1);
-    
-    logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
-    
-    if (progress < 0.2) {
-      // Phase 1: légère croissance
-      logo.classList.add('fx-overshoot');
-    } else if (progress < 0.6) {
-      // Phase 2: flou progressif  
-      logo.classList.add('fx-preblur');
-    } else {
-      // Phase 3: disparition
-      logo.classList.add('fx-out');
+  function initHeroAnimation(){
+    var logo = document.getElementById('heroLogo');
+    if (!logo) {
+      console.error('Logo #heroLogo non trouvé');
+      return;
     }
+    
+    console.log('Logo trouvé:', logo);
+    console.log('Src du logo:', logo.src);
+    
+    // Force l'état initial visible
+    logo.classList.add('on');
+    logo.style.opacity = '1';
+    logo.style.display = 'block';
+    
+    // Vérification que l'image est chargée
+    if (logo.complete) {
+      console.log('Image déjà chargée');
+    } else {
+      logo.addEventListener('load', function(){
+        console.log('Image chargée avec succès');
+        logo.classList.add('on');
+      });
+      logo.addEventListener('error', function(){
+        console.error('Erreur chargement image');
+        // Fallback
+        logo.src = 'icons/icon-384.png';
+      });
+    }
+    
+    function updateHero(){
+      var scroll = window.scrollY || 0;
+      var vh = window.innerHeight || 800;
+      var progress = scroll / (vh * 0.6);
+      
+      // Reset classes
+      logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
+      
+      if (progress < 0.3) {
+        logo.classList.add('fx-overshoot');
+        console.log('État: overshoot');
+      } else if (progress < 0.7) {
+        logo.classList.add('fx-preblur');
+        console.log('État: preblur');
+      } else {
+        logo.classList.add('fx-out');
+        console.log('État: out');
+      }
+    }
+    
+    // Listeners
+    window.addEventListener('scroll', updateHero, {passive:true});
+    window.addEventListener('resize', updateHero, {passive:true});
+    
+    // Premier appel
+    updateHero();
+    
+    console.log('Animation héro initialisée avec succès');
   }
   
-  window.addEventListener('scroll', updateHero, {passive:true});
-  updateHero();
+  // Init quand ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeroAnimation);
+  } else {
+    initHeroAnimation();
+  }
 })();
 </script>
 
