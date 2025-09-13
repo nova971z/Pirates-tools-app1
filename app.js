@@ -840,110 +840,7 @@ for (var i = 0; i < (products || []).length; i++) {
 })();
 
 
-  // Pilotage unique via IntersectionObserver : bascule after-hero/hero-out + --listGap (22vh → 4vh)
-// Ne touche PAS aux classes FX du logo (laisse le CSS ou le fallback d’en bas faire le travail).
-(function(){
-  var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
-  var body = document.body;
-  var rootStyle = document.documentElement && document.documentElement.style;
-  if (!hero || !rootStyle || !body) return;
-
-  var lastRatio = 1;
-  var ticking = false;
-
-  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
-  function apply(ratio){
-    // ratio ∈ [0..1] : 1 = hero plein cadre → listGap = 22vh ; 0 = hero sorti → listGap = 4vh
-    var gapVH = 4 + 18 * clamp(ratio, 0, 1);
-    rootStyle.setProperty('--listGap', gapVH.toFixed(2)+'vh');
-
-    // Sortie du hero (environ ≤ 8% visible) → classes structurelles
-    var isOut = (ratio <= 0.08);
-    if (isOut){
-      body.classList.add('after-hero');
-      hero.classList.add('hero-out');
-    } else {
-      body.classList.remove('after-hero');
-      hero.classList.remove('hero-out');
-    }
-  }
-
-  function rafApply(){
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function(){ apply(lastRatio); ticking = false; });
-  }
-
-  if ('IntersectionObserver' in window){
-    var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++){ a.push(i/20); } return a; })();
-    var io = new IntersectionObserver(function(entries){
-      var e = entries && entries[0];
-      lastRatio = e ? e.intersectionRatio : 0;
-      rafApply();
-    }, { root:null, threshold: thresholds });
-    io.observe(hero);
-        /* NEW: expose l'IO pour teardown global */
-    try{ window.__ptHeroIO = io; }catch(_){}
-    window.addEventListener('beforeunload', function(){ try{ io.disconnect(); }catch(_){ } }, { once:true });
-  } else {
-    // Fallback sans IO : calcule le pourcentage visible du hero
-    function onScroll(){
-      var rect = hero.getBoundingClientRect();
-      var h = rect.height || hero.offsetHeight || 1;
-      var vis = (Math.min(rect.bottom, window.innerHeight||0) - Math.max(rect.top, 0)) / h;
-      lastRatio = clamp(vis, 0, 1);
-      rafApply();
-    }
-    window.addEventListener('scroll', onScroll, { passive:true });
-    window.addEventListener('resize', onScroll, { passive:true });
-        /* NEW: expose les listeners pour teardown global */
-    try{
-      window.__ptHeroScroll = onScroll;
-      window.__ptHeroHeroEl = hero;
-    }catch(_){}
-    onScroll();
-  }
-})();
   
-  
-  // NEW: contrôle global du Hero (show/hide + teardown IO / listeners)
-(function(){
-  if (window.__ptHeroCtlBooted) return; window.__ptHeroCtlBooted = 1;
-  window.PT = window.PT || {};
-  window.PT.hero = window.PT.hero || {};
-
-  window.PT.hero.hide = function(){
-    try{
-      var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
-      var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
-      if (logo){ logo.classList.remove('on','fx-overshoot','fx-preblur','fx-out'); }
-      if (hero){ hero.classList.remove('hero-out'); }
-      // IO → off
-      if (window.__ptHeroIO && window.__ptHeroIO.disconnect){
-        try{ window.__ptHeroIO.disconnect(); }catch(_){}
-        window.__ptHeroIO = null;
-      }
-      // Fallback listeners → off
-      if (window.__ptHeroScroll){
-        try{
-          window.removeEventListener('scroll', window.__ptHeroScroll);
-          window.removeEventListener('resize', window.__ptHeroScroll);
-        }catch(_){}
-        window.__ptHeroScroll = null;
-      }
-    }catch(_){}
-  };
-
-  window.PT.hero.show = function(){
-    try{
-      var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
-      if (logo && !logo.classList.contains('on')){
-        requestAnimationFrame(function(){ logo.classList.add('on'); });
-      }
-    }catch(_){}
-  };
-})();
   
   // Dock : visible quand on remonte / proche du haut
   var dock = document.getElementById('dock') || document.querySelector('.dock');
@@ -959,6 +856,110 @@ for (var i = 0; i < (products || []).length; i++) {
   window.addEventListener('scroll', onScrollDock, {passive:true});
   onScrollDock();
 })();
+
+
+/* =========================================================
+   ANIMATION HERO — Version propre et robuste
+   - IntersectionObserver + fallback scroll
+   - États : fx-overshoot → fx-preblur → fx-out
+   - ES5-safe, idempotent
+========================================================= */
+(function(){
+  'use strict';
+  if (window.__ptHeroAnimBooted) return; 
+  window.__ptHeroAnimBooted = 1;
+
+  var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
+  var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
+  
+  if (!hero || !logo) return;
+
+  // État initial : logo visible
+  logo.classList.add('on');
+
+  var lastState = '';
+  var isIntersecting = true;
+
+  function setState(newState){
+    if (lastState === newState) return;
+    
+    // Reset toutes les classes
+    logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
+    
+    // Applique le nouvel état
+    if (newState) logo.classList.add(newState);
+    
+    lastState = newState;
+  }
+
+  function handleVisibility(ratio){
+    // ratio = pourcentage du hero visible (0 = invisible, 1 = entièrement visible)
+    
+    if (ratio > 0.7) {
+      setState('fx-overshoot');
+    } else if (ratio > 0.3) {
+      setState('fx-preblur');  
+    } else {
+      setState('fx-out');
+    }
+  }
+
+  // IntersectionObserver (méthode moderne)
+  if ('IntersectionObserver' in window) {
+    var thresholds = [];
+    for (var i = 0; i <= 20; i++) {
+      thresholds.push(i / 20);
+    }
+    
+    var observer = new IntersectionObserver(function(entries){
+      var entry = entries[0];
+      if (!entry) return;
+      
+      isIntersecting = entry.isIntersecting;
+      var ratio = entry.intersectionRatio || 0;
+      
+      handleVisibility(ratio);
+    }, {
+      threshold: thresholds,
+      rootMargin: '0px'
+    });
+    
+    observer.observe(hero);
+    
+    // Nettoyage
+    window.addEventListener('beforeunload', function(){
+      try { observer.disconnect(); } catch(_){}
+    }, { once: true });
+    
+  } 
+  // Fallback scroll (navigateurs anciens)
+  else {
+    function onScroll(){
+      var rect = hero.getBoundingClientRect();
+      var heroHeight = rect.height || hero.offsetHeight || 1;
+      var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+      
+      // Calcule la partie visible du hero
+      var visibleTop = Math.max(0, -rect.top);
+      var visibleBottom = Math.min(heroHeight, viewportHeight - rect.top);
+      var visibleHeight = Math.max(0, visibleBottom - visibleTop);
+      
+      var ratio = visibleHeight / heroHeight;
+      
+      handleVisibility(ratio);
+    }
+    
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    
+    // Calcul initial
+    onScroll();
+  }
+
+  // Debug (optionnel - retirez en production)
+  console.log('Animation héro initialisée');
+})();
+
 
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
@@ -3167,9 +3168,7 @@ function injectBreadcrumbs(items){
   function renderHome(){
     W.showView('home');
     __ptScrollTop();
-        /* NEW: (Home) réactive le Hero */
-    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.show==='function') window.PT.hero.show(); }catch(_){}
-    updateSEO({ title:'Pirates Tools • Outillage pro (PWA)', desc: DEFAULT_DESC });
+           updateSEO({ title:'Pirates Tools • Outillage pro (PWA)', desc: DEFAULT_DESC });
     withProducts(function(){
       try{
         if (PT && typeof PT.renderBrandGridFromProducts==='function'){
@@ -3185,9 +3184,7 @@ function injectBreadcrumbs(items){
 
   function renderCatalogueRoute(){
     ensureCatalogueView(); W.showView('catalogue');
-        /* NEW: coupe le Hero hors accueil */
-    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
-    __ptScrollTop();
+           __ptScrollTop();
        updateSEO({ title:'Catalogue • Pirates Tools', desc: DEFAULT_DESC });
     // Laisser P2 gérer filtres/rendu
     if (PT && typeof PT.handleRouteCatalogue_Extended==='function'){
@@ -3204,9 +3201,7 @@ function injectBreadcrumbs(items){
 
   function renderProduitRoute(){
     ensureProduitView(); W.showView('produit');
-        /* NEW: coupe le Hero hors accueil */
-    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
-    
+        
     __ptScrollTop();
     // Ne pas forcer og:type=product ici; laisser P2 gérer JSON-LD Product + title
     updateSEO({ skipOgImage:false, type:'product' }); // met canonical/OG url/image sans toucher og:type=product
@@ -3276,9 +3271,7 @@ function injectBreadcrumbs(items){
 
   function renderDevisRoute(){
     ensureDevisView(); W.showView('devis');
-        /* NEW: coupe le Hero hors accueil */
-    try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
-    
+        
    __ptScrollTop();
     updateSEO({ title:'Mon devis • Pirates Tools', desc:'Préparez et envoyez votre devis via WhatsApp.' });
     if (typeof W.renderCartView==='function'){ try{ W.renderCartView(); }catch(_){ } }
@@ -3287,9 +3280,7 @@ function injectBreadcrumbs(items){
 
 
 function renderCompteRoute(){
-    /* NEW: coupe le Hero hors accueil */
-  try{ if (window.PT && window.PT.hero && typeof window.PT.hero.hide==='function') window.PT.hero.hide(); }catch(_){}
-  // Si l’auth locale existe et que l’utilisateur n’est pas connecté → redirige vers /login
+     // Si l’auth locale existe et que l’utilisateur n’est pas connecté → redirige vers /login
   if (window.PT && window.PT.auth && typeof window.PT.auth.isLoggedIn === 'function' && !window.PT.auth.isLoggedIn()){
     location.hash = '#/login';
     return;
@@ -3864,118 +3855,7 @@ else boot();
   } catch(_){}
 })();
 
-/*=========================================================================*
-  2) HERO: Fallback Scroll + IntersectionObserver (ultra light)
-  - ES5-safe, idempotent, ne double pas si un contrôleur existe déjà
-*=========================================================================*/
-(function heroFallback(){
-  if (window.__ptHeroPatch) return; window.__ptHeroPatch = 1;
 
-  var logo = document.querySelector('#heroLogo, .hero-logo');
-  var hero = document.querySelector('#hero, .hero-full');
-  if (!logo || !hero) return;
-
-  // Scroll-Driven Animations supportées ? → on s'efface
-  var supportsScrollTimeline = (typeof CSS !== 'undefined') &&
-    (CSS.supports('animation-timeline: scroll()') || CSS.supports('animation-timeline: view()'));
-  if (supportsScrollTimeline) return;
-
-  // Un autre contrôleur existe ? → on ne double pas
-  if (window.__ptHeroIO || window.__ptHeroScroll || (window.PT && window.PT.hero)) return;
-
-  // Intro douce si pas encore jouée
-  if (!logo.classList.contains('on')) {
-    try { requestAnimationFrame(function(){ logo.classList.add('on'); }); } catch(_){}
-  }
-
-  (function(){
-    function initHero(){
-      var heroEl = document.getElementById('hero') || document.querySelector('.hero, .hero-full');
-      var logoEl = document.getElementById('heroLogo') || document.querySelector('.hero-logo, #logo');
-      if (!heroEl || !logoEl) return;
-
-      var lastState = '';
-      var thresholds = (function(){ var a=[],i; for(i=0;i<=20;i++){ a.push(i/20); } return a; })();
-      var io = null;
-
-      if ('IntersectionObserver' in window){
-        io = new IntersectionObserver(function(entries){
-          var entry = entries && entries[0]; if (!entry) return;
-          var r = (typeof entry.intersectionRatio === 'number') ? entry.intersectionRatio : 0;
-
-          if (r > 0.96 && lastState !== 'overshoot'){
-            logoEl.classList.add('fx-overshoot');
-            logoEl.classList.remove('fx-preblur','fx-out');
-            lastState = 'overshoot';
-            return;
-          }
-          if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
-            logoEl.classList.add('fx-preblur');
-            logoEl.classList.remove('fx-overshoot','fx-out');
-            lastState = 'preblur';
-            return;
-          }
-          if (r <= 0.55 && lastState !== 'out'){
-            logoEl.classList.add('fx-out');
-            logoEl.classList.remove('fx-overshoot','fx-preblur');
-            lastState = 'out';
-          }
-        }, { root:null, threshold: thresholds });
-
-        try{ io.observe(heroEl); }catch(_){}
-        try{ window.__ptHeroIO = io; }catch(_){}
-      } else {
-        function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
-        function onScroll(){
-          var rect = heroEl.getBoundingClientRect ? heroEl.getBoundingClientRect() : {top:0,bottom:0,height:1};
-          var h = rect.height || heroEl.offsetHeight || 1;
-          var ih = window.innerHeight || 0;
-          var vis = (Math.min(rect.bottom, ih) - Math.max(rect.top, 0)) / h;
-          var r = clamp(vis, 0, 1);
-
-          if (r > 0.96 && lastState !== 'overshoot'){
-            logoEl.classList.add('fx-overshoot');
-            logoEl.classList.remove('fx-preblur','fx-out');
-            lastState = 'overshoot';
-          } else if (r <= 0.96 && r > 0.55 && lastState !== 'preblur'){
-            logoEl.classList.add('fx-preblur');
-            logoEl.classList.remove('fx-overshoot','fx-out');
-            lastState = 'preblur';
-          } else if (r <= 0.55 && lastState !== 'out'){
-            logoEl.classList.add('fx-out');
-            logoEl.classList.remove('fx-overshoot','fx-preblur');
-            lastState = 'out';
-          }
-        }
-        window.addEventListener('scroll', onScroll, { passive:true });
-        window.addEventListener('resize', onScroll, { passive:true });
-        try{
-          window.__ptHeroScroll = onScroll;
-          window.__ptHeroHeroEl = heroEl;
-        }catch(_){}
-        onScroll();
-      }
-
-      // Nettoyage
-      window.addEventListener('beforeunload', function(){
-        try{ if (io && io.disconnect) io.disconnect(); }catch(_){}
-        try{
-          if (window.__ptHeroScroll){
-            window.removeEventListener('scroll', window.__ptHeroScroll);
-            window.removeEventListener('resize', window.__ptHeroScroll);
-            window.__ptHeroScroll = null;
-          }
-        }catch(_){}
-      }, { once:true });
-    }
-
-    if (document.readyState === 'complete' || document.readyState === 'interactive'){
-      try{ initHero(); }catch(_){}
-    } else {
-      document.addEventListener('DOMContentLoaded', function(){ try{ initHero(); }catch(_){} }, false);
-    }
-  })();
-})();
 /*=========================================================================*
   3) PATCH-002 — Drawer robuste (ARIA + escapades + hash close)
 *=========================================================================*/
