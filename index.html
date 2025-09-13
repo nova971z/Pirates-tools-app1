@@ -432,7 +432,8 @@
   </main>
 
   <!-- =================== DOCK =================== -->
-  <nav id="dock" class="dock dock--visible" aria-label="Barre d'action">
+  
+ <nav id="dock" class="dock" aria-label="Barre d'action">
   <div class="dock__shell">
     <button id="dockQuoteBtn" class="dock__btn dock__btn--tools" type="button" aria-label="Catalogue" data-nav="/catalogue">🛠️</button>
     <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte" data-nav="/compte">👤</button>
@@ -440,10 +441,9 @@
     <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
     <a class="dock__btn dock__btn--wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
   </div>
-  <!-- Élément requis pour la CI mais masqué -->
-  <span id="dockCount" style="display: none !important; visibility: hidden !important; opacity: 0 !important;">0</span>
+  <span id="dockCount" style="display: none;">0</span>
 </nav>
- 
+
 <!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
 <div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
 
