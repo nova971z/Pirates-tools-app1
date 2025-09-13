@@ -115,7 +115,7 @@ body.page-compte .topbar-logo-link{ display:none !important }
 @media (max-width:420px){ .btn.btn-call{ font-size:13.5px; padding:.38rem .7rem; max-width:58vw } }
 @media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } .btn.btn-call{ font-size:12.5px; padding:.34rem .6rem; max-width:54vw } }
 
-/* ========== 04) HÉRO (structure, qualité, fondus) ========== */
+/* ========== 04) HÉRO - VERSION PROPRE ========== */
 /* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo */
 #hero, .hero-full{
   position: relative;
@@ -129,20 +129,20 @@ body.page-compte .topbar-logo-link{ display:none !important }
   overflow: visible; /* le logo peut dépasser pendant le zoom */
 }
 
-/* Quand le hero est “passé”, on le met vraiment sous la page */
+/* Quand le hero est "passé", on le met vraiment sous la page */
 .hero-full.hero-out, #hero.hero-out{
   z-index:-1;
   height:0 !important; min-height:0 !important;
   display:none !important; pointer-events:none !important;
 }
-.hero-out .hero-logo{ pointer-events:none; }
 
 /* Hors accueil (ou après scroll), le hero ne prend plus de place */
 body.after-hero #hero{
   z-index:-1; pointer-events:none;
   height:0 !important; min-height:0 !important; display:none !important;
 }
-/* Logo HD + rendu net pendant le scale (classe .on posée par le loader/app.js) */
+
+/* === LOGO : Base + États d'animation === */
 #heroLogo, .hero-logo{
   display:block; margin:0 auto; background:transparent; border:0; border-radius:0; box-shadow:none;
   width: clamp(256px, 66vmin, 900px);
@@ -150,17 +150,46 @@ body.after-hero #hero{
   height:auto; aspect-ratio:1/1; object-fit:contain; object-position:center;
   transform-origin:50% 50%; transform:translateZ(0);
   image-rendering:auto; image-rendering:-webkit-optimize-contrast;
-  will-change:transform,opacity,filter;
   backface-visibility:hidden; -webkit-backface-visibility:hidden;
-  filter:none;
-  opacity:.001; transition:opacity .25s ease-out, filter .18s ease, transform .18s ease;
+  
+  /* État initial : invisible */
+  opacity: 0;
+  filter: blur(0px);
+  
+  /* Transitions douces */
+  transition: opacity .3s ease-out, transform .25s ease-out, filter .25s ease-out;
+  will-change: transform, opacity, filter;
 }
-#heroLogo.on, .hero-logo.on{ opacity:1 }
 
-/* États pilotés par scroll : overshoot → blur → fade */
-.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.08); filter:blur(0px) }
-.hero-logo.fx-preblur{ transform:translateZ(0) scale(1.05); filter:blur(6px) saturate(1.1) }
-.hero-logo.fx-out{ transform:translateZ(0) scale(0.98); opacity:0; filter:blur(12px); transition:all 200ms ease-out }
+/* État visible (classe ajoutée par JS) */
+#heroLogo.on, .hero-logo.on{ 
+  opacity: 1; 
+}
+
+/* === ÉTATS PILOTÉS PAR LE SCROLL === */
+/* Overshoot : léger zoom + netteté */
+.hero-logo.fx-overshoot{ 
+  transform: translateZ(0) scale(1.05); 
+  filter: blur(0px); 
+  opacity: 1;
+}
+
+/* Pre-blur : zoom moyen + flou léger */
+.hero-logo.fx-preblur{ 
+  transform: translateZ(0) scale(1.02); 
+  filter: blur(3px) saturate(1.1); 
+  opacity: 0.9;
+}
+
+/* Out : disparition avec flou */
+.hero-logo.fx-out{ 
+  transform: translateZ(0) scale(0.98); 
+  filter: blur(8px); 
+  opacity: 0;
+  transition: all .3s ease-out;
+}
+
+/* === FONDUS & VOILES === */
 /* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
   position:absolute; left:0; right:0; bottom:-1px;
@@ -175,7 +204,7 @@ body.after-hero #hero{
           mask-image:linear-gradient(180deg, transparent 0%, #000 18%, #000 100%);
 }
 
-/* Voile fixe de secours (non requis mais utile si CSS seul) */
+/* Voile fixe de secours */
 .hero-fade-fixed{
   position:fixed; left:0; right:0; bottom:0;
   height:28vh; pointer-events:none; z-index:12; opacity:1;
@@ -184,7 +213,7 @@ body.after-hero #hero{
 }
 .after-hero .hero-fade-fixed{ opacity:0 }
 
-/* Sécurité anti-ligne entre hero et contenu (voile global) */
+/* Sécurité anti-ligne entre hero et contenu */
 body::after{
   content:"";
   position:fixed; left:0; right:0; top:calc(100vh - var(--heroFadeH));
@@ -194,50 +223,27 @@ body::after{
 }
 body.after-hero::after{ opacity:1 }
 
+/* === RESPONSIVE === */
 /* Paysage très bas (smartphones couchés) */
 @media (max-height:480px){
   #heroLogo, .hero-logo{ width:clamp(140px, 40vmin, 420px) }
 }
 
-
-/* Intro */
-@keyframes hero-intro {
-  0%   { opacity:0; transform:translateZ(0) scale(1.06); filter:blur(8px) saturate(1.05) }
-  60%  { opacity:1; transform:translateZ(0) scale(1.035); filter:blur(2.5px) saturate(1.05) }
-  100% { opacity:1; transform:translateZ(0) scale(1.000); filter:none }
-}
-#heroLogo.on, .hero-logo.on{ animation:hero-intro 420ms cubic-bezier(.22,.61,.36,1) both }
-
-/* Scroll-driven (si support) */
-@supports (animation-timeline: scroll()) or (animation-timeline: view()) {
-  .hero-full, #hero { view-timeline-name: --hero; view-timeline-axis: block; }
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce){
   #heroLogo, .hero-logo{
-    animation-timeline: --hero;
-    animation-range: exit 0% 70%;
-    animation-name: hero-exit;
-    animation-fill-mode: both;
+    transition: none !important; 
+    transform: none !important; 
+    filter: none !important; 
+    opacity: 1 !important;
   }
-  @keyframes hero-exit{
-    0%   { transform:translateZ(0) scale(1.03); filter:blur(0px) saturate(1.04); opacity:1 }
-    28%  { transform:translateZ(0) scale(1.02); filter:blur(4px)  saturate(1.05); opacity:.98 }
-    55%  { transform:translateZ(0) scale(1.01); filter:blur(7px)  saturate(1.06); opacity:.60 }
-    70%  { transform:translateZ(0) scale(.995); filter:blur(10px) saturate(1.06); opacity:0 }
-    100% { transform:translateZ(0) scale(.990); filter:blur(10px); opacity:0 }
-  }
-  .hero-logo.fx-overshoot,
-  .hero-logo.fx-preblur,
-  .hero-logo.fx-out{ all:unset; }
 }
-/* Finesse perf */
+
+/* === PERFORMANCE === */
 #heroLogo, .hero-logo{
   contain: paint style;
   transform: translateZ(0);
   will-change: transform, opacity, filter;
-}
-@media (prefers-reduced-motion: reduce){
-  #heroLogo, .hero-logo{
-    animation: none !important; transform: none !important; filter: none !important; opacity: 1 !important;
-  }
 }
 
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
