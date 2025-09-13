@@ -108,21 +108,37 @@
   })();
   </script>
 
-  <!-- HÉRO : styles -->
+  <!-- HÉRO : styles propres -->
+<style id="pt-hero-clean">
+  :root{ 
+    --listGap: 22vh; 
+    --heroFadeH: 28vh; 
+  }
   
-  <style id="pt-hero-overshoot-css">
-    :root{ --listGap:22vh; --heroFadeH:28vh; }
-    #hero{ position:relative; z-index:0; }
-    body.after-hero #hero{ z-index:-1; pointer-events:none; }
-    #hero .hero-fade{ position:absolute; inset:auto 0 0 0; height:var(--heroFadeH,28vh);
-      background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 60%, var(--bg,#0a0f14) 100%); pointer-events:none; }
-    #view-home .container{ margin-top:var(--listGap,22vh); transition:margin-top .22s ease-out; }
-    .hero-logo{ opacity:.001; transition:opacity .25s ease-out; }
-    .hero-logo.on{ opacity:1; }
-  </style>
-</head>
-<body data-router-root>
+  /* Structure héro propre */
+  #hero{ 
+    position: relative; 
+    z-index: 30; 
+    isolation: isolate;
+  }
   
+  /* Classes de transition pour --listGap */
+  #view-home .container{ 
+    margin-top: var(--listGap, 22vh); 
+    transition: margin-top .22s ease-out; 
+  }
+  
+  /* Logo : état initial invisible */
+  .hero-logo{ 
+    opacity: 0; 
+    transition: opacity .3s ease-out, transform .25s ease-out, filter .25s ease-out;
+  }
+  
+  /* Logo visible (classe ajoutée par JS) */
+  .hero-logo.on{ 
+    opacity: 1; 
+  }
+</style>
   
   
   <!-- =================== TOPBAR =================== -->
@@ -519,12 +535,34 @@
 <style id="pt-ui">
 :root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
 
-.hero-logo{ transition: transform .28s ease, filter .28s ease, opacity .28s ease; will-change: transform,filter,opacity; }
-.hero-logo.fx-overshoot{ transform: translateZ(0) scale(1.035); }
-.hero-logo.fx-preblur{ filter: blur(9px) saturate(1.05); }
-.hero-logo.fx-out{ opacity:0 !important; transition:opacity 120ms linear, filter 180ms ease-out; }
-.hero-full.hero-out{ opacity:.0; pointer-events:none; }
+/* === ÉTATS HÉRO PILOTÉS PAR LE SCROLL === */
+.hero-logo.fx-overshoot{ 
+  transform: translateZ(0) scale(1.05); 
+  filter: blur(0px); 
+  opacity: 1;
+}
 
+.hero-logo.fx-preblur{ 
+  transform: translateZ(0) scale(1.02); 
+  filter: blur(3px) saturate(1.1); 
+  opacity: 0.9;
+}
+
+.hero-logo.fx-out{ 
+  transform: translateZ(0) scale(0.98); 
+  filter: blur(8px); 
+  opacity: 0;
+  transition: all .3s ease-out;
+}
+
+/* Masquer le héro quand il est sorti */
+.hero-full.hero-out{ 
+  z-index: -1;
+  height: 0 !important; 
+  min-height: 0 !important;
+  display: none !important; 
+  pointer-events: none !important;
+}
 .list{ margin-top: var(--listGap, 22vh); }
 
 .brand-grid--3col{
