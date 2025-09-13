@@ -75,6 +75,61 @@
     }, 600);
   })();
   </script>
+ 
+
+<!-- CSS HÉRO SIMPLIFIÉ -->
+<style id="pt-hero-final">
+/* Variables de base */
+:root {
+  --listGap: 22vh;
+  --safe-top: 70px;
+  --safe-bottom: 0px;
+}
+
+/* Structure héro simple */
+#hero {
+  position: relative;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  z-index: 30;
+}
+
+/* Logo : visible par défaut */
+#heroLogo {
+  width: clamp(256px, 60vmin, 512px);
+  height: auto;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease;
+  transform: translateZ(0) scale(1.05);
+}
+
+/* États d'animation */
+#heroLogo.fx-overshoot {
+  opacity: 1;
+  transform: translateZ(0) scale(1.05);
+  filter: blur(0px);
+}
+
+#heroLogo.fx-preblur {
+  opacity: 0.8;
+  transform: translateZ(0) scale(1.02);
+  filter: blur(4px);
+}
+
+#heroLogo.fx-out {
+  opacity: 0;
+  transform: translateZ(0) scale(0.98);
+  filter: blur(8px);
+}
+
+/* Espacement home */
+#view-home .container {
+  margin-top: var(--listGap);
+  transition: margin-top 0.3s ease;
+}
+</style>
+
 
   <!-- Patch UI : haut non tronqué + dock centré + bulles -->
   
@@ -109,37 +164,7 @@
   </script>
 
   <!-- HÉRO : styles propres -->
-<style id="pt-hero-clean">
-  :root{ 
-    --listGap: 22vh; 
-    --heroFadeH: 28vh; 
-  }
-  
-  /* Structure héro propre */
-  #hero{ 
-    position: relative; 
-    z-index: 30; 
-    isolation: isolate;
-  }
-  
-  /* Classes de transition pour --listGap */
-  #view-home .container{ 
-    margin-top: var(--listGap, 22vh); 
-    transition: margin-top .22s ease-out; 
-  }
-  
-  /* Logo : état initial invisible */
-  .hero-logo{ 
-    opacity: 0; 
-    transition: opacity .3s ease-out, transform .25s ease-out, filter .25s ease-out;
-  }
-  
-  /* Logo visible (classe ajoutée par JS) */
-  .hero-logo.on{ 
-    opacity: 1; 
-  }
-</style>
-  
+
   
   <!-- =================== TOPBAR =================== -->
   
@@ -168,7 +193,7 @@
   
   
 
-  <!-- =================== HÉRO =================== -->
+  <!-- =================== HÉRO =================== 
 <section id="hero" class="hero-full" aria-hidden="true" data-hero>
   <img
     id="heroLogo"
@@ -182,77 +207,20 @@
   <div class="hero-fade" aria-hidden="true"></div>
 </section>
 
-<div class="hero-fade-fixed" aria-hidden="true"></div>
+<div class="hero-fade-fixed" aria-hidden="true"></div> -->
   
-
-  <!-- ===== Loader robuste CORRIGÉ (topbar + hero) ===== -->
-<script>
-(function(){
-  'use strict';
-  var D = document;
-
-  function onReady(fn){
-    if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', fn, {once:true});
-    else fn();
-  }
-
-  function setImg(img, url, fallback){
-    if (!img) return;
-    
-    // Test si l'image existe
-    var testImg = new Image();
-    testImg.onload = function(){
-      img.src = url;
-      img.classList.add('on');
-      console.log('Image chargée:', url);
-    };
-    testImg.onerror = function(){
-      if (fallback) {
-        img.src = fallback;
-        img.classList.add('on');
-        console.log('Fallback utilisé:', fallback);
-      }
-    };
-    testImg.src = url;
-  }
-
-  onReady(function(){
-    var topImg  = D.getElementById('topbarLogo');
-    var heroImg = D.getElementById('heroLogo');
-    
-    console.log('Loader démarré');
-    console.log('Hero img trouvé:', !!heroImg);
-
-    // TOPBAR: logo fichier si présent, sinon icône
-    if (topImg){
-      setImg(topImg, 'images/pirates-tools-logo.png?v=7', 'icons/icon-384.png');
-    }
-
-    // HERO: force l'icône avec srcset
-    if (heroImg){
-      heroImg.setAttribute('srcset',
-        'icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w'
-      );
-      heroImg.setAttribute('sizes','min(66vmin, 512px)');
-      
-      // Force l'état visible immédiatement
-      heroImg.classList.add('on');
-      heroImg.style.opacity = '1';
-      
-      setImg(heroImg, 'icons/icon-512.png', 'icons/icon-384.png');
-    }
-
-    // Dock Compte
-    var btn = D.getElementById('dockAccountBtn');
-    if (btn && !btn.__wired) {
-      btn.__wired = 1;
-      btn.addEventListener('click', function(){ 
-        try{ location.hash = '#/compte'; }catch(_){} 
-      }, false);
-    }
-  });
-})();
-</script>
+<!-- HÉRO SIMPLIFIÉ -->
+<section id="hero" class="hero-full">
+  <img
+    id="heroLogo"
+    class="hero-logo fx-overshoot"
+    alt="Pirates Tools"
+    src="icons/icon-512.png"
+    width="512" height="512"
+    style="opacity: 1; display: block;"
+    decoding="async" loading="eager" />
+</section>
+ 
 
   <!-- =================== VUES (SPA) =================== -->
   
@@ -1574,97 +1542,45 @@ body.page-compte .topbar-logo-link { display:none !important; }
 </script>
 
 
-
 <script>
-/* Animation HERO - Version finale avec vos icônes */
-(function(){
+/* Animation héro simple et fiable */
+(function() {
   'use strict';
   
-  function initHeroAnimation(){
-    var logo = document.getElementById('heroLogo');
-    if (!logo) {
-      console.error('Logo #heroLogo non trouvé');
-      return;
-    }
+  var logo = document.getElementById('heroLogo');
+  if (!logo) return;
+  
+  console.log('Logo trouvé, initialisation...');
+  
+  // Force la visibilité immédiate
+  logo.style.opacity = '1';
+  logo.style.display = 'block';
+  
+  function animate() {
+    var scroll = window.scrollY;
+    var vh = window.innerHeight;
+    var progress = scroll / (vh * 0.6);
     
-    console.log('Logo trouvé:', logo);
-    console.log('Src du logo:', logo.src);
+    // Reset
+    logo.className = 'hero-logo';
     
-    // Force l'état initial visible
-    logo.classList.add('on');
-    logo.style.opacity = '1';
-    logo.style.display = 'block';
-    
-    // Vérification que l'image est chargée
-    if (logo.complete) {
-      console.log('Image déjà chargée');
+    // États selon progression
+    if (progress < 0.3) {
+      logo.classList.add('fx-overshoot');
+    } else if (progress < 0.7) {
+      logo.classList.add('fx-preblur');
     } else {
-      logo.addEventListener('load', function(){
-        console.log('Image chargée avec succès');
-        logo.classList.add('on');
-      });
-      logo.addEventListener('error', function(){
-        console.error('Erreur chargement image');
-        // Fallback
-        logo.src = 'icons/icon-384.png';
-      });
+      logo.classList.add('fx-out');
     }
-    
-    function updateHero(){
-      var scroll = window.scrollY || 0;
-      var vh = window.innerHeight || 800;
-      var progress = scroll / (vh * 0.6);
-      
-      // Reset classes
-      logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
-      
-      if (progress < 0.3) {
-        logo.classList.add('fx-overshoot');
-        console.log('État: overshoot');
-      } else if (progress < 0.7) {
-        logo.classList.add('fx-preblur');
-        console.log('État: preblur');
-      } else {
-        logo.classList.add('fx-out');
-        console.log('État: out');
-      }
-    }
-    
-    // Listeners
-    window.addEventListener('scroll', updateHero, {passive:true});
-    window.addEventListener('resize', updateHero, {passive:true});
-    
-    // Premier appel
-    updateHero();
-    
-    console.log('Animation héro initialisée avec succès');
   }
   
-  // Init quand ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHeroAnimation);
-  } else {
-    initHeroAnimation();
-  }
+  window.addEventListener('scroll', animate, {passive: true});
+  animate(); // Premier appel
+  
+  console.log('Animation héro initialisée');
 })();
 </script>
 
 
-
-
-<script>
-(function fixBrandLogos(){
-  var base = window.ASSET_BASE || (location.pathname.indexOf('/Pirates-tools-app1')>-1 ? '/Pirates-tools-app1' : '');
-  var list = document.querySelectorAll('#brandGrid img');
-  for (var i=0;i<list.length;i++){
-    var img=list[i], src=img.getAttribute('data-src')||img.getAttribute('src')||'';
-    if (!src) continue;
-    if (src.charAt(0)==='/' && base) src = base + src;
-    img.setAttribute('src', src);
-    img.setAttribute('loading','lazy');
-    img.setAttribute('decoding','async');
-  }
-})();
-</script>
 </body>
 </html>
