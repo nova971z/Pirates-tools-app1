@@ -541,7 +541,15 @@
   
 <style id="pt-ui">
 :root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
-
+/* Force la visibilité du logo */
+#heroLogo {
+  opacity: 1 !important;
+  display: block !important;
+  width: clamp(256px, 66vmin, 512px);
+  height: auto;
+  aspect-ratio: 1/1;
+  object-fit: contain;
+}
 /* === ÉTATS HÉRO PILOTÉS PAR LE SCROLL === */
 .hero-logo.fx-overshoot{ 
   transform: translateZ(0) scale(1.05); 
