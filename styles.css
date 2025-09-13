@@ -800,3 +800,20 @@ html, body{
   transform: translateZ(0);
 }
 
+/* Fix menu burger - force un seul système */
+#menu-toggle {
+  pointer-events: auto !important;
+  z-index: 9999 !important;
+}
+
+#side-menu {
+  pointer-events: auto !important;
+}
+
+/* Désactive les autres systèmes temporairement */
+.drawer[data-pt-nav-wired],
+#drawer.open,
+.menu-open #side-menu {
+  pointer-events: auto !important;
+}
+
