@@ -840,163 +840,6 @@ for (var i = 0; i < (products || []).length; i++) {
 })();
 
 
-/* PT — Drawer gauche + overlay + halo bleu (v25) */
-(function () {
-  if (window.__ptDrawerV25) return; window.__ptDrawerV25 = 1;
-
-  const qs  = (s, r) => (r || document).querySelector(s);
-  const qsa = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
-
-  const css = `
-  
-  
-(function(){
-  'use strict';
-  var qs  = (s,r)=> (r||document).querySelector(s);
-  var qsa = (s,r)=> Array.prototype.slice.call((r||document).querySelectorAll(s));
-
-  /* --- Drawer GAUCHE + iOS glass + bulles --- */
-  const css = `
-/* Drawer (force à GAUCHE) */
-#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]{
-  position:fixed; top:0; bottom:0; left:0 !important; right:auto !important;
-  width:min(86vw,420px); max-width:92vw;
-  padding:calc(env(safe-area-inset-top) + 12px) 14px 24px calc(env(safe-area-inset-left) + 14px);
-  background:rgba(12,14,18,.60);
-  -webkit-backdrop-filter:saturate(180%) blur(14px);
-          backdrop-filter:saturate(180%) blur(14px);
-  border-right:1px solid rgba(255,255,255,.08);
-  box-shadow:6px 0 26px rgba(0,0,0,.35);
-  transform:translate3d(-104%,0,0);
-  will-change:transform;
-  transition:transform .28s cubic-bezier(.22,.61,.36,1);
-  z-index:1001; overscroll-behavior:contain;
-}
-#drawer.open,.drawer.open,#side-menu.open,#sideMenu.open,[data-drawer].open{ transform:translate3d(0,0,0); }
-
-/* Overlay */
-#pt-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.38);
-  opacity:0; pointer-events:none; z-index:1000; transition:opacity .26s ease; }
-#pt-overlay.show{ opacity:1; pointer-events:auto; }
-body.menu-open{ overflow:hidden; }
-
-/* MENU en bulles iOS */
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu{
-  margin-top:8vh; display:grid; grid-template-columns:1fr 1fr; gap:12px;
-  padding:0 4px;
-}
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a{
-  display:flex; align-items:center; gap:12px; text-decoration:none;
-  color:#eaf0ff; font-weight:600; -webkit-tap-highlight-color:transparent;
-  padding:14px 16px; border-radius:20px;
-  background:rgba(255,255,255,.06);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 24px rgba(0,0,0,.28);
-  transition:box-shadow .18s ease, transform .18s ease, background .18s ease;
-}
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:hover,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a:focus-visible{
-  transform:translateY(-1px);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), 0 14px 30px rgba(0,0,0,.34);
-}
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a.is-active,
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu a[aria-current="page"]{
-  background:linear-gradient(180deg,#1ee5b0,#0bb3e0);
-  color:#071218;
-}
-/* Icônes (SVG only, pas d’emojis) */
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu svg{
-  width:22px; height:22px; flex:0 0 22px; opacity:.95; display:block;
-}
-
-/* (option) cercle d’icône si tu gardes .icon */
-:where(#drawer,.drawer,#side-menu,#sideMenu,[data-drawer]) .menu .icon{
-  width:42px; height:42px; border-radius:999px; display:grid; place-items:center;
-  background:radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%), rgba(34,34,38,.7);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), inset 0 -8px 16px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
-  transition:box-shadow .18s ease, transform .18s ease;
-}
-
-/* Grille bulles marques (3 colonnes) */
-#brandGrid.brand-grid--3col{
-  display:grid;
-  grid-template-columns:repeat(3, minmax(0,1fr));
-  gap:22px;
-  align-items:start;
-  justify-items:center;
-}
-@media (prefers-reduced-motion:reduce){
-  #drawer,.drawer,#side-menu,#sideMenu,[data-drawer],#pt-overlay{ transition:none !important; }
-}
-`;
-
-  const style = document.createElement('style');
-  style.id = 'pt-ui-v25';
-  style.textContent = css;
-  document.head.appendChild(style);
-
-  if (!qs('#pt-overlay')) {
-    const ov = document.createElement('div'); ov.id = 'pt-overlay'; document.body.appendChild(ov);
-  }
-  const overlay = qs('#pt-overlay');
-
-  const drawer = qs('#drawer, .drawer, #side-menu, #sideMenu, [data-drawer]');
-  if (!drawer) return;
-
-  // accessibilité
-  drawer.setAttribute('role','dialog');
-  drawer.setAttribute('aria-modal','true');
-  drawer.setAttribute('aria-hidden','true');
-
-  const open  = () => {
-    drawer.classList.add('open'); overlay.classList.add('show'); document.body.classList.add('menu-open');
-    setAria(true);
-  };
-  const close = () => {
-    drawer.classList.remove('open'); overlay.classList.remove('show'); document.body.classList.remove('menu-open');
-    setAria(false);
-  };
-
-  function setAria(expanded){
-    const toggles = qsa('#menuBtn, #menu-toggle, .hamburger, .menu-toggle, [data-menu-toggle], [data-drawer-open]');
-    toggles.forEach(t => {
-      t.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      if (drawer.id) t.setAttribute('aria-controls', drawer.id);
-    });
-    drawer.setAttribute('aria-hidden', expanded ? 'false' : 'true');
-  }
-
-  // Toggles (hamburger)
-  qsa('#menuBtn, #menu-toggle, .hamburger, .menu-toggle, [data-menu-toggle], [data-drawer-open]').forEach(btn=>{
-    if (btn.__pt) return; btn.__pt=1;
-    btn.addEventListener('click', e=>{ e.preventDefault(); (drawer.classList.contains('open') ? close() : open()); }, false);
-    btn.addEventListener('pointerup', e=>{ if (e.pointerType==='touch') (drawer.classList.contains('open') ? close() : open()); }, false);
-  });
-
-  // Fermer
-  overlay.addEventListener('click', close);
-  document.addEventListener('keydown', e=>{ if (e.key==='Escape') close(); }, false);
-  drawer.addEventListener('click', e=>{
-    const a = e.target.closest && e.target.closest('a,[data-route],[data-nav],[role="menuitem"]');
-    if (a) setTimeout(close, 30);
-  }, false);
-
-  // Effet tactile “tap”
-  qsa('#drawer .menu a, .drawer .menu a').forEach(a=>{
-    if (a.__ptTap) return; a.__ptTap = 1;
-    a.addEventListener('pointerdown', ()=>a.classList.add('is-tap'), false);
-    const clear = ()=>a.classList.remove('is-tap');
-    a.addEventListener('pointerup', clear, false);
-    a.addEventListener('pointercancel', clear, false);
-    a.addEventListener('mouseleave', clear, false);
-  });
-
-  // Sync overlay si une autre logique ouvre/ferme
-  new MutationObserver(() => {
-    if (drawer.classList.contains('open')) { overlay.classList.add('show'); document.body.classList.add('menu-open'); setAria(true); }
-    else { overlay.classList.remove('show'); document.body.classList.remove('menu-open'); setAria(false); }
-  }).observe(drawer, { attributes:true, attributeFilter:['class'] });
-})();
-
   // Pilotage unique via IntersectionObserver : bascule after-hero/hero-out + --listGap (22vh → 4vh)
 // Ne touche PAS aux classes FX du logo (laisse le CSS ou le fallback d’en bas faire le travail).
 (function(){
@@ -3773,51 +3616,8 @@ function onRegisterSubmit(e){
 
  
 
-  /* --------- Menu (drawer) : toggle + auto-close (idempotent) --------- */
-  function p5CloseDrawer(){
-    try{
-      var body   = D.body;
-      var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
-      var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
-      var flags  = ['open','is-open','active','visible','shown','menu-open','drawer-open']; var i;
-      if (body)   for (i=0;i<flags.length;i++) rmClass(body, flags[i]);
-      if (drawer) for (i=0;i<flags.length;i++) rmClass(drawer, flags[i]);
-      if (overlay){ addClass(overlay,'hidden'); overlay.style.display='none'; }
-      var burger = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle');
-      if (burger) burger.setAttribute('aria-expanded','false');
-    }catch(_){}
-  }
-  function p5OpenDrawer(){
-    var body   = D.body;
-    var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
-    var overlay= qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
-    if (drawer) addClass(drawer,'open');
-    if (body) addClass(body,'menu-open');
-    if (overlay){ rmClass(overlay,'hidden'); overlay.style.display=''; }
-    var burger = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle');
-    if (burger) burger.setAttribute('aria-expanded','true');
-  }
-  function wireDrawer(){
-    var drawer   = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
-    var toggle   = qs('#menuBtn') || qs('#menu-toggle') || qs('.hamburger') || qs('.menu-toggle') || qs('[data-menu-toggle]');
-    var backdrop = qs('#drawerBackdrop') || qs('#menuBackdrop') || qs('#menu-overlay') || qs('.drawer__backdrop') || qs('.backdrop');
-    if (toggle && !toggle.__ptP5){
-      toggle.__ptP5 = 1;
-      var onclick = function(e){ if (e) e.preventDefault(); (hasClass(D.body,'menu-open')||hasClass(drawer,'open')) ? p5CloseDrawer() : p5OpenDrawer(); };
-      toggle.addEventListener('click', onclick, false);
-      toggle.addEventListener('pointerup', function(e){ if (e && e.pointerType==='touch'){ onclick(e); } }, false);
-    }
-    if (backdrop && !backdrop.__ptP5){ backdrop.__ptP5 = 1; backdrop.addEventListener('click', p5CloseDrawer, false); }
-    if (drawer && !drawer.__ptP5){
-      drawer.__ptP5 = 1;
-      drawer.addEventListener('click', function(e){
-        var a = e.target && e.target.closest ? e.target.closest('a,[data-nav],[data-route],[role="menuitem"]') : null;
-        if (a){ setTimeout(p5CloseDrawer, 30); }
-      }, false);
-    }
-    if (!W.__ptP5DrawerHash){ W.__ptP5DrawerHash = 1; W.addEventListener('hashchange', function(){ setTimeout(p5CloseDrawer,0); }, false); }
-  }
-
+ 
+  
   /* --------- Routing helpers / mapping --------- */
   function go(dest){
     if (!dest) return;
@@ -4030,254 +3830,157 @@ else boot();
 
 })();
 
-
-
-
-
-
-
-
-   /* =========================================================
-     6B — MENU A11y avancé (open/close + focus trap + actif)
-     Expose PT.menu { open, close, isOpen, setActive, wire }
-     - ES5-safe, idempotent (pas de doublons d'écouteurs)
-     - Gère href="#/..." ET [data-route^="#/"]
-  ========================================================== */
-(function menuA11y(){
+/* =========================================================
+   MENU LATÉRAL UNIFIÉ - Solution unique (Android + iOS compatible)
+========================================================= */
+(function menuUnified(){
   'use strict';
-  var W=window, D=document, PT=(W.PT=W.PT||{});
+  if (window.__ptMenuUnified) return; 
+  window.__ptMenuUnified = 1;
 
-  // Informe la P5 de ne pas poser aria-current
-  if (W.__ptP6BNav===1) {/* no-op */} else { W.__ptP6BNav = 1; }
+  let isOpen = false;
+  let isAnimating = false;
+  
+  const elements = {
+    get menu() { return document.getElementById('side-menu') || document.querySelector('.drawer'); },
+    get backdrop() { return document.getElementById('menuBackdrop') || document.querySelector('.backdrop'); },
+    get toggle() { return document.getElementById('menu-toggle') || document.querySelector('#menuBtn, .hamburger'); },
+    get body() { return document.body; }
+  };
 
-  // Utils
-  function $(s,r){ try{ return (r||D).querySelector(s); }catch(_){ return null; } }
-  function $$(s,r){ try{ return Array.prototype.slice.call((r||D).querySelectorAll(s)); }catch(_){ return []; } }
-  function on(el, ev, fn){
-    if (!el) return;
-    var k='__ptOn_'+ev;
-    if (el[k]) return;
-    el[k]=1; el.addEventListener(ev, fn, false);
-  }
-  function announce(msg){ try{ if (W.announce) W.announce(msg); }catch(_){ } }
-  function log(){ try{ if (W.console && console.log) console.log.apply(console, arguments); }catch(_){ } }
+  function updateState(open, skipAnimation = false) {
+    if (isAnimating && !skipAnimation) return;
+    isAnimating = true;
+    isOpen = open;
 
-  var body = D.body;
-  var drawer, topnav, toggle, backdrop;
-
-  // Focusables
-  var FSEL = [
-    'a[href]','button:not([disabled])','input:not([disabled])',
-    'select:not([disabled])','textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])'
-  ].join(',');
-
-  function resolveNodes(){
-    drawer   = $('#drawer') || $('#sideMenu') || $('#side-menu') || $('.drawer') || $('[data-drawer]');
-    topnav   = $('#topbar') || $('.topbar') || $('nav[role="navigation"]') || $('nav');
-    toggle   = $('#menuBtn') || $('#menu-toggle') || $('.hamburger') || $('.menu-toggle') || $('[data-menu-toggle]');
-    backdrop = $('#drawerBackdrop') || $('#menuBackdrop') || $('.drawer__backdrop') || $('.backdrop') || $('#menu-overlay');
-  }
-  resolveNodes();
-
-  function isOpen(){
-    return (!!drawer && drawer.classList && (drawer.classList.contains('open')||drawer.classList.contains('is-open')||drawer.classList.contains('active')))
-        || (!!body && body.classList && body.classList.contains('menu-open'));
-  }
-
-  function setAriaOpen(open){
-    try{
-      if (toggle){
-        toggle.setAttribute('role','button');
-        toggle.setAttribute('aria-expanded', open?'true':'false');
-        toggle.setAttribute('aria-label', open?'Fermer le menu':'Ouvrir le menu');
-        if (drawer && drawer.id) toggle.setAttribute('aria-controls', drawer.id);
-      }
-      if (drawer){
-        if (!drawer.getAttribute('role')) drawer.setAttribute('role','dialog');
-        drawer.setAttribute('aria-modal','true');
-        drawer.setAttribute('aria-hidden', open?'false':'true');
-      }
-      if (backdrop){
-        backdrop.setAttribute('aria-hidden', open?'false':'true');
-        if (open){ backdrop.classList && backdrop.classList.remove('hidden'); backdrop.style.display=''; }
-        else { backdrop.classList && backdrop.classList.add('hidden'); backdrop.style.display='none'; }
-      }
-    }catch(_){}
-  }
-
-  function lockScroll(onFlag){
-    try{
-      if (!body) return;
-      if (onFlag) body.classList.add('menu-open'); else body.classList.remove('menu-open');
-    }catch(_){}
-  }
-
-  function focusFirst(){
-    try{
-      var focusables = $$(FSEL, drawer);
-      var first = focusables[0] || drawer || toggle;
-      if (first){ if (first===drawer && !drawer.hasAttribute('tabindex')) drawer.setAttribute('tabindex','-1'); first.focus(); }
-    }catch(_){}
-  }
-
-  function open(){
-    if (!drawer) return;
-    drawer.classList.add('open');
-    lockScroll(true);
-    setAriaOpen(true);
-    focusFirst();
-    announce('Menu ouvert');
-    wireTrap(); // s’assure que le trap est câblé
-    log('[P6B] open');
-  }
-
-  function close(){
-    if (!drawer) return;
-    drawer.classList.remove('open'); drawer.classList.remove('is-open'); drawer.classList.remove('active');
-    lockScroll(false);
-    setAriaOpen(false);
-    try{ if (toggle && toggle.focus) toggle.focus(); }catch(_){}
-    announce('Menu fermé');
-    log('[P6B] close');
-  }
-
-  // Focus trap + ESC (idempotent)
-  function wireTrap(){
-    if (!drawer || drawer.__ptTrap) return;
-    drawer.__ptTrap = 1;
-    on(drawer,'keydown',function(e){
-      if (!isOpen()) return;
-      var k=e.key||e.keyCode;
-      if (k==='Escape'||k===27){ e.preventDefault(); close(); return; }
-      if (!(k==='Tab'||k===9)) return;
-      try{
-        var list=$$(FSEL, drawer);
-        if (!list.length) return;
-        var first=list[0], last=list[list.length-1];
-        var active=D.activeElement, shift=!!e.shiftKey;
-        var inside = drawer.contains(active);
-        if (shift && (!inside || active===first)){ e.preventDefault(); last.focus(); }
-        else if (!shift && (!inside || active===last)){ e.preventDefault(); first.focus(); }
-      }catch(_){}
-    });
-    // ESC global si focus sort (sécurité)
-    on(D,'keydown',function(e){
-      var k=e.key||e.keyCode;
-      if (!isOpen()) return;
-      if (k==='Escape'||k===27){ e.preventDefault(); close(); }
-    });
-  }
-
-  function wireToggles(){
-    if (toggle && !toggle.__pt6B){
-      toggle.__pt6B=1;
-      toggle.setAttribute('aria-expanded','false');
-      on(toggle,'click',function(e){ e.preventDefault(); isOpen()?close():open(); });
-      on(toggle,'pointerup',function(e){ if (e&&e.pointerType==='touch'){ e.preventDefault(); isOpen()?close():open(); } });
+    const { menu, backdrop, toggle, body } = elements;
+    
+    // Force les styles sans transition
+    if (menu) {
+      menu.style.transform = open ? 'translateX(0)' : 'translateX(-100%)';
+      menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) menu.classList.add('open');
+      else menu.classList.remove('open');
     }
-    if (backdrop && !backdrop.__pt6B){
-      backdrop.__pt6B=1;
-      on(backdrop,'click',function(){ close(); });
+    
+    if (backdrop) {
+      backdrop.style.opacity = open ? '1' : '0';
+      backdrop.style.visibility = open ? 'visible' : 'hidden';
+      backdrop.classList.toggle('hidden', !open);
+      backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
     }
-    if (drawer && !drawer.__pt6BLinks){
-      drawer.__pt6BLinks=1;
-      on(drawer,'click',function(e){
-        var a = e.target && e.target.closest ? e.target.closest('a,[role="menuitem"],[data-route]') : null;
-        if (a) setTimeout(close,30);
+    
+    if (body) {
+      body.classList.toggle('menu-open', open);
+    }
+    
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    // Focus management
+    if (open && menu) {
+      setTimeout(() => {
+        const firstLink = menu.querySelector('a, button');
+        if (firstLink) firstLink.focus();
+      }, 100);
+    } else if (!open && toggle) {
+      setTimeout(() => toggle.focus(), 100);
+    }
+
+    setTimeout(() => {
+      isAnimating = false;
+    }, 300);
+  }
+
+  function openMenu() {
+    if (isOpen || isAnimating) return;
+    updateState(true);
+  }
+
+  function closeMenu() {
+    if (!isOpen || isAnimating) return;
+    updateState(false);
+  }
+
+  function toggleMenu() {
+    if (isAnimating) return;
+    updateState(!isOpen);
+  }
+
+  // Event listeners (une seule fois chacun)
+  function initEvents() {
+    const { toggle, backdrop, menu } = elements;
+    
+    // Toggle button
+    if (toggle && !toggle.__unified) {
+      toggle.__unified = true;
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMenu();
+      });
+      
+      // Support tactile Android
+      toggle.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMenu();
       });
     }
-  }
-  wireToggles();
-
-  // Roving focus (topbar desktop)
-  (function wireRovingTopbar(){
-    if (!topnav || topnav.__ptRoving) return;
-    topnav.__ptRoving=1;
-    on(topnav,'keydown',function(e){
-      var k=e.key||e.keyCode;
-      if(!(k==='ArrowRight'||k===39||k==='ArrowLeft'||k===37||k==='Home'||k===36||k==='End'||k===35)) return;
-      var links=$$(FSEL, topnav).filter(function(el){
-        return el && (el.tagName==='A' || el.getAttribute('role')==='menuitem' || el.hasAttribute('tabindex'));
-      });
-      if(!links.length) return;
-      var idx=Math.max(0, links.indexOf(D.activeElement));
-      if (k==='ArrowRight'||k===39) idx=(idx+1)%links.length;
-      else if (k==='ArrowLeft'||k===37) idx=(idx-1+links.length)%links.length;
-      else if (k==='Home'||k===36) idx=0;
-      else if (k==='End'||k===35) idx=links.length-1;
-      try{ links[idx].focus(); }catch(_){}
-    });
-  })();
-
-  // Actif + aria-current: source d’autorité
-  function mapRouteToKey(href){
-    var h = href || (W.location && W.location.hash) || '#/';
-    if (!h || h==='#') h='#/';
-    if (h.indexOf('#/produit/')===0) return '#/catalogue';
-    if (h.indexOf('#/home')===0 || h==='#/') return '#/';
-    if (h.indexOf('#/catalogue')===0) return '#/catalogue';
-    if (h.indexOf('#/devis')===0) return '#/devis';
-    if (h.indexOf('#/compte')===0) return '#/compte';
-    return '';
-  }
-  function markActive(){
-    var cur = mapRouteToKey();
-    var scopes=[drawer, topnav];
-    for (var s=0;s<scopes.length;s++){
-      var host=scopes[s]; if (!host) continue;
-      // href et data-route
-      var links = $$('a[href^="#/"]', host).concat($$('[data-route^="#/"]', host));
-      for (var i=0;i<links.length;i++){
-        var href = links[i].getAttribute('href') || links[i].getAttribute('data-route') || '';
-        var match = (mapRouteToKey(href)===cur && cur);
-        if (match){ links[i].setAttribute('aria-current','page'); links[i].classList.add('is-active'); }
-        else { links[i].removeAttribute('aria-current'); links[i].classList.remove('is-active'); }
-      }
+    
+    // Backdrop
+    if (backdrop && !backdrop.__unified) {
+      backdrop.__unified = true;
+      backdrop.addEventListener('click', closeMenu);
+      backdrop.addEventListener('touchstart', closeMenu);
     }
-    if (cur) announce('Lien actif mis à jour');
-    log('[P6B] active →', cur);
+    
+    // Menu links auto-close
+    if (menu && !menu.__unified) {
+      menu.__unified = true;
+      menu.addEventListener('click', (e) => {
+        const link = e.target.closest('a, [data-route], [role="menuitem"]');
+        if (link) {
+          setTimeout(closeMenu, 50);
+        }
+      });
+    }
+    
+    // Escape key
+    if (!document.__unifiedEscape) {
+      document.__unifiedEscape = true;
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isOpen) {
+          closeMenu();
+        }
+      });
+    }
+    
+    // Hash change auto-close
+    if (!window.__unifiedHash) {
+      window.__unifiedHash = true;
+      window.addEventListener('hashchange', closeMenu);
+    }
   }
 
-  // FAB Compte visible partout sauf #/compte
-  function toggleFabAccount(){
-    var fab = $('#fabAccount'); if (!fab) return;
-    var cur = mapRouteToKey();
-    fab.style.display = (cur==='#/compte') ? 'none' : '';
+  // API globale
+  window.openSideMenu = openMenu;
+  window.closeSideMenu = closeMenu;
+  window.toggleSideMenu = toggleMenu;
+
+  // Init
+  function init() {
+    initEvents();
+    updateState(false, true); // État initial fermé
   }
 
-  // Hashchange → ferme + MAJ actif + FAB
-  on(W,'hashchange',function(){
-    setTimeout(close,0);
-    markActive();
-    toggleFabAccount();
-  });
-
-  // Init ARIA selon état courant puis boot
-  setAriaOpen(isOpen());
-  markActive();
-  toggleFabAccount();
-  wireTrap();
-
-  // API
-  PT.menu = PT.menu || {};
-  PT.menu.open = open;
-  PT.menu.close = close;
-  PT.menu.isOpen = isOpen;
-  PT.menu.setActive = function(route){
-    try{ if (route) W.location.hash = route; }catch(_){}
-    markActive();
-  };
-  PT.menu.wire = function(){ // à rappeler si le DOM nav est remplacé
-    resolveNodes();
-    setAriaOpen(isOpen());
-    wireToggles();
-    markActive();
-    toggleFabAccount();
-    wireTrap();
-  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
-
 /* =========================================================
    FIN — petits utilitaires d’ergonomie non intrusifs
 ========================================================== */
