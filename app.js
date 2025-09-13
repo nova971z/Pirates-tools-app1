@@ -3631,7 +3631,7 @@ function onRegisterSubmit(e){
     }
   }
   function attachNav(el){
-    if (!el || el.__ptP5) return; el.__ptP5 = 1;
+  if (!el || el.__ptP5Nav) return; el.__ptP5Nav = 1;
     el.addEventListener('click', function(e){
       var r = el.getAttribute('data-nav') || el.getAttribute('data-route') || el.getAttribute('href') || '';
       var t = (el.getAttribute('aria-label') || el.title || el.textContent || '').toLowerCase();
@@ -3655,6 +3655,7 @@ function onRegisterSubmit(e){
 function wireDrawerLinks(){
   var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
   if (!drawer) return;
+  if (drawer.getAttribute('data-pt-nav-wired') === '1') return; // ← AJOUTER CETTE LIGNE
   var items = qsa('a,button,[role="menuitem"]', drawer);
   for (var i=0;i<items.length;i++){
     var it = items[i];
@@ -3676,8 +3677,8 @@ function wireDock(){
   var dock = qs('#dock'); 
   if (!dock) return;
   if (dock.getAttribute('data-pt-dock-wired') === '1') return; // garde idempotente
-  dock.setAttribute('data-pt-dock-wired','1');
-
+  if (dock.__ptP5Wired) return; // ← AJOUTER CETTE LIGNE
+  dock.__ptP5Wired = 1; // ← AJOUTER CETTE LIGNE
   addClass(dock,'dock--safe');
   var btns = qsa('a,button,[data-go],[data-route]', dock);
   var i, b, t;
@@ -3796,7 +3797,6 @@ function wireDock(){
 
  /* --------- Boot --------- */
 function boot(){
-  wireDrawer();
   wireDrawerLinks();
   wireDock();
   if (typeof polishHero === 'function') { try{ polishHero(); }catch(_){ } }
@@ -3830,157 +3830,7 @@ else boot();
 
 })();
 
-/* =========================================================
-   MENU LATÉRAL UNIFIÉ - Solution unique (Android + iOS compatible)
-========================================================= */
-(function menuUnified(){
-  'use strict';
-  if (window.__ptMenuUnified) return; 
-  window.__ptMenuUnified = 1;
 
-  let isOpen = false;
-  let isAnimating = false;
-  
-  const elements = {
-    get menu() { return document.getElementById('side-menu') || document.querySelector('.drawer'); },
-    get backdrop() { return document.getElementById('menuBackdrop') || document.querySelector('.backdrop'); },
-    get toggle() { return document.getElementById('menu-toggle') || document.querySelector('#menuBtn, .hamburger'); },
-    get body() { return document.body; }
-  };
-
-  function updateState(open, skipAnimation = false) {
-    if (isAnimating && !skipAnimation) return;
-    isAnimating = true;
-    isOpen = open;
-
-    const { menu, backdrop, toggle, body } = elements;
-    
-    // Force les styles sans transition
-    if (menu) {
-      menu.style.transform = open ? 'translateX(0)' : 'translateX(-100%)';
-      menu.setAttribute('aria-hidden', open ? 'false' : 'true');
-      if (open) menu.classList.add('open');
-      else menu.classList.remove('open');
-    }
-    
-    if (backdrop) {
-      backdrop.style.opacity = open ? '1' : '0';
-      backdrop.style.visibility = open ? 'visible' : 'hidden';
-      backdrop.classList.toggle('hidden', !open);
-      backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
-    
-    if (body) {
-      body.classList.toggle('menu-open', open);
-    }
-    
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-
-    // Focus management
-    if (open && menu) {
-      setTimeout(() => {
-        const firstLink = menu.querySelector('a, button');
-        if (firstLink) firstLink.focus();
-      }, 100);
-    } else if (!open && toggle) {
-      setTimeout(() => toggle.focus(), 100);
-    }
-
-    setTimeout(() => {
-      isAnimating = false;
-    }, 300);
-  }
-
-  function openMenu() {
-    if (isOpen || isAnimating) return;
-    updateState(true);
-  }
-
-  function closeMenu() {
-    if (!isOpen || isAnimating) return;
-    updateState(false);
-  }
-
-  function toggleMenu() {
-    if (isAnimating) return;
-    updateState(!isOpen);
-  }
-
-  // Event listeners (une seule fois chacun)
-  function initEvents() {
-    const { toggle, backdrop, menu } = elements;
-    
-    // Toggle button
-    if (toggle && !toggle.__unified) {
-      toggle.__unified = true;
-      toggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMenu();
-      });
-      
-      // Support tactile Android
-      toggle.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMenu();
-      });
-    }
-    
-    // Backdrop
-    if (backdrop && !backdrop.__unified) {
-      backdrop.__unified = true;
-      backdrop.addEventListener('click', closeMenu);
-      backdrop.addEventListener('touchstart', closeMenu);
-    }
-    
-    // Menu links auto-close
-    if (menu && !menu.__unified) {
-      menu.__unified = true;
-      menu.addEventListener('click', (e) => {
-        const link = e.target.closest('a, [data-route], [role="menuitem"]');
-        if (link) {
-          setTimeout(closeMenu, 50);
-        }
-      });
-    }
-    
-    // Escape key
-    if (!document.__unifiedEscape) {
-      document.__unifiedEscape = true;
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isOpen) {
-          closeMenu();
-        }
-      });
-    }
-    
-    // Hash change auto-close
-    if (!window.__unifiedHash) {
-      window.__unifiedHash = true;
-      window.addEventListener('hashchange', closeMenu);
-    }
-  }
-
-  // API globale
-  window.openSideMenu = openMenu;
-  window.closeSideMenu = closeMenu;
-  window.toggleSideMenu = toggleMenu;
-
-  // Init
-  function init() {
-    initEvents();
-    updateState(false, true); // État initial fermé
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
 /* =========================================================
    FIN — petits utilitaires d’ergonomie non intrusifs
 ========================================================== */
@@ -4129,9 +3979,12 @@ else boot();
 /*=========================================================================*
   3) PATCH-002 — Drawer robuste (ARIA + escapades + hash close)
 *=========================================================================*/
-(function drawerPatch(){
+function drawerPatch(){
   if (window.__ptPatch002) return; window.__ptPatch002 = 1;
+  if (window.__ptMenuUnified) return; // ← AJOUTER CETTE LIGNE
   const PT = (window.PT = window.PT || {});
+  // Éviter conflit si déjà géré par P5
+  if (btn && btn.__ptP5Nav) return;
   const btn      = document.getElementById('menu-toggle');
   const drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
   const backdrop = document.getElementById('menuBackdrop') || document.querySelector('.menu-backdrop, .backdrop');
