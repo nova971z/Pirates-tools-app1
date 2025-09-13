@@ -402,31 +402,27 @@ body.after-hero::after{ opacity:1 }
   transform: scale(0.95);
 }
 
-/* 3 premières icônes : fond gris uniforme */
+
+/* 3 premières icônes : fond gris uniforme SANS effets */
 .dock__btn--tools,
 .dock__btn--account,
 .dock__btn--cart {
-  background: rgba(255,255,255,.08) !important;
+  background: #808080 !important;  /* Gris uniforme */
   color: #e1e5e9 !important;
+  border: none !important;
+  box-shadow: none !important;  /* Supprime toutes les ombres */
+  background-image: none !important;  /* Supprime les gradients */
+  border-radius: 12px !important;
 }
 
-/* 2 dernières icônes : couleurs vives */
-.dock__btn--call {
-  background: linear-gradient(90deg, #42c9ff, #00aaff) !important;
-  color: #001018 !important;
-}
-
-.dock__btn--wa {
-  background: linear-gradient(90deg, #25d366, #128c7e) !important;
-  color: #042016 !important;
-}
-
-/* MASQUER COMPLÈTEMENT LE COMPTEUR */
-#dockCount,
-.dock__badge {
+/* Supprimer tous les effets visuels parasites */
+.dock__btn--tools::before,
+.dock__btn--tools::after,
+.dock__btn--account::before,
+.dock__btn--account::after,
+.dock__btn--cart::before,
+.dock__btn--cart::after {
   display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
 }
 /* ========== 13) VUES / ROUTER ========== */
 .view{
