@@ -590,7 +590,33 @@
 body.page-catalogue .topbar-logo-link,
 body.page-devis .topbar-logo-link,
 body.page-compte .topbar-logo-link { display:none !important; }
+
+
+
+/* Force menu states - priorité absolue */
+#side-menu.open,
+.menu-open #side-menu {
+  transform: translateX(0) !important;
+}
+
+#menuBackdrop:not(.hidden),
+.menu-open #menuBackdrop {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+#menu-toggle {
+  pointer-events: auto !important;
+  z-index: 1002 !important;
+}
 </style>
+
+
+
+</style>
+
+
 
   <!-- Micro-scripts UI (menu + a11y + tabs + avatar + mini-panier + nav boutons) -->
   
