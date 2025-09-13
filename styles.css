@@ -157,11 +157,10 @@ body.after-hero #hero{
 }
 #heroLogo.on, .hero-logo.on{ opacity:1 }
 
-/* États pilotés par app.js : overshoot → blur → fade */
-.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.035) }
-.hero-logo.fx-preblur{ filter:blur(9px) saturate(1.05) }
-.hero-logo.fx-out{ opacity:0 !important; transition:opacity 120ms linear, filter 180ms ease-out }
-
+/* États pilotés par scroll : overshoot → blur → fade */
+.hero-logo.fx-overshoot{ transform:translateZ(0) scale(1.08); filter:blur(0px) }
+.hero-logo.fx-preblur{ transform:translateZ(0) scale(1.05); filter:blur(6px) saturate(1.1) }
+.hero-logo.fx-out{ transform:translateZ(0) scale(0.98); opacity:0; filter:blur(12px); transition:all 200ms ease-out }
 /* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
   position:absolute; left:0; right:0; bottom:-1px;
