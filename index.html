@@ -1277,32 +1277,42 @@ body.page-compte .topbar-logo-link { display:none !important; }
       }).catch(function(){ LIST_HOST.innerHTML='<p>Erreur de chargement.</p>'; LIST_HOST.setAttribute('aria-busy','false'); });
     }
 
-    // Grille Marques (home)
     function renderBrandGrid(){
-      if (!BRAND_GRID) return;
-      loadProducts().then(function(all){
-        var brands=gatherBrands(all||[]);
-        BRAND_GRID.innerHTML = (brands||[]).map(function(b){
-          return '<button class="brand" data-brand="'+escapeHTML(b.label)+'" aria-label="'+escapeHTML(b.label)+'">'
-            + '<div class="brand__bubble">'
-            +   (b.img?('<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async"/>')
-                    :('<span class="brand__logo" style="font-size:1.4rem;font-weight:800;letter-spacing:.02em">'+escapeHTML(b.label.slice(0,8))+'</span>'))
-            + '</div>'
-            + '<div class="brand__label" style="opacity:.9">'+escapeHTML(b.label)+'</div>'
-            + '</button>';
-        }).join('') || '';
-        BRAND_GRID.querySelectorAll('[data-brand]').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            try{ location.hash = '#/catalogue'; }catch(_){}
-            setTimeout(function(){
-              if (TAG_SELECT){ TAG_SELECT.value=''; }
-              if (SEARCH_INP){ SEARCH_INP.value = btn.getAttribute('data-brand')||''; }
-              applySearch();
-            }, 40);
-          }, false);
-        });
-      }).catch(function(){});
-    }
+  if (!BRAND_GRID) return;
+  
+  // Données de marques fixes pour garantir l'affichage
+  var brands = [
+    {label:'DeWALT', img:'images/brands/dewalt.png'},
+    {label:'Facom', img:'images/brands/facom.png'},
+    {label:'Festool', img:'images/brands/festool.png'},
+    {label:'FLEX', img:'images/brands/flex.png'},
+    {label:'Makita', img:'images/brands/makita.png'},
+    {label:'Milwaukee', img:'images/brands/milwaukee.png'},
+    {label:'Stanley', img:'images/brands/stanley.png'},
+    {label:'Wera', img:'images/brands/wera.png'}
+  ];
+  
+  BRAND_GRID.innerHTML = brands.map(function(b){
+    return '<button class="brand" data-brand="'+escapeHTML(b.label)+'" aria-label="'+escapeHTML(b.label)+'">'
+      + '<div class="brand__bubble">'
+      + '<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
+      + '<span class="brand__logo" style="display:none;font-size:1.2rem;font-weight:800;justify-content:center;align-items:center;height:100%;color:#fff">'+escapeHTML(b.label.slice(0,6))+'</span>'
+      + '</div>'
+      + '<div class="brand__label">'+escapeHTML(b.label)+'</div>'
+      + '</button>';
+  }).join('');
+  
+  BRAND_GRID.querySelectorAll('[data-brand]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      try{ location.hash = '#/catalogue'; }catch(_){}
+      setTimeout(function(){
+        if (TAG_SELECT){ TAG_SELECT.value=''; }
+        if (SEARCH_INP){ SEARCH_INP.value = btn.getAttribute('data-brand')||''; }
+        applySearch();
+      }, 40);
+    }, false);
+  });
+}
 
     // ---------- Routeur PDP hookup ----------
     function tryRenderPDPFromURL(){
@@ -1504,24 +1514,33 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 
-<!-- Effets héros (overshoot/fade au scroll léger) -->
-
 <script>
+/* Animation HERO corrigée - scroll progressif */
 (function(){
-  var hero = document.getElementById('hero');
-  var home = document.getElementById('view-home');
-  if (!hero || !home) return;
-
-  function onScroll(){
-    var y = window.scrollY || 0;
-    var logo = document.getElementById('heroLogo');
-    if (!logo) return;
-    if (y > 24) logo.classList.add('fx-preblur'); else logo.classList.remove('fx-preblur');
-    if (y > 80) logo.classList.add('fx-overshoot'); else logo.classList.remove('fx-overshoot');
-    if (y > 160) logo.classList.add('fx-out'); else logo.classList.remove('fx-out');
+  var logo = document.getElementById('heroLogo');
+  if (!logo) return;
+  
+  function updateHero(){
+    var scroll = window.scrollY || 0;
+    var vh = window.innerHeight || 800;
+    var progress = Math.min(scroll / (vh * 0.8), 1);
+    
+    logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
+    
+    if (progress < 0.2) {
+      // Phase 1: légère croissance
+      logo.classList.add('fx-overshoot');
+    } else if (progress < 0.6) {
+      // Phase 2: flou progressif  
+      logo.classList.add('fx-preblur');
+    } else {
+      // Phase 3: disparition
+      logo.classList.add('fx-out');
+    }
   }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
+  
+  window.addEventListener('scroll', updateHero, {passive:true});
+  updateHero();
 })();
 </script>
 
