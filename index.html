@@ -1277,10 +1277,9 @@ body.page-compte .topbar-logo-link { display:none !important; }
       }).catch(function(){ LIST_HOST.innerHTML='<p>Erreur de chargement.</p>'; LIST_HOST.setAttribute('aria-busy','false'); });
     }
 
-    function renderBrandGrid(){
+   function renderBrandGrid(){
   if (!BRAND_GRID) return;
   
-  // Données de marques fixes pour garantir l'affichage
   var brands = [
     {label:'DeWALT', img:'images/brands/dewalt.png'},
     {label:'Facom', img:'images/brands/facom.png'},
@@ -1295,12 +1294,21 @@ body.page-compte .topbar-logo-link { display:none !important; }
   BRAND_GRID.innerHTML = brands.map(function(b){
     return '<button class="brand" data-brand="'+escapeHTML(b.label)+'" aria-label="'+escapeHTML(b.label)+'">'
       + '<div class="brand__bubble">'
-      + '<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
-      + '<span class="brand__logo" style="display:none;font-size:1.2rem;font-weight:800;justify-content:center;align-items:center;height:100%;color:#fff">'+escapeHTML(b.label.slice(0,6))+'</span>'
+      + '<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async"/>'
       + '</div>'
       + '<div class="brand__label">'+escapeHTML(b.label)+'</div>'
       + '</button>';
   }).join('');
+  
+  // Gestion du fallback proprement
+  BRAND_GRID.querySelectorAll('.brand__logo').forEach(function(img){
+    img.addEventListener('error', function(){
+      // Si l'image ne charge pas, remplace par du texte
+      var label = img.getAttribute('alt');
+      var bubble = img.parentElement;
+      bubble.innerHTML = '<span style="display:flex;align-items:center;justify-content:center;height:110%;font-size:1.2rem;font-weight:800;color:#fff">' + label.slice(0,6) + '</span>';
+    });
+  });
   
   BRAND_GRID.querySelectorAll('[data-brand]').forEach(function(btn){
     btn.addEventListener('click', function(){
