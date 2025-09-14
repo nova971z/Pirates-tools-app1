@@ -78,65 +78,7 @@
  
 <!-- PT HERO  -->
 
-<style id="pt-hero-final">
-/* Variables */
-:root {
-  --listGap: 22vh;
-  --safe-top: 70px;
-  --safe-bottom: 0px;
-}
 
-/* Héro agrandi */
-#hero {
-  position: relative;
-  height: 60vh;
-  display: grid;
-  place-items: center;
-  z-index: 1;
-  margin-top: calc(var(--safe-top) + 10px);
-  margin-bottom: 1.5rem;
-  overflow: hidden;
-}
-
-/* Logo plus gros et haute qualité */
-#heroLogo {
-  width: min(95vw, 900px);
-  height: auto;
-  max-height: 50vh;
-  opacity: 1;
-  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateZ(0) scale(1.2);
-  filter: blur(0px);
-  object-fit: contain;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-}
-
-/* ANIMATION SCALE 5X PLUS IMPORTANTE */
-#heroLogo.fx-overshoot {
-  opacity: 1;
-  transform: translateZ(0) scale(1.4);
-  filter: blur(0px);
-}
-
-#heroLogo.fx-preblur {
-  opacity: 0.6;
-  transform: translateZ(0) scale(2.8);
-  filter: blur(8px);
-}
-
-#heroLogo.fx-out {
-  opacity: 0;
-  transform: translateZ(0) scale(4.5);
-  filter: blur(25px);
-}
-
-/* Container home */
-#view-home .container {
-  margin-top: 0;
-  transition: margin-top 0.3s ease;
-}
-</style>
   <!-- Patch UI : haut non tronqué + dock centré + bulles -->
   
   <style id="pt-fix">
@@ -517,25 +459,7 @@
 <style id="pt-ui">
 :root{ --listGap:22vh; --safe-top:0px; --safe-bottom:0px; --app-vh:1vh; }
 
-/* === ÉTATS HÉRO PILOTÉS PAR LE SCROLL === */
-.hero-logo.fx-overshoot{ 
-  transform: translateZ(0) scale(1.05); 
-  filter: blur(0px); 
-  opacity: 1;
-}
 
-.hero-logo.fx-preblur{ 
-  transform: translateZ(0) scale(1.02); 
-  filter: blur(3px) saturate(1.1); 
-  opacity: 0.9;
-}
-
-.hero-logo.fx-out{ 
-  transform: translateZ(0) scale(0.98); 
-  filter: blur(8px); 
-  opacity: 0;
-  transition: all .3s ease-out;
-}
 
 /* Masquer le héro quand il est sorti */
 .hero-full.hero-out{ 
