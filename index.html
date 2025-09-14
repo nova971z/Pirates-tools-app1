@@ -76,6 +76,7 @@
   })();
   </script>
  
+<!-- PT HERO final -->
 
 <style id="pt-hero-final">
 /* Variables de base */
@@ -239,50 +240,70 @@
     loading="eager" />
 </section>
 
-<!-- SCRIPT DE FORCE - AJOUTEZ ICI -->
-<script>
-(function(){
-  'use strict';
-  
-  function forceShowLogo() {
-    var hero = document.getElementById('hero');
-    var logo = document.getElementById('heroLogo');
-    
-    if (hero && logo) {
-      // FORCE BRUTALE avec !important via JavaScript
-      hero.style.cssText = 'display: block !important; position: relative !important; height: 50vh !important; margin: 100px 0 20px 0 !important; background: blue !important;';
-      logo.style.cssText = 'display: block !important; opacity: 1 !important; visibility: visible !important; width: min(90vw, 600px) !important; height: auto !important; position: relative !important; z-index: 9999 !important; border: 5px solid red !important;';
-      
-      console.log('🔥 LOGO FORCÉ VISIBLE');
-      console.log('Hero:', hero);
-      console.log('Logo:', logo);
-      
-      return true;
-    }
-    return false;
-  }
-  
-  // Force immédiatement
-  if (forceShowLogo()) {
-    console.log('✅ Logo forcé au chargement');
-  }
-  
-  // Force après DOM ready
-  document.addEventListener('DOMContentLoaded', function(){
-    if (forceShowLogo()) {
-      console.log('✅ Logo forcé après DOM ready');
-    }
-  });
-  
-  // Force après 1 seconde (au cas où un script le cache)
-  setTimeout(function(){
-    if (forceShowLogo()) {
-      console.log('✅ Logo forcé après 1 seconde');
-    }
-  }, 1000);
-  
-})();
-</script>
+
+
+<style id="pt-hero-final">
+/* Variables */
+:root {
+  --listGap: 22vh;
+  --safe-top: 70px;
+  --safe-bottom: 0px;
+}
+
+/* Héro agrandi */
+#hero {
+  position: relative;
+  height: 60vh;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  margin-top: calc(var(--safe-top) + 10px);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+/* Logo plus gros et haute qualité */
+#heroLogo {
+  width: min(95vw, 900px);
+  height: auto;
+  max-height: 50vh;
+  opacity: 1;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateZ(0) scale(1.2);
+  filter: blur(0px);
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* ANIMATION SCALE 5X PLUS IMPORTANTE */
+#heroLogo.fx-overshoot {
+  opacity: 1;
+  transform: translateZ(0) scale(1.4);
+  filter: blur(0px);
+}
+
+#heroLogo.fx-preblur {
+  opacity: 0.6;
+  transform: translateZ(0) scale(2.8);
+  filter: blur(8px);
+}
+
+#heroLogo.fx-out {
+  opacity: 0;
+  transform: translateZ(0) scale(4.5);
+  filter: blur(25px);
+}
+
+/* Container home */
+#view-home .container {
+  margin-top: 0;
+  transition: margin-top 0.3s ease;
+}
+</style>
+
+
+
   <!-- =================== VUES (SPA) =================== -->
   
   <main id="app" role="main">
@@ -1604,62 +1625,60 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 <script>
-/* Animation héro fluide - effet grossissement + flou */
+/* Animation héro fluide - effet grossissement + */
+
+/* Animation héro finale - Effet grossissement 5x */
 (function() {
   'use strict';
   
   var logo = document.getElementById('heroLogo');
   if (!logo) return;
   
-  console.log('Animation héro fluide initialisée');
+  console.log('Animation héro finale initialisée');
   
   // Force la visibilité
-  logo.style.opacity = '1';
   logo.style.display = 'block';
+  logo.style.opacity = '1';
   
-  function animate() {
+  function smoothAnimate() {
     var scroll = window.scrollY;
     var vh = window.innerHeight;
     
-    // Progress plus sensible pour un effet fluide
-    var progress = Math.min(scroll / (vh * 0.4), 1);
+    // Progress ajusté pour un effet plus dramatique
+    var progress = Math.min(scroll / (vh * 0.35), 1);
     
-    // Reset classes
+    // Reset
     logo.className = 'hero-logo';
     
-    // Transitions fluides selon la progression
-    if (progress < 0.2) {
-      // Phase initiale
+    // Phases d'animation avec grossissement progressif
+    if (progress < 0.15) {
+      // Phase initiale - légère croissance
       logo.classList.add('fx-overshoot');
-    } else if (progress < 0.6) {
-      // Phase de flou progressif
+    } else if (progress < 0.5) {
+      // Phase intermédiaire - grossissement + flou
       logo.classList.add('fx-preblur');
     } else {
-      // Phase de disparition avec grossissement
+      // Phase finale - grossissement maximal + disparition
       logo.classList.add('fx-out');
     }
-    
-    // Log pour debug
-    if (scroll < 50) {
-      console.log('Progress:', Math.round(progress * 100) + '%');
-    }
   }
   
-  // Écoute optimisée du scroll
-  var ticking = false;
-  function requestAnimationUpdate() {
-    if (!ticking) {
-      requestAnimationFrame(animate);
-      ticking = true;
-      setTimeout(() => ticking = false, 16); // 60fps
-    }
+  // Animation optimisée 60fps
+  var rafId = null;
+  function requestSmooth() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(function(){
+      smoothAnimate();
+      rafId = null;
+    });
   }
   
-  window.addEventListener('scroll', requestAnimationUpdate, {passive: true});
-  animate(); // Premier appel
+  window.addEventListener('scroll', requestSmooth, {passive: true});
+  smoothAnimate(); // Initial call
+  
+  console.log('Animation héro prête - grossissement 5x');
 })();
 </script>
-
 
 </body>
 </html>
