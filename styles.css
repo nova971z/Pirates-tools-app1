@@ -858,4 +858,8 @@ html, body{
 .menu-open #side-menu {
   pointer-events: auto !important;
 }
-
+/* ===== FILET DE SÉCURITÉ HÉRO ===== */
+#hero{ z-index:900 !important; margin-top:0 !important; pointer-events:none !important; }
+#heroLogo{ position:relative; z-index:901; pointer-events:none; }
+/* (optionnel mais clair) */
+.hero-full{ z-index:900 !important; }
