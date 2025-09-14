@@ -219,13 +219,12 @@
   
 <!-- HÉRO FLUIDE -->
 <section id="hero" class="hero-full">
-  <img 
-    id="heroLogo" 
-    class="hero-logo fx-overshoot" 
-    alt="Pirates Tools" 
-    src="icons/icon-512.png" 
-    style="opacity: 1; display: block;"
-    decoding="async" 
+    <img
+    id="heroLogo"
+    class="hero-logo on"
+    alt="Pirates Tools"
+    src="icons/icon-512.png"
+    decoding="async"
     loading="eager" />
 </section>
 
@@ -1409,7 +1408,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
     tryRenderPDPFromURL();
     if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
     if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
-    if (document.body) document.body.classList.add('after-hero');
+    // if (document.body) document.body.classList.add('after-hero');
 
     // Affiche le dock
     var dock=document.getElementById('dock');
