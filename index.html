@@ -227,7 +227,62 @@
     loading="eager" />
 </section>
 
+<!-- HÉRO FLUIDE -->
+<section id="hero" class="hero-full">
+  <img 
+    id="heroLogo" 
+    class="hero-logo fx-overshoot" 
+    alt="Pirates Tools" 
+    src="icons/icon-512.png" 
+    style="opacity: 1; display: block;"
+    decoding="async" 
+    loading="eager" />
+</section>
 
+<!-- SCRIPT DE FORCE - AJOUTEZ ICI -->
+<script>
+(function(){
+  'use strict';
+  
+  function forceShowLogo() {
+    var hero = document.getElementById('hero');
+    var logo = document.getElementById('heroLogo');
+    
+    if (hero && logo) {
+      // FORCE BRUTALE avec !important via JavaScript
+      hero.style.cssText = 'display: block !important; position: relative !important; height: 50vh !important; margin: 100px 0 20px 0 !important; background: blue !important;';
+      logo.style.cssText = 'display: block !important; opacity: 1 !important; visibility: visible !important; width: min(90vw, 600px) !important; height: auto !important; position: relative !important; z-index: 9999 !important; border: 5px solid red !important;';
+      
+      console.log('🔥 LOGO FORCÉ VISIBLE');
+      console.log('Hero:', hero);
+      console.log('Logo:', logo);
+      
+      return true;
+    }
+    return false;
+  }
+  
+  // Force immédiatement
+  if (forceShowLogo()) {
+    console.log('✅ Logo forcé au chargement');
+  }
+  
+  // Force après DOM ready
+  document.addEventListener('DOMContentLoaded', function(){
+    if (forceShowLogo()) {
+      console.log('✅ Logo forcé après DOM ready');
+    }
+  });
+  
+  // Force après 1 seconde (au cas où un script le cache)
+  setTimeout(function(){
+    if (forceShowLogo()) {
+      console.log('✅ Logo forcé après 1 seconde');
+    }
+  }, 1000);
+  
+})();
+</script>
   <!-- =================== VUES (SPA) =================== -->
   
   <main id="app" role="main">
