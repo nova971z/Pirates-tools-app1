@@ -148,6 +148,24 @@
     .brand__bubble img,.brand__logo{ width:100%; height:100%; object-fit:cover; }
   </style>
 
+<style id="debug-override">
+/* DEBUG : FORCE L'AFFICHAGE */
+#hero, #heroLogo {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: fixed !important;
+  z-index: 9999 !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 300px !important;
+  height: 300px !important;
+  background: red !important;
+  border: 5px solid yellow !important;
+}
+</style>
+
   <!-- Ajuste --safe-top à la hauteur réelle de la topbar -->
   
   <script>
