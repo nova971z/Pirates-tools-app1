@@ -863,3 +863,26 @@ html, body{
 #heroLogo{ position:relative; z-index:901; pointer-events:none; }
 /* (optionnel mais clair) */
 .hero-full{ z-index:900 !important; }
+
+
+
+
+/* === HERO — états pilotés par le scroll (source unique) === */
+.hero-logo.fx-overshoot{
+  transform: translateZ(0) scale(1.4);
+  filter: blur(0px);
+  opacity: 1;
+  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
+}
+.hero-logo.fx-preblur{
+  transform: translateZ(0) scale(2.8);
+  filter: blur(8px) saturate(1.05);
+  opacity: 0.6;
+  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
+}
+.hero-logo.fx-out{
+  transform: translateZ(0) scale(4.5);
+  filter: blur(25px);
+  opacity: 0;
+  transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
+}
