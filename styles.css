@@ -594,7 +594,7 @@ body.after-hero::after{ opacity:1 }
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.backdrop:not(.hidden) {
+.backdrop:not([hidden])
     opacity: 1;
     visibility: visible;
 }
@@ -696,9 +696,6 @@ body.after-hero::after{ opacity:1 }
     }
 }
 
-.hidden {
-    display: none;
-}
 
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
 .auth-switch{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem }
@@ -844,22 +841,74 @@ html, body{
 
 
 
-/* === HERO — états pilotés par le scroll (source unique) === */
-.hero-logo.fx-overshoot{
-  transform: translateZ(0) scale(1.4);
-  filter: blur(0px);
-  opacity: 1;
-  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
+/* ===========================
+   HERO (états + transitions)
+   =========================== */
+:root{
+  --hero-scale: 1.06;
+  --hero-blur: 8px;
+  --hero-duration: 420ms;
 }
-.hero-logo.fx-preblur{
-  transform: translateZ(0) scale(2.8);
-  filter: blur(8px) saturate(1.05);
-  opacity: 0.6;
-  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
+
+.hero, .hero-full{
+  position: relative;
+  contain: paint;            /* évite les petits flickers */
 }
-.hero-logo.fx-out{
-  transform: translateZ(0) scale(4.5);
-  filter: blur(25px);
+
+.hero .hero-logo,
+.hero-full .hero-logo,
+#heroLogo{
+  display: block;
+  max-width: min(66vw, 380px);
+  width: auto;
+  height: auto;
   opacity: 0;
-  transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
+  transform: translateY(6px) scale(0.98);
+  filter: blur(2px);
+  transition:
+    opacity var(--hero-duration) ease,
+    transform var(--hero-duration) ease,
+    filter var(--hero-duration) ease;
+  will-change: opacity, transform, filter;
+}
+
+/* JS met .on au chargement pour rendre le logo visible */
+.hero .hero-logo.on,
+.hero-full .hero-logo.on,
+#heroLogo.on{
+  opacity: 1;
+}
+
+/* États pilotés par le JS (IntersectionObserver) */
+.fx-overshoot{
+  transform: translateY(0) scale(var(--hero-scale));
+  filter: blur(0);
+  opacity: 1;
+}
+.fx-preblur{
+  transform: translateY(0) scale(1);
+  filter: blur(1px);
+  opacity: 0.9;
+}
+.fx-out{
+  transform: translateY(-4px) scale(0.98);
+  filter: blur(3px);
+  opacity: 0.35;
+}
+
+/* Respect des préférences d’accessibilité */
+@media (prefers-reduced-motion: reduce){
+  .hero .hero-logo,
+  .hero-full .hero-logo,
+  #heroLogo{
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  .fx-overshoot, .fx-preblur, .fx-out{
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
 }
