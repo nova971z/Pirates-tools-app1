@@ -161,14 +161,17 @@
 <div class="hero-fade-fixed" aria-hidden="true"></div> -->
   
 <!-- HÉRO FLUIDE -->
-<section id="hero" class="hero-full">
-    <img
+
+<section id="hero" class="hero-full" aria-hidden="false">
+  <img
     id="heroLogo"
     class="hero-logo on"
     alt="Pirates Tools"
     src="icons/icon-512.png"
-    decoding="async"
-    loading="eager" />
+    srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
+    sizes="min(66vmin, 512px)"
+    width="512" height="512"
+    decoding="async" loading="eager" fetchpriority="high" />
 </section>
 
 
@@ -446,14 +449,17 @@
   </noscript>
 
   <!-- =================== JS =================== -->
+  
+<!-- Désactive le menu PT (on utilise notre burger unifié) -->
+<script>window.__ptMenuUnified = 1;</script>
+
 
 <!-- PT (si présent) -->
+
 <script defer src="pt.js"></script>
-<script type="module">
-  if (!window.PT) {
-    import('./pt.js').then(m => { window.PT = m.default || m; }).catch(()=>{});
-  }
-</script>
+
+ 
+
 
   <!-- Micro-styles UI complémentaires -->
   
@@ -559,19 +565,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
   var ovl = document.getElementById('menuBackdrop');
   if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
 
-    // ⚙️ Menu A11y 6B (wire quand le script est chargé, 1 seule fois)
-  (function(){
-    function wire(){
-      try{
-        if (window.PT && PT.menu && typeof PT.menu.wire === 'function' && !PT.menu.__wired){
-          PT.menu.wire();
-          PT.menu.__wired = 1;
-        }
-      }catch(_){}
-    }
-    if (document.readyState !== 'loading') wire();
-    else document.addEventListener('DOMContentLoaded', wire, {once:true});
-  })();
+    
   
   
   // lien "Aller au contenu"
