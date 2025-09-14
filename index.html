@@ -224,36 +224,7 @@
 </section>
  
 
-<!-- TRACKER DEBUG - AJOUTEZ ICI -->
-<script>
-(function(){
-  var logo = document.getElementById('heroLogo');
-  var hero = document.getElementById('hero');
-  
-  console.log('🔍 TRACKER: Hero et logo trouvés');
-  
-  // Surveille les changements
-  function checkChanges() {
-    var logoDisplay = getComputedStyle(logo).display;
-    var logoOpacity = getComputedStyle(logo).opacity;
-    var heroDisplay = getComputedStyle(hero).display;
-    
-    if (logoDisplay === 'none' || logoOpacity === '0' || heroDisplay === 'none') {
-      console.error('🚨 LOGO CACHÉ !');
-      console.error('Logo display:', logoDisplay);
-      console.error('Logo opacity:', logoOpacity);
-      console.error('Hero display:', heroDisplay);
-      console.trace('Script coupable détecté ici ↑');
-    }
-  }
-  
-  // Vérifie toutes les 100ms
-  var interval = setInterval(checkChanges, 100);
-  
-  // Arrête après 5 secondes
-  setTimeout(() => clearInterval(interval), 5000);
-})();
-</script>
+
   <!-- =================== VUES (SPA) =================== -->
   
   <main id="app" role="main">
@@ -1492,7 +1463,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 <!-- Script applicatif (externe) -->
 
-<script defer src="app.js"></script>
+<!-- <script defer src="app.js"></script> -->
 
 
 
