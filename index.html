@@ -1562,6 +1562,26 @@ body.page-compte .topbar-logo-link { display:none !important; }
     var scroll = window.scrollY;
     var vh = window.innerHeight;
     
+        // --- Progress piloté par l’arrivée des bulles (start dès le 1er pixel de scroll) ---
+    var brand     = document.getElementById('brandGrid');
+    var safeTop   = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 70;
+    var brandTop  = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh * 0.85);
+    var threshold = Math.max(120, brandTop - safeTop);          // point où les bulles atteignent le haut utile
+    var progress  = Math.min(Math.max(window.scrollY / threshold, 0), 1); // 0 → 1 pile quand on arrive aux bulles
+
+    // Disparition définitive quand on atteint les bulles (laisse finir le fade)
+    if (progress >= 1 && !window.__heroHidden) {
+      window.__heroHidden = true;
+      setTimeout(function(){
+        try{ document.body.classList.add('after-hero'); }catch(_){}
+        try{ var heroEl=document.getElementById('hero'); if (heroEl) heroEl.classList.add('hero-out'); }catch(_){}
+      }, 320); // ~ durée du fade
+    } else if (progress < 0.98 && window.__heroHidden) {
+      window.__heroHidden = false;
+      try{ document.body.classList.remove('after-hero'); }catch(_){}
+      try{ var heroEl=document.getElementById('hero'); if (heroEl) heroEl.classList.remove('hero-out'); }catch(_){}
+    }
+    
     // Progress ajusté pour un effet plus dramatique
     var progress = Math.min(scroll / (vh * 0.35), 1);
     
