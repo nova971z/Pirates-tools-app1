@@ -168,29 +168,6 @@ body.after-hero #hero{
   opacity: 1; 
 }
 
-/* === ÉTATS PILOTÉS PAR LE SCROLL === */
-/* Overshoot : léger zoom + netteté */
-.hero-logo.fx-overshoot{ 
-  transform: translateZ(0) scale(1.05); 
-  filter: blur(0px); 
-  opacity: 1;
-}
-
-/* Pre-blur : zoom moyen + flou léger */
-.hero-logo.fx-preblur{ 
-  transform: translateZ(0) scale(1.02); 
-  filter: blur(3px) saturate(1.1); 
-  opacity: 0.9;
-}
-
-/* Out : disparition avec flou */
-.hero-logo.fx-out{ 
-  transform: translateZ(0) scale(0.98); 
-  filter: blur(8px); 
-  opacity: 0;
-  transition: all .3s ease-out;
-}
-
 /* === FONDUS & VOILES === */
 /* Fondu interne collé au bas du hero (cache la jonction) */
 .hero-fade{
