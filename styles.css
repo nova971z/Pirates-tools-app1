@@ -117,11 +117,8 @@ body.page-compte .topbar-logo-link{ display:none !important }
 @media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } .btn.btn-call{ font-size:12.5px; padding:.34rem .6rem; max-width:54vw } }
 
 /* ========== 04) HÉRO - VERSION PROPRE ========== */
-/* HERO visible uniquement sur l’accueil */
-body:not(.page-home) #hero,
-body:not(.page-home) .hero-full{
-  display:none !important;
-}
+
+
 /* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo */
 #hero, .hero-full{
   position: relative;
