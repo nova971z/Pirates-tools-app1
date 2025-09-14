@@ -3948,6 +3948,13 @@ function drawerPatch(){
     btn.__ptDrawer = 1;
     btn.addEventListener('click', function(){ PT.toggleDrawer(); }, false);
   }
+  // Accessibilité clavier : Enter / Espace ouvrent/ferment le menu
+if (btn) btn.addEventListener('keydown', function(e){
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    PT.toggleDrawer();
+  }
+
   if (backdrop && !backdrop.__ptDrawer){
     backdrop.__ptDrawer = 1;
     backdrop.addEventListener('click', function(){ PT.toggleDrawer(false); }, false);
