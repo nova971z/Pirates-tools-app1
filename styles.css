@@ -123,7 +123,7 @@ body.page-compte .topbar-logo-link{ display:none !important }
   display: grid; place-items: center;
   pointer-events: none; /* laisse passer les clics sur les bulles */
   isolation: isolate;
-  background: transparent; z-index: 30;
+    background: transparent; z-index: 900;
   padding-top: max(0px, env(safe-area-inset-top));
   padding-bottom: max(0px, env(safe-area-inset-bottom));
   overflow: visible; /* le logo peut dépasser pendant le zoom */
