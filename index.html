@@ -77,7 +77,6 @@
   </script>
  
 
-<!-- CSS HÉRO SIMPLIFIÉ -->
 <style id="pt-hero-final">
 /* Variables de base */
 :root {
@@ -86,50 +85,55 @@
   --safe-bottom: 0px;
 }
 
-/* Structure héro simple */
+/* Héro pleine largeur */
 #hero {
   position: relative;
-  height: 100vh;
+  height: 50vh;
   display: grid;
   place-items: center;
-  z-index: 30;
+  z-index: 1;
+  margin-top: calc(var(--safe-top) + 10px);
+  margin-bottom: 1rem;
+  overflow: hidden;
 }
 
-/* Logo : visible par défaut */
+/* Logo adaptatif pleine largeur */
 #heroLogo {
-  width: clamp(256px, 60vmin, 512px);
+  width: min(90vw, 800px);
   height: auto;
+  max-height: 40vh;
   opacity: 1;
-  transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease;
-  transform: translateZ(0) scale(1.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0) scale(1);
+  filter: blur(0px);
+  object-fit: contain;
 }
 
-/* États d'animation */
+/* ÉTATS D'ANIMATION AU SCROLL */
 #heroLogo.fx-overshoot {
   opacity: 1;
-  transform: translateZ(0) scale(1.05);
+  transform: translateZ(0) scale(1.1);
   filter: blur(0px);
 }
 
 #heroLogo.fx-preblur {
-  opacity: 0.8;
-  transform: translateZ(0) scale(1.02);
-  filter: blur(4px);
+  opacity: 0.7;
+  transform: translateZ(0) scale(1.3);
+  filter: blur(6px);
 }
 
 #heroLogo.fx-out {
   opacity: 0;
-  transform: translateZ(0) scale(0.98);
-  filter: blur(8px);
+  transform: translateZ(0) scale(1.6);
+  filter: blur(15px);
 }
 
-/* Espacement home */
+/* Container home sans margin */
 #view-home .container {
-  margin-top: var(--listGap);
+  margin-top: 0;
   transition: margin-top 0.3s ease;
 }
 </style>
-
 
   <!-- Patch UI : haut non tronqué + dock centré + bulles -->
   
@@ -211,18 +215,17 @@
 
 <div class="hero-fade-fixed" aria-hidden="true"></div> -->
   
-<!-- HÉRO SIMPLIFIÉ -->
+<!-- HÉRO FLUIDE -->
 <section id="hero" class="hero-full">
-  <img
-    id="heroLogo"
-    class="hero-logo fx-overshoot"
-    alt="Pirates Tools"
-    src="icons/icon-512.png"
-    width="512" height="512"
+  <img 
+    id="heroLogo" 
+    class="hero-logo fx-overshoot" 
+    alt="Pirates Tools" 
+    src="icons/icon-512.png" 
     style="opacity: 1; display: block;"
-    decoding="async" loading="eager" />
+    decoding="async" 
+    loading="eager" />
 </section>
- 
 
 
   <!-- =================== VUES (SPA) =================== -->
@@ -1546,41 +1549,59 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 <script>
-/* Animation héro simple et fiable */
+/* Animation héro fluide - effet grossissement + flou */
 (function() {
   'use strict';
   
   var logo = document.getElementById('heroLogo');
   if (!logo) return;
   
-  console.log('Logo trouvé, initialisation...');
+  console.log('Animation héro fluide initialisée');
   
-  // Force la visibilité immédiate
+  // Force la visibilité
   logo.style.opacity = '1';
   logo.style.display = 'block';
   
   function animate() {
     var scroll = window.scrollY;
     var vh = window.innerHeight;
-    var progress = scroll / (vh * 0.6);
     
-    // Reset
+    // Progress plus sensible pour un effet fluide
+    var progress = Math.min(scroll / (vh * 0.4), 1);
+    
+    // Reset classes
     logo.className = 'hero-logo';
     
-    // États selon progression
-    if (progress < 0.3) {
+    // Transitions fluides selon la progression
+    if (progress < 0.2) {
+      // Phase initiale
       logo.classList.add('fx-overshoot');
-    } else if (progress < 0.7) {
+    } else if (progress < 0.6) {
+      // Phase de flou progressif
       logo.classList.add('fx-preblur');
     } else {
+      // Phase de disparition avec grossissement
       logo.classList.add('fx-out');
+    }
+    
+    // Log pour debug
+    if (scroll < 50) {
+      console.log('Progress:', Math.round(progress * 100) + '%');
     }
   }
   
-  window.addEventListener('scroll', animate, {passive: true});
-  animate(); // Premier appel
+  // Écoute optimisée du scroll
+  var ticking = false;
+  function requestAnimationUpdate() {
+    if (!ticking) {
+      requestAnimationFrame(animate);
+      ticking = true;
+      setTimeout(() => ticking = false, 16); // 60fps
+    }
+  }
   
-  console.log('Animation héro initialisée');
+  window.addEventListener('scroll', requestAnimationUpdate, {passive: true});
+  animate(); // Premier appel
 })();
 </script>
 
