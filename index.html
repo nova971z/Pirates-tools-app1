@@ -115,7 +115,8 @@
 
   <!-- HÉRO : styles propres -->
 
-  
+  </head>
+<body>
   <!-- =================== TOPBAR =================== -->
   
   <header class="topbar" role="banner">
@@ -459,6 +460,7 @@
 
 
 
+<style id="pt-ui">
 /* Masquer le héro quand il est sorti */
 .hero-full.hero-out{ 
   z-index: -1;
@@ -504,7 +506,6 @@
   align-content:start; justify-items:start;
 }
 .drawer.open{ transform:translate3d(0,0,0); }
-/* si le script ne met que .menu-open sur <body> */
 .menu-open #side-menu{ transform:translate3d(0,0,0); }
 .menu-open #menuBackdrop{ display:block; }
 
@@ -525,7 +526,6 @@
   100% { transform:translateX(-50%) translateY(0) scale(1) }
 }
 
-
 .pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
 .pdp__price{ font-size:1.25rem; font-weight:700; }
 .pdp__price-ht{ opacity:.8; }
@@ -534,31 +534,17 @@ body.page-catalogue .topbar-logo-link,
 body.page-devis .topbar-logo-link,
 body.page-compte .topbar-logo-link { display:none !important; }
 
-
-
 /* Force menu states - priorité absolue */
 #side-menu.open,
-.menu-open #side-menu {
-  transform: translateX(0) !important;
-}
+.menu-open #side-menu { transform: translateX(0) !important; }
 
 #menuBackdrop:not(.hidden),
 .menu-open #menuBackdrop {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
+  opacity: 1 !important; visibility: visible !important; display: block !important;
 }
 
-#menu-toggle {
-  pointer-events: auto !important;
-  z-index: 1002 !important;
-}
+#menu-toggle { pointer-events: auto !important; z-index: 1002 !important; }
 </style>
-
-
-
-</style>
-
 
 
   <!-- Micro-scripts UI (menu + a11y + tabs + avatar + mini-panier + nav boutons) -->
