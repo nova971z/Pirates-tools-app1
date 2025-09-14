@@ -857,109 +857,108 @@ for (var i = 0; i < (products || []).length; i++) {
   onScrollDock();
 })();
 
-
 /* =========================================================
-   ANIMATION HERO — Version propre et robuste
+   ANIMATION HERO — Version propre et robuste (scopée à HOME)
+   - Respecte prefers-reduced-motion
+   - Active uniquement sur #/ (home), se coupe hors home
    - IntersectionObserver + fallback scroll
    - États : fx-overshoot → fx-preblur → fx-out
-   - ES5-safe, idempotent
+   - ES5-safe
 ========================================================= */
 (function(){
   'use strict';
-  if (window.__ptHeroAnimBooted) return; 
-  window.__ptHeroAnimBooted = 1;
+  if (window.__ptHeroAnimBooted) return; window.__ptHeroAnimBooted = 1;
 
   var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
   var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
-  
   if (!hero || !logo) return;
 
-  // État initial : logo visible
-  logo.classList.add('on');
+  var reduce = false;
+  try{ reduce = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){}
 
   var lastState = '';
-  var isIntersecting = true;
-
-  function setState(newState){
-    if (lastState === newState) return;
-    
-    // Reset toutes les classes
-    logo.classList.remove('fx-overshoot', 'fx-preblur', 'fx-out');
-    
-    // Applique le nouvel état
-    if (newState) logo.classList.add(newState);
-    
-    lastState = newState;
+  function clearStates(){ try{ logo.classList.remove('fx-overshoot','fx-preblur','fx-out'); }catch(_){ } }
+  function setState(s){
+    if (s === lastState) return;
+    clearStates();
+    if (s) try{ logo.classList.add(s); }catch(_){}
+    lastState = s;
   }
 
-  function handleVisibility(ratio){
-    // ratio = pourcentage du hero visible (0 = invisible, 1 = entièrement visible)
-    
-    if (ratio > 0.7) {
-      setState('fx-overshoot');
-    } else if (ratio > 0.3) {
-      setState('fx-preblur');  
-    } else {
-      setState('fx-out');
+  function isHome(){
+    try{
+      var p = (window.parseHash ? window.parseHash() : {view:''});
+      return (!p.view || p.view==='home' || p.view==='/');
+    }catch(_){
+      var h = (location.hash||'').toLowerCase();
+      return (!h || h==='#/' || h.indexOf('#/home')===0);
     }
   }
 
-  // IntersectionObserver (méthode moderne)
-  if ('IntersectionObserver' in window) {
+  // Si utilisateur préfère moins d’animations → on coupe.
+  if (reduce){ setState('fx-out'); return; }
+
+  // Etat initial
+  try{ logo.classList.add('on'); }catch(_){}
+
+  var io = null;
+
+  function updateFromRect(){
+    // si pas la home ou hero caché → out
+    try{
+      var parentHidden = (hero.closest && hero.closest('.hidden'));
+      if (!isHome() || parentHidden){ setState('fx-out'); return; }
+    }catch(_){}
+
+    var rect = hero.getBoundingClientRect ? hero.getBoundingClientRect() : {top:0,bottom:0,height:hero.offsetHeight||0};
+    var vh   = window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || 1;
+    var heroH = Math.max(1, rect.height || hero.offsetHeight || 1);
+
+    var visibleTop = Math.max(0, -rect.top);
+    var visibleBottom = Math.min(heroH, vh - rect.top);
+    var visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    var ratio = visibleHeight / heroH;
+
+    if (ratio > 0.7)      setState('fx-overshoot');
+    else if (ratio > 0.3) setState('fx-preblur');
+    else                  setState('fx-out');
+  }
+
+  function startIO(){
+    if (!('IntersectionObserver' in window)){
+      window.addEventListener('scroll', updateFromRect, {passive:true});
+      window.addEventListener('resize', updateFromRect, {passive:true});
+      updateFromRect();
+      return;
+    }
+    if (io) return;
     var thresholds = [];
-    for (var i = 0; i <= 20; i++) {
-      thresholds.push(i / 20);
-    }
-    
-    var observer = new IntersectionObserver(function(entries){
-      var entry = entries[0];
-      if (!entry) return;
-      
-      isIntersecting = entry.isIntersecting;
-      var ratio = entry.intersectionRatio || 0;
-      
-      handleVisibility(ratio);
-    }, {
-      threshold: thresholds,
-      rootMargin: '0px'
-    });
-    
-    observer.observe(hero);
-    
-    // Nettoyage
-    window.addEventListener('beforeunload', function(){
-      try { observer.disconnect(); } catch(_){}
-    }, { once: true });
-    
-  } 
-  // Fallback scroll (navigateurs anciens)
-  else {
-    function onScroll(){
-      var rect = hero.getBoundingClientRect();
-      var heroHeight = rect.height || hero.offsetHeight || 1;
-      var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
-      
-      // Calcule la partie visible du hero
-      var visibleTop = Math.max(0, -rect.top);
-      var visibleBottom = Math.min(heroHeight, viewportHeight - rect.top);
-      var visibleHeight = Math.max(0, visibleBottom - visibleTop);
-      
-      var ratio = visibleHeight / heroHeight;
-      
-      handleVisibility(ratio);
-    }
-    
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    
-    // Calcul initial
-    onScroll();
+    for (var i=0;i<=20;i++){ thresholds.push(i/20); }
+    io = new IntersectionObserver(function(entries){
+      var e = entries && entries[0]; if (!e) return;
+      if (!isHome()){ setState('fx-out'); return; }
+      var ratio = e.intersectionRatio || 0;
+      if (ratio > 0.7)      setState('fx-overshoot');
+      else if (ratio > 0.3) setState('fx-preblur');
+      else                  setState('fx-out');
+    }, { threshold: thresholds, rootMargin: '0px' });
+    try{ io.observe(hero); }catch(_){}
+  }
+  function stopIO(){
+    if (io && io.disconnect){ try{ io.disconnect(); }catch(_){ } }
+    io = null;
   }
 
-  // Debug (optionnel - retirez en production)
-  console.log('Animation héro initialisée');
-})();
+  // Active/désactive selon la route
+  window.addEventListener('hashchange', function(){
+    if (isHome()){ startIO(); updateFromRect(); }
+    else { stopIO(); setState('fx-out'); }
+  }, false);
 
+  // Boot (évite le flicker)
+  var raf = window.requestAnimationFrame || function(fn){ return setTimeout(fn,0); };
+  raf(function(){ if (isHome()) startIO(); updateFromRect(); });
+})();
 
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
@@ -3903,6 +3902,20 @@ function drawerPatch(){
   var btn      = document.getElementById('menu-toggle');
   var drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
   var backdrop = document.getElementById('menuBackdrop') || document.querySelector('.menu-backdrop, .backdrop');
+  if (drawer) { drawer.setAttribute('role','dialog'); drawer.setAttribute('aria-hidden','true'); }
+  if (btn) { btn.setAttribute('aria-controls', drawer ? (drawer.id || 'side-menu') : ''); btn.setAttribute('aria-expanded','false'); }
+  
+   // INIT ARIA (une fois)
+
+  if (drawer) {
+  if (!drawer.hasAttribute('role')) drawer.setAttribute('role','dialog');
+  if (!drawer.hasAttribute('aria-hidden')) drawer.setAttribute('aria-hidden','true');
+}
+  if (btn) {
+  // lie le bouton au tiroir (fallback sur id connu)
+  btn.setAttribute('aria-controls', drawer ? (drawer.id || 'side-menu') : '');
+  btn.setAttribute('aria-expanded','false');
+}
   if (btn && btn.__ptP5Nav) return;
 
   // État ARIA initial (au cas où le HTML ne le pose pas)
@@ -3949,7 +3962,7 @@ function drawerPatch(){
     btn.addEventListener('click', function(){ PT.toggleDrawer(); }, false);
   }
   // Accessibilité clavier : Enter / Espace ouvrent/ferment le menu
-if (btn) btn.addEventListener('keydown', function(e){
+  if (btn) btn.addEventListener('keydown', function(e){
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
     PT.toggleDrawer();
@@ -3958,7 +3971,22 @@ if (btn) btn.addEventListener('keydown', function(e){
   if (backdrop && !backdrop.__ptDrawer){
     backdrop.__ptDrawer = 1;
     backdrop.addEventListener('click', function(){ PT.toggleDrawer(false); }, false);
-  }
+  if (drawer && !drawer.__closeOnLink) {
+  drawer.__closeOnLink = 1;
+  drawer.addEventListener('click', function(e){
+    var link = e.target && e.target.closest ? e.target.closest('a, [data-route], [data-nav]') : null;
+  if (link) PT.toggleDrawer(false);
+  }, false);
+ }
+    // Ferme le menu quand on clique un lien à l'intérieur du drawer
+  if (drawer && !drawer.__closeOnLink) {
+  drawer.__closeOnLink = 1;
+  drawer.addEventListener('click', function(e){
+  var link = e.target && e.target.closest ? e.target.closest('a, [data-route], [data-nav]') : null;
+  if (link) PT.toggleDrawer(false);
+  }, false);
+}
+  
 
   document.addEventListener('keydown', function(e){
     var key = e && (e.key || e.keyCode);
