@@ -3644,14 +3644,28 @@ function onRegisterSubmit(e){
 
   /* --------- Menu & Dock mapping (idempotent) --------- */
 function wireDrawerLinks(){
-  var drawer = qs('#drawer') || qs('#sideMenu') || qs('#side-menu') || qs('.drawer') || qs('[data-drawer]');
+  var drawer =
+    qs('#drawer') ||
+    qs('#sideMenu') ||
+    qs('#side-menu') ||
+    qs('.drawer') ||
+    qs('[data-drawer]');
   if (!drawer) return;
-  if (drawer.getAttribute('data-pt-nav-wired') === '1') return; // ← AJOUTER CETTE LIGNE
+
+  // Marque le bouton menu comme géré par P5 (évite le patch drawer parallèle)
+  var __toggle = document.getElementById('menu-toggle');
+  if (__toggle) __toggle.__ptP5Nav = 1;
+  
+  // ❗️Garde anti-double câblage
+  if (drawer.getAttribute('data-pt-nav-wired') === '1') return;
+
   var items = qsa('a,button,[role="menuitem"]', drawer);
-  for (var i=0;i<items.length;i++){
+  for (var i=0; i<items.length; i++){
     var it = items[i];
+
+    // Ajoute un href/data-route si manquant (mapping par texte)
     if (!it.getAttribute('href') && !it.getAttribute('data-nav') && !it.getAttribute('data-route')){
-      var txt = (it.textContent||'').toLowerCase();
+      var txt = (it.textContent || '').toLowerCase();
       if (txt.indexOf('accueil')>-1 || txt==='home') it.setAttribute('href','#/');
       else if (txt.indexOf('catalogue')>-1) it.setAttribute('href','#/catalogue');
       else if (txt.indexOf('devis')>-1 || txt.indexOf('panier')>-1) it.setAttribute('href','#/devis');
@@ -3659,33 +3673,51 @@ function wireDrawerLinks(){
       else if (txt.indexOf('whatsapp')>-1 || txt.indexOf('message')>-1) it.setAttribute('data-nav','wa');
       else if (txt.indexOf('appel')>-1 || txt.indexOf('phone')>-1 || txt.indexOf('téléphone')>-1) it.setAttribute('data-nav','phone');
     }
+
     attachNav(it);
   }
+
+  // Marque comme câblé
   drawer.setAttribute('data-pt-nav-wired','1');
+    // Signale que le menu latéral est piloté par P5
+  window.__ptMenuUnified = 1;
 }
 
+
 function wireDock(){
-  var dock = qs('#dock'); 
+  var dock = qs('#dock');
   if (!dock) return;
-  if (dock.getAttribute('data-pt-dock-wired') === '1') return; // garde idempotente
-  if (dock.__ptP5Wired) return; // ← AJOUTER CETTE LIGNE
-  dock.__ptP5Wired = 1; // ← AJOUTER CETTE LIGNE
-  addClass(dock,'dock--safe');
+
+  // ❗️Gardes anti-double câblage
+  if (dock.getAttribute('data-pt-dock-wired') === '1') return;
+  if (dock.__ptP5Wired) return;
+  dock.__ptP5Wired = 1;
+
+  addClass(dock, 'dock--safe');
+
   var btns = qsa('a,button,[data-go],[data-route]', dock);
-  var i, b, t;
-  for (i=0;i<btns.length;i++){
-    b = btns[i];
+  for (var i=0;i<btns.length;i++){
+    var b = btns[i];
+
+    // Ajoute un data-route si manquant (mapping par libellé)
     if (!b.getAttribute('data-nav') && !b.getAttribute('data-route')){
-      t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
+      var t = (b.getAttribute('aria-label') || b.title || b.textContent || '').toLowerCase();
       if (t.indexOf('catalogue')>-1 || t.indexOf('outils')>-1 || t.indexOf('tools')>-1) b.setAttribute('data-route','#/catalogue');
       else if (t.indexOf('devis')>-1 || t.indexOf('panier')>-1 || t.indexOf('cart')>-1) b.setAttribute('data-route','#/devis');
       else if (t.indexOf('compte')>-1 || t.indexOf('profil')>-1) b.setAttribute('data-route','#/compte');
       else if (t.indexOf('whatsapp')>-1 || t.indexOf('chat')>-1 || t.indexOf('message')>-1) b.setAttribute('data-nav','wa');
       else if (t.indexOf('appel')>-1 || t.indexOf('phone')>-1 || t.indexOf('téléphone')>-1) b.setAttribute('data-nav','phone');
     }
+
     attachNav(b);
   }
+
+  // Marque comme câblé
+  dock.setAttribute('data-pt-dock-wired','1');
 }
+
+
+
     // IDs connus → data-route
     var map = { dockToolsBtn:'#/catalogue', dockCartBtn:'#/devis', dockAccountBtn:'#/compte', homeLink:'#/' };
     for (var k in map){
@@ -3693,7 +3725,9 @@ function wireDock(){
       if (el && !el.getAttribute('data-route')) el.setAttribute('data-route', map[k]);
       attachNav(el);
     }
-  
+    // Flag idempotent côté dock + signale menu unifié
+  dock.setAttribute('data-pt-dock-wired','1');
+  window.__ptMenuUnified = 1;
 
   /* --------- Nav actif + a11y --------- */
   function findNavContainers(){
@@ -3861,33 +3895,73 @@ else boot();
 *=========================================================================*/
 function drawerPatch(){
   if (window.__ptPatch002) return; window.__ptPatch002 = 1;
-  if (window.__ptMenuUnified) return; // ← AJOUTER CETTE LIGNE
-  const PT = (window.PT = window.PT || {});
-  // Éviter conflit si déjà géré par P5
-  if (btn && btn.__ptP5Nav) return;
-  const btn      = document.getElementById('menu-toggle');
-  const drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
-  const backdrop = document.getElementById('menuBackdrop') || document.querySelector('.menu-backdrop, .backdrop');
+  if (window.__ptMenuUnified) return;
 
-  function set(open){
-    if(!drawer) return;
-    drawer.classList.toggle('open', !!open);
-    if(backdrop) backdrop.hidden = !open;
-    if(btn) btn.setAttribute('aria-expanded', String(!!open));
-    drawer.setAttribute('aria-hidden', String(!open));
+  var PT = (window.PT = window.PT || {});
+
+  // Éviter conflit si déjà géré par P5
+  var btn      = document.getElementById('menu-toggle');
+  var drawer   = document.getElementById('side-menu') || document.querySelector('.drawer');
+  var backdrop = document.getElementById('menuBackdrop') || document.querySelector('.menu-backdrop, .backdrop');
+  if (btn && btn.__ptP5Nav) return;
+
+  // État ARIA initial (au cas où le HTML ne le pose pas)
+  if (btn && !btn.hasAttribute('aria-expanded')) btn.setAttribute('aria-expanded','false');
+  if (drawer && !drawer.hasAttribute('aria-hidden')) drawer.setAttribute('aria-hidden','true');
+  if (backdrop != null) backdrop.hidden = true;
+
+
+  function toggleOpen(open){
+    if (!drawer) return;
+    var on = !!open;
+
+    try{
+      if (drawer.classList && typeof drawer.classList.toggle === 'function'){
+        drawer.classList.toggle('open', on);
+      } else {
+        if (on){
+          if (!/\bopen\b/.test(drawer.className)) drawer.className += ' open';
+        } else {
+          drawer.className = drawer.className.replace(/\bopen\b/g,'').replace(/\s{2,}/g,' ').trim();
+        }
+      }
+    }catch(_){}
+
+    if (backdrop) backdrop.hidden = !on;
+    if (btn) btn.setAttribute('aria-expanded', String(on));
+    drawer.setAttribute('aria-hidden', String(!on));
+        // Optionnel : classe sur <html> pour lock scroll via CSS si tu veux
+    try { document.documentElement.classList.toggle('drawer-open', !!open); } catch(_){}
   }
 
   PT.toggleDrawer = function(force){
-    var isOpen = drawer ? drawer.classList.contains('open') : false;
-    const want = (typeof force === 'boolean') ? force : !isOpen;
-    set(want);
+    var isOpen = !!(drawer && drawer.classList && drawer.classList.contains('open'));
+    var want = (typeof force === 'boolean') ? force : !isOpen;
+    toggleOpen(want);
   };
 
-  if (btn) btn.addEventListener('click', function(){ PT.toggleDrawer(); });
-  if (backdrop) backdrop.addEventListener('click', function(){ PT.toggleDrawer(false); });
-  document.addEventListener('keydown', function(e){ if(e.key==='Escape') PT.toggleDrawer(false); });
-  window.addEventListener('hashchange', function(){ PT.toggleDrawer(false); });
-})();
+  // État ARIA initial
+  if (drawer && !drawer.getAttribute('aria-hidden')) drawer.setAttribute('aria-hidden','true');
+  if (btn && !btn.getAttribute('aria-expanded')) btn.setAttribute('aria-expanded','false');
+
+  if (btn && !btn.__ptDrawer){
+    btn.__ptDrawer = 1;
+    btn.addEventListener('click', function(){ PT.toggleDrawer(); }, false);
+  }
+  if (backdrop && !backdrop.__ptDrawer){
+    backdrop.__ptDrawer = 1;
+    backdrop.addEventListener('click', function(){ PT.toggleDrawer(false); }, false);
+  }
+
+  document.addEventListener('keydown', function(e){
+    var key = e && (e.key || e.keyCode);
+    if (key === 'Escape' || key === 27) PT.toggleDrawer(false);
+  }, false);
+
+  window.addEventListener('hashchange', function(){
+    PT.toggleDrawer(false);
+  }, false);
+}
 
 /*=========================================================================*
   4) PATCH-003 — Auth switch (chips + panels + mémoire onglet)
@@ -3973,7 +4047,7 @@ function drawerPatch(){
     try { PT.initAuth(); } catch(_){}
   } else {
     document.addEventListener('DOMContentLoaded', function(){ try { PT.initAuth(); } catch(_){} }, false);
-  }
+  
 })();
 
 /*=========================================================================*
