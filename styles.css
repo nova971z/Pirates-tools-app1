@@ -879,23 +879,25 @@ html, body{
   opacity: 1;
 }
 
-/* États pilotés par le JS (IntersectionObserver) */
-.fx-overshoot{
-  transform: translateY(0) scale(var(--hero-scale));
+/* États pilotés par le JS (IntersectionObserver) — VERSION FINALE */
+#heroLogo.fx-overshoot, .hero-logo.fx-overshoot{
+  transform: translateY(0) scale(1.06);
   filter: blur(0);
   opacity: 1;
+  transition: transform .42s ease, opacity .42s ease, filter .42s ease;
 }
-.fx-preblur{
-  transform: translateY(0) scale(1);
+#heroLogo.fx-preblur, .hero-logo.fx-preblur{
+  transform: translateY(0) scale(1.18);
   filter: blur(1px);
   opacity: 0.9;
+  transition: transform .42s ease, opacity .42s ease, filter .42s ease;
 }
-.fx-out{
+#heroLogo.fx-out, .hero-logo.fx-out{
   transform: translateY(-4px) scale(0.98);
   filter: blur(3px);
   opacity: 0.35;
+  transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
 }
-
 /* Respect des préférences d’accessibilité */
 @media (prefers-reduced-motion: reduce){
   .hero .hero-logo,
