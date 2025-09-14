@@ -148,23 +148,7 @@
     .brand__bubble img,.brand__logo{ width:100%; height:100%; object-fit:cover; }
   </style>
 
-<style id="debug-override">
-/* DEBUG : FORCE L'AFFICHAGE */
-#hero, #heroLogo {
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  position: fixed !important;
-  z-index: 9999 !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  width: 300px !important;
-  height: 300px !important;
-  background: red !important;
-  border: 5px solid yellow !important;
-}
-</style>
+
 
   <!-- Ajuste --safe-top à la hauteur réelle de la topbar -->
   
@@ -240,6 +224,36 @@
 </section>
  
 
+<!-- TRACKER DEBUG - AJOUTEZ ICI -->
+<script>
+(function(){
+  var logo = document.getElementById('heroLogo');
+  var hero = document.getElementById('hero');
+  
+  console.log('🔍 TRACKER: Hero et logo trouvés');
+  
+  // Surveille les changements
+  function checkChanges() {
+    var logoDisplay = getComputedStyle(logo).display;
+    var logoOpacity = getComputedStyle(logo).opacity;
+    var heroDisplay = getComputedStyle(hero).display;
+    
+    if (logoDisplay === 'none' || logoOpacity === '0' || heroDisplay === 'none') {
+      console.error('🚨 LOGO CACHÉ !');
+      console.error('Logo display:', logoDisplay);
+      console.error('Logo opacity:', logoOpacity);
+      console.error('Hero display:', heroDisplay);
+      console.trace('Script coupable détecté ici ↑');
+    }
+  }
+  
+  // Vérifie toutes les 100ms
+  var interval = setInterval(checkChanges, 100);
+  
+  // Arrête après 5 secondes
+  setTimeout(() => clearInterval(interval), 5000);
+})();
+</script>
   <!-- =================== VUES (SPA) =================== -->
   
   <main id="app" role="main">
