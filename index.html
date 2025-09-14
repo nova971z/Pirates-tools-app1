@@ -1444,81 +1444,91 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 <script>
-/* Animation héro finale - Effet grossissement 5x */
-(function() {
+/* HeroScrollFX (home-only) */
+(function(){
   'use strict';
-  
+  var hero = document.getElementById('hero');
   var logo = document.getElementById('heroLogo');
-  if (!logo) {
-    console.error('Logo héro non trouvé !');
-    return;
-  }
-  
-  console.log('Animation héro finale initialisée');
-  
-  // Force la visibilité
-  logo.style.display = 'block';
-  logo.style.opacity = '1';
-  
-  function smoothAnimate() {
-    var scroll = window.scrollY;
-    var vh = window.innerHeight;
-    
-        // --- Progress piloté par l’arrivée des bulles (start dès le 1er pixel de scroll) ---
-    var brand     = document.getElementById('brandGrid');
-    var safeTop   = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 70;
-    var brandTop  = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh * 0.85);
-    var threshold = Math.max(120, brandTop - safeTop);          // point où les bulles atteignent le haut utile
-    var progress  = Math.min(Math.max(window.scrollY / threshold, 0), 1); // 0 → 1 pile quand on arrive aux bulles
+  if(!hero || !logo) return;
 
-    // Disparition définitive quand on atteint les bulles (laisse finir le fade)
-    if (progress >= 1 && !window.__heroHidden) {
-      window.__heroHidden = true;
-      setTimeout(function(){
-        try{ document.body.classList.add('after-hero'); }catch(_){}
-        try{ var heroEl=document.getElementById('hero'); if (heroEl) heroEl.classList.add('hero-out'); }catch(_){}
-      }, 320); // ~ durée du fade
-    } else if (progress < 0.98 && window.__heroHidden) {
-      window.__heroHidden = false;
-      try{ document.body.classList.remove('after-hero'); }catch(_){}
-      try{ var heroEl=document.getElementById('hero'); if (heroEl) heroEl.classList.remove('hero-out'); }catch(_){}
-    }
-    
-    // Progress ajusté pour un effet plus dramatique
-    var progress = Math.min(scroll / (vh * 0.35), 1);
-    
-    // Reset
+  var rafId = null, enabled = false;
+
+  function isHome(){
+    var h=(location.hash||'#/').replace(/^#/,'');
+    var path=h.split('?')[0].split('#')[0]||'/';
+    return path==='/' || path==='';
+  }
+
+  function progressToBrands(){
+    var vh = window.innerHeight || 1;
+    var brand = document.getElementById('brandGrid');
+    var safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top'))||70;
+    var brandTop = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh*0.85);
+    var threshold = Math.max(120, brandTop - safeTop);
+    var p = Math.min(Math.max(window.scrollY / threshold, 0), 1);
+    return p;
+  }
+
+  function apply(){
+    var p = progressToBrands();
+
+    // états visuels
     logo.className = 'hero-logo';
-    
-    // Phases d'animation avec grossissement progressif
-    if (progress < 0.15) {
-      // Phase initiale - légère croissance
+    if (p < 0.15){
       logo.classList.add('fx-overshoot');
-    } else if (progress < 0.5) {
-      // Phase intermédiaire - grossissement + flou
+    } else if (p < 0.70){
       logo.classList.add('fx-preblur');
     } else {
-      // Phase finale - grossissement maximal + disparition
       logo.classList.add('fx-out');
     }
+
+    // disparition du hero quand on atteint les bulles
+    if (p >= 1 && !hero.classList.contains('hero-out')){
+      document.body.classList.add('after-hero');
+      hero.classList.add('hero-out');
+    } else if (p < 0.98 && hero.classList.contains('hero-out')){
+      document.body.classList.remove('after-hero');
+      hero.classList.remove('hero-out');
+    }
   }
-  
-  // Animation optimisée 60fps
-  var rafId = null;
-  function requestSmooth() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(function(){
-      smoothAnimate();
-      rafId = null;
-    });
+
+  function onScroll(){
+    if(!enabled) return;
+    if(rafId) return;
+    rafId = requestAnimationFrame(function(){ rafId=null; apply(); });
   }
-  
-  window.addEventListener('scroll', requestSmooth, {passive: true});
-  smoothAnimate(); // Initial call
-  
-  console.log('Animation héro prête - grossissement 5x');
+
+  function enable(){
+    if(enabled) return;
+    enabled = true;
+    hero.classList.remove('hero-out');
+    document.body.classList.remove('after-hero');
+    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', onScroll, {passive:true});
+    onScroll();
+  }
+
+  function disable(){
+    if(!enabled) return;
+    enabled = false;
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onScroll);
+    document.body.classList.add('after-hero');
+    hero.classList.add('hero-out');
+  }
+
+  function sync(){
+    if (isHome()){
+      enable();
+    } else {
+      disable();
+    }
+  }
+
+  // init + navigation SPA
+  sync();
+  window.addEventListener('hashchange', sync);
 })();
 </script>
-
 </body>
 </html>
