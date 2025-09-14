@@ -117,6 +117,11 @@ body.page-compte .topbar-logo-link{ display:none !important }
 @media (max-width:360px){ .topbar .btn.btn-wa{ width:40px; height:40px; font-size:1.1rem } .btn.btn-call{ font-size:12.5px; padding:.34rem .6rem; max-width:54vw } }
 
 /* ========== 04) HÉRO - VERSION PROPRE ========== */
+/* HERO visible uniquement sur l’accueil */
+body:not(.page-home) #hero,
+body:not(.page-home) .hero-full{
+  display:none !important;
+}
 /* Compatibles avec #hero/#heroLogo ET .hero-full/.hero-logo */
 #hero, .hero-full{
   position: relative;
@@ -880,24 +885,29 @@ html, body{
 }
 
 /* États pilotés par le JS (IntersectionObserver) — VERSION FINALE */
-#heroLogo.fx-overshoot, .hero-logo.fx-overshoot{
-  transform: translateY(0) scale(1.06);
+
+/* === HERO — états pilotés par le scroll (source unique) === */
+/* NB: une seule version .hero-logo.* (pas de #heroLogo.*) */
+.hero-logo.fx-overshoot{
+  transform: translateZ(0) scale(1.35);
   filter: blur(0);
   opacity: 1;
-  transition: transform .42s ease, opacity .42s ease, filter .42s ease;
+  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
 }
-#heroLogo.fx-preblur, .hero-logo.fx-preblur{
-  transform: translateY(0) scale(1.18);
-  filter: blur(1px);
-  opacity: 0.9;
-  transition: transform .42s ease, opacity .42s ease, filter .42s ease;
+.hero-logo.fx-preblur{
+  transform: translateZ(0) scale(2.6);
+  filter: blur(8px) saturate(1.05);
+  opacity: .7;
+  transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
 }
-#heroLogo.fx-out, .hero-logo.fx-out{
-  transform: translateY(-4px) scale(0.98);
-  filter: blur(3px);
-  opacity: 0.35;
+.hero-logo.fx-out{
+  transform: translateZ(0) scale(4.2);
+  filter: blur(22px);
+  opacity: 0;
   transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
 }
+
+
 /* Respect des préférences d’accessibilité */
 @media (prefers-reduced-motion: reduce){
   .hero .hero-logo,
