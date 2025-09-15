@@ -890,7 +890,7 @@ for (var i = 0; i < (products || []).length; i++) {
     return Math.min(Math.max(window.scrollY / threshold, 0), 1);
   }
 
-  // ÉTAPE 5 - FONCTION APPLY - États visuels
+  /*   / ÉTAPE 5 - FONCTION APPLY - États visuels
   function apply(){
     var logo = document.getElementById('heroLogo');
     if (!logo) return;
@@ -900,6 +900,24 @@ for (var i = 0; i < (products || []).length; i++) {
     else if (p < 0.70) logo.classList.add('fx-preblur');
     else logo.classList.add('fx-out');
   }
+*/
+
+function apply(){
+  var logo = document.getElementById('heroLogo');
+  if (!logo) return;
+  var p = progressToBrands();
+  
+  // LOGS TEMPORAIRES POUR TEST
+  console.log('Hero enabled:', enabled);
+  console.log('Progress:', p.toFixed(3));
+  console.log('IsHome:', isHome());
+  
+  logo.className = 'hero-logo on';
+  if (p < 0.15) logo.classList.add('fx-overshoot');
+  else if (p < 0.70) logo.classList.add('fx-preblur');
+  else logo.classList.add('fx-out');
+}
+
 
   // ÉTAPE 6 - FONCTION SCROLL - Optimisation RAF
   function onScroll(){
