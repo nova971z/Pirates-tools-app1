@@ -873,14 +873,14 @@ for (var i = 0; i < (products || []).length; i++) {
   var enabled = false;
   var rafId = null;
 
-  // Fonction isHome
+  // ÉTAPE 3 - FONCTION DE BASE
   function isHome(){
     var h = (location.hash || '#/').replace(/^#/, '');
     var path = h.split('?')[0].split('#')[0] || '/';
     return path === '/' || path === '';
   }
 
-  // Fonction progressToBrands
+  // ÉTAPE 4 - FONCTION PROGRESS - Calcul scroll
   function progressToBrands(){
     var vh = window.innerHeight || 1;
     var brand = document.getElementById('brandGrid');
@@ -890,7 +890,7 @@ for (var i = 0; i < (products || []).length; i++) {
     return Math.min(Math.max(window.scrollY / threshold, 0), 1);
   }
 
-  // Fonction apply
+  // ÉTAPE 5 - FONCTION APPLY - États visuels
   function apply(){
     var logo = document.getElementById('heroLogo');
     if (!logo) return;
@@ -901,7 +901,7 @@ for (var i = 0; i < (products || []).length; i++) {
     else logo.classList.add('fx-out');
   }
 
-  // Fonction scroll optimisée RAF
+  // ÉTAPE 6 - FONCTION SCROLL - Optimisation RAF
   function onScroll(){
     if (!enabled) return;
     if (rafId) return;
@@ -911,7 +911,7 @@ for (var i = 0; i < (products || []).length; i++) {
     });
   }
 
-  // Fonction enable
+  // ÉTAPE 7 - ENABLE/DISABLE - Gestion états
   function enable(){
     if (enabled) return;
     enabled = true;
@@ -922,7 +922,7 @@ for (var i = 0; i < (products || []).length; i++) {
     onScroll();
   }
 
-  // Fonction disable
+  // ÉTAPE 8 - DISABLE - Arrêt animation
   function disable(){
     if (!enabled) return;
     enabled = false;
@@ -932,15 +932,17 @@ for (var i = 0; i < (products || []).length; i++) {
     document.body.classList.add('after-hero');
   }
 
-  // Fonction sync
+  // ÉTAPE 9 - SYNC FONCTION - Navigation SPA
   function sync(){
     if (isHome()) enable();
     else disable();
   }
 
-  // Accessibilité : respect prefers-reduced-motion
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return; // Désactive complètement l'animation
+  // ÉTAPE 14 - REDUCED MOTION - Accessibilité
+  var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced){
+    // Désactiver animations
+    return;
   }
 
   // Init + listeners
@@ -949,7 +951,6 @@ for (var i = 0; i < (products || []).length; i++) {
   document.addEventListener('DOMContentLoaded', sync, false);
 
 })();
-
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
