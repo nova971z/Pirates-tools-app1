@@ -921,3 +921,28 @@ html, body{
     opacity: 1 !important;
   }
 }
+
+
+/* ÉTATS MASQUÉS - Ajout aux règles héro existantes */
+#hero.hero-out {
+  z-index: -1; 
+  height: 0 !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.after-hero #hero { 
+  z-index: -1; 
+  pointer-events: none;
+}
+
+/* AJUSTEMENT LISTE */
+.list { 
+  margin-top: var(--listGap, 22vh); 
+}
+
+
+
+
+
+
