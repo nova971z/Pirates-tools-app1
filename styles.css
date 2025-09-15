@@ -850,11 +850,12 @@ html, body{
   --hero-scale: 1.06;
   --hero-blur: 8px;
   --hero-duration: 420ms;
+  --listGap: 22vh;
 }
 
 .hero, .hero-full{
   position: relative;
-  contain: paint;            /* évite les petits flickers */
+  contain: paint;
 }
 
 .hero .hero-logo,
@@ -864,27 +865,43 @@ html, body{
   max-width: min(66vw, 380px);
   width: auto;
   height: auto;
-  opacity: 0;
-  transform: translateY(6px) scale(0.98);
-  filter: blur(2px);
-  transition:
-    opacity var(--hero-duration) ease,
-    transform var(--hero-duration) ease,
-    filter var(--hero-duration) ease;
   will-change: opacity, transform, filter;
 }
 
-/* JS met .on au chargement pour rendre le logo visible */
-.hero .hero-logo.on,
-.hero-full .hero-logo.on,
-#heroLogo.on{
-  opacity: 1;
+/* Respect des préférences d'accessibilité */
+@media (prefers-reduced-motion: reduce){
+  .hero .hero-logo,
+  .hero-full .hero-logo,
+  #heroLogo{
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ÉTATS MASQUÉS */
+#hero.hero-out {
+  z-index: -1; 
+  height: 0 !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.after-hero #hero { 
+  z-index: -1; 
+  pointer-events: none;
+}
+
+/* AJUSTEMENT LISTE */
+.list { 
+  margin-top: var(--listGap, 22vh); 
 }
 
 /* États pilotés par le JS (IntersectionObserver) — VERSION FINALE */
 
 /* === HERO — états pilotés par le scroll (source unique) === */
-/* NB: une seule version .hero-logo.* (pas de #heroLogo.*) */
+/* NB: une seule version .hero-logo.* (pas de #heroLogo.*) 
 .hero-logo.fx-overshoot{
   transform: translateZ(0) scale(1.35);
   filter: blur(0);
@@ -903,43 +920,9 @@ html, body{
   opacity: 0;
   transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
 }
+*/
 
 
-/* Respect des préférences d’accessibilité */
-@media (prefers-reduced-motion: reduce){
-  .hero .hero-logo,
-  .hero-full .hero-logo,
-  #heroLogo{
-    transition: none !important;
-    transform: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-  }
-  .fx-overshoot, .fx-preblur, .fx-out{
-    transform: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-  }
-}
-
-
-/* ÉTATS MASQUÉS - Ajout aux règles héro existantes */
-#hero.hero-out {
-  z-index: -1; 
-  height: 0 !important;
-  display: none !important;
-  pointer-events: none !important;
-}
-
-body.after-hero #hero { 
-  z-index: -1; 
-  pointer-events: none;
-}
-
-/* AJUSTEMENT LISTE */
-.list { 
-  margin-top: var(--listGap, 22vh); 
-}
 
 
 
