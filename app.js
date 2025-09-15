@@ -865,99 +865,89 @@ for (var i = 0; i < (products || []).length; i++) {
    - États : fx-overshoot → fx-preblur → fx-out
    - ES5-safe
 ========================================================= */
-(function(){
+(function HeroScrollFX(){
   'use strict';
-  if (window.__ptHeroAnimBooted) return; window.__ptHeroAnimBooted = 1;
+  if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
 
-  var hero = document.getElementById('hero') || document.querySelector('.hero,.hero-full');
-  var logo = document.getElementById('heroLogo') || document.querySelector('.hero-logo');
-  if (!hero || !logo) return;
+  // Variables & état
+  var enabled = false;
+  var rafId = null;
 
-  var reduce = false;
-  try{ reduce = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){}
-
-  var lastState = '';
-  function clearStates(){ try{ logo.classList.remove('fx-overshoot','fx-preblur','fx-out'); }catch(_){ } }
-  function setState(s){
-    if (s === lastState) return;
-    clearStates();
-    if (s) try{ logo.classList.add(s); }catch(_){}
-    lastState = s;
-  }
-
+  // Fonction isHome
   function isHome(){
-    try{
-      var p = (window.parseHash ? window.parseHash() : {view:''});
-      return (!p.view || p.view==='home' || p.view==='/');
-    }catch(_){
-      var h = (location.hash||'').toLowerCase();
-      return (!h || h==='#/' || h.indexOf('#/home')===0);
-    }
+    var h = (location.hash || '#/').replace(/^#/, '');
+    var path = h.split('?')[0].split('#')[0] || '/';
+    return path === '/' || path === '';
   }
 
-  // Si utilisateur préfère moins d’animations → on coupe.
-  if (reduce){ setState('fx-out'); return; }
-
-  // Etat initial
-  try{ logo.classList.add('on'); }catch(_){}
-
-  var io = null;
-
-  function updateFromRect(){
-    // si pas la home ou hero caché → out
-    try{
-      var parentHidden = (hero.closest && hero.closest('.hidden'));
-      if (!isHome() || parentHidden){ setState('fx-out'); return; }
-    }catch(_){}
-
-    var rect = hero.getBoundingClientRect ? hero.getBoundingClientRect() : {top:0,bottom:0,height:hero.offsetHeight||0};
-    var vh   = window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || 1;
-    var heroH = Math.max(1, rect.height || hero.offsetHeight || 1);
-
-    var visibleTop = Math.max(0, -rect.top);
-    var visibleBottom = Math.min(heroH, vh - rect.top);
-    var visibleHeight = Math.max(0, visibleBottom - visibleTop);
-    var ratio = visibleHeight / heroH;
-
-    if (ratio > 0.7)      setState('fx-overshoot');
-    else if (ratio > 0.3) setState('fx-preblur');
-    else                  setState('fx-out');
+  // Fonction progressToBrands
+  function progressToBrands(){
+    var vh = window.innerHeight || 1;
+    var brand = document.getElementById('brandGrid');
+    var safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 70;
+    var brandTop = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh * 0.85);
+    var threshold = Math.max(120, brandTop - safeTop);
+    return Math.min(Math.max(window.scrollY / threshold, 0), 1);
   }
 
-  function startIO(){
-    if (!('IntersectionObserver' in window)){
-      window.addEventListener('scroll', updateFromRect, {passive:true});
-      window.addEventListener('resize', updateFromRect, {passive:true});
-      updateFromRect();
-      return;
-    }
-    if (io) return;
-    var thresholds = [];
-    for (var i=0;i<=20;i++){ thresholds.push(i/20); }
-    io = new IntersectionObserver(function(entries){
-      var e = entries && entries[0]; if (!e) return;
-      if (!isHome()){ setState('fx-out'); return; }
-      var ratio = e.intersectionRatio || 0;
-      if (ratio > 0.7)      setState('fx-overshoot');
-      else if (ratio > 0.3) setState('fx-preblur');
-      else                  setState('fx-out');
-    }, { threshold: thresholds, rootMargin: '0px' });
-    try{ io.observe(hero); }catch(_){}
-  }
-  function stopIO(){
-    if (io && io.disconnect){ try{ io.disconnect(); }catch(_){ } }
-    io = null;
+  // Fonction apply
+  function apply(){
+    var logo = document.getElementById('heroLogo');
+    if (!logo) return;
+    var p = progressToBrands();
+    logo.className = 'hero-logo on';
+    if (p < 0.15) logo.classList.add('fx-overshoot');
+    else if (p < 0.70) logo.classList.add('fx-preblur');
+    else logo.classList.add('fx-out');
   }
 
-  // Active/désactive selon la route
-  window.addEventListener('hashchange', function(){
-    if (isHome()){ startIO(); updateFromRect(); }
-    else { stopIO(); setState('fx-out'); }
-  }, false);
+  // Fonction scroll optimisée RAF
+  function onScroll(){
+    if (!enabled) return;
+    if (rafId) return;
+    rafId = requestAnimationFrame(function(){ 
+      rafId = null; 
+      apply(); 
+    });
+  }
 
-  // Boot (évite le flicker)
-  var raf = window.requestAnimationFrame || function(fn){ return setTimeout(fn,0); };
-  raf(function(){ if (isHome()) startIO(); updateFromRect(); });
+  // Fonction enable
+  function enable(){
+    if (enabled) return;
+    enabled = true;
+    var hero = document.getElementById('hero');
+    if (hero) hero.classList.remove('hero-out');
+    document.body.classList.remove('after-hero');
+    window.addEventListener('scroll', onScroll, {passive: true});
+    onScroll();
+  }
+
+  // Fonction disable
+  function disable(){
+    if (!enabled) return;
+    enabled = false;
+    window.removeEventListener('scroll', onScroll);
+    var hero = document.getElementById('hero');
+    if (hero) hero.classList.add('hero-out');
+    document.body.classList.add('after-hero');
+  }
+
+  // Fonction sync
+  function sync(){
+    if (isHome()) enable();
+    else disable();
+  }
+
+  // Accessibilité : respect prefers-reduced-motion
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return; // Désactive complètement l'animation
+  }
+
+  // Init + listeners
+  sync();
+  window.addEventListener('hashchange', sync, false);
+  document.addEventListener('DOMContentLoaded', sync, false);
+
 })();
 
 /* =========================================================
