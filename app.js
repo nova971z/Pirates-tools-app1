@@ -880,7 +880,7 @@ for (var i = 0; i < (products || []).length; i++) {
     return path === '/' || path === '';
   }
 
-  // ÉTAPE 4 - FONCTION PROGRESS - Calcul scroll
+  /* / ÉTAPE 4 - FONCTION PROGRESS - Calcul scroll
   function progressToBrands(){
     var vh = window.innerHeight || 1;
     var brand = document.getElementById('brandGrid');
@@ -889,20 +889,57 @@ for (var i = 0; i < (products || []).length; i++) {
     var threshold = Math.max(120, brandTop - safeTop);
     return Math.min(Math.max(window.scrollY / threshold, 0), 1);
   }
-
-  /*   / ÉTAPE 5 - FONCTION APPLY - États visuels
-  function apply(){
-    var logo = document.getElementById('heroLogo');
-    if (!logo) return;
-    var p = progressToBrands();
-    logo.className = 'hero-logo on';
-    if (p < 0.15) logo.classList.add('fx-overshoot');
-    else if (p < 0.70) logo.classList.add('fx-preblur');
-    else logo.classList.add('fx-out');
-  }
 */
 
-function apply(){
+function progressToBrands(){
+  var vh = window.innerHeight || 1;
+  var brand = document.getElementById('brandGrid');
+  if (!brand) return 0;
+  
+  var brandRect = brand.getBoundingClientRect();
+  var brandTop = brandRect.top;
+  
+  // Le logo doit disparaître quand brandGrid atteint 75% de hauteur d'écran
+  var target = vh * 0.75; // 75% de hauteur d'écran
+  var progress = 1 - (brandTop / target);
+  
+  return Math.min(Math.max(progress, 0), 1);
+}
+  /*   / ÉTAPE 5 - FONCTION APPLY - États visuels*/
+  function apply(){
+  var logo = document.getElementById('heroLogo');
+  if (!logo) return;
+  var p = progressToBrands(); // de 0 à 1
+  
+  // LOGS TEMPORAIRES POUR TEST
+  console.log('Hero enabled:', enabled);
+  console.log('Progress:', p.toFixed(3));
+  console.log('IsHome:', isHome());
+  
+  // 1. Scale : progression continue de 1x à 5x+ (au millimètre)
+  var scale = 1 + (p * 4); // 1.0 à 5.0
+  
+  // 2. Flou apparaît à 30% et augmente
+  var blur = 0;
+  if (p > 0.3) {
+    blur = ((p - 0.3) / 0.7) * 22; // de 0 à 22px
+  }
+  
+  // 3. Opacité baisse à partir de 60%
+  var opacity = 1;
+  if (p > 0.6) {
+    opacity = 1 - ((p - 0.6) / 0.4); // de 1 à 0
+  }
+  
+  // Application fluide (pas de classes CSS fixes)
+  logo.style.transform = 'scale(' + scale.toFixed(3) + ')';
+  logo.style.filter = 'blur(' + blur.toFixed(1) + 'px)';
+  logo.style.opacity = Math.max(0, opacity).toFixed(3);
+  
+  console.log('Scale:', scale.toFixed(3), 'Blur:', blur.toFixed(1), 'Opacity:', opacity.toFixed(3));
+}
+
+/*function apply(){
   var logo = document.getElementById('heroLogo');
   if (!logo) return;
   var p = progressToBrands();
@@ -918,7 +955,7 @@ function apply(){
   else logo.classList.add('fx-out');
 }
 
-
+*/
   // ÉTAPE 6 - FONCTION SCROLL - Optimisation RAF
   function onScroll(){
     if (!enabled) return;
