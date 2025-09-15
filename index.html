@@ -162,7 +162,7 @@
   
 <!-- HÉRO FLUIDE -->
 
-<section id="hero" class="hero-full" aria-hidden="false">
+<section id="hero" class="hero-full" aria-hidden="true">
   <img
     id="heroLogo"
     class="hero-logo on"
@@ -1444,91 +1444,7 @@ body.page-compte .topbar-logo-link { display:none !important; }
 
 
 <script>
-/* HeroScrollFX (home-only) */
-(function(){
-  'use strict';
-  var hero = document.getElementById('hero');
-  var logo = document.getElementById('heroLogo');
-  if(!hero || !logo) return;
 
-  var rafId = null, enabled = false;
-
-  function isHome(){
-    var h=(location.hash||'#/').replace(/^#/,'');
-    var path=h.split('?')[0].split('#')[0]||'/';
-    return path==='/' || path==='';
-  }
-
-  function progressToBrands(){
-    var vh = window.innerHeight || 1;
-    var brand = document.getElementById('brandGrid');
-    var safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top'))||70;
-    var brandTop = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh*0.85);
-    var threshold = Math.max(120, brandTop - safeTop);
-    var p = Math.min(Math.max(window.scrollY / threshold, 0), 1);
-    return p;
-  }
-
-  function apply(){
-    var p = progressToBrands();
-
-    // états visuels
-    logo.className = 'hero-logo on';
-    if (p < 0.15){
-      logo.classList.add('fx-overshoot');
-    } else if (p < 0.70){
-      logo.classList.add('fx-preblur');
-    } else {
-      logo.classList.add('fx-out');
-    }
-
-    // disparition du hero quand on atteint les bulles
-    if (p >= 1 && !hero.classList.contains('hero-out')){
-      document.body.classList.add('after-hero');
-      hero.classList.add('hero-out');
-    } else if (p < 0.98 && hero.classList.contains('hero-out')){
-      document.body.classList.remove('after-hero');
-      hero.classList.remove('hero-out');
-    }
-  }
-
-  function onScroll(){
-    if(!enabled) return;
-    if(rafId) return;
-    rafId = requestAnimationFrame(function(){ rafId=null; apply(); });
-  }
-
-  function enable(){
-    if(enabled) return;
-    enabled = true;
-    hero.classList.remove('hero-out');
-    document.body.classList.remove('after-hero');
-    window.addEventListener('scroll', onScroll, {passive:true});
-    window.addEventListener('resize', onScroll, {passive:true});
-    onScroll();
-  }
-
-  function disable(){
-    if(!enabled) return;
-    enabled = false;
-    window.removeEventListener('scroll', onScroll);
-    window.removeEventListener('resize', onScroll);
-    document.body.classList.add('after-hero');
-    hero.classList.add('hero-out');
-  }
-
-  function sync(){
-    if (isHome()){
-      enable();
-    } else {
-      disable();
-    }
-  }
-
-  // init + navigation SPA
-  sync();
-  window.addEventListener('hashchange', sync);
-})();
 </script>
 </body>
 </html>
