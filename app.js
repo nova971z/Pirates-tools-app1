@@ -858,156 +858,6 @@ for (var i = 0; i < (products || []).length; i++) {
 })();
 
 /* =========================================================
-   ANIMATION HERO — Version propre et robuste (scopée à HOME)
-   - Respecte prefers-reduced-motion
-   - Active uniquement sur #/ (home), se coupe hors home
-   - IntersectionObserver + fallback scroll
-   - États : fx-overshoot → fx-preblur → fx-out
-   - ES5-safe
-========================================================= */
-/* =========================================================
-   ANIMATION HERO — Version propre et robuste (scopée à HOME)
-   - Respecte prefers-reduced-motion
-   - Active uniquement sur #/ (home), se coupe hors home
-   - IntersectionObserver + fallback scroll
-   - États : fx-overshoot → fx-preblur → fx-out
-   - ES5-safe
-========================================================= */
-(function HeroScrollFX(){
-  'use strict';
-  if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
-
-  // Variables & état
-  var enabled = false;
-  var rafId = null;
-  var prefersReduced = false;
-
-  // Détection reduced motion (safe)
-  try {
-    prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch(_) {
-    prefersReduced = false;
-  }
-
-  function isHome(){
-    var h = (location.hash || '#/').replace(/^#/, '');
-    var path = h.split('?')[0].split('#')[0] || '/';
-    return path === '/' || path === '';
-  }
-
-  function progressToBrands(){
-    var vh = window.innerHeight || 1;
-    var brand = document.getElementById('brandGrid');
-    if (!brand) return 0;
-    
-    var brandRect = brand.getBoundingClientRect();
-    var brandTop = brandRect.top;
-    
-    // Le logo doit disparaître quand brandGrid atteint 75% de hauteur d'écran
-    var target = vh * 0.75; // 75% de hauteur d'écran
-    var progress = 1 - (brandTop / target);
-    
-    return Math.min(Math.max(progress, 0), 1);
-  }
-
-  function apply(){
-    var logo = document.getElementById('heroLogo');
-    if (!logo) return;
-    
-    var p = progressToBrands(); // de 0 à 1
-    
-    console.log('=== HERO APPLY ===');
-    console.log('Hero enabled:', enabled);
-    console.log('Progress:', p.toFixed(3));
-    console.log('IsHome:', isHome());
-    console.log('Prefers reduced:', prefersReduced);
-    
-    // Si reduced motion : animation simplifiée (juste opacity)
-    if (prefersReduced) {
-      logo.style.transform = '';
-      logo.style.filter = '';
-      logo.style.opacity = (p > 0.8) ? '0' : '1';
-      console.log('Reduced motion - Opacity only:', logo.style.opacity);
-      return;
-    }
-    
-    // Animation complète
-    // 1. Scale : progression continue de 1x à 5x+ (au millimètre)
-    var scale = 1 + (p * 4); // 1.0 à 5.0
-    
-    // 2. Flou apparaît à 30% et augmente
-    var blur = 0;
-    if (p > 0.3) {
-      blur = ((p - 0.3) / 0.7) * 22; // de 0 à 22px
-    }
-    
-    // 3. Opacité baisse à partir de 60%
-    var opacity = 1;
-    if (p > 0.6) {
-      opacity = 1 - ((p - 0.6) / 0.4); // de 1 à 0
-    }
-    
-    // Application fluide (pas de classes CSS fixes)
-    logo.style.transform = 'scale(' + scale.toFixed(3) + ')';
-    logo.style.filter = 'blur(' + blur.toFixed(1) + 'px)';
-    logo.style.opacity = Math.max(0, opacity).toFixed(3);
-    
-    console.log('Full animation - Scale:', scale.toFixed(3), 'Blur:', blur.toFixed(1), 'Opacity:', opacity.toFixed(3));
-  }
-
-  function onScroll(){
-    if (!enabled) return;
-    if (rafId) return;
-    rafId = requestAnimationFrame(function(){ 
-      rafId = null; 
-      apply(); 
-    });
-  }
-
-  function enable(){
-    if (enabled) return;
-    console.log('HERO: Enabling animation');
-    enabled = true;
-    var hero = document.getElementById('hero');
-    if (hero) hero.classList.remove('hero-out');
-    document.body.classList.remove('after-hero');
-    window.addEventListener('scroll', onScroll, {passive: true});
-    onScroll(); // Appel immédiat pour état initial
-  }
-
-  function disable(){
-    if (!enabled) return;
-    console.log('HERO: Disabling animation');
-    enabled = false;
-    window.removeEventListener('scroll', onScroll);
-    var hero = document.getElementById('hero');
-    if (hero) hero.classList.add('hero-out');
-    document.body.classList.add('after-hero');
-  }
-
-  function sync(){
-    console.log('HERO: Sync called - isHome():', isHome(), '- hash:', location.hash);
-    if (isHome()) {
-      enable();
-    } else {
-      disable();
-    }
-  }
-
-  // INITIALISATION FORCÉE (toujours exécutée)
-  console.log('HERO: Initializing - prefersReduced:', prefersReduced);
-  
-  // Premier sync
-  sync();
-  
-  // Listeners
-  window.addEventListener('hashchange', sync, false);
-  document.addEventListener('DOMContentLoaded', sync, false);
-
-})();
-
-
-/* =========================================================
 ANIMATION HERO — Version propre et robuste (scopée à HOME)
 
 - Respecte prefers-reduced-motion
@@ -1015,7 +865,7 @@ ANIMATION HERO — Version propre et robuste (scopée à HOME)
 - IntersectionObserver + fallback scroll
 - États : fx-overshoot → fx-preblur → fx-out
 - ES5-safe
-  ========================================================= 
+  ========================================================= */
   (function HeroScrollFX(){
   ‘use strict’;
   if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
@@ -1155,7 +1005,7 @@ document.addEventListener(‘DOMContentLoaded’, sync, false);
 
 })();
 
-*/
+
 /* =========================================================
    PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
    - N'écrase pas les helpers existants (guards)
