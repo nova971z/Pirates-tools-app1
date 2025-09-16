@@ -872,7 +872,7 @@ for (var i = 0; i < (products || []).length; i++) {
    - IntersectionObserver + fallback scroll
    - États : fx-overshoot → fx-preblur → fx-out
    - ES5-safe
-========================================================= 
+========================================================= */
 (function HeroScrollFX(){
   'use strict';
   if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
@@ -1005,17 +1005,7 @@ for (var i = 0; i < (products || []).length; i++) {
   document.addEventListener('DOMContentLoaded', sync, false);
 
 })();
-*/
-/* =========================================================
-   PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
-   - N'écrase pas les helpers existants (guards)
-   - Gère #/catalogue, #/produit/:id, #/devis (désactivé si __ptRouterPrimary=1)
-   - Panier persistant + WhatsApp devis + synchro multi-onglets
-   - Recherche indexée + tri + tags chips + virtualisation avec "Afficher plus"
-   - JSON-LD Product enrichi (PDP) + prix TTC/HT (VAT_RATE sinon 0.20)
-   - Cohérente avec la Partie 1 (PUBLIC_BASE, setSafeImg, loadProducts, MODELS, events)
-   - Sécurité : échappement HTML, pas d’injection non échappée
-========================================================= */
+
 
 /* =========================================================
 ANIMATION HERO — Version propre et robuste (scopée à HOME)
@@ -1025,7 +1015,7 @@ ANIMATION HERO — Version propre et robuste (scopée à HOME)
 - IntersectionObserver + fallback scroll
 - États : fx-overshoot → fx-preblur → fx-out
 - ES5-safe
-  ========================================================= */
+  ========================================================= 
   (function HeroScrollFX(){
   ‘use strict’;
   if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
@@ -1164,6 +1154,18 @@ window.addEventListener(‘hashchange’, sync, false);
 document.addEventListener(‘DOMContentLoaded’, sync, false);
 
 })();
+
+*/
+/* =========================================================
+   PARTIE 2 — Catalogue + Produits + Panier + Devis (ES5-safe)
+   - N'écrase pas les helpers existants (guards)
+   - Gère #/catalogue, #/produit/:id, #/devis (désactivé si __ptRouterPrimary=1)
+   - Panier persistant + WhatsApp devis + synchro multi-onglets
+   - Recherche indexée + tri + tags chips + virtualisation avec "Afficher plus"
+   - JSON-LD Product enrichi (PDP) + prix TTC/HT (VAT_RATE sinon 0.20)
+   - Cohérente avec la Partie 1 (PUBLIC_BASE, setSafeImg, loadProducts, MODELS, events)
+   - Sécurité : échappement HTML, pas d’injection non échappée
+========================================================= */
 
 
 
