@@ -865,6 +865,14 @@ for (var i = 0; i < (products || []).length; i++) {
    - États : fx-overshoot → fx-preblur → fx-out
    - ES5-safe
 ========================================================= */
+/* =========================================================
+   ANIMATION HERO — Version propre et robuste (scopée à HOME)
+   - Respecte prefers-reduced-motion
+   - Active uniquement sur #/ (home), se coupe hors home
+   - IntersectionObserver + fallback scroll
+   - États : fx-overshoot → fx-preblur → fx-out
+   - ES5-safe
+========================================================= */
 (function HeroScrollFX(){
   'use strict';
   if (window.__ptHeroBooted) return; window.__ptHeroBooted = 1;
@@ -872,91 +880,81 @@ for (var i = 0; i < (products || []).length; i++) {
   // Variables & état
   var enabled = false;
   var rafId = null;
+  var prefersReduced = false;
 
-  // ÉTAPE 3 - FONCTION DE BASE
+  // Détection reduced motion (safe)
+  try {
+    prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch(_) {
+    prefersReduced = false;
+  }
+
   function isHome(){
     var h = (location.hash || '#/').replace(/^#/, '');
     var path = h.split('?')[0].split('#')[0] || '/';
     return path === '/' || path === '';
   }
 
-  /* / ÉTAPE 4 - FONCTION PROGRESS - Calcul scroll
   function progressToBrands(){
     var vh = window.innerHeight || 1;
     var brand = document.getElementById('brandGrid');
-    var safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 70;
-    var brandTop = brand ? (brand.getBoundingClientRect().top + window.scrollY) : (vh * 0.85);
-    var threshold = Math.max(120, brandTop - safeTop);
-    return Math.min(Math.max(window.scrollY / threshold, 0), 1);
+    if (!brand) return 0;
+    
+    var brandRect = brand.getBoundingClientRect();
+    var brandTop = brandRect.top;
+    
+    // Le logo doit disparaître quand brandGrid atteint 75% de hauteur d'écran
+    var target = vh * 0.75; // 75% de hauteur d'écran
+    var progress = 1 - (brandTop / target);
+    
+    return Math.min(Math.max(progress, 0), 1);
   }
-*/
 
-function progressToBrands(){
-  var vh = window.innerHeight || 1;
-  var brand = document.getElementById('brandGrid');
-  if (!brand) return 0;
-  
-  var brandRect = brand.getBoundingClientRect();
-  var brandTop = brandRect.top;
-  
-  // Le logo doit disparaître quand brandGrid atteint 75% de hauteur d'écran
-  var target = vh * 0.75; // 75% de hauteur d'écran
-  var progress = 1 - (brandTop / target);
-  
-  return Math.min(Math.max(progress, 0), 1);
-}
-  /*   / ÉTAPE 5 - FONCTION APPLY - États visuels*/
   function apply(){
-  var logo = document.getElementById('heroLogo');
-  if (!logo) return;
-  var p = progressToBrands(); // de 0 à 1
-  
-  // LOGS TEMPORAIRES POUR TEST
-  console.log('Hero enabled:', enabled);
-  console.log('Progress:', p.toFixed(3));
-  console.log('IsHome:', isHome());
-  
-  // 1. Scale : progression continue de 1x à 5x+ (au millimètre)
-  var scale = 1 + (p * 4); // 1.0 à 5.0
-  
-  // 2. Flou apparaît à 30% et augmente
-  var blur = 0;
-  if (p > 0.3) {
-    blur = ((p - 0.3) / 0.7) * 22; // de 0 à 22px
+    var logo = document.getElementById('heroLogo');
+    if (!logo) return;
+    
+    var p = progressToBrands(); // de 0 à 1
+    
+    console.log('=== HERO APPLY ===');
+    console.log('Hero enabled:', enabled);
+    console.log('Progress:', p.toFixed(3));
+    console.log('IsHome:', isHome());
+    console.log('Prefers reduced:', prefersReduced);
+    
+    // Si reduced motion : animation simplifiée (juste opacity)
+    if (prefersReduced) {
+      logo.style.transform = '';
+      logo.style.filter = '';
+      logo.style.opacity = (p > 0.8) ? '0' : '1';
+      console.log('Reduced motion - Opacity only:', logo.style.opacity);
+      return;
+    }
+    
+    // Animation complète
+    // 1. Scale : progression continue de 1x à 5x+ (au millimètre)
+    var scale = 1 + (p * 4); // 1.0 à 5.0
+    
+    // 2. Flou apparaît à 30% et augmente
+    var blur = 0;
+    if (p > 0.3) {
+      blur = ((p - 0.3) / 0.7) * 22; // de 0 à 22px
+    }
+    
+    // 3. Opacité baisse à partir de 60%
+    var opacity = 1;
+    if (p > 0.6) {
+      opacity = 1 - ((p - 0.6) / 0.4); // de 1 à 0
+    }
+    
+    // Application fluide (pas de classes CSS fixes)
+    logo.style.transform = 'scale(' + scale.toFixed(3) + ')';
+    logo.style.filter = 'blur(' + blur.toFixed(1) + 'px)';
+    logo.style.opacity = Math.max(0, opacity).toFixed(3);
+    
+    console.log('Full animation - Scale:', scale.toFixed(3), 'Blur:', blur.toFixed(1), 'Opacity:', opacity.toFixed(3));
   }
-  
-  // 3. Opacité baisse à partir de 60%
-  var opacity = 1;
-  if (p > 0.6) {
-    opacity = 1 - ((p - 0.6) / 0.4); // de 1 à 0
-  }
-  
-  // Application fluide (pas de classes CSS fixes)
-  logo.style.transform = 'scale(' + scale.toFixed(3) + ')';
-  logo.style.filter = 'blur(' + blur.toFixed(1) + 'px)';
-  logo.style.opacity = Math.max(0, opacity).toFixed(3);
-  
-  console.log('Scale:', scale.toFixed(3), 'Blur:', blur.toFixed(1), 'Opacity:', opacity.toFixed(3));
-}
 
-/*function apply(){
-  var logo = document.getElementById('heroLogo');
-  if (!logo) return;
-  var p = progressToBrands();
-  
-  // LOGS TEMPORAIRES POUR TEST
-  console.log('Hero enabled:', enabled);
-  console.log('Progress:', p.toFixed(3));
-  console.log('IsHome:', isHome());
-  
-  logo.className = 'hero-logo on';
-  if (p < 0.15) logo.classList.add('fx-overshoot');
-  else if (p < 0.70) logo.classList.add('fx-preblur');
-  else logo.classList.add('fx-out');
-}
-
-*/
-  // ÉTAPE 6 - FONCTION SCROLL - Optimisation RAF
   function onScroll(){
     if (!enabled) return;
     if (rafId) return;
@@ -966,20 +964,20 @@ function progressToBrands(){
     });
   }
 
-  // ÉTAPE 7 - ENABLE/DISABLE - Gestion états
   function enable(){
     if (enabled) return;
+    console.log('HERO: Enabling animation');
     enabled = true;
     var hero = document.getElementById('hero');
     if (hero) hero.classList.remove('hero-out');
     document.body.classList.remove('after-hero');
     window.addEventListener('scroll', onScroll, {passive: true});
-    onScroll();
+    onScroll(); // Appel immédiat pour état initial
   }
 
-  // ÉTAPE 8 - DISABLE - Arrêt animation
   function disable(){
     if (!enabled) return;
+    console.log('HERO: Disabling animation');
     enabled = false;
     window.removeEventListener('scroll', onScroll);
     var hero = document.getElementById('hero');
@@ -987,21 +985,22 @@ function progressToBrands(){
     document.body.classList.add('after-hero');
   }
 
-  // ÉTAPE 9 - SYNC FONCTION - Navigation SPA
   function sync(){
-    if (isHome()) enable();
-    else disable();
+    console.log('HERO: Sync called - isHome():', isHome(), '- hash:', location.hash);
+    if (isHome()) {
+      enable();
+    } else {
+      disable();
+    }
   }
 
-  // ÉTAPE 14 - REDUCED MOTION - Accessibilité
-  var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReduced){
-    // Désactiver animations
-    return;
-  }
-
-  // Init + listeners
+  // INITIALISATION FORCÉE (toujours exécutée)
+  console.log('HERO: Initializing - prefersReduced:', prefersReduced);
+  
+  // Premier sync
   sync();
+  
+  // Listeners
   window.addEventListener('hashchange', sync, false);
   document.addEventListener('DOMContentLoaded', sync, false);
 
