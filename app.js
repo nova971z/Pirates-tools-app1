@@ -118,7 +118,13 @@ notifyStateChange(event, data) {
 // Persistence
 saveCartToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(this.cart));
+    const cartData = {
+      version: CONFIG.CACHE_VERSION,
+      timestamp: Date.now(),
+      items: this.cart
+    };
+    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData));
+    console.log('Cart saved to storage:', cartData); // Debug
   } catch (error) {
     console.error('Failed to save cart:', error);
   }
@@ -127,7 +133,18 @@ saveCartToStorage() {
 loadCartFromStorage() {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CART);
-    this.cart = saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const cartData = JSON.parse(saved);
+      // Support ancien format et nouveau format
+      if (Array.isArray(cartData)) {
+        this.cart = cartData;
+      } else if (cartData.items) {
+        this.cart = cartData.items;
+      }
+      console.log('Cart loaded from storage:', this.cart); // Debug
+    } else {
+      this.cart = [];
+    }
   } catch (error) {
     console.error('Failed to load cart:', error);
     this.cart = [];
@@ -193,6 +210,14 @@ navigateTo(route) {
   this.updateViews(route);
   this.updateBodyClass(route);
   this.updateHeroState(route);
+  
+  // Actions spécifiques par route
+  if (route === ROUTES.DEVIS) {
+    // Forcer la mise à jour du panier
+    setTimeout(() => {
+      CartManager.updateCartUI();
+    }, 100);
+  }
   
   // Fermer le menu si ouvert
   if (UI.Menu.isOpen()) {
@@ -463,13 +488,18 @@ cacheProducts(products) {
 
 const CartManager = {
 init() {
+console.log(‘CartManager init…’); // Debug
 State.loadCartFromStorage();
+console.log(‘Initial cart state:’, State.cart); // Debug
 this.bindCartEvents();
 this.updateCartUI();
 
 ```
   // Observer les changements de panier
-  State.subscribe('cart', () => this.updateCartUI());
+  State.subscribe('cart', () => {
+    console.log('Cart state changed, updating UI...'); // Debug
+    this.updateCartUI();
+  });
 },
 
 bindCartEvents() {
@@ -496,7 +526,7 @@ addToCart(productSlug, quantity = 1) {
   const product = ProductManager.findBySlug(productSlug);
   if (!product) {
     UI.showToast('Produit non trouvé', 'error');
-    return;
+    return false;
   }
   
   const existingItem = State.cart.find(item => item.slug === productSlug);
@@ -514,8 +544,11 @@ addToCart(productSlug, quantity = 1) {
   }
   
   State.setCart([...State.cart]);
-  UI.showToast('Produit ajouté au panier', 'success');
+  console.log('Cart updated:', State.cart); // Debug log
+  UI.showToast(`${product.title} ajouté au panier`, 'success');
   this.pulseCartButton();
+  
+  return true; // Succès
 },
 
 removeFromCart(productSlug) {
@@ -578,39 +611,49 @@ updateCartCount() {
 
 updateCartList() {
   const container = document.getElementById('devisList');
-  if (!container) return;
-  
-  if (State.cart.length === 0) {
-    container.innerHTML = '<p class="empty-state">Votre panier est vide</p>';
+  if (!container) {
+    console.warn('Container devisList non trouvé');
     return;
   }
   
-  container.innerHTML = State.cart.map(item => `
+  console.log('Updating cart list, items:', State.cart.length); // Debug
+  
+  if (State.cart.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>Votre panier est vide</p><a href="#/catalogue" class="btn">Découvrir nos produits</a></div>';
+    return;
+  }
+  
+  const cartHTML = State.cart.map((item, index) => `
     <div class="cart-item" data-slug="${item.slug}">
       <div class="cart-item__info">
-        ${item.image ? `<img src="${item.image}" alt="${Utils.escapeHtml(item.title)}">` : ''}
+        ${item.image ? `<img src="${item.image}" alt="${Utils.escapeHtml(item.title)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">` : ''}
         <div>
-          <h4>${Utils.escapeHtml(item.title)}</h4>
-          <p class="price">${item.price}€ HT</p>
+          <h4 style="margin: 0; font-size: 14px; font-weight: 600;">${Utils.escapeHtml(item.title)}</h4>
+          <p class="price" style="margin: 4px 0; color: var(--brand); font-weight: 500;">${item.price}€ HT</p>
         </div>
       </div>
-      <div class="cart-item__controls">
-        <button onclick="CartManager.updateQuantity('${item.slug}', ${item.quantity - 1})">-</button>
-        <span class="quantity">${item.quantity}</span>
-        <button onclick="CartManager.updateQuantity('${item.slug}', ${item.quantity + 1})">+</button>
-        <button class="remove" onclick="CartManager.removeFromCart('${item.slug}')">✕</button>
+      <div class="cart-item__controls" style="display: flex; align-items: center; gap: 8px;">
+        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;">-</button>
+        <span class="quantity" style="min-width: 24px; text-align: center; font-weight: 600;">${item.quantity}</span>
+        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;">+</button>
+        <button class="remove" onclick="window.PiratesTools.removeFromCart('${item.slug}')" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: #ff6b6b; cursor: pointer; margin-left: 8px;">✕</button>
       </div>
     </div>
   `).join('');
   
   // Total
-  const total = document.createElement('div');
-  total.className = 'cart-total';
-  total.innerHTML = `
-    <strong>Total HT: ${State.cartTotal.toFixed(2)}€</strong>
-    <span>TTC: ${(State.cartTotal * 1.20).toFixed(2)}€</span>
+  const totalHTML = `
+    <div class="cart-total" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); text-align: right;">
+      <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+        Total HT: <span style="color: var(--brand);">${State.cartTotal.toFixed(2)}€</span>
+      </div>
+      <div style="font-size: 14px; color: var(--muted);">
+        TTC: ${(State.cartTotal * 1.20).toFixed(2)}€
+      </div>
+    </div>
   `;
-  container.appendChild(total);
+  
+  container.innerHTML = cartHTML + totalHTML;
 },
 
 updateMiniCart() {
@@ -1102,9 +1145,22 @@ bindProductActions(product) {
   const shareBtn = document.getElementById('pdpShare');
   
   if (quoteBtn) {
-    quoteBtn.onclick = () => {
-      CartManager.addToCart(product.slug);
-    };
+    // Supprimer les anciens listeners pour éviter les doublons
+    quoteBtn.onclick = null;
+    quoteBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const success = CartManager.addToCart(product.slug);
+      if (success) {
+        // Animation visuelle sur le bouton
+        quoteBtn.textContent = '✓ Ajouté !';
+        quoteBtn.classList.add('success');
+        setTimeout(() => {
+          quoteBtn.textContent = 'Ajouter au panier';
+          quoteBtn.classList.remove('success');
+        }, 2000);
+      }
+    });
   }
   
   if (waBtn) {
@@ -1113,7 +1169,10 @@ bindProductActions(product) {
   }
   
   if (shareBtn) {
-    shareBtn.onclick = () => this.shareProduct(product);
+    shareBtn.onclick = (e) => {
+      e.preventDefault();
+      this.shareProduct(product);
+    };
   }
 },
 
@@ -1364,6 +1423,8 @@ bindGlobalEvents() {
 },
 
 handleGlobalAction(action, element) {
+  console.log('Global action:', action); // Debug
+  
   switch (action) {
     case 'add-to-cart':
       const productSlug = element.dataset.product || State.currentProduct?.slug;
@@ -1381,15 +1442,24 @@ handleGlobalAction(action, element) {
       break;
       
     case 'login':
-      AuthManager.handleLogin(new Event('submit'));
+      // Ne pas traiter si c'est un submit de form
+      if (element.type !== 'submit') {
+        AuthManager.handleLogin(new Event('submit'));
+      }
       break;
       
     case 'register':
-      AuthManager.handleRegister(new Event('submit'));
+      // Ne pas traiter si c'est un submit de form
+      if (element.type !== 'submit') {
+        AuthManager.handleRegister(new Event('submit'));
+      }
       break;
       
     case 'account-save':
-      AuthManager.handleAccountUpdate(new Event('submit'));
+      // Ne pas traiter si c'est un submit de form
+      if (element.type !== 'submit') {
+        AuthManager.handleAccountUpdate(new Event('submit'));
+      }
       break;
       
     case 'install':
@@ -1417,7 +1487,15 @@ navigateTo(route) {
 },
 
 addToCart(slug, quantity) {
-  CartManager.addToCart(slug, quantity);
+  return CartManager.addToCart(slug, quantity);
+},
+
+updateCartQuantity(slug, quantity) {
+  CartManager.updateQuantity(slug, quantity);
+},
+
+removeFromCart(slug) {
+  CartManager.removeFromCart(slug);
 },
 
 showToast(message, type) {
