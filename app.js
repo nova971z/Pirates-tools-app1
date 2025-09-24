@@ -1304,38 +1304,66 @@ updateProductSpecs(product) {
 },
 
 bindProductActions(product) {
+  console.log('Binding PDP actions for product:', product.slug);
+  
   const quoteBtn = document.getElementById('pdpQuote');
   const waBtn = document.getElementById('pdpWa');
   const shareBtn = document.getElementById('pdpShare');
   
   if (quoteBtn) {
-    // Supprimer TOUS les attributs qui pourraient causer une navigation
+    console.log('Found pdpQuote button, setting up...');
+    
+    // SUPPRIMER COMPLÈTEMENT tous les attributs qui peuvent causer une navigation
     quoteBtn.removeAttribute('href');
     quoteBtn.removeAttribute('data-nav');
     quoteBtn.removeAttribute('data-action');
+    quoteBtn.removeAttribute('onclick');
     
-    // Supprimer les anciens listeners
-    const newBtn = quoteBtn.cloneNode(true);
-    quoteBtn.parentNode.replaceChild(newBtn, quoteBtn);
+    // Supprimer tous les event listeners existants en clonant le nœud
+    const newQuoteBtn = quoteBtn.cloneNode(true);
+    quoteBtn.parentNode.replaceChild(newQuoteBtn, quoteBtn);
     
-    // Ajouter le nouveau listener sur le bouton cloné
-    const finalBtn = document.getElementById('pdpQuote');
-    finalBtn.addEventListener('click', (e) => {
+    // Récupérer la nouvelle référence
+    const finalQuoteBtn = document.getElementById('pdpQuote');
+    
+    // Ajouter UNIQUEMENT notre event listener
+    finalQuoteBtn.addEventListener('click', (e) => {
+      console.log('PDP Quote button clicked!');
+      
+      // BLOQUER COMPLÈTEMENT la propagation
       e.preventDefault();
       e.stopPropagation();
-      console.log('PDP Add to cart clicked for:', product.slug);
+      e.stopImmediatePropagation();
       
+      // Ajouter au panier
+      console.log('Adding product to cart:', product.slug);
       const success = CartManager.addToCart(product.slug);
+      
       if (success) {
-        // Animation visuelle sur le bouton
-        finalBtn.textContent = '✓ Ajouté !';
-        finalBtn.style.backgroundColor = '#00e1b4';
+        // Feedback visuel sur le bouton
+        finalQuoteBtn.textContent = '✓ Ajouté !';
+        finalQuoteBtn.style.backgroundColor = '#00e1b4';
+        finalQuoteBtn.style.color = 'white';
+        
+        // Remettre le texte original après 2 secondes
         setTimeout(() => {
-          finalBtn.textContent = 'Ajouter au panier';
-          finalBtn.style.backgroundColor = '';
+          finalQuoteBtn.textContent = 'Ajouter au panier';
+          finalQuoteBtn.style.backgroundColor = '';
+          finalQuoteBtn.style.color = '';
         }, 2000);
+        
+        console.log('Product added successfully, staying on PDP');
+      } else {
+        console.error('Failed to add product to cart');
       }
-    });
+      
+      // S'ASSURER qu'on ne navigue pas
+      return false;
+    }, { capture: true }); // Utiliser capture pour être le premier à traiter l'événement
+    
+    console.log('PDP Quote button setup complete');
+  } else {
+    console.warn('pdpQuote button not found');
   }
   
   if (waBtn) {
@@ -1580,33 +1608,49 @@ console.log(‘DOM ready state:’, document.readyState);
 },
 
 bindGlobalEvents() {
-  // Navigation data-nav (avec exclusions)
+  console.log('Binding global events...');
+  
+  // Navigation data-nav (avec exclusions strictes)
   document.addEventListener('click', (e) => {
+    // IGNORER COMPLÈTEMENT si c'est le bouton d'ajout au panier PDP
+    if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
+      console.log('Ignoring navigation for pdpQuote button');
+      return; // Laisser le PDP gérer cet événement
+    }
+    
     const navEl = e.target.closest('[data-nav]');
     if (navEl) {
-      // Ne pas naviguer si c'est un bouton d'ajout au panier
-      if (navEl.id === 'pdpQuote' || navEl.classList.contains('add-to-cart')) {
-        return; // Laisser l'événement original se dérouler
+      // Double vérification pour éviter les boutons d'ajout au panier
+      if (navEl.id === 'pdpQuote' || navEl.classList.contains('add-to-cart-btn')) {
+        console.log('Skipping navigation for cart button');
+        return;
       }
       
+      console.log('Navigation via data-nav to:', navEl.dataset.nav);
       e.preventDefault();
       const route = navEl.dataset.nav;
-      console.log('Navigation via data-nav to:', route); // Debug
       window.location.hash = '#' + route;
     }
   });
   
-  // Actions data-action (avec priorité plus faible)
+  // Actions data-action (avec exclusions strictes)
   document.addEventListener('click', (e) => {
+    // IGNORER COMPLÈTEMENT si c'est le bouton PDP
+    if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
+      console.log('Ignoring global action for pdpQuote button');
+      return;
+    }
+    
     const actionEl = e.target.closest('[data-action]');
     if (actionEl) {
-      // Si c'est un bouton d'ajout au panier sur PDP, ignorer (géré par PDP)
+      // Double vérification
       if (actionEl.id === 'pdpQuote') {
+        console.log('Skipping global action for pdpQuote');
         return;
       }
       
+      console.log('Global action triggered:', actionEl.dataset.action);
       e.preventDefault();
-      console.log('Global action triggered:', actionEl.dataset.action); // Debug
       this.handleGlobalAction(actionEl.dataset.action, actionEl);
     }
   });
@@ -1793,6 +1837,42 @@ testAddToCart() {
   
   // L'ajouter au panier
   return this.addToCart(testProduct.slug);
+},
+
+// Diagnostic du bouton PDP
+diagnoseAddToCartButton() {
+  console.log('=== ADD TO CART BUTTON DIAGNOSIS ===');
+  
+  const btn = document.getElementById('pdpQuote');
+  console.log('Button found:', !!btn);
+  
+  if (btn) {
+    console.log('Button attributes:');
+    for (let attr of btn.attributes) {
+      console.log(`  ${attr.name}: ${attr.value}`);
+    }
+    
+    console.log('Button event listeners:');
+    console.log('  onclick:', btn.onclick);
+    console.log('  href:', btn.href);
+    console.log('  data-nav:', btn.dataset.nav);
+    console.log('  data-action:', btn.dataset.action);
+    
+    console.log('Button classes:', btn.className);
+    console.log('Button parent:', btn.parentElement?.tagName);
+    
+    // Test click sans navigation
+    console.log('Testing click handler...');
+    const testEvent = new MouseEvent('click', {
+      bubbles: false,
+      cancelable: true
+    });
+    
+    btn.dispatchEvent(testEvent);
+    console.log('Test click completed');
+  }
+  
+  console.log('=====================================');
 },
 
 // Méthode d'initialisation
