@@ -62,9 +62,6 @@ const State = window.State;
 
 // Ajouter les méthodes au State existant
 Object.assign(State, {
-
-// Ajouter les méthodes au State existant
-Object.assign(State, {
 // Getters
 get cartCount() {
 return this.cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -1170,7 +1167,7 @@ showToast(message, type = 'info') {
       }
     }, 300);
   }, 3000);
-}
+},
 
 updateInstallButton() {
   const installBtn = document.getElementById('installBtn');
@@ -1250,7 +1247,7 @@ updateHeroLogo() {
 };
 
 // ===========================================
-// 9. PDP (Product Detail Page)
+// 9. PDP (Product Detail Page) - AVEC FIX BOUTON
 // ===========================================
 
 const PDP = {
@@ -1263,6 +1260,11 @@ if (!product) return;
   this.updateProductSpecs(product);
   this.bindProductActions(product);
   this.loadRelatedProducts(product);
+  
+  // **FIX SPÉCIAL** : Appliquer le fix bouton après rendu
+  setTimeout(() => {
+    this.fixAddToCartButton(product);
+  }, 100);
 },
 
 updateProductImage(product) {
@@ -1304,67 +1306,8 @@ updateProductSpecs(product) {
 },
 
 bindProductActions(product) {
-  console.log('Binding PDP actions for product:', product.slug);
-  
-  const quoteBtn = document.getElementById('pdpQuote');
   const waBtn = document.getElementById('pdpWa');
   const shareBtn = document.getElementById('pdpShare');
-  
-  if (quoteBtn) {
-    console.log('Found pdpQuote button, setting up...');
-    
-    // SUPPRIMER COMPLÈTEMENT tous les attributs qui peuvent causer une navigation
-    quoteBtn.removeAttribute('href');
-    quoteBtn.removeAttribute('data-nav');
-    quoteBtn.removeAttribute('data-action');
-    quoteBtn.removeAttribute('onclick');
-    
-    // Supprimer tous les event listeners existants en clonant le nœud
-    const newQuoteBtn = quoteBtn.cloneNode(true);
-    quoteBtn.parentNode.replaceChild(newQuoteBtn, quoteBtn);
-    
-    // Récupérer la nouvelle référence
-    const finalQuoteBtn = document.getElementById('pdpQuote');
-    
-    // Ajouter UNIQUEMENT notre event listener
-    finalQuoteBtn.addEventListener('click', (e) => {
-      console.log('PDP Quote button clicked!');
-      
-      // BLOQUER COMPLÈTEMENT la propagation
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      
-      // Ajouter au panier
-      console.log('Adding product to cart:', product.slug);
-      const success = CartManager.addToCart(product.slug);
-      
-      if (success) {
-        // Feedback visuel sur le bouton
-        finalQuoteBtn.textContent = '✓ Ajouté !';
-        finalQuoteBtn.style.backgroundColor = '#00e1b4';
-        finalQuoteBtn.style.color = 'white';
-        
-        // Remettre le texte original après 2 secondes
-        setTimeout(() => {
-          finalQuoteBtn.textContent = 'Ajouter au panier';
-          finalQuoteBtn.style.backgroundColor = '';
-          finalQuoteBtn.style.color = '';
-        }, 2000);
-        
-        console.log('Product added successfully, staying on PDP');
-      } else {
-        console.error('Failed to add product to cart');
-      }
-      
-      // S'ASSURER qu'on ne navigue pas
-      return false;
-    }, { capture: true }); // Utiliser capture pour être le premier à traiter l'événement
-    
-    console.log('PDP Quote button setup complete');
-  } else {
-    console.warn('pdpQuote button not found');
-  }
   
   if (waBtn) {
     const message = `Bonjour, je suis intéressé par ce produit :\n${product.title}`;
@@ -1377,6 +1320,88 @@ bindProductActions(product) {
       this.shareProduct(product);
     };
   }
+  
+  // Le bouton "Ajouter au panier" sera fixé par fixAddToCartButton()
+},
+
+/**
+ * FIX SPÉCIAL pour le bouton "Ajouter au panier"
+ * Cette fonction empêche complètement la redirection
+ */
+fixAddToCartButton(product) {
+  console.log('🔧 Début fix bouton Ajouter au panier...');
+  
+  const button = document.getElementById('pdpQuote');
+  
+  if (!button) {
+    console.log('🔧 Bouton pdpQuote non trouvé');
+    return;
+  }
+  
+  console.log('🔧 Bouton pdpQuote trouvé, application du fix...');
+  
+  // ÉTAPE 1: Supprimer TOUS les attributs qui peuvent causer une navigation
+  const attributesToRemove = ['href', 'data-nav', 'data-action', 'onclick'];
+  attributesToRemove.forEach(attr => {
+    if (button.hasAttribute(attr)) {
+      console.log(`🔧 Suppression de l'attribut: ${attr} = ${button.getAttribute(attr)}`);
+      button.removeAttribute(attr);
+    }
+  });
+  
+  // ÉTAPE 2: Supprimer la propriété onclick si elle existe
+  if (button.onclick) {
+    console.log('🔧 Suppression de button.onclick');
+    button.onclick = null;
+  }
+  
+  // ÉTAPE 3: Cloner le bouton pour supprimer tous les event listeners
+  const newButton = button.cloneNode(true);
+  button.parentNode.replaceChild(newButton, button);
+  
+  // ÉTAPE 4: Récupérer le nouveau bouton et ajouter notre event listener
+  const fixedButton = document.getElementById('pdpQuote');
+  
+  if (!fixedButton) {
+    console.error('🔧 Erreur: impossible de récupérer le bouton après clonage');
+    return;
+  }
+  
+  // ÉTAPE 5: Ajouter notre event listener avec capture et propagation bloquée
+  fixedButton.addEventListener('click', (e) => {
+    console.log('🔧 Clic sur bouton intercepté !');
+    
+    // BLOQUER COMPLÈTEMENT la propagation
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    
+    // Ajouter au panier
+    const success = CartManager.addToCart(product.slug);
+    
+    if (success) {
+      // Feedback visuel
+      const originalText = fixedButton.textContent;
+      fixedButton.textContent = '✓ Ajouté !';
+      fixedButton.style.backgroundColor = '#00e1b4';
+      fixedButton.style.color = 'white';
+      
+      // Remettre le texte original
+      setTimeout(() => {
+        fixedButton.textContent = originalText;
+        fixedButton.style.backgroundColor = '';
+        fixedButton.style.color = '';
+      }, 2000);
+      
+      console.log('🔧 Produit ajouté avec succès, reste sur la fiche produit');
+    }
+    
+    // S'assurer qu'on ne navigue PAS
+    return false;
+    
+  }, { capture: true, passive: false });
+  
+  console.log('🔧 Fix appliqué avec succès !');
 },
 
 async shareProduct(product) {
@@ -1591,7 +1616,7 @@ console.log(‘DOM ready state:’, document.readyState);
     
     await ProductManager.init();
     
-    // Bindings globaux
+    // Bindings globaux (RÉDUITS pour éviter conflit avec le bouton PDP)
     this.bindGlobalEvents();
     
     // Test du panier après init
@@ -1610,7 +1635,7 @@ console.log(‘DOM ready state:’, document.readyState);
 bindGlobalEvents() {
   console.log('Binding global events...');
   
-  // Navigation data-nav (avec exclusions strictes)
+  // Navigation data-nav (avec exclusions strictes pour PDP)
   document.addEventListener('click', (e) => {
     // IGNORER COMPLÈTEMENT si c'est le bouton d'ajout au panier PDP
     if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
@@ -1633,7 +1658,7 @@ bindGlobalEvents() {
     }
   });
   
-  // Actions data-action (avec exclusions strictes)
+  // Actions data-action (avec exclusions strictes pour PDP)
   document.addEventListener('click', (e) => {
     // IGNORER COMPLÈTEMENT si c'est le bouton PDP
     if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
