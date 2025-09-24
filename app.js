@@ -69,6 +69,7 @@ get cartTotal() {
 // Mutations
 setRoute(route) {
   this.currentRoute = route;
+  console.log('Route changed to:', route); // Debug
   this.notifyStateChange('route', route);
 },
 
@@ -85,6 +86,7 @@ setProducts(products) {
 },
 
 setCart(cart) {
+  console.log('Setting cart to:', cart); // Debug
   this.cart = cart;
   this.saveCartToStorage();
   this.notifyStateChange('cart', cart);
@@ -118,13 +120,19 @@ notifyStateChange(event, data) {
 // Persistence
 saveCartToStorage() {
   try {
+    // Utiliser la même clé que votre système existant pour compatibilité
     const cartData = {
       version: CONFIG.CACHE_VERSION,
       timestamp: Date.now(),
       items: this.cart
     };
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData));
-    console.log('Cart saved to storage:', cartData); // Debug
+    
+    // Sauvegarder avec les deux clés pour compatibilité
+    localStorage.setItem('cart', JSON.stringify(this.cart)); // Clé simple pour compatibilité HTML
+    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData)); // Clé avec version
+    
+    console.log('Cart saved to storage with keys: cart, pt_cart'); // Debug
+    console.log('Saved cart data:', this.cart); // Debug
   } catch (error) {
     console.error('Failed to save cart:', error);
   }
@@ -132,19 +140,30 @@ saveCartToStorage() {
 
 loadCartFromStorage() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.CART);
-    if (saved) {
-      const cartData = JSON.parse(saved);
-      // Support ancien format et nouveau format
-      if (Array.isArray(cartData)) {
-        this.cart = cartData;
-      } else if (cartData.items) {
-        this.cart = cartData.items;
+    // Essayer d'abord la nouvelle clé, puis l'ancienne pour compatibilité
+    let cartData = null;
+    
+    const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
+    if (newFormat) {
+      const parsed = JSON.parse(newFormat);
+      if (Array.isArray(parsed)) {
+        cartData = parsed; // Ancien format
+      } else if (parsed.items) {
+        cartData = parsed.items; // Nouveau format
       }
-      console.log('Cart loaded from storage:', this.cart); // Debug
-    } else {
-      this.cart = [];
     }
+    
+    // Fallback sur l'ancienne clé
+    if (!cartData) {
+      const oldFormat = localStorage.getItem('cart');
+      if (oldFormat) {
+        cartData = JSON.parse(oldFormat);
+      }
+    }
+    
+    this.cart = cartData || [];
+    console.log('Cart loaded from storage:', this.cart); // Debug
+    console.log('Cart items count:', this.cart.length); // Debug
   } catch (error) {
     console.error('Failed to load cart:', error);
     this.cart = [];
@@ -249,6 +268,16 @@ updateViews(route) {
     const viewRoute = view.dataset.route;
     if (viewRoute === route) {
       view.classList.remove('hidden');
+      console.log('Showing view:', route); // Debug
+      
+      // Si c'est la vue panier, forcer la mise à jour
+      if (route === ROUTES.DEVIS) {
+        console.log('Devis view shown, forcing cart update...'); // Debug
+        setTimeout(() => {
+          CartManager.updateCartUI();
+        }, 50); // Délai court pour s'assurer que la vue est visible
+      }
+      
       // Focus pour a11y
       const h1 = view.querySelector('h1');
       if (h1) h1.focus();
@@ -503,10 +532,23 @@ this.updateCartUI();
 },
 
 bindCartEvents() {
-  // Boutons dock
+  console.log('Binding cart events...'); // Debug
+  
+  // Boutons dock - forcer la navigation correcte
   const cartBtn = document.getElementById('dockCartBtn');
   if (cartBtn) {
-    cartBtn.addEventListener('click', () => Router.navigateTo(ROUTES.DEVIS));
+    // Supprimer les anciens listeners
+    const newCartBtn = cartBtn.cloneNode(true);
+    cartBtn.parentNode.replaceChild(newCartBtn, cartBtn);
+    
+    // Ajouter le nouveau listener
+    document.getElementById('dockCartBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Dock cart button clicked, navigating to cart...'); // Debug
+      console.log('Current cart state:', State.cart); // Debug
+      window.location.hash = '#/devis';
+    });
   }
   
   // Actions devis
@@ -514,11 +556,17 @@ bindCartEvents() {
   const clearBtn = document.getElementById('devisClear');
   
   if (sendBtn) {
-    sendBtn.addEventListener('click', () => this.sendQuoteToWhatsApp());
+    sendBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.sendQuoteToWhatsApp();
+    });
   }
   
   if (clearBtn) {
-    clearBtn.addEventListener('click', () => this.clearCart());
+    clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.clearCart();
+    });
   }
 },
 
@@ -1145,19 +1193,30 @@ bindProductActions(product) {
   const shareBtn = document.getElementById('pdpShare');
   
   if (quoteBtn) {
-    // Supprimer les anciens listeners pour éviter les doublons
-    quoteBtn.onclick = null;
-    quoteBtn.addEventListener('click', (e) => {
+    // Supprimer TOUS les attributs qui pourraient causer une navigation
+    quoteBtn.removeAttribute('href');
+    quoteBtn.removeAttribute('data-nav');
+    quoteBtn.removeAttribute('data-action');
+    
+    // Supprimer les anciens listeners
+    const newBtn = quoteBtn.cloneNode(true);
+    quoteBtn.parentNode.replaceChild(newBtn, quoteBtn);
+    
+    // Ajouter le nouveau listener sur le bouton cloné
+    const finalBtn = document.getElementById('pdpQuote');
+    finalBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      console.log('PDP Add to cart clicked for:', product.slug);
+      
       const success = CartManager.addToCart(product.slug);
       if (success) {
         // Animation visuelle sur le bouton
-        quoteBtn.textContent = '✓ Ajouté !';
-        quoteBtn.classList.add('success');
+        finalBtn.textContent = '✓ Ajouté !';
+        finalBtn.style.backgroundColor = '#00e1b4';
         setTimeout(() => {
-          quoteBtn.textContent = 'Ajouter au panier';
-          quoteBtn.classList.remove('success');
+          finalBtn.textContent = 'Ajouter au panier';
+          finalBtn.style.backgroundColor = '';
         }, 2000);
       }
     });
@@ -1384,21 +1443,33 @@ console.log(‘🏴‍☠️ Pirates Tools App v2.0 - Initialisation…’);
 },
 
 bindGlobalEvents() {
-  // Navigation data-nav
+  // Navigation data-nav (avec exclusions)
   document.addEventListener('click', (e) => {
     const navEl = e.target.closest('[data-nav]');
     if (navEl) {
+      // Ne pas naviguer si c'est un bouton d'ajout au panier
+      if (navEl.id === 'pdpQuote' || navEl.classList.contains('add-to-cart')) {
+        return; // Laisser l'événement original se dérouler
+      }
+      
       e.preventDefault();
       const route = navEl.dataset.nav;
+      console.log('Navigation via data-nav to:', route); // Debug
       window.location.hash = '#' + route;
     }
   });
   
-  // Actions data-action
+  // Actions data-action (avec priorité plus faible)
   document.addEventListener('click', (e) => {
     const actionEl = e.target.closest('[data-action]');
     if (actionEl) {
+      // Si c'est un bouton d'ajout au panier sur PDP, ignorer (géré par PDP)
+      if (actionEl.id === 'pdpQuote') {
+        return;
+      }
+      
       e.preventDefault();
+      console.log('Global action triggered:', actionEl.dataset.action); // Debug
       this.handleGlobalAction(actionEl.dataset.action, actionEl);
     }
   });
