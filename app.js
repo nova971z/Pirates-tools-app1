@@ -43,7 +43,8 @@ SETTINGS: ‘pt_settings’
 // 2. STATE MANAGEMENT
 // ===========================================
 
-const State = {
+// Initialisation immédiate du State
+window.State = window.State || {
 currentRoute: ‘/’,
 user: null,
 isAuthenticated: false,
@@ -54,14 +55,22 @@ currentProduct: null,
 searchQuery: ‘’,
 selectedTag: ‘’,
 isLoading: false,
-heroState: ‘active’, // active, transitioning, hidden
+heroState: ‘active’ // active, transitioning, hidden
+};
 
-```
+const State = window.State;
+
+// Ajouter les méthodes au State existant
+Object.assign(State, {
+
+// Ajouter les méthodes au State existant
+Object.assign(State, {
 // Getters
 get cartCount() {
-  return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+return this.cart.reduce((sum, item) => sum + item.quantity, 0);
 },
 
+```
 get cartTotal() {
   return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 },
@@ -171,7 +180,7 @@ loadCartFromStorage() {
 }
 ```
 
-};
+}); // Fermeture de Object.assign
 
 // ===========================================
 // 3. ROUTER SYSTEM
@@ -1674,31 +1683,69 @@ handleGlobalAction(action, element) {
     default:
       console.warn('Action inconnue:', action);
   }
-},
+}
+```
 
-// API publique
+};
+
+// ===========================================
+// EXPORT & START
+// ===========================================
+
+// Initialisation immédiate de l’API globale
+window.PiratesTools = {
+// État par défaut
+_initialized: false,
+_initPromise: null,
+
+```
+// API publique immédiate (même avant init complète)
 getState() {
   return State;
 },
 
 navigateTo(route) {
-  Router.navigateTo(route);
+  if (Router.navigateTo) {
+    Router.navigateTo(route);
+  } else {
+    window.location.hash = '#' + route;
+  }
 },
 
 addToCart(slug, quantity) {
-  return CartManager.addToCart(slug, quantity);
+  console.log('addToCart called:', slug, quantity);
+  if (CartManager.addToCart) {
+    return CartManager.addToCart(slug, quantity);
+  } else {
+    console.warn('CartManager not ready');
+    return false;
+  }
 },
 
 updateCartQuantity(slug, quantity) {
-  CartManager.updateQuantity(slug, quantity);
+  console.log('updateCartQuantity called:', slug, quantity);
+  if (CartManager.updateQuantity) {
+    CartManager.updateQuantity(slug, quantity);
+  } else {
+    console.warn('CartManager not ready');
+  }
 },
 
 removeFromCart(slug) {
-  CartManager.removeFromCart(slug);
+  console.log('removeFromCart called:', slug);
+  if (CartManager.removeFromCart) {
+    CartManager.removeFromCart(slug);
+  } else {
+    console.warn('CartManager not ready');
+  }
 },
 
 showToast(message, type) {
-  UI.showToast(message, type);
+  if (UI.showToast) {
+    UI.showToast(message, type);
+  } else {
+    console.log('Toast:', message, type);
+  }
 },
 
 // Debug methods
@@ -1709,45 +1756,86 @@ debugCart() {
   console.log('State.cartTotal:', State.cartTotal);
   console.log('localStorage cart:', localStorage.getItem('cart'));
   console.log('localStorage pt_cart:', localStorage.getItem(STORAGE_KEYS.CART));
+  console.log('CartManager exists:', !!CartManager);
   console.log('==================');
 },
 
 forceCartUpdate() {
   console.log('Forcing cart update...');
-  CartManager.updateCartUI();
+  if (CartManager.updateCartUI) {
+    CartManager.updateCartUI();
+  } else {
+    console.warn('CartManager.updateCartUI not available');
+  }
 },
 
 testAddToCart() {
   console.log('Testing add to cart...');
+  
+  // Créer un produit de test
   const testProduct = {
-    slug: 'test-product',
-    title: 'Test Product',
-    price: 100,
-    image: null
+    slug: 'test-product-' + Date.now(),
+    title: 'Produit de Test',
+    price: 99.99,
+    image: null,
+    tag: 'Test',
+    description: 'Produit de test pour vérifier le panier'
   };
   
-  State.products.push(testProduct);
-  CartManager.addToCart('test-product');
+  // L'ajouter aux produits disponibles
+  if (State.products) {
+    State.products.push(testProduct);
+  } else {
+    State.products = [testProduct];
+  }
+  
+  console.log('Test product created:', testProduct);
+  
+  // L'ajouter au panier
+  return this.addToCart(testProduct.slug);
+},
+
+// Méthode d'initialisation
+async init() {
+  if (this._initialized) {
+    console.log('PiratesTools already initialized');
+    return this._initPromise;
+  }
+  
+  if (this._initPromise) {
+    console.log('PiratesTools initialization in progress...');
+    return this._initPromise;
+  }
+  
+  console.log('Starting PiratesTools initialization...');
+  
+  this._initPromise = App.init().then(() => {
+    this._initialized = true;
+    console.log('PiratesTools fully initialized');
+    
+    // Remplacer les méthodes par les vraies
+    Object.assign(this, App);
+  }).catch(error => {
+    console.error('PiratesTools initialization failed:', error);
+    throw error;
+  });
+  
+  return this._initPromise;
 }
 ```
 
 };
 
-// ===========================================
-// EXPORT & START
-// ===========================================
-
-// API globale
-window.PiratesTools = App;
-
 // Debug global pour les tests
 window.debugPiratesTools = () => {
 console.log(’=== PIRATES TOOLS DEBUG ===’);
-console.log(‘App state:’, App.getState());
+console.log(‘Initialized:’, window.PiratesTools._initialized);
+console.log(‘State:’, State);
 console.log(‘Cart in localStorage:’, localStorage.getItem(‘cart’));
 console.log(‘Cart in pt_cart:’, localStorage.getItem(‘pt_cart’));
 console.log(‘Current route:’, State.currentRoute);
-console.log(‘Products loaded:’, State.products.length);
+console.log(‘Products loaded:’, State.products?.length || 0);
+console.log(‘Available methods:’, Object.keys(window.PiratesTools));
 console.log(’============================’);
 };
 
@@ -1757,21 +1845,18 @@ console.log(‘Starting Pirates Tools App…’);
 console.log(‘Document ready state:’, document.readyState);
 
 ```
-try {
-  App.init();
-} catch (error) {
-  console.error('Failed to start app:', error);
+// Démarrer l'initialisation
+window.PiratesTools.init().catch(error => {
+  console.error('App initialization failed:', error);
   
   // Retry après un délai
   setTimeout(() => {
-    console.log('Retrying app start...');
-    try {
-      App.init();
-    } catch (retryError) {
-      console.error('App start retry failed:', retryError);
-    }
-  }, 1000);
-}
+    console.log('Retrying app initialization...');
+    window.PiratesTools.init().catch(retryError => {
+      console.error('App initialization retry failed:', retryError);
+    });
+  }, 2000);
+});
 ```
 
 }
