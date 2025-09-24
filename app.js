@@ -179,19 +179,53 @@ loadCartFromStorage() {
 
 const Router = {
 init() {
-// Éviter conflit avec router HTML existant
-if (window.__ptRouterActive) {
-console.log(‘Router déjà actif, utilisation du système existant’);
-return;
-}
+console.log(‘Router init…’);
 
 ```
+  // Éviter conflit avec router HTML existant
+  if (window.__ptRouterActive) {
+    console.log('Router deja actif, utilisation du systeme existant');
+    return;
+  }
+  
+  // Vérifier si des fonctions de routage existent déjà
+  if (window.syncViews || window.matchRoute) {
+    console.log('Router HTML detecte, integration...');
+    // S'intégrer avec le router existant
+    this.integrateWithExistingRouter();
+    return;
+  }
+  
+  console.log('Initializing new router...');
   window.addEventListener('hashchange', this.handleHashChange.bind(this));
   window.addEventListener('popstate', this.handlePopState.bind(this));
   
   // Route initiale
   this.navigateToCurrentHash();
   window.__ptRouterActive = true;
+},
+
+integrateWithExistingRouter() {
+  console.log('Integrating with existing HTML router...');
+  
+  // Observer les changements de route via le système existant
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.slice(1) || '/';
+    console.log('Route changed via existing router:', hash);
+    State.setRoute(hash);
+    
+    // Actions spécifiques
+    if (hash === '/devis') {
+      setTimeout(() => {
+        console.log('Cart update triggered by route change');
+        CartManager.updateCartUI();
+      }, 100);
+    }
+  });
+  
+  // Trigger initial
+  const currentHash = window.location.hash.slice(1) || '/';
+  State.setRoute(currentHash);
 },
 
 handleHashChange() {
@@ -467,22 +501,56 @@ findBySlug(slug) {
 },
 
 createSlug(title) {
-  return title
+  if (!title) return 'unknown';
+  
+  return String(title)
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .trim()
+    // Remplacer les caractères spéciaux
+    .replace(/[\u00C0-\u00C5]/g, 'a')
+    .replace(/[\u00C6]/g, 'ae')
+    .replace(/[\u00C7]/g, 'c')
+    .replace(/[\u00C8-\u00CB]/g, 'e')
+    .replace(/[\u00CC-\u00CF]/g, 'i')
+    .replace(/[\u00D1]/g, 'n')
+    .replace(/[\u00D2-\u00D6]/g, 'o')
+    .replace(/[\u00D9-\u00DC]/g, 'u')
+    .replace(/[\u00DD]/g, 'y')
+    // Minuscules
+    .replace(/[\u00E0-\u00E5]/g, 'a')
+    .replace(/[\u00E6]/g, 'ae')
+    .replace(/[\u00E7]/g, 'c')
+    .replace(/[\u00E8-\u00EB]/g, 'e')
+    .replace(/[\u00EC-\u00EF]/g, 'i')
+    .replace(/[\u00F1]/g, 'n')
+    .replace(/[\u00F2-\u00F6]/g, 'o')
+    .replace(/[\u00F9-\u00FC]/g, 'u')
+    .replace(/[\u00FD\u00FF]/g, 'y')
+    // Autres caractères spéciaux
+    .replace(/[\u2013\u2014]/g, '-') // em/en dash
+    .replace(/[^\w\s-]/g, '') // Garder seulement mots, espaces, tirets
+    .replace(/[\s_-]+/g, '-') // Espaces et underscores vers tirets
+    .replace(/^-+|-+$/g, ''); // Supprimer tirets en début/fin
 },
 
 createSearchText(product) {
-  return [
+  const fields = [
     product.title,
     product.description,
     product.tag,
     product.brand,
     ...(product.specifications || [])
-  ].filter(Boolean).join(' ').toLowerCase();
+  ].filter(Boolean);
+  
+  return fields
+    .join(' ')
+    .toLowerCase()
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[^\w\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 },
 
 getCachedProducts() {
@@ -660,31 +728,37 @@ updateCartCount() {
 updateCartList() {
   const container = document.getElementById('devisList');
   if (!container) {
-    console.warn('Container devisList non trouvé');
+    console.warn('Container devisList non trouve');
     return;
   }
   
-  console.log('Updating cart list, items:', State.cart.length); // Debug
+  console.log('Updating cart list, items:', State.cart.length);
+  console.log('Cart content:', State.cart);
   
   if (State.cart.length === 0) {
-    container.innerHTML = '<div class="empty-state"><p>Votre panier est vide</p><a href="#/catalogue" class="btn">Découvrir nos produits</a></div>';
+    container.innerHTML = `
+      <div class="empty-state" style="text-align: center; padding: 40px 20px;">
+        <p style="color: var(--muted); margin-bottom: 20px;">Votre panier est vide</p>
+        <a href="#/catalogue" class="btn primary" style="display: inline-block; padding: 12px 24px; text-decoration: none;">Decouvrir nos produits</a>
+      </div>
+    `;
     return;
   }
   
   const cartHTML = State.cart.map((item, index) => `
-    <div class="cart-item" data-slug="${item.slug}">
-      <div class="cart-item__info">
+    <div class="cart-item" data-slug="${item.slug}" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; margin-bottom: 12px; background: var(--card); border-radius: 8px;">
+      <div class="cart-item__info" style="display: flex; align-items: center; gap: 12px;">
         ${item.image ? `<img src="${item.image}" alt="${Utils.escapeHtml(item.title)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">` : ''}
         <div>
           <h4 style="margin: 0; font-size: 14px; font-weight: 600;">${Utils.escapeHtml(item.title)}</h4>
-          <p class="price" style="margin: 4px 0; color: var(--brand); font-weight: 500;">${item.price}€ HT</p>
+          <p style="margin: 4px 0; color: var(--brand); font-weight: 500;">${item.price}€ HT</p>
         </div>
       </div>
       <div class="cart-item__controls" style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;">-</button>
-        <span class="quantity" style="min-width: 24px; text-align: center; font-weight: 600;">${item.quantity}</span>
-        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;">+</button>
-        <button class="remove" onclick="window.PiratesTools.removeFromCart('${item.slug}')" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: #ff6b6b; cursor: pointer; margin-left: 8px;">✕</button>
+        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center;">-</button>
+        <span style="min-width: 24px; text-align: center; font-weight: 600;">${item.quantity}</span>
+        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+        <button onclick="window.PiratesTools.removeFromCart('${item.slug}')" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: #ff6b6b; cursor: pointer; margin-left: 8px; display: flex; align-items: center; justify-content: center;">×</button>
       </div>
     </div>
   `).join('');
@@ -1036,25 +1110,58 @@ return !document.getElementById(‘side-menu’)?.classList.contains(‘hidden�
 },
 
 showToast(message, type = 'info') {
+  console.log('Toast:', message, type);
+  
   // Utiliser le système existant si disponible
   if (typeof window.ptToast === 'function') {
-    window.ptToast(message, type);
-    return;
+    try {
+      window.ptToast(message, type);
+      return;
+    } catch (error) {
+      console.error('Error with ptToast:', error);
+    }
   }
   
-  // Fallback
+  // Fallback simple et robuste
   const toast = document.createElement('div');
-  toast.className = `toast toast--${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    max-width: 300px;
+    word-wrap: break-word;
+    background: ${type === 'error' ? '#ff6b6b' : type === 'success' ? '#00e1b4' : type === 'warning' ? '#ffd93d' : '#19d3ff'};
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.3s ease;
+  `;
   toast.textContent = message;
   
-  const container = document.getElementById('toasts') || document.body;
-  container.appendChild(toast);
+  document.body.appendChild(toast);
+  
+  // Animation d'entrée
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(0)';
+  });
   
   // Auto-remove
   setTimeout(() => {
-    toast.remove();
-  }, 4000);
-},
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100px)';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
 
 updateInstallButton() {
   const installBtn = document.getElementById('installBtn');
@@ -1386,12 +1493,16 @@ throttle(func, wait) {
 },
 
 escapeHtml(unsafe) {
-  return unsafe
+  if (!unsafe) return '';
+  return String(unsafe)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/'/g, "&#039;")
+    .replace(/[\u2013\u2014]/g, "-") // em dash, en dash
+    .replace(/[\u2018\u2019]/g, "'") // smart quotes
+    .replace(/[\u201C\u201D]/g, '"'); // smart double quotes
 },
 
 formatPrice(price) {
@@ -1420,8 +1531,20 @@ const App = {
 async init() {
 try {
 console.log(‘🏴‍☠️ Pirates Tools App v2.0 - Initialisation…’);
+console.log(‘DOM ready state:’, document.readyState);
 
 ```
+    // Vérifier les éléments critiques
+    const criticalElements = [
+      'view-home', 'view-catalogue', 'view-produit', 'view-devis', 'view-compte', 'view-auth',
+      'dockCartBtn', 'devisList'
+    ];
+    
+    criticalElements.forEach(id => {
+      const el = document.getElementById(id);
+      console.log(`Element ${id}:`, el ? 'found' : 'NOT FOUND');
+    });
+    
     // Ordre d'initialisation critique
     PWAManager.init();
     Router.init();
@@ -1434,10 +1557,15 @@ console.log(‘🏴‍☠️ Pirates Tools App v2.0 - Initialisation…’);
     // Bindings globaux
     this.bindGlobalEvents();
     
-    console.log('⚡ Application prête !');
+    // Test du panier après init
+    console.log('Cart after init:', State.cart);
+    console.log('Cart count after init:', State.cartCount);
+    
+    console.log('⚡ Application prete !');
     
   } catch (error) {
     console.error('💥 Erreur d\'initialisation:', error);
+    console.error('Error stack:', error.stack);
     UI.showToast('Erreur de chargement de l\'application', 'error');
   }
 },
@@ -1571,6 +1699,35 @@ removeFromCart(slug) {
 
 showToast(message, type) {
   UI.showToast(message, type);
+},
+
+// Debug methods
+debugCart() {
+  console.log('=== CART DEBUG ===');
+  console.log('State.cart:', State.cart);
+  console.log('State.cartCount:', State.cartCount);
+  console.log('State.cartTotal:', State.cartTotal);
+  console.log('localStorage cart:', localStorage.getItem('cart'));
+  console.log('localStorage pt_cart:', localStorage.getItem(STORAGE_KEYS.CART));
+  console.log('==================');
+},
+
+forceCartUpdate() {
+  console.log('Forcing cart update...');
+  CartManager.updateCartUI();
+},
+
+testAddToCart() {
+  console.log('Testing add to cart...');
+  const testProduct = {
+    slug: 'test-product',
+    title: 'Test Product',
+    price: 100,
+    image: null
+  };
+  
+  State.products.push(testProduct);
+  CartManager.addToCart('test-product');
 }
 ```
 
@@ -1583,11 +1740,51 @@ showToast(message, type) {
 // API globale
 window.PiratesTools = App;
 
-// Auto-start quand DOM prêt
+// Debug global pour les tests
+window.debugPiratesTools = () => {
+console.log(’=== PIRATES TOOLS DEBUG ===’);
+console.log(‘App state:’, App.getState());
+console.log(‘Cart in localStorage:’, localStorage.getItem(‘cart’));
+console.log(‘Cart in pt_cart:’, localStorage.getItem(‘pt_cart’));
+console.log(‘Current route:’, State.currentRoute);
+console.log(‘Products loaded:’, State.products.length);
+console.log(’============================’);
+};
+
+// Auto-start robuste
+function startApp() {
+console.log(‘Starting Pirates Tools App…’);
+console.log(‘Document ready state:’, document.readyState);
+
+```
+try {
+  App.init();
+} catch (error) {
+  console.error('Failed to start app:', error);
+  
+  // Retry après un délai
+  setTimeout(() => {
+    console.log('Retrying app start...');
+    try {
+      App.init();
+    } catch (retryError) {
+      console.error('App start retry failed:', retryError);
+    }
+  }, 1000);
+}
+```
+
+}
+
+// Démarrage selon état du DOM
 if (document.readyState === ‘loading’) {
-document.addEventListener(‘DOMContentLoaded’, () => App.init());
+document.addEventListener(‘DOMContentLoaded’, startApp);
+} else if (document.readyState === ‘interactive’) {
+// DOM prêt mais ressources en cours de chargement
+setTimeout(startApp, 100);
 } else {
-App.init();
+// DOM et ressources prêts
+startApp();
 }
 
 })();
