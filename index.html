@@ -199,10 +199,10 @@ setTimeout(function () {
       id="heroLogo"
       class="hero-logo on"
       alt="Pirates Tools"
-      src="icons/icon-256.png"
+      src="icons/icon-512.png"
       srcset="icons/icon-180.png 180w, icons/icon-192.png 192w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
-      sizes="min(66vmin, 512px)"
-      width="400" height="400"
+      sizes="(max-width: 768px) 90vw, min(80vw, 1200px)"
+      width="1200" height="1200"
       decoding="async" loading="eager" fetchpriority="high" />
   </div>
 </section>
@@ -1500,8 +1500,8 @@ body.page-compte .topbar-logo-link { display:none !important; }
       // Animation en cours
       const progress = (scrollY - startScroll) / animationDistance;
       
-      // Scale de 1 à 5.5 (taille optimisée)
-      const scaleFactor = 1 + (progress * 4.5);
+      // Scale de 1 à 6 (exactement x6)
+      const scaleFactor = 1 + (progress * 5);
       // Opacity de 1 à 0
       const opacityFactor = 1 - progress;
       
