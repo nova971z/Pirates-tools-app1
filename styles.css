@@ -227,6 +227,38 @@ body.after-hero::after{ opacity:1 }
   will-change: transform, opacity, filter;
 }
 
+/* Masquer le logo sur toutes les pages sauf accueil */
+body:not(.page-home) #hero,
+body:not(.page-home) #heroLogo {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Alternative: masquer le logo selon les classes de page */
+body.page-catalogue #hero,
+body.page-catalogue #heroLogo,
+body.page-devis #hero,
+body.page-devis #heroLogo,
+body.page-compte #hero,
+body.page-compte #heroLogo,
+body.page-produit #hero,
+body.page-produit #heroLogo,
+body.page-auth #hero,
+body.page-auth #heroLogo {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* S'assurer que le logo n'apparait que sur l'accueil */
+body.page-home #hero {
+  display: block;
+}
+
+body.page-home #heroLogo {
+  display: block;
+}
+
+
 /* ========== 05) ACCUEIL — ESPACEMENT PILOTÉ PAR JS ========== */
 #view-home .container{
   margin-top: var(--listGap, 22vh);
