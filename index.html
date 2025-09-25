@@ -1496,6 +1496,8 @@ body.page-compte .topbar-logo-link { display:none !important; }
     if (scrollY < startScroll) {
       // Logo initial
       logoContainer.className = 'hero-logo-container initial';
+      logoContainer.style.removeProperty('--scale-factor');
+      logoContainer.style.removeProperty('--opacity-factor');
     } else if (scrollY < startScroll + animationDistance) {
       // Animation en cours
       const progress = (scrollY - startScroll) / animationDistance;
@@ -1503,26 +1505,34 @@ body.page-compte .topbar-logo-link { display:none !important; }
       // Scale de 1 à 6 (exactement x6)
       const scaleFactor = 1 + (progress * 5);
       // Opacity de 1 à 0
-      const opacityFactor = 1 - progress;
+      const opacityFactor = Math.max(0, 1 - progress);
       
       logoContainer.className = 'hero-logo-container scaling';
-      logoContainer.style.setProperty('--scale-factor', scaleFactor);
-      logoContainer.style.setProperty('--opacity-factor', opacityFactor);
+      logoContainer.style.setProperty('--scale-factor', scaleFactor.toString());
+      logoContainer.style.setProperty('--opacity-factor', opacityFactor.toString());
     } else {
       // Logo complètement disparu
       logoContainer.className = 'hero-logo-container hidden';
+      logoContainer.style.setProperty('--scale-factor', '6');
+      logoContainer.style.setProperty('--opacity-factor', '0');
     }
   }
 
   // Event listener pour le scroll
   window.addEventListener('scroll', function() {
-    handleLogoScroll();
-  });
+    requestAnimationFrame(handleLogoScroll);
+  }, { passive: true });
 
   // Initialisation
-  document.addEventListener('DOMContentLoaded', function() {
-    handleLogoScroll();
-  });
+  function initLogoAnimation() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleLogoScroll);
+    } else {
+      handleLogoScroll();
+    }
+  }
+  
+  initLogoAnimation();
 })();
 </script>
 
