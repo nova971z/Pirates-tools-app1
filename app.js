@@ -1468,104 +1468,146 @@ bindProductActions(product) {
 },
 
 /**
- * FIX SPÉCIAL pour le bouton "Ajouter au panier"
- * Cette fonction empêche complètement la redirection
+ * FIX ULTRA RADICAL pour le bouton "Ajouter au panier"
+ * Bloque ABSOLUMENT toute navigation
  */
 fixAddToCartButton(product) {
-  console.log('🔧 Début fix bouton Ajouter au panier pour:', product.title);
+  console.log('🛡️ Fix RADICAL bouton panier pour:', product.title);
   
   const button = document.getElementById('pdpQuote');
   
   if (!button) {
-    console.log('🔧 Bouton pdpQuote non trouvé');
+    console.log('Bouton non trouvé, retry dans 300ms...');
+    setTimeout(() => this.fixAddToCartButton(product), 300);
     return;
   }
   
-  console.log('🔧 Bouton pdpQuote trouvé, application du fix...');
+  console.log('Bouton trouvé, application du fix RADICAL...');
   
-  // ÉTAPE 1: Supprimer TOUS les attributs qui peuvent causer une navigation
-  const attributesToRemove = ['href', 'data-nav', 'data-action', 'onclick'];
-  attributesToRemove.forEach(attr => {
-    if (button.hasAttribute(attr)) {
-      console.log(`🔧 Suppression de l'attribut: ${attr} = ${button.getAttribute(attr)}`);
-      button.removeAttribute(attr);
+  // ÉTAPE 1: Neutraliser COMPLÈTEMENT le bouton
+  button.removeAttribute('href');
+  button.removeAttribute('data-nav');
+  button.removeAttribute('data-action');
+  button.removeAttribute('onclick');
+  button.onclick = null;
+  button.href = '';
+  
+  // ÉTAPE 2: Vérifier si le bouton est dans un lien parent
+  let parentLink = button.closest('a');
+  if (parentLink) {
+    console.log('Bouton dans un lien parent détecté - neutralisation');
+    parentLink.removeAttribute('href');
+    parentLink.removeAttribute('data-nav');
+    parentLink.onclick = null;
+    parentLink.href = '#';
+  }
+  
+  // ÉTAPE 3: Bloquer TOUTE navigation via hash change
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+  let navigationBlocked = false;
+  
+  const blockNavigation = () => {
+    navigationBlocked = true;
+    
+    // Bloquer les changements de hash
+    const currentHash = window.location.hash;
+    window.addEventListener('hashchange', (e) => {
+      if (navigationBlocked && window.location.hash !== currentHash) {
+        console.log('Navigation bloquée - retour au hash original');
+        e.preventDefault();
+        window.location.hash = currentHash;
+        navigationBlocked = false;
+      }
+    });
+    
+    // Restaurer après 1 seconde
+    setTimeout(() => {
+      navigationBlocked = false;
+    }, 1000);
+  };
+  
+  // ÉTAPE 4: Intercepter TOUS les événements possibles
+  const events = ['click', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'keydown'];
+  
+  events.forEach(eventType => {
+    // Supprimer tous les listeners existants en clonant
+    const newButton = button.cloneNode(true);
+    if (button.parentNode) {
+      button.parentNode.replaceChild(newButton, button);
     }
   });
   
-  // ÉTAPE 2: Supprimer la propriété onclick si elle existe
-  if (button.onclick) {
-    console.log('🔧 Suppression de button.onclick');
-    button.onclick = null;
-  }
-  
-  // ÉTAPE 3: Cloner le bouton pour supprimer tous les event listeners
-  const newButton = button.cloneNode(true);
-  button.parentNode.replaceChild(newButton, button);
-  
-  // ÉTAPE 4: Récupérer le nouveau bouton et ajouter notre event listener
-  const fixedButton = document.getElementById('pdpQuote');
-  
-  if (!fixedButton) {
-    console.error('🔧 Erreur: impossible de récupérer le bouton après clonage');
-    return;
-  }
-  
-  // ÉTAPE 5: Ajouter notre event listener ULTRA prioritaire
-  fixedButton.addEventListener('click', (e) => {
-    console.log('🔧 CLIC INTERCEPTÉ - Ajout au panier sans navigation');
+  // ÉTAPE 5: Récupérer le nouveau bouton et ajouter LE SEUL listener
+  setTimeout(() => {
+    const finalButton = document.getElementById('pdpQuote');
     
-    // BLOQUER COMPLÈTEMENT tout
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    
-    // Empêcher la navigation par hash
-    const originalHash = window.location.hash;
-    
-    // Ajouter au panier
-    const success = CartManager.addToCart(product.slug);
-    
-    // Forcer le hash à rester identique si il a changé
-    if (window.location.hash !== originalHash) {
-      window.location.hash = originalHash;
+    if (!finalButton) {
+      console.error('Impossible de récupérer le bouton après clonage');
+      return;
     }
     
-    if (success) {
-      // Feedback visuel
-      const originalText = fixedButton.textContent;
-      const originalBg = fixedButton.style.backgroundColor;
+    // UN SEUL event listener qui fait TOUT
+    finalButton.addEventListener('click', (e) => {
+      console.log('🛡️ CLIC INTERCEPTÉ - Blocage navigation TOTAL');
       
-      fixedButton.textContent = '✓ Ajouté !';
-      fixedButton.style.backgroundColor = '#00e1b4';
-      fixedButton.style.color = 'white';
+      // Bloquer ABSOLUMENT tout
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       
-      // Animation du dock
-      const dockBtn = document.getElementById('dockCartBtn');
-      if (dockBtn) {
-        dockBtn.style.transform = 'scale(1.2)';
-        dockBtn.style.backgroundColor = '#00e1b4';
+      // Activer le blocage de navigation
+      blockNavigation();
+      
+      // Sauvegarder l'état actuel
+      const currentRoute = State.currentRoute;
+      const currentHash = window.location.hash;
+      
+      // Ajouter au panier
+      console.log('Ajout produit au panier:', product.slug);
+      const success = CartManager.addToCart(product.slug);
+      
+      // Forcer le retour à l'état original si navigation détectée
+      setTimeout(() => {
+        if (State.currentRoute !== currentRoute) {
+          console.log('Navigation détectée - correction forcée');
+          State.setRoute(currentRoute);
+          window.location.hash = currentHash;
+        }
+      }, 50);
+      
+      if (success) {
+        // Feedback visuel sans toucher au style existant
+        const originalText = finalButton.textContent;
+        finalButton.textContent = '✓ Ajouté au panier !';
+        finalButton.style.cssText += 'background-color: #00e1b4 !important; color: white !important;';
+        
+        // Animation du dock si présent
+        const dock = document.getElementById('dockCartBtn');
+        if (dock) {
+          dock.style.cssText += 'transform: scale(1.1); transition: transform 0.2s;';
+          setTimeout(() => {
+            dock.style.transform = '';
+          }, 200);
+        }
+        
+        // Restaurer le bouton après 2.5s
         setTimeout(() => {
-          dockBtn.style.transform = '';
-          dockBtn.style.backgroundColor = '';
-        }, 300);
+          finalButton.textContent = originalText;
+          finalButton.style.backgroundColor = '';
+          finalButton.style.color = '';
+        }, 2500);
+        
+        console.log('✅ Produit ajouté - AUCUNE navigation');
       }
       
-      // Remettre le texte original
-      setTimeout(() => {
-        fixedButton.textContent = originalText;
-        fixedButton.style.backgroundColor = originalBg;
-        fixedButton.style.color = '';
-      }, 2000);
+      return false;
       
-      console.log('🔧 Produit ajouté avec succès, reste sur la fiche produit');
-    }
+    }, { capture: true, passive: false, once: false });
     
-    // S'assurer qu'on ne navigue PAS
-    return false;
+    console.log('✅ Fix RADICAL appliqué avec succès');
     
-  }, { capture: true, passive: false });
-  
-  console.log('🔧 Fix appliqué avec succès !');
+  }, 100);
 },
 
 async shareProduct(product) {
