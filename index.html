@@ -5,27 +5,18 @@
   <meta charset="utf-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
-
   <!-- IMPORTANT: base + canonique -->
-
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
-
  <!-- Cache-bust assets -->
-
   <script>window.__ASSET_VER="37";</script>
-
   <!-- CSS (Android + iOS) -->
-
 <link rel="preload" href="styles.css?v=37" as="style">
 <link id="app-css" rel="stylesheet" href="styles.css?v=37">
 <link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
-
   <!-- PWA -->
-
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -34,9 +25,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
-
   <!-- ?ptlog=1 + fallback CSS -->
-
   <script>
   (function () {
     'use strict';
@@ -48,7 +37,6 @@
         return;
       }
     } catch (_) {}
-
     function cssPresent() {
       var ss = document.styleSheets || [];
       for (var i = 0; i < ss.length; i++) {
@@ -60,23 +48,26 @@
       return false;
     }
 
-    setTimeout(function () {
-      if (!cssPresent()) {
-        var link = document.getElementById('app-css');
-        var href = (document.baseURI ? new URL('styles.css?v=37', document.baseURI).href : 'styles.css?v=37');
-        if (!link) {
-          link = document.createElement('link');
-          link.id = 'app-css';
-          link.rel = 'stylesheet';
-          link.href = href;
-          document.head.appendChild(link);
-        } else {
-          link.href = href.replace(/([?&])v=\d+/, '$1v=' + Date.now());
-        }
-      }
-    }, 600);
-  })();
-  </script>
+```
+setTimeout(function () {
+  if (!cssPresent()) {
+    var link = document.getElementById('app-css');
+    var href = (document.baseURI ? new URL('styles.css?v=37', document.baseURI).href : 'styles.css?v=37');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'app-css';
+      link.rel = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
+    } else {
+      link.href = href.replace(/([?&])v=\d+/, '$1v=' + Date.now());
+    }
+  }
+}, 600);
+```
+
+})();
+</script>
 
 <!-- PT HERO  -->
 
@@ -112,7 +103,83 @@
   })();
   </script>
 
-  <!-- HÉRO : styles propres -->
+  <!-- HÉRO : Animation de scroll intégrée -->
+
+  <style id="hero-scroll-animation">
+    /* === HÉRO AVEC ANIMATION DE SCROLL === */
+    .hero-full {
+      height: 120vh; /* Extra space pour l'animation */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Logo container avec animation de scroll */
+    .hero-logo-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 500;
+      transition: transform 0.1s ease-out;
+    }
+
+    .hero-logo {
+      position: relative;
+      border-radius: 50%;
+      box-shadow: 
+        0 0 30px rgba(212, 175, 55, 0.6),
+        0 0 60px rgba(212, 175, 55, 0.3);
+      transition: all 0.1s ease-out;
+    }
+
+    /* Effet de rotation de l'engrenage en arrière-plan */
+    .hero-logo-container::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: -30px;
+      right: -30px;
+      bottom: -30px;
+      background: 
+        conic-gradient(from 0deg, transparent 0deg 30deg, rgba(212, 175, 55, 0.15) 30deg 60deg, transparent 60deg 90deg, rgba(212, 175, 55, 0.15) 90deg 120deg, transparent 120deg 150deg, rgba(212, 175, 55, 0.15) 150deg 180deg, transparent 180deg 210deg, rgba(212, 175, 55, 0.15) 210deg 240deg, transparent 240deg 270deg, rgba(212, 175, 55, 0.15) 270deg 300deg, transparent 300deg 330deg, rgba(212, 175, 55, 0.15) 330deg 360deg);
+      border-radius: 50%;
+      animation: rotateGear 15s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes rotateGear {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* États de l'animation du logo */
+    .hero-logo-container.initial {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .hero-logo-container.scaling {
+      transform: translate(-50%, -50%) scale(var(--scale-factor));
+      opacity: var(--opacity-factor);
+    }
+
+    .hero-logo-container.hidden {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(6);
+      pointer-events: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-logo {
+        width: 200px !important;
+        height: 200px !important;
+      }
+    }
+  </style>
 
   </head>
 <body>
@@ -124,7 +191,6 @@
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
-```
   <a id="homeLink" class="topbar-logo-link" href="#/" data-nav="/">
     <img
       id="topbarLogo"
@@ -140,45 +206,31 @@
   <a id="callBtn" class="btn btn-call" href="tel:+33774230195" data-action="call">📞 <strong>07 74 23 01 95</strong></a>
   <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
 </div>
-```
 
   </header>
 
-  <!-- =================== HÉRO =================== 
-<section id="hero" class="hero-full" aria-hidden="true" data-hero>
-  <img
-    id="heroLogo"
-    class="hero-logo on"
-    alt="Pirates Tools"
-    src="icons/icon-512.png"
-    srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
-    sizes="min(66vmin, 512px)"
-    width="512" height="512"
-    decoding="async" loading="eager" referrerpolicy="no-referrer" />
-  <div class="hero-fade" aria-hidden="true"></div>
-</section>
+  <!-- =================== HÉRO AVEC ANIMATION INTÉGRÉE =================== -->
 
-<div class="hero-fade-fixed" aria-hidden="true"></div> -->
-
-<!-- HÉRO FLUIDE -->
+<!-- HÉRO AVEC ANIMATION DE SCROLL -->
 
 <section id="hero" class="hero-full" aria-hidden="true">
-  <img
-    id="heroLogo"
-    class="hero-logo on"
-    alt="Pirates Tools"
-    src="icons/icon-512.png"
-    srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
-    sizes="min(66vmin, 512px)"
-    width="512" height="512"
-    decoding="async" loading="eager" fetchpriority="high" />
+  <div class="hero-logo-container initial" id="heroLogoContainer">
+    <img
+      id="heroLogo"
+      class="hero-logo on"
+      alt="Pirates Tools"
+      src="icons/icon-256.png"
+      srcset="icons/icon-180.png 180w, icons/icon-192.png 192w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
+      sizes="min(66vmin, 512px)"
+      width="250" height="250"
+      decoding="async" loading="eager" fetchpriority="high" />
+  </div>
 </section>
 
   <!-- =================== VUES (SPA) =================== -->
 
   <main id="app" role="main">
 
-```
 <!-- HOME -->
 
 <section id="view-home" class="view" data-route="/" role="region" aria-labelledby="home-h1">
@@ -196,15 +248,18 @@
   <div class="container">
     <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
 
-    <div class="toolbar">
-      <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
-      <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
-        <option value="">Tous</option>
-      </select>
-    </div>
+```
+<div class="toolbar">
+  <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
+  <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
+    <option value="">Tous</option>
+  </select>
+</div>
 
-    <div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
-    <div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
+<div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
+<div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
+```
+
   </div>
 </section>
 
@@ -214,27 +269,30 @@
   <div class="container pdp" id="pdp">
     <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
-    <div class="pdp__grid">
-      <div class="pdp__media">
-        <img id="pdpImg" alt="" />
-      </div>
+```
+<div class="pdp__grid">
+  <div class="pdp__media">
+    <img id="pdpImg" alt="" />
+  </div>
 
-      <div class="pdp__info">
-        <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
-        <div id="pdpTag" class="pdp__tag"></div>
-        <p id="pdpDesc" class="pdp__desc"></p>
-        <div class="pdp__price" id="pdpPrice"></div>
-        <ul id="pdpSpecs" class="pdp__specs"></ul>
+  <div class="pdp__info">
+    <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
+    <div id="pdpTag" class="pdp__tag"></div>
+    <p id="pdpDesc" class="pdp__desc"></p>
+    <div class="pdp__price" id="pdpPrice"></div>
+    <ul id="pdpSpecs" class="pdp__specs"></ul>
 
-        <div class="actions">
-          <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-          <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
-          <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
-        </div>
-      </div>
+    <div class="actions">
+      <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
+      <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
+      <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
     </div>
+  </div>
+</div>
 
-    <div class="pdp__related" id="pdpRelated" data-bind="related"></div>
+<div class="pdp__related" id="pdpRelated" data-bind="related"></div>
+```
+
   </div>
 </section>
 
@@ -244,135 +302,133 @@
   <div class="container">
     <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
 
-    <div class="card">
-      <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
+```
+<div class="card">
+  <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
 
-      <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
+  <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
 
-      <div class="actions">
-        <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
-        <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
-      </div>
-    </div>
+  <div class="actions">
+    <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
+    <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
+  </div>
+</div>
+```
+
   </div>
 </section>
 
-
-
 <!-- COMPTE -->
-
 
 <section id="view-compte" class="view hidden" data-route="/compte" role="region" aria-labelledby="compte-h1">
   <div class="container">
     <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
 
-    <div class="card">
-      <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
-      <div class="specs">
-        
-        
-        <!-- Avatar -->
-        
-        
-        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
-          <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
-          <label class="chip" style="cursor:pointer">
-            <input id="accAvatar" type="file" accept="image/*" hidden />
-            Ajouter une photo de profil
-          </label>
-        </div>
+```
+<div class="card">
+  <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
+  <div class="specs">
+    
+    <!-- Avatar -->
+    
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
+      <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
+      <label class="chip" style="cursor:pointer">
+        <input id="accAvatar" type="file" accept="image/*" hidden />
+        Ajouter une photo de profil
+      </label>
+    </div>
 
-        <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
-          <label>Nom
-            <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
-          </label>
-          <label>Email
-            <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
-          </label>
-          <div class="actions">
-            <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
-          </div>
-        </form>
+    <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
+      <label>Nom
+        <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
+      </label>
+      <label>Email
+        <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
+      </label>
+      <div class="actions">
+        <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
+      </div>
+    </form>
 
-        <!-- Mini récap panier -->
-        
-        
-        <div class="card" style="margin-top:1rem;max-width:520px">
-          <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
-          <div id="accCartMini" class="specs">
-            <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
-            <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
-          </div>
-        </div>
-
-        <!-- Jauge fidélité -->
-        
-        
-        <div class="meter" style="max-width:520px;margin-top:1rem">
-          <div class="meter__rail">
-            <div id="accFill" class="meter__fill"></div>
-            <div id="accCursor" class="meter__cursor" style="left:0%"></div>
-          </div>
-          <div class="meter__scale"><span>0%</span><span>100%</span></div>
-          <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
-        </div>
+    <!-- Mini récap panier -->
+    
+    <div class="card" style="margin-top:1rem;max-width:520px">
+      <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
+      <div id="accCartMini" class="specs">
+        <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
+        <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
       </div>
     </div>
+
+    <!-- Jauge fidélité -->
+    
+    <div class="meter" style="max-width:520px;margin-top:1rem">
+      <div class="meter__rail">
+        <div id="accFill" class="meter__fill"></div>
+        <div id="accCursor" class="meter__cursor" style="left:0%"></div>
+      </div>
+      <div class="meter__scale"><span>0%</span><span>100%</span></div>
+      <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
+    </div>
+  </div>
+</div>
+```
+
   </div>
 </section>
 
-
-
    <!-- AUTH -->
-  
-  
+
 <section id="view-auth" class="view hidden" data-route="/auth" role="region" aria-labelledby="auth-h1">
   <div class="container">
     <h1 id="auth-h1" tabindex="-1">Compte</h1>
     <div class="card">
       <div class="head"><h3 class="title">Bienvenue</h3><span class="badge">Compte</span></div>
 
-      <div class="specs" style="display:block">
-        <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
-          <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
-          <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
-        </div>
+```
+  <div class="specs" style="display:block">
+    <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
+      <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
+      <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
+    </div>
 
-        <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
-          <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
-            <label>Email
-              <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-            </label>
-            <label>Mot de passe
-              <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
-            </label>
-            <div class="actions">
-              <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
-            </div>
-          </form>
+    <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
+      <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+        <label>Email
+          <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+        </label>
+        <label>Mot de passe
+          <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
+        </label>
+        <div class="actions">
+          <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
         </div>
+      </form>
+    </div>
 
-        <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
-          <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
-            <label>Nom complet
-              <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
-            </label>
-            <label>Email
-              <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-            </label>
-            <label>Mot de passe
-              <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
-            </label>
-            <div class="actions">
-              <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
-            </div>
-          </form>
+    <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
+      <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+        <label>Nom complet
+          <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+        </label>
+        <label>Email
+          <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+        </label>
+        <label>Mot de passe
+          <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
+        </label>
+        <div class="actions">
+          <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
-</section>
+</div>
 ```
+
+  </div>
+</section>
 
   </main>
 
@@ -407,7 +463,6 @@
       <span>Accueil</span>
     </a>
 
-```
 <a href="#/catalogue" data-route="#/catalogue">
   <!-- Toolbox -->
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -436,7 +491,6 @@
   </svg>
   <span>Compte</span>
 </a>
-```
 
   </nav>
 </aside>
@@ -562,9 +616,6 @@ body.page-compte .topbar-logo-link { display:none !important; }
   var ovl = document.getElementById('menuBackdrop');
   if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
 
-    
-  
-  
   // lien "Aller au contenu"
   (function(){
     var sk = document.querySelector('.skip-link');
@@ -1443,8 +1494,56 @@ body.page-compte .topbar-logo-link { display:none !important; }
 })();
 </script>
 
-<script>
+<!-- ANIMATION DE SCROLL DU LOGO INTÉGRÉE -->
 
+<script>
+(function() {
+  'use strict';
+  
+  // Gestion de l'effet de scroll du logo Pirates Tools
+  function handleLogoScroll() {
+    const logoContainer = document.getElementById('heroLogoContainer');
+    if (!logoContainer) return;
+    
+    const scrollY = window.scrollY;
+    const windowHeight = window.innerHeight;
+    
+    // Point de départ de l'animation (après la topbar)
+    const startScroll = 100;
+    // Distance totale pour l'animation complète
+    const animationDistance = windowHeight * 0.8;
+    
+    if (scrollY < startScroll) {
+      // Logo initial
+      logoContainer.className = 'hero-logo-container initial';
+    } else if (scrollY < startScroll + animationDistance) {
+      // Animation en cours
+      const progress = (scrollY - startScroll) / animationDistance;
+      
+      // Scale de 1 à 6
+      const scaleFactor = 1 + (progress * 5);
+      // Opacity de 1 à 0
+      const opacityFactor = 1 - progress;
+      
+      logoContainer.className = 'hero-logo-container scaling';
+      logoContainer.style.setProperty('--scale-factor', scaleFactor);
+      logoContainer.style.setProperty('--opacity-factor', opacityFactor);
+    } else {
+      // Logo complètement disparu
+      logoContainer.className = 'hero-logo-container hidden';
+    }
+  }
+
+  // Event listener pour le scroll
+  window.addEventListener('scroll', function() {
+    handleLogoScroll();
+  });
+
+  // Initialisation
+  document.addEventListener('DOMContentLoaded', function() {
+    handleLogoScroll();
+  });
+})();
 </script>
 
 </body>
