@@ -108,7 +108,7 @@ setTimeout(function () {
   <style id="hero-scroll-animation">
     /* === HÉRO AVEC ANIMATION DE SCROLL === */
     .hero-full {
-      height: 120vh; /* Extra space pour l'animation */
+      height: 100vh; /* Réduit l'espace */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -133,26 +133,6 @@ setTimeout(function () {
         0 0 30px rgba(212, 175, 55, 0.6),
         0 0 60px rgba(212, 175, 55, 0.3);
       transition: all 0.1s ease-out;
-    }
-
-    /* Effet de rotation de l'engrenage en arrière-plan */
-    .hero-logo-container::before {
-      content: '';
-      position: absolute;
-      top: -30px;
-      left: -30px;
-      right: -30px;
-      bottom: -30px;
-      background: 
-        conic-gradient(from 0deg, transparent 0deg 30deg, rgba(212, 175, 55, 0.15) 30deg 60deg, transparent 60deg 90deg, rgba(212, 175, 55, 0.15) 90deg 120deg, transparent 120deg 150deg, rgba(212, 175, 55, 0.15) 150deg 180deg, transparent 180deg 210deg, rgba(212, 175, 55, 0.15) 210deg 240deg, transparent 240deg 270deg, rgba(212, 175, 55, 0.15) 270deg 300deg, transparent 300deg 330deg, rgba(212, 175, 55, 0.15) 330deg 360deg);
-      border-radius: 50%;
-      animation: rotateGear 15s linear infinite;
-      z-index: -1;
-    }
-
-    @keyframes rotateGear {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
     }
 
     /* États de l'animation du logo */
@@ -222,7 +202,7 @@ setTimeout(function () {
       src="icons/icon-256.png"
       srcset="icons/icon-180.png 180w, icons/icon-192.png 192w, icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
       sizes="min(66vmin, 512px)"
-      width="250" height="250"
+      width="300" height="300"
       decoding="async" loading="eager" fetchpriority="high" />
   </div>
 </section>
@@ -1520,8 +1500,8 @@ body.page-compte .topbar-logo-link { display:none !important; }
       // Animation en cours
       const progress = (scrollY - startScroll) / animationDistance;
       
-      // Scale de 1 à 6
-      const scaleFactor = 1 + (progress * 5);
+      // Scale de 1 à 8 (plus gros)
+      const scaleFactor = 1 + (progress * 7);
       // Opacity de 1 à 0
       const opacityFactor = 1 - progress;
       
