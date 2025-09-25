@@ -220,6 +220,9 @@ integrateWithExistingRouter() {
     console.log('Route changed via existing router:', hash);
     State.setRoute(hash);
     
+    // Gérer le logo selon la route
+    this.updateHeroState(hash);
+    
     // Actions spécifiques
     if (hash === '/devis') {
       setTimeout(() => {
@@ -232,6 +235,7 @@ integrateWithExistingRouter() {
   // Trigger initial
   const currentHash = window.location.hash.slice(1) || '/';
   State.setRoute(currentHash);
+  this.updateHeroState(currentHash);
 },
 
 handleHashChange() {
@@ -338,15 +342,32 @@ updateBodyClass(route) {
 
 updateHeroState(route) {
   const hero = document.getElementById('hero');
+  const heroLogo = document.getElementById('heroLogo');
   const isHomePage = route === ROUTES.HOME;
   
+  console.log('Updating hero state for route:', route, 'isHomePage:', isHomePage);
+  
   if (isHomePage) {
+    // Page d'accueil : afficher le héro et le logo
     State.heroState = 'active';
-    hero?.classList.remove('hero-out');
+    if (hero) {
+      hero.classList.remove('hero-out');
+      hero.style.display = 'block';
+    }
+    if (heroLogo) {
+      heroLogo.style.display = 'block';
+    }
     document.body.classList.remove('after-hero');
   } else {
+    // Autres pages : masquer complètement le héro et le logo
     State.heroState = 'hidden';
-    hero?.classList.add('hero-out');
+    if (hero) {
+      hero.classList.add('hero-out');
+      hero.style.display = 'none'; // Force le masquage
+    }
+    if (heroLogo) {
+      heroLogo.style.display = 'none'; // Force le masquage du logo
+    }
     document.body.classList.add('after-hero');
   }
   
@@ -1226,6 +1247,18 @@ updateHeroLogo() {
   
   // Éviter conflit avec animations HTML existantes
   if (logo.dataset.jsControlled === 'false') return;
+  
+  // Si on n'est pas sur la page d'accueil, forcer le masquage du logo
+  if (State.currentRoute !== ROUTES.HOME) {
+    logo.style.display = 'none';
+    logo.classList.remove('on');
+    logo.classList.add('hero-out');
+    console.log('Logo masqué car route:', State.currentRoute);
+    return;
+  }
+  
+  // Page d'accueil : gérer l'état normal du logo
+  logo.style.display = 'block';
   
   switch (State.heroState) {
     case 'active':
