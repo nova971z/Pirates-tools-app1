@@ -553,11 +553,11 @@ createSlug(title) {
     .replace(/[\u00F2-\u00F6]/g, 'o')
     .replace(/[\u00F9-\u00FC]/g, 'u')
     .replace(/[\u00FD\u00FF]/g, 'y')
-    // Autres caractères spéciaux
+    // Autres caracteres speciaux
     .replace(/[\u2013\u2014]/g, '-') // em/en dash
     .replace(/[^\w\s-]/g, '') // Garder seulement mots, espaces, tirets
     .replace(/[\s_-]+/g, '-') // Espaces et underscores vers tirets
-    .replace(/^-+|-+$/g, ''); // Supprimer tirets en début/fin
+    .replace(/^-+|-+$/g, ''); // Supprimer tirets en debut/fin
 },
 
 createSearchText(product) {
@@ -1977,37 +1977,58 @@ console.log(‘Available methods:’, Object.keys(window.PiratesTools));
 console.log(’============================’);
 };
 
-// Auto-start robuste
+// Auto-start robuste avec gestion d’erreurs amelioree
 function startApp() {
 console.log(‘Starting Pirates Tools App…’);
 console.log(‘Document ready state:’, document.readyState);
 
 ```
-// Démarrer l'initialisation
-window.PiratesTools.init().catch(error => {
-  console.error('App initialization failed:', error);
-  
-  // Retry après un délai
-  setTimeout(() => {
-    console.log('Retrying app initialization...');
-    window.PiratesTools.init().catch(retryError => {
-      console.error('App initialization retry failed:', retryError);
-    });
-  }, 2000);
-});
+try {
+  // Demarrer l'initialisation
+  window.PiratesTools.init().catch(error => {
+    console.error('App initialization failed:', error);
+    console.error('Error details:', error.message);
+    
+    // Retry apres un delai
+    setTimeout(() => {
+      console.log('Retrying app initialization...');
+      window.PiratesTools.init().catch(retryError => {
+        console.error('App initialization retry failed:', retryError);
+        console.error('Retry error details:', retryError.message);
+      });
+    }, 2000);
+  });
+} catch (syncError) {
+  console.error('Synchronous error during app start:', syncError);
+  console.error('Sync error details:', syncError.message);
+}
 ```
 
 }
 
-// Démarrage selon état du DOM
+// Demarrage selon etat du DOM avec gestion d’erreurs
+try {
 if (document.readyState === ‘loading’) {
 document.addEventListener(‘DOMContentLoaded’, startApp);
 } else if (document.readyState === ‘interactive’) {
-// DOM prêt mais ressources en cours de chargement
+// DOM pret mais ressources en cours de chargement
 setTimeout(startApp, 100);
 } else {
-// DOM et ressources prêts
+// DOM et ressources prets
 startApp();
+}
+} catch (startError) {
+console.error(‘Error during app startup:’, startError);
+console.error(‘Startup error details:’, startError.message);
+
+```
+// Fallback: essayer de demarrer quand meme
+setTimeout(() => {
+  console.log('Attempting fallback startup...');
+  startApp();
+}, 1000);
+```
+
 }
 
 })();
