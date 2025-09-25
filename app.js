@@ -755,54 +755,164 @@ updateCartCount() {
 updateCartList() {
   const container = document.getElementById('devisList');
   if (!container) {
-    console.warn('Container devisList non trouve');
+    console.warn('Container devisList non trouve - element manquant dans le HTML');
     return;
   }
   
-  console.log('Updating cart list, items:', State.cart.length);
-  console.log('Cart content:', State.cart);
+  console.log('🛒 Mise à jour liste panier - articles:', State.cart.length);
+  console.log('🛒 Contenu panier:', State.cart);
   
   if (State.cart.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="text-align: center; padding: 40px 20px;">
-        <p style="color: var(--muted); margin-bottom: 20px;">Votre panier est vide</p>
-        <a href="#/catalogue" class="btn primary" style="display: inline-block; padding: 12px 24px; text-decoration: none;">Decouvrir nos produits</a>
+      <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--muted);">
+        <h3 style="margin-bottom: 16px; color: var(--fg);">Votre panier est vide</h3>
+        <p style="margin-bottom: 24px;">Découvrez nos produits et ajoutez-les à votre panier</p>
+        <a href="#/catalogue" class="btn primary" style="display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Voir le catalogue</a>
       </div>
     `;
     return;
   }
   
-  const cartHTML = State.cart.map((item, index) => `
-    <div class="cart-item" data-slug="${item.slug}" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; margin-bottom: 12px; background: var(--card); border-radius: 8px;">
-      <div class="cart-item__info" style="display: flex; align-items: center; gap: 12px;">
-        ${item.image ? `<img src="${item.image}" alt="${Utils.escapeHtml(item.title)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">` : ''}
-        <div>
-          <h4 style="margin: 0; font-size: 14px; font-weight: 600;">${Utils.escapeHtml(item.title)}</h4>
-          <p style="margin: 4px 0; color: var(--brand); font-weight: 500;">${item.price}€ HT</p>
+  // Construire le HTML des articles
+  const cartItemsHTML = State.cart.map((item, index) => {
+    console.log(`🛒 Rendu article ${index + 1}:`, item.title);
+    
+    return `
+      <div class="cart-item" data-slug="${item.slug}" style="
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 16px; 
+        margin-bottom: 12px; 
+        background: var(--card); 
+        border-radius: 8px; 
+        border: 1px solid var(--border);
+      ">
+        <div class="cart-item__info" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+          ${item.image ? `
+            <img src="${item.image}" alt="${Utils.escapeHtml(item.title)}" style="
+              width: 60px; 
+              height: 60px; 
+              object-fit: cover; 
+              border-radius: 8px; 
+              border: 1px solid var(--border);
+            ">
+          ` : `
+            <div style="
+              width: 60px; 
+              height: 60px; 
+              background: var(--border); 
+              border-radius: 8px; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center; 
+              color: var(--muted);
+            ">📦</div>
+          `}
+          <div style="flex: 1;">
+            <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--fg);">${Utils.escapeHtml(item.title)}</h4>
+            <p style="margin: 4px 0; color: var(--brand); font-weight: 500; font-size: 13px;">Prix unitaire: ${item.price}€ HT</p>
+            <p style="margin: 4px 0; color: var(--muted); font-size: 12px;">Sous-total: ${(item.price * item.quantity).toFixed(2)}€ HT</p>
+          </div>
+        </div>
+        <div class="cart-item__controls" style="display: flex; align-items: center; gap: 8px;">
+          <button 
+            onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" 
+            style="
+              width: 32px; 
+              height: 32px; 
+              border-radius: 50%; 
+              border: 1px solid var(--border); 
+              background: var(--panel); 
+              color: var(--fg); 
+              cursor: pointer; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center;
+              font-weight: bold;
+            "
+            ${item.quantity <= 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+          >-</button>
+          
+          <span style="
+            min-width: 32px; 
+            text-align: center; 
+            font-weight: 600; 
+            background: var(--card); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            border: 1px solid var(--border);
+            color: var(--fg);
+          ">${item.quantity}</span>
+          
+          <button 
+            onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" 
+            style="
+              width: 32px; 
+              height: 32px; 
+              border-radius: 50%; 
+              border: 1px solid var(--border); 
+              background: var(--panel); 
+              color: var(--fg); 
+              cursor: pointer; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center;
+              font-weight: bold;
+            "
+          >+</button>
+          
+          <button 
+            onclick="window.PiratesTools.removeFromCart('${item.slug}')" 
+            style="
+              width: 32px; 
+              height: 32px; 
+              border-radius: 50%; 
+              border: 1px solid var(--border); 
+              background: var(--panel); 
+              color: #ff6b6b; 
+              cursor: pointer; 
+              margin-left: 8px; 
+              display: flex; 
+              align-items: center; 
+              justify-content: center;
+              font-weight: bold;
+            "
+            title="Supprimer cet article"
+          >×</button>
         </div>
       </div>
-      <div class="cart-item__controls" style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center;">-</button>
-        <span style="min-width: 24px; text-align: center; font-weight: 600;">${item.quantity}</span>
-        <button onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
-        <button onclick="window.PiratesTools.removeFromCart('${item.slug}')" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: #ff6b6b; cursor: pointer; margin-left: 8px; display: flex; align-items: center; justify-content: center;">×</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   
   // Total
+  const totalHT = State.cartTotal;
+  const totalTTC = totalHT * 1.20;
+  
   const totalHTML = `
-    <div class="cart-total" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); text-align: right;">
-      <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
-        Total HT: <span style="color: var(--brand);">${State.cartTotal.toFixed(2)}€</span>
+    <div class="cart-total" style="
+      margin-top: 20px; 
+      padding: 20px; 
+      background: var(--panel); 
+      border-radius: 8px; 
+      border: 1px solid var(--border);
+    ">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--muted);">Total HT:</span>
+        <span style="font-size: 18px; font-weight: 600; color: var(--brand);">${totalHT.toFixed(2)}€</span>
       </div>
-      <div style="font-size: 14px; color: var(--muted);">
-        TTC: ${(State.cartTotal * 1.20).toFixed(2)}€
+      <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border);">
+        <span style="color: var(--muted);">Total TTC (20% TVA):</span>
+        <span style="font-size: 20px; font-weight: 700; color: var(--fg);">${totalTTC.toFixed(2)}€</span>
+      </div>
+      <div style="margin-top: 12px; font-size: 12px; color: var(--muted);">
+        ${State.cartCount} article${State.cartCount > 1 ? 's' : ''} dans votre panier
       </div>
     </div>
   `;
   
-  container.innerHTML = cartHTML + totalHTML;
+  container.innerHTML = cartItemsHTML + totalHTML;
+  console.log('🛒 Panier rendu avec succès');
 },
 
 updateMiniCart() {
@@ -1362,7 +1472,7 @@ bindProductActions(product) {
  * Cette fonction empêche complètement la redirection
  */
 fixAddToCartButton(product) {
-  console.log('🔧 Début fix bouton Ajouter au panier...');
+  console.log('🔧 Début fix bouton Ajouter au panier pour:', product.title);
   
   const button = document.getElementById('pdpQuote');
   
@@ -1400,29 +1510,50 @@ fixAddToCartButton(product) {
     return;
   }
   
-  // ÉTAPE 5: Ajouter notre event listener avec capture et propagation bloquée
+  // ÉTAPE 5: Ajouter notre event listener ULTRA prioritaire
   fixedButton.addEventListener('click', (e) => {
-    console.log('🔧 Clic sur bouton intercepté !');
+    console.log('🔧 CLIC INTERCEPTÉ - Ajout au panier sans navigation');
     
-    // BLOQUER COMPLÈTEMENT la propagation
+    // BLOQUER COMPLÈTEMENT tout
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
     
+    // Empêcher la navigation par hash
+    const originalHash = window.location.hash;
+    
     // Ajouter au panier
     const success = CartManager.addToCart(product.slug);
+    
+    // Forcer le hash à rester identique si il a changé
+    if (window.location.hash !== originalHash) {
+      window.location.hash = originalHash;
+    }
     
     if (success) {
       // Feedback visuel
       const originalText = fixedButton.textContent;
+      const originalBg = fixedButton.style.backgroundColor;
+      
       fixedButton.textContent = '✓ Ajouté !';
       fixedButton.style.backgroundColor = '#00e1b4';
       fixedButton.style.color = 'white';
       
+      // Animation du dock
+      const dockBtn = document.getElementById('dockCartBtn');
+      if (dockBtn) {
+        dockBtn.style.transform = 'scale(1.2)';
+        dockBtn.style.backgroundColor = '#00e1b4';
+        setTimeout(() => {
+          dockBtn.style.transform = '';
+          dockBtn.style.backgroundColor = '';
+        }, 300);
+      }
+      
       // Remettre le texte original
       setTimeout(() => {
         fixedButton.textContent = originalText;
-        fixedButton.style.backgroundColor = '';
+        fixedButton.style.backgroundColor = originalBg;
         fixedButton.style.color = '';
       }, 2000);
       
@@ -1668,22 +1799,15 @@ console.log(‘DOM ready state:’, document.readyState);
 bindGlobalEvents() {
   console.log('Binding global events...');
   
-  // Navigation data-nav (avec exclusions strictes pour PDP)
+  // Navigation data-nav (exclure pdpQuote)
   document.addEventListener('click', (e) => {
-    // IGNORER COMPLÈTEMENT si c'est le bouton d'ajout au panier PDP
+    // Ignorer complètement le bouton PDP - il est géré par son propre fix
     if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
-      console.log('Ignoring navigation for pdpQuote button');
-      return; // Laisser le PDP gérer cet événement
+      return;
     }
     
     const navEl = e.target.closest('[data-nav]');
-    if (navEl) {
-      // Double vérification pour éviter les boutons d'ajout au panier
-      if (navEl.id === 'pdpQuote' || navEl.classList.contains('add-to-cart-btn')) {
-        console.log('Skipping navigation for cart button');
-        return;
-      }
-      
+    if (navEl && navEl.id !== 'pdpQuote') {
       console.log('Navigation via data-nav to:', navEl.dataset.nav);
       e.preventDefault();
       const route = navEl.dataset.nav;
@@ -1691,22 +1815,15 @@ bindGlobalEvents() {
     }
   });
   
-  // Actions data-action (avec exclusions strictes pour PDP)
+  // Actions data-action (exclure pdpQuote)
   document.addEventListener('click', (e) => {
-    // IGNORER COMPLÈTEMENT si c'est le bouton PDP
+    // Ignorer complètement le bouton PDP
     if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
-      console.log('Ignoring global action for pdpQuote button');
       return;
     }
     
     const actionEl = e.target.closest('[data-action]');
-    if (actionEl) {
-      // Double vérification
-      if (actionEl.id === 'pdpQuote') {
-        console.log('Skipping global action for pdpQuote');
-        return;
-      }
-      
+    if (actionEl && actionEl.id !== 'pdpQuote') {
       console.log('Global action triggered:', actionEl.dataset.action);
       e.preventDefault();
       this.handleGlobalAction(actionEl.dataset.action, actionEl);
@@ -1716,7 +1833,7 @@ bindGlobalEvents() {
   // Échap pour fermer modales
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (UI.Menu.isOpen()) {
+      if (UI.Menu && UI.Menu.isOpen()) {
         UI.Menu.close();
       }
     }
@@ -1899,38 +2016,107 @@ testAddToCart() {
 
 // Diagnostic du bouton PDP
 diagnoseAddToCartButton() {
-  console.log('=== ADD TO CART BUTTON DIAGNOSIS ===');
+  console.log('=== 🔍 DIAGNOSTIC BOUTON AJOUTER AU PANIER ===');
   
   const btn = document.getElementById('pdpQuote');
-  console.log('Button found:', !!btn);
+  console.log('Bouton trouvé:', !!btn);
   
   if (btn) {
-    console.log('Button attributes:');
+    console.log('📋 Attributs du bouton:');
     for (let attr of btn.attributes) {
-      console.log(`  ${attr.name}: ${attr.value}`);
+      console.log(`  ${attr.name}: "${attr.value}"`);
     }
     
-    console.log('Button event listeners:');
+    console.log('📋 Propriétés du bouton:');
     console.log('  onclick:', btn.onclick);
     console.log('  href:', btn.href);
-    console.log('  data-nav:', btn.dataset.nav);
-    console.log('  data-action:', btn.dataset.action);
+    console.log('  tagName:', btn.tagName);
+    console.log('  className:', btn.className);
+    console.log('  textContent:', btn.textContent.trim());
     
-    console.log('Button classes:', btn.className);
-    console.log('Button parent:', btn.parentElement?.tagName);
+    console.log('📋 Parent du bouton:', btn.parentElement?.tagName, btn.parentElement?.className);
     
-    // Test click sans navigation
-    console.log('Testing click handler...');
-    const testEvent = new MouseEvent('click', {
-      bubbles: false,
-      cancelable: true
+    console.log('📋 Listeners détectés:');
+    // Vérifier les event listeners (approximatif)
+    const events = ['click', 'mousedown', 'mouseup'];
+    events.forEach(eventType => {
+      // Note: impossible de lister les vrais listeners, mais on peut tester
+      console.log(`  ${eventType}: listeners probablement présents`);
     });
     
+    console.log('📋 Route actuelle:', State.currentRoute);
+    console.log('📋 Produit actuel:', State.currentProduct?.title || 'Non défini');
+    
+    // Test de clic simulé
+    console.log('🧪 Test de clic simulé...');
+    const testEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    });
+    
+    // Empêcher navigation pendant le test
+    const originalHash = window.location.hash;
     btn.dispatchEvent(testEvent);
-    console.log('Test click completed');
+    
+    setTimeout(() => {
+      if (window.location.hash !== originalHash) {
+        console.log('❌ PROBLÈME: Navigation détectée pendant le test !');
+        console.log('  Hash avant:', originalHash);
+        console.log('  Hash après:', window.location.hash);
+      } else {
+        console.log('✅ Test OK: Pas de navigation inattendue');
+      }
+    }, 100);
+    
+  } else {
+    console.log('❌ Bouton non trouvé - vérifier que vous êtes sur une fiche produit');
   }
   
   console.log('=====================================');
+},
+
+// Fix d'urgence pour forcer le bouton à fonctionner
+emergencyFixButton() {
+  console.log('🚨 FIX D\'URGENCE pour le bouton panier');
+  
+  const btn = document.getElementById('pdpQuote');
+  if (!btn) {
+    console.log('❌ Bouton non trouvé');
+    return;
+  }
+  
+  // Supprimer TOUT
+  btn.removeAttribute('href');
+  btn.removeAttribute('data-nav');
+  btn.removeAttribute('data-action');
+  btn.removeAttribute('onclick');
+  btn.onclick = null;
+  
+  // Stopper TOUS les événements
+  ['click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(eventType => {
+    btn.addEventListener(eventType, (e) => {
+      console.log(`🚨 Événement ${eventType} intercepté et bloqué`);
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      if (eventType === 'click') {
+        // Simuler l'ajout au panier
+        if (State.currentProduct) {
+          CartManager.addToCart(State.currentProduct.slug);
+          btn.textContent = '✅ Ajouté !';
+          setTimeout(() => {
+            btn.textContent = 'Ajouter au panier';
+          }, 2000);
+        }
+      }
+      
+      return false;
+    }, { capture: true, passive: false });
+  });
+  
+  console.log('✅ Fix d\'urgence appliqué');
 },
 
 // Méthode d'initialisation
@@ -1977,58 +2163,37 @@ console.log(‘Available methods:’, Object.keys(window.PiratesTools));
 console.log(’============================’);
 };
 
-// Auto-start robuste avec gestion d’erreurs amelioree
+// Auto-start robuste
 function startApp() {
 console.log(‘Starting Pirates Tools App…’);
 console.log(‘Document ready state:’, document.readyState);
 
 ```
-try {
-  // Demarrer l'initialisation
-  window.PiratesTools.init().catch(error => {
-    console.error('App initialization failed:', error);
-    console.error('Error details:', error.message);
-    
-    // Retry apres un delai
-    setTimeout(() => {
-      console.log('Retrying app initialization...');
-      window.PiratesTools.init().catch(retryError => {
-        console.error('App initialization retry failed:', retryError);
-        console.error('Retry error details:', retryError.message);
-      });
-    }, 2000);
-  });
-} catch (syncError) {
-  console.error('Synchronous error during app start:', syncError);
-  console.error('Sync error details:', syncError.message);
-}
+// Démarrer l'initialisation
+window.PiratesTools.init().catch(error => {
+  console.error('App initialization failed:', error);
+  
+  // Retry après un délai
+  setTimeout(() => {
+    console.log('Retrying app initialization...');
+    window.PiratesTools.init().catch(retryError => {
+      console.error('App initialization retry failed:', retryError);
+    });
+  }, 2000);
+});
 ```
 
 }
 
-// Demarrage selon etat du DOM avec gestion d’erreurs
-try {
+// Démarrage selon état du DOM
 if (document.readyState === ‘loading’) {
 document.addEventListener(‘DOMContentLoaded’, startApp);
 } else if (document.readyState === ‘interactive’) {
-// DOM pret mais ressources en cours de chargement
+// DOM prêt mais ressources en cours de chargement
 setTimeout(startApp, 100);
 } else {
-// DOM et ressources prets
+// DOM et ressources prêts
 startApp();
-}
-} catch (startError) {
-console.error(‘Error during app startup:’, startError);
-console.error(‘Startup error details:’, startError.message);
-
-```
-// Fallback: essayer de demarrer quand meme
-setTimeout(() => {
-  console.log('Attempting fallback startup...');
-  startApp();
-}, 1000);
-```
-
 }
 
 })();
