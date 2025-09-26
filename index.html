@@ -11,10 +11,10 @@
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
  <!-- Cache-bust assets -->
-  <script>window.__ASSET_VER="38";</script>
+  <script>window.__ASSET_VER="37";</script>
   <!-- CSS (Android + iOS) -->
-<link rel="preload" href="styles.css?v=38" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=38">
+<link rel="preload" href="styles.css?v=37" as="style">
+<link id="app-css" rel="stylesheet" href="styles.css?v=37">
 <link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
   <!-- PWA -->
   <meta name="theme-color" content="#0a0f14" />
@@ -48,11 +48,11 @@
       return false;
     }
 
-
+```
 setTimeout(function () {
   if (!cssPresent()) {
     var link = document.getElementById('app-css');
-    var href = (document.baseURI ? new URL('styles.css?v=38', document.baseURI).href : 'styles.css?v=38');
+    var href = (document.baseURI ? new URL('styles.css?v=37', document.baseURI).href : 'styles.css?v=37');
     if (!link) {
       link = document.createElement('link');
       link.id = 'app-css';
@@ -64,7 +64,7 @@ setTimeout(function () {
     }
   }
 }, 600);
-
+```
 
 })();
 </script>
@@ -231,7 +231,7 @@ setTimeout(function () {
   <div class="container">
     <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
 
-
+```
 <div class="toolbar">
   <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
   <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
@@ -241,7 +241,7 @@ setTimeout(function () {
 
 <div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
 <div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
-
+```
 
   </div>
 </section>
@@ -252,7 +252,7 @@ setTimeout(function () {
   <div class="container pdp" id="pdp">
     <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
-
+```
 <div class="pdp__grid">
   <div class="pdp__media">
     <img id="pdpImg" alt="" />
@@ -274,7 +274,7 @@ setTimeout(function () {
 </div>
 
 <div class="pdp__related" id="pdpRelated" data-bind="related"></div>
-
+```
 
   </div>
 </section>
@@ -285,7 +285,7 @@ setTimeout(function () {
   <div class="container">
     <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
 
-
+```
 <div class="card">
   <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
 
@@ -296,7 +296,7 @@ setTimeout(function () {
     <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
   </div>
 </div>
-
+```
 
   </div>
 </section>
@@ -307,7 +307,7 @@ setTimeout(function () {
   <div class="container">
     <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
 
-
+```
 <div class="card">
   <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
   <div class="specs">
@@ -356,7 +356,7 @@ setTimeout(function () {
     </div>
   </div>
 </div>
-
+```
 
   </div>
 </section>
@@ -369,7 +369,7 @@ setTimeout(function () {
     <div class="card">
       <div class="head"><h3 class="title">Bienvenue</h3><span class="badge">Compte</span></div>
 
-
+```
   <div class="specs" style="display:block">
     <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
       <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
@@ -408,7 +408,7 @@ setTimeout(function () {
     </div>
   </div>
 </div>
-
+```
 
   </div>
 </section>
@@ -1477,51 +1477,71 @@ body.page-compte .topbar-logo-link { display:none !important; }
 })();
 </script>
 
-<!-- ANIMATION DE SCROLL DU LOGO CORRIGÉE -->
+<!-- ANIMATION DE SCROLL - SANS CONFLIT -->
 
 <script>
-(function() {
+// Animation logo avec namespace unique pour éviter conflits
+window.PiratesToolsLogoAnimation = (function() {
   'use strict';
   
+  var logoContainer, isAnimating = false;
+  
   function handleLogoScroll() {
-    var logoContainer = document.getElementById('heroLogoContainer');
-    if (!logoContainer) return;
+    if (isAnimating) return;
+    isAnimating = true;
     
-    var scrollY = window.scrollY || window.pageYOffset || 0;
+    logoContainer = logoContainer || document.getElementById('heroLogoContainer');
+    if (!logoContainer) {
+      isAnimating = false;
+      return;
+    }
+    
+    var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
     var windowHeight = window.innerHeight || 600;
-    
     var startScroll = 100;
     var animationDistance = windowHeight * 0.8;
     
-    if (scrollY < startScroll) {
-      logoContainer.className = 'hero-logo-container initial';
-      logoContainer.style.removeProperty('--scale-factor');
-      logoContainer.style.removeProperty('--opacity-factor');
-    } else if (scrollY < startScroll + animationDistance) {
-      var progress = (scrollY - startScroll) / animationDistance;
-      var scaleFactor = 1 + (progress * 5);
-      var opacityFactor = Math.max(0, 1 - progress);
-      
-      logoContainer.className = 'hero-logo-container scaling';
-      logoContainer.style.setProperty('--scale-factor', String(scaleFactor));
-      logoContainer.style.setProperty('--opacity-factor', String(opacityFactor));
-    } else {
-      logoContainer.className = 'hero-logo-container hidden';
-      logoContainer.style.setProperty('--scale-factor', '6');
-      logoContainer.style.setProperty('--opacity-factor', '0');
+    try {
+      if (scrollY < startScroll) {
+        logoContainer.className = 'hero-logo-container initial';
+        logoContainer.style.removeProperty('--scale-factor');
+        logoContainer.style.removeProperty('--opacity-factor');
+      } else if (scrollY < startScroll + animationDistance) {
+        var progress = (scrollY - startScroll) / animationDistance;
+        var scaleFactor = 1 + (progress * 5);
+        var opacityFactor = Math.max(0, 1 - progress);
+        
+        logoContainer.className = 'hero-logo-container scaling';
+        logoContainer.style.setProperty('--scale-factor', scaleFactor.toFixed(3));
+        logoContainer.style.setProperty('--opacity-factor', opacityFactor.toFixed(3));
+      } else {
+        logoContainer.className = 'hero-logo-container hidden';
+        logoContainer.style.setProperty('--scale-factor', '6');
+        logoContainer.style.setProperty('--opacity-factor', '0');
+      }
+    } catch (e) {
+      console.log('Logo animation error:', e);
     }
+    
+    setTimeout(function() { isAnimating = false; }, 16);
   }
 
   function init() {
     handleLogoScroll();
+    
+    // Supprime d'éventuels anciens listeners
+    window.removeEventListener('scroll', handleLogoScroll);
     window.addEventListener('scroll', handleLogoScroll, { passive: true });
   }
 
+  // Initialisation sécurisée
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    init();
+    setTimeout(init, 100); // Délai pour éviter les conflits
   }
+  
+  return { init: init, handleScroll: handleLogoScroll };
 })();
 </script>
 
