@@ -1535,31 +1535,8 @@ window.PiratesToolsLogoAnimation = (function() {
 
 
 <script>
-/* SOLUTION D'URGENCE MENU */
+// Menu latéral - Version finale propre
 (function() {
-  console.log('CORRECTION MENU - Démarrage...');
-  
-  function forceCloseMenu() {
-    const body = document.body;
-    const drawer = document.getElementById('side-menu');
-    const backdrop = document.getElementById('menuBackdrop');
-    
-    body.classList.remove('menu-open');
-    if (drawer) {
-      drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden', 'true');
-      drawer.style.transform = 'translateX(-100%)';
-    }
-    if (backdrop) {
-      backdrop.classList.add('hidden');
-      backdrop.style.display = 'none';
-    }
-  }
-  
-  // Ferme immédiatement
-  forceCloseMenu();
-  
-  // Gestionnaire menu
   function initMenu() {
     const menuToggle = document.getElementById('menu-toggle');
     const drawer = document.getElementById('side-menu');
@@ -1569,50 +1546,58 @@ window.PiratesToolsLogoAnimation = (function() {
     
     let isOpen = false;
     
-    menuToggle.onclick = function(e) {
+    function closeMenu() {
+      isOpen = false;
+      document.body.classList.remove('menu-open');
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+      backdrop.classList.add('hidden');
+      menuToggle.setAttribute('aria-expanded', 'false');
+    }
+    
+    function openMenu() {
+      isOpen = true;
+      document.body.classList.add('menu-open');
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+      backdrop.classList.remove('hidden');
+      menuToggle.setAttribute('aria-expanded', 'true');
+    }
+    
+    // Bouton hamburger
+    menuToggle.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      
-      if (isOpen) {
-        forceCloseMenu();
-        isOpen = false;
-      } else {
-        document.body.classList.add('menu-open');
-        drawer.classList.add('open');
-        drawer.style.transform = 'translateX(0)';
-        backdrop.classList.remove('hidden');
-        backdrop.style.display = 'block';
-        isOpen = true;
-      }
-    };
+      if (isOpen) closeMenu(); else openMenu();
+    });
     
-    backdrop.onclick = function() {
-      forceCloseMenu();
-      isOpen = false;
-    };
+    // Fermeture backdrop
+    backdrop.addEventListener('click', closeMenu);
     
+    // Fermeture Escape
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && isOpen) {
-        forceCloseMenu();
-        isOpen = false;
+      if (e.key === 'Escape' && isOpen) closeMenu();
+    });
+    
+    // Fermeture liens menu
+    drawer.addEventListener('click', function(e) {
+      if (e.target.closest('a[href]')) {
+        setTimeout(closeMenu, 50);
       }
     });
+    
+    // Fermeture changement page
+    window.addEventListener('hashchange', closeMenu);
+    
+    // État initial fermé
+    closeMenu();
   }
   
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initMenu);
   } else {
-    setTimeout(initMenu, 100);
+    initMenu();
   }
-  
-  // Bouton d'urgence temporaire
-  const btn = document.createElement('button');
-  btn.innerHTML = 'FERMER MENU';
-  btn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;background:red;color:white;padding:10px;border:none;border-radius:5px;font-weight:bold;';
-  btn.onclick = forceCloseMenu;
-  document.body.appendChild(btn);
-  
-  setTimeout(() => btn.remove(), 10000);
 })();
 </script>
 
