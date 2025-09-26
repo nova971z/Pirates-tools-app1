@@ -610,223 +610,157 @@ html{ scroll-behavior:auto }
 .tool–exit-left,.tool–exit-right{ animation:none; opacity:0 }
 }
 
-/* =================== SCRIPT MENU UNIFIÉ FINAL =================== */
-(function() {
-‘use strict’;
+/* =================== MENU LATÉRAL MODERNE RESTAURÉ =================== */
 
-// Éviter les doublons
-if (window.__menuFixed) return;
-window.__menuFixed = true;
-
-console.log(‘🔧 Initialisation du menu unifié fixé’);
-
-// Éléments du menu
-const menuToggle = document.getElementById(‘menu-toggle’);
-const drawer = document.getElementById(‘side-menu’);
-const backdrop = document.getElementById(‘menuBackdrop’);
-
-if (!menuToggle || !drawer || !backdrop) {
-console.warn(‘❌ Éléments de menu manquants’);
-return;
+/* Backdrop avec correction de l’accolade manquante */
+.backdrop {
+position: fixed;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+background: rgba(0, 0, 0, 0.7);
+z-index: 998;
+opacity: 0;
+visibility: hidden;
+transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-// État du menu
-let isOpen = false;
-
-// ===== FONCTIONS DE CONTRÔLE =====
-
-function openMenu() {
-if (isOpen) return;
-
-
-console.log('📂 Ouverture du menu');
-isOpen = true;
-
-// Classes CSS
-document.body.classList.add('menu-open');
-drawer.classList.add('open');
-drawer.classList.remove('hidden');
-backdrop.classList.remove('hidden');
-
-// Attributs ARIA
-drawer.setAttribute('aria-hidden', 'false');
-drawer.removeAttribute('hidden');
-backdrop.setAttribute('aria-hidden', 'false');
-backdrop.removeAttribute('hidden');
-menuToggle.setAttribute('aria-expanded', 'true');
-
-// Focus pour l'accessibilité
-setTimeout(() => {
-  drawer.focus();
-}, 100);
-
-
+/* CORRECTION: Accolade manquante corrigée */
+.backdrop:not([hidden]) {
+opacity: 1;
+visibility: visible;
 }
 
-function closeMenu() {
-if (!isOpen) return;
-
-
-console.log('📁 Fermeture du menu');
-isOpen = false;
-
-// Classes CSS
-document.body.classList.remove('menu-open');
-drawer.classList.remove('open');
-drawer.classList.add('hidden');
-backdrop.classList.add('hidden');
-
-// Attributs ARIA
-drawer.setAttribute('aria-hidden', 'true');
-drawer.setAttribute('hidden', '');
-backdrop.setAttribute('aria-hidden', 'true');
-backdrop.setAttribute('hidden', '');
-menuToggle.setAttribute('aria-expanded', 'false');
-
-// Debug: forcer la fermeture avec un délai
-setTimeout(() => {
-  if (drawer.classList.contains('open')) {
-    console.warn('⚠️ Menu toujours ouvert, force la fermeture');
-    drawer.style.transform = 'translateX(-100%)';
-    backdrop.style.display = 'none';
-  }
-}, 350);
-
-
+/* Drawer principal avec style moderne */
+.drawer {
+position: fixed;
+top: 0;
+left: 0;
+width: 320px;
+height: 100vh;
+background: rgba(13, 27, 42, 0.95);
+border-right: 2px solid rgba(65, 105, 225, 0.3);
+box-shadow: 10px 0 50px rgba(65, 105, 225, 0.2);
+z-index: 999;
+transform: translateX(-100%);
+transition: transform 0.3s ease;
+padding: 20px 0 40px 0;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
 }
 
-function toggleMenu() {
-console.log(‘🔄 Toggle menu - État actuel:’, isOpen);
-isOpen ? closeMenu() : openMenu();
+/* États ouverts - unifiés */
+.drawer.open,
+.menu-open .drawer,
+#side-menu.open {
+transform: translateX(0) !important;
 }
 
-// ===== NETTOYAGE DES ANCIENS LISTENERS =====
-
-function cleanupOldListeners() {
-// Clone les éléments pour supprimer tous les event listeners
-const newMenuToggle = menuToggle.cloneNode(true);
-const newBackdrop = backdrop.cloneNode(true);
-
-
-menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
-backdrop.parentNode.replaceChild(newBackdrop, backdrop);
-
-return {
-  menuToggle: newMenuToggle,
-  backdrop: newBackdrop
-};
-
-
+/* États fermés - force la fermeture */
+.drawer:not(.open),
+.drawer.hidden,
+.drawer[aria-hidden=“true”]:not(.open) {
+transform: translateX(-100%) !important;
 }
 
-// ===== CONFIGURATION DES ÉVÉNEMENTS =====
-
-function setupEvents() {
-const cleaned = cleanupOldListeners();
-
-
-// Bouton hamburger
-cleaned.menuToggle.addEventListener('click', function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  console.log('🍔 Clic bouton hamburger');
-  toggleMenu();
-});
-
-// Clic sur backdrop pour fermer
-cleaned.backdrop.addEventListener('click', function(e) {
-  console.log('🌑 Clic backdrop');
-  closeMenu();
-});
-
-// Touche Escape pour fermer
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && isOpen) {
-    console.log('⌨️ Escape pressé');
-    closeMenu();
-  }
-});
-
-// Clic sur les liens du menu pour fermer
-drawer.addEventListener('click', function(e) {
-  const link = e.target.closest('a[href]');
-  if (link) {
-    console.log('🔗 Clic lien menu');
-    setTimeout(closeMenu, 50);
-  }
-});
-
-// Changement de page ferme le menu
-window.addEventListener('hashchange', function() {
-  console.log('🔄 Changement de page');
-  closeMenu();
-});
-
-
+/* Titre du menu avec effet lumineux moderne */
+.menu-title {
+font-size: 28px;
+font-weight: 700;
+text-align: center;
+margin: 20px 20px 30px 20px;
+padding: 15px 20px;
+color: #00bfff;
+text-shadow: 0 0 20px rgba(0, 191, 255, 0.8);
+background: rgba(65, 105, 225, 0.1);
+border: 1px solid rgba(65, 105, 225, 0.3);
+border-radius: 16px;
+letter-spacing: 2px;
+text-transform: uppercase;
 }
 
-// ===== DIAGNOSTIC ET DEBUG =====
-
-function diagnoseMenu() {
-console.log(‘🔍 Diagnostic menu:’);
-console.log(’- isOpen:’, isOpen);
-console.log(’- drawer.classList:’, drawer.classList.toString());
-console.log(’- backdrop.classList:’, backdrop.classList.toString());
-console.log(’- body.classList contient menu-open:’, document.body.classList.contains(‘menu-open’));
-console.log(’- drawer aria-hidden:’, drawer.getAttribute(‘aria-hidden’));
-console.log(’- backdrop hidden:’, backdrop.hasAttribute(‘hidden’));
+/* Container de navigation */
+.menu {
+display: flex;
+flex-direction: column;
+gap: 8px;
+padding: 0 20px;
+height: 100%;
 }
 
-// Diagnostic toutes les 5 secondes en mode debug
-if (window.location.search.includes(‘debug=menu’)) {
-setInterval(diagnoseMenu, 5000);
+/* Liens du menu avec effets modernes */
+.menu a {
+display: flex;
+align-items: center;
+gap: 20px;
+padding: 18px 24px;
+color: #e1e5e9;
+text-decoration: none;
+border-radius: 16px;
+background: rgba(255, 255, 255, 0.05);
+border: 1px solid rgba(65, 105, 225, 0.2);
+position: relative;
+overflow: hidden;
+transition: all 0.3s ease;
 }
 
-// ===== INITIALISATION =====
-
-function init() {
-console.log(‘🚀 Initialisation menu unifié’);
-
-
-// État initial: fermé
-closeMenu();
-
-// Configuration des événements
-setupEvents();
-
-// API globale pour debug
-window.menuControl = {
-  open: openMenu,
-  close: closeMenu,
-  toggle: toggleMenu,
-  diagnose: diagnoseMenu,
-  isOpen: () => isOpen
-};
-
-console.log('✅ Menu unifié prêt');
-
-
+/* Effet hover avec lumière */
+.menu a:hover {
+background: rgba(65, 105, 225, 0.15);
+border-color: rgba(65, 105, 225, 0.6);
+box-shadow: 0 8px 20px rgba(65, 105, 225, 0.3);
+color: #00bfff;
 }
 
-// Démarrage selon l’état du DOM
-if (document.readyState === ‘loading’) {
-document.addEventListener(‘DOMContentLoaded’, init);
-} else {
-init();
+/* Icônes SVG avec effets lumineux */
+.menu svg {
+width: 28px;
+height: 28px;
+transition: all 0.3s ease;
+filter: drop-shadow(0 0 8px rgba(65, 105, 225, 0.3));
 }
 
-// ===== FAILSAFE - NETTOYAGE FORCÉ =====
-
-// Si le menu reste ouvert après 10 secondes, le fermer
-setTimeout(() => {
-if (isOpen) {
-console.warn(‘🚨 Menu ouvert trop longtemps, fermeture forcée’);
-closeMenu();
+/* Effet hover sur les icônes */
+.menu a:hover svg {
+transform: scale(1.1);
+filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
+color: #00bfff;
 }
-}, 10000);
 
-})();
+/* Texte des liens avec effets */
+.menu span {
+font-size: 16px;
+font-weight: 600;
+letter-spacing: 0.5px;
+transition: all 0.3s ease;
+text-shadow: 0 0 8px rgba(65, 105, 225, 0.3);
+}
 
+/* Effet hover sur le texte */
+.menu a:hover span {
+text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+}
+
+/* Body avec menu ouvert */
+body.menu-open {
+overflow: hidden;
+}
+
+/* Backdrop états de fermeture */
+.backdrop.hidden,
+.backdrop[hidden] {
+opacity: 0 !important;
+visibility: hidden !important;
+display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+.drawer {
+width: 280px;
+}
+}
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
 .auth-switch{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem }
 .auth-switch .chip{ border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.06); cursor:pointer; user-select:none }
