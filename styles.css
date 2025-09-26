@@ -922,26 +922,3 @@ pointer-events: none;
 margin-top: var(–listGap, 22vh);
 }
 
-/* États pilotés par le JS (IntersectionObserver) — VERSION FINALE */
-
-/* === HERO — états pilotés par le scroll (source unique) === */
-/* NB: une seule version .hero-logo.* (pas de #heroLogo.*)
-.hero-logo.fx-overshoot{
-transform: translateZ(0) scale(1.35);
-filter: blur(0);
-opacity: 1;
-transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
-}
-.hero-logo.fx-preblur{
-transform: translateZ(0) scale(2.6);
-filter: blur(8px) saturate(1.05);
-opacity: .7;
-transition: transform .45s cubic-bezier(.25,.46,.45,.94), opacity .45s, filter .45s;
-}
-.hero-logo.fx-out{
-transform: translateZ(0) scale(4.2);
-filter: blur(22px);
-opacity: 0;
-transition: transform .5s ease-out, opacity .5s ease-out, filter .5s ease-out;
-}
-*/
