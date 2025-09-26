@@ -610,156 +610,301 @@ html{ scroll-behavior:auto }
 .tool–exit-left,.tool–exit-right{ animation:none; opacity:0 }
 }
 
-/* =================== MENU LATÉRAL MODERNE RESTAURÉ =================== */
+/* =================== CORRECTIONS COMPLÈTES =================== */
 
-/* Backdrop avec correction de l’accolade manquante */
+/* 1. DOCK - Restauration des couleurs originales */
+#dock, .dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--dock-bottom,14px) + max(env(safe-area-inset-bottom,0px), var(--safe-bottom,0px)));
+  transform: translateX(-50%);
+  z-index: 1000;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#dock .dock__shell, .dock .dock__shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  background: rgba(10,15,20,.85);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+}
+
+/* Base pour toutes les icônes du dock */
+.dock__btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+
+.dock__btn:active {
+  transform: scale(0.95);
+}
+
+/* 3 premières icônes : gris foncé */
+.dock__btn--tools,
+.dock__btn--account,
+.dock__btn--cart {
+  background: #505050 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* CORRECTION: Téléphone - couleur bleue restaurée */
+.dock__btn--call {
+  background: linear-gradient(135deg, #00bfff, #0099cc) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4) !important;
+}
+
+/* CORRECTION: WhatsApp - couleur verte restaurée */
+.dock__btn--wa {
+  background: linear-gradient(135deg, #25d366, #128c7e) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4) !important;
+}
+
+/* Compteur masqué */
+#dockCount {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* 2. TOPBAR - Correction du logo */
+.topbar, #topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(10,15,20,.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* CORRECTION: Logo topbar restauré */
+.topbar-logo-link {
+  display: inline-flex !important;
+  align-items: center;
+  margin-left: .5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-logo {
+  display: block !important;
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  /* CORRECTION: Source d'image par défaut si manquante */
+  content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="40" viewBox="0 0 140 40"><rect width="140" height="40" fill="%2319d3ff" rx="8"/><text x="70" y="24" text-anchor="middle" fill="white" font-family="Arial" font-size="14" font-weight="bold">Pirates Tools</text></svg>');
+}
+
+/* CORRECTION: Ne masquer le logo que sur certaines pages */
+body.page-catalogue .topbar-logo-link,
+body.page-devis .topbar-logo-link,
+body.page-compte .topbar-logo-link {
+  display: none !important;
+}
+
+/* 3. MENU BURGER - Style original préservé */
+#menu-toggle {
+  background: transparent !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  width: 30px !important;
+  height: 22px !important;
+  padding: 4px 2px !important;
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+  z-index: 1002 !important;
+}
+
+#menu-toggle .bar {
+  width: 100% !important;
+  height: 3px !important;
+  border-radius: 2px !important;
+  background: #fff !important;
+  opacity: .95 !important;
+  transition: .25s !important;
+}
+
+/* 4. MENU LATÉRAL MODERNE - Correction accolade + style */
 .backdrop {
-position: fixed;
-top: 0;
-left: 0;
-width: 100vw;
-height: 100vh;
-background: rgba(0, 0, 0, 0.7);
-z-index: 998;
-opacity: 0;
-visibility: hidden;
-transition: opacity 0.3s ease, visibility 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 998;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-/* CORRECTION: Accolade manquante corrigée */
+/* CORRECTION CRITIQUE: Accolade ajoutée */
 .backdrop:not([hidden]) {
-opacity: 1;
-visibility: visible;
+  opacity: 1;
+  visibility: visible;
 }
 
-/* Drawer principal avec style moderne */
 .drawer {
-position: fixed;
-top: 0;
-left: 0;
-width: 320px;
-height: 100vh;
-background: rgba(13, 27, 42, 0.95);
-border-right: 2px solid rgba(65, 105, 225, 0.3);
-box-shadow: 10px 0 50px rgba(65, 105, 225, 0.2);
-z-index: 999;
-transform: translateX(-100%);
-transition: transform 0.3s ease;
-padding: 20px 0 40px 0;
-overflow-y: auto;
--webkit-overflow-scrolling: touch;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 320px;
+  height: 100vh;
+  background: rgba(13, 27, 42, 0.95);
+  border-right: 2px solid rgba(65, 105, 225, 0.3);
+  box-shadow: 10px 0 50px rgba(65, 105, 225, 0.2);
+  z-index: 999;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  padding: 20px 0 40px 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* États ouverts - unifiés */
+/* États ouverts */
 .drawer.open,
 .menu-open .drawer,
 #side-menu.open {
-transform: translateX(0) !important;
+  transform: translateX(0) !important;
 }
 
-/* États fermés - force la fermeture */
+/* États fermés */
 .drawer:not(.open),
 .drawer.hidden,
-.drawer[aria-hidden=“true”]:not(.open) {
-transform: translateX(-100%) !important;
+.drawer[aria-hidden="true"]:not(.open) {
+  transform: translateX(-100%) !important;
 }
 
-/* Titre du menu avec effet lumineux moderne */
+.backdrop.hidden,
+.backdrop[hidden] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
+}
+
+/* Titre menu moderne */
 .menu-title {
-font-size: 28px;
-font-weight: 700;
-text-align: center;
-margin: 20px 20px 30px 20px;
-padding: 15px 20px;
-color: #00bfff;
-text-shadow: 0 0 20px rgba(0, 191, 255, 0.8);
-background: rgba(65, 105, 225, 0.1);
-border: 1px solid rgba(65, 105, 225, 0.3);
-border-radius: 16px;
-letter-spacing: 2px;
-text-transform: uppercase;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  margin: 20px 20px 30px 20px;
+  padding: 15px 20px;
+  color: #00bfff;
+  text-shadow: 0 0 20px rgba(0, 191, 255, 0.8);
+  background: rgba(65, 105, 225, 0.1);
+  border: 1px solid rgba(65, 105, 225, 0.3);
+  border-radius: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-/* Container de navigation */
+/* Navigation moderne */
 .menu {
-display: flex;
-flex-direction: column;
-gap: 8px;
-padding: 0 20px;
-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px;
+  height: 100%;
 }
 
-/* Liens du menu avec effets modernes */
 .menu a {
-display: flex;
-align-items: center;
-gap: 20px;
-padding: 18px 24px;
-color: #e1e5e9;
-text-decoration: none;
-border-radius: 16px;
-background: rgba(255, 255, 255, 0.05);
-border: 1px solid rgba(65, 105, 225, 0.2);
-position: relative;
-overflow: hidden;
-transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 24px;
+  color: #e1e5e9;
+  text-decoration: none;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(65, 105, 225, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-/* Effet hover avec lumière */
 .menu a:hover {
-background: rgba(65, 105, 225, 0.15);
-border-color: rgba(65, 105, 225, 0.6);
-box-shadow: 0 8px 20px rgba(65, 105, 225, 0.3);
-color: #00bfff;
+  background: rgba(65, 105, 225, 0.15);
+  border-color: rgba(65, 105, 225, 0.6);
+  box-shadow: 0 8px 20px rgba(65, 105, 225, 0.3);
+  color: #00bfff;
 }
 
-/* Icônes SVG avec effets lumineux */
 .menu svg {
-width: 28px;
-height: 28px;
-transition: all 0.3s ease;
-filter: drop-shadow(0 0 8px rgba(65, 105, 225, 0.3));
+  width: 28px;
+  height: 28px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 8px rgba(65, 105, 225, 0.3));
 }
 
-/* Effet hover sur les icônes */
 .menu a:hover svg {
-transform: scale(1.1);
-filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
-color: #00bfff;
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 15px rgba(0, 191, 255, 0.8));
+  color: #00bfff;
 }
 
-/* Texte des liens avec effets */
 .menu span {
-font-size: 16px;
-font-weight: 600;
-letter-spacing: 0.5px;
-transition: all 0.3s ease;
-text-shadow: 0 0 8px rgba(65, 105, 225, 0.3);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 8px rgba(65, 105, 225, 0.3);
 }
 
-/* Effet hover sur le texte */
 .menu a:hover span {
-text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+  text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
 }
 
 /* Body avec menu ouvert */
 body.menu-open {
-overflow: hidden;
-}
-
-/* Backdrop états de fermeture */
-.backdrop.hidden,
-.backdrop[hidden] {
-opacity: 0 !important;
-visibility: hidden !important;
-display: none !important;
+  overflow: hidden;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-.drawer {
-width: 280px;
-}
+  .drawer {
+    width: 280px;
+  }
 }
 /* ========== 23bis) AUTH (Connexion / Inscription) ========== */
 .auth-switch{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 1rem }
