@@ -1602,6 +1602,29 @@ window.PiratesToolsLogoAnimation = (function() {
 </script>
 
 
+<script>
+// Correction logo topbar - utiliser le vrai logo pirate
+(function() {
+  function fixLogo() {
+    const logoImg = document.getElementById('topbarLogo');
+    if (logoImg) {
+      logoImg.src = 'icons/icon-512.png'; // Votre vrai logo
+      logoImg.style.width = '30px';
+      logoImg.style.height = '30px';
+      logoImg.style.borderRadius = '6px';
+      logoImg.style.objectFit = 'contain';
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixLogo);
+  } else {
+    fixLogo();
+  }
+  setTimeout(fixLogo, 100);
+})();
+</script>
+
 </body>
 </html>
 
