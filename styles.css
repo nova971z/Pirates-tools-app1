@@ -742,7 +742,9 @@ animation:dockPulse .46s ease
 100% { transform:translateX(-50%) translateY(0) scale(1) }
 }
 
-/* ========== 10) MENU LATÉRAL ========== */
+/* ========== 10) MENU LATÉRAL - VERSION CORRIGÉE ========== */
+
+/* Backdrop (fond noir) */
 .backdrop {
 position: fixed;
 top: 0;
@@ -756,11 +758,15 @@ visibility: hidden;
 transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.backdrop:not([hidden]) {
-opacity: 1;
-visibility: visible;
+/* État ouvert du backdrop */
+.backdrop:not([hidden]):not(.hidden),
+.menu-open .backdrop {
+opacity: 1 !important;
+visibility: visible !important;
+display: block !important;
 }
 
+/* Menu drawer */
 .drawer {
 position: fixed;
 top: 0;
@@ -776,20 +782,50 @@ transition: transform 0.3s ease;
 padding: 20px 0 40px 0;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
-pointer-events: auto !important;
+pointer-events: auto;
 }
 
-.drawer:not([aria-hidden=“true”]),
+/* États d’ouverture du menu - RÈGLE UNIQUE */
 .drawer.open,
-.menu-open #side-menu {
-transform: translateX(0);
+.menu-open .drawer,
+.menu-open #side-menu,
+.drawer:not([aria-hidden=“true”]) {
+transform: translateX(0) !important;
 pointer-events: auto !important;
 }
 
-#side-menu {
-pointer-events: auto !important;
+/* État fermé explicite */
+.drawer[aria-hidden=“true”] {
+transform: translateX(-100%) !important;
 }
 
+/* Menu burger - priorité maximale */
+#menu-toggle {
+background: transparent !important;
+border: 0 !important;
+cursor: pointer !important;
+display: flex !important;
+flex-direction: column !important;
+justify-content: space-between !important;
+width: 30px !important;
+height: 22px !important;
+padding: 4px 2px !important;
+flex: 0 0 auto !important;
+pointer-events: auto !important;
+z-index: 10000 !important;
+position: relative !important;
+}
+
+#menu-toggle .bar {
+width: 100% !important;
+height: 3px !important;
+border-radius: 2px !important;
+background: #fff !important;
+opacity: 0.95 !important;
+transition: 0.25s !important;
+}
+
+/* Contenu du menu */
 .menu-title {
 font-size: 28px;
 font-weight: 700;
@@ -860,10 +896,26 @@ text-shadow: 0 0 8px rgba(65, 105, 225, 0.3);
 text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
 }
 
+/* Responsive */
 @media (max-width: 768px) {
 .drawer {
 width: 280px;
 }
+}
+
+/* DÉSACTIVATION DES RÈGLES CONFLICTUELLES */
+.drawer[data-pt-nav-wired] {
+/* Désactive le système PT si présent */
+pointer-events: auto !important;
+}
+
+/* Classes de debug pour diagnostiquer */
+.menu-debug-open {
+border: 2px solid red !important;
+}
+
+.menu-debug-closed {
+border: 2px solid green !important;
 }
 
 /* ========== 11) VUES / ROUTER ========== */
