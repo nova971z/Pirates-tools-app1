@@ -153,11 +153,13 @@ setTimeout(function () {
       visibility: hidden;
     }
 
-    /* Responsive */
+    <!-- Responsive pour mobile -->
     @media (max-width: 768px) {
       .hero-logo {
-        width: 200px !important;
-        height: 200px !important;
+        width: 90vw !important; 
+        height: 90vw !important;
+        max-width: 90vw !important;
+        max-height: 90vw !important;
       }
     }
   </style>
@@ -1475,65 +1477,51 @@ body.page-compte .topbar-logo-link { display:none !important; }
 })();
 </script>
 
-<!-- ANIMATION DE SCROLL DU LOGO INTÉGRÉE -->
+<!-- ANIMATION DE SCROLL DU LOGO CORRIGÉE -->
 
 <script>
 (function() {
   'use strict';
   
-  // Gestion de l'effet de scroll du logo Pirates Tools
   function handleLogoScroll() {
-    const logoContainer = document.getElementById('heroLogoContainer');
+    var logoContainer = document.getElementById('heroLogoContainer');
     if (!logoContainer) return;
     
-    const scrollY = window.scrollY;
-    const windowHeight = window.innerHeight;
+    var scrollY = window.scrollY || window.pageYOffset || 0;
+    var windowHeight = window.innerHeight || 600;
     
-    // Point de départ de l'animation (après la topbar)
-    const startScroll = 100;
-    // Distance totale pour l'animation complète
-    const animationDistance = windowHeight * 0.8;
+    var startScroll = 100;
+    var animationDistance = windowHeight * 0.8;
     
     if (scrollY < startScroll) {
-      // Logo initial
       logoContainer.className = 'hero-logo-container initial';
       logoContainer.style.removeProperty('--scale-factor');
       logoContainer.style.removeProperty('--opacity-factor');
     } else if (scrollY < startScroll + animationDistance) {
-      // Animation en cours
-      const progress = (scrollY - startScroll) / animationDistance;
-      
-      // Scale de 1 à 6 (exactement x6)
-      const scaleFactor = 1 + (progress * 5);
-      // Opacity de 1 à 0
-      const opacityFactor = Math.max(0, 1 - progress);
+      var progress = (scrollY - startScroll) / animationDistance;
+      var scaleFactor = 1 + (progress * 5);
+      var opacityFactor = Math.max(0, 1 - progress);
       
       logoContainer.className = 'hero-logo-container scaling';
-      logoContainer.style.setProperty('--scale-factor', scaleFactor.toString());
-      logoContainer.style.setProperty('--opacity-factor', opacityFactor.toString());
+      logoContainer.style.setProperty('--scale-factor', String(scaleFactor));
+      logoContainer.style.setProperty('--opacity-factor', String(opacityFactor));
     } else {
-      // Logo complètement disparu
       logoContainer.className = 'hero-logo-container hidden';
       logoContainer.style.setProperty('--scale-factor', '6');
       logoContainer.style.setProperty('--opacity-factor', '0');
     }
   }
 
-  // Event listener pour le scroll
-  window.addEventListener('scroll', function() {
-    requestAnimationFrame(handleLogoScroll);
-  }, { passive: true });
-
-  // Initialisation
-  function initLogoAnimation() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', handleLogoScroll);
-    } else {
-      handleLogoScroll();
-    }
+  function init() {
+    handleLogoScroll();
+    window.addEventListener('scroll', handleLogoScroll, { passive: true });
   }
-  
-  initLogoAnimation();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
 </script>
 
