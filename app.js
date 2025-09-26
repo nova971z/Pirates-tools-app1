@@ -1,42 +1,39 @@
-/**
-
-- Pirates Tools PWA - Application principale optimisée
+/* Pirates Tools PWA - Application principale optimisée
 - Version: 2.0
-- Compatible avec HTML/CSS existant
-  */
+- Compatible avec HTML/CSS existant. */
 
 (function() {
-‘use strict’;
+'use strict';
 
-// ===========================================
-// 1. CONSTANTS & CONFIG
-// ===========================================
+/* ===========================================
+ 1. CONSTANTS & CONFIG
+ =========================================== */
 
 const CONFIG = {
-API_BASE: window.location.origin + window.location.pathname.replace(//$/, ‘’),
-PRODUCTS_URL: ‘data/products.json’,
-CACHE_VERSION: window.__ASSET_VER || ‘35’,
+API_BASE: window.location.origin + window.location.pathname.replace(/\/$/, ''),
+PRODUCTS_URL: 'data/products.json',
+CACHE_VERSION: window.__ASSET_VER || '35',
 DEBOUNCE_DELAY: 300,
 ANIMATION_DURATION: 300,
-WA_NUMBER: ‘33774230195’,
-PHONE_NUMBER: ‘+33774230195’
+WA_NUMBER: '33774230195',
+PHONE_NUMBER: '+33774230195'
 };
 
 const ROUTES = {
-HOME: ‘/’,
-CATALOGUE: ‘/catalogue’,
-PRODUIT: ‘/produit’,
-DEVIS: ‘/devis’,
-COMPTE: ‘/compte’,
-AUTH: ‘/auth’
+HOME: '/',
+CATALOGUE: '/catalogue',
+PRODUIT: '/produit',
+DEVIS: '/devis',
+COMPTE: '/compte',
+AUTH: '/auth'
 };
 
 const STORAGE_KEYS = {
-CART: ‘pt_cart’,
-USER: ‘pt_user’,
-AUTH: ‘pt_auth’,
-PRODUCTS_CACHE: ‘pt_products_cache’,
-SETTINGS: ‘pt_settings’
+CART: 'pt_cart',
+USER: 'pt_user',
+AUTH: 'pt_auth',
+PRODUCTS_CACHE: 'pt_products_cache',
+SETTINGS: 'pt_settings'
 };
 
 // ===========================================
@@ -45,17 +42,17 @@ SETTINGS: ‘pt_settings’
 
 // Initialisation immédiate du State
 window.State = window.State || {
-currentRoute: ‘/’,
+currentRoute: '/',
 user: null,
 isAuthenticated: false,
 products: [],
 filteredProducts: [],
 cart: [],
 currentProduct: null,
-searchQuery: ‘’,
-selectedTag: ‘’,
+searchQuery: '',
+selectedTag: '',
 isLoading: false,
-heroState: ‘active’ // active, transitioning, hidden
+heroState: 'active' // active, transitioning, hidden
 };
 
 const State = window.State;
@@ -67,7 +64,6 @@ get cartCount() {
 return this.cart.reduce((sum, item) => sum + item.quantity, 0);
 },
 
-```
 get cartTotal() {
   return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 },
@@ -175,7 +171,6 @@ loadCartFromStorage() {
     this.cart = [];
   }
 }
-```
 
 }); // Fermeture de Object.assign
 
@@ -185,9 +180,8 @@ loadCartFromStorage() {
 
 const Router = {
 init() {
-console.log(‘Router init…’);
+console.log('Router init...');
 
-```
   // Éviter conflit avec router HTML existant
   if (window.__ptRouterActive) {
     console.log('Router deja actif, utilisation du systeme existant');
@@ -381,7 +375,6 @@ requiresAuth(route) {
 redirectToAuth() {
   window.location.hash = '#/auth';
 }
-```
 
 };
 
@@ -395,7 +388,6 @@ await this.loadProducts();
 this.bindSearchEvents();
 },
 
-```
 async loadProducts() {
   try {
     // Vérifier cache
@@ -602,7 +594,6 @@ cacheProducts(products) {
     console.error('Cache write error:', error);
   }
 }
-```
 
 };
 
@@ -612,13 +603,12 @@ cacheProducts(products) {
 
 const CartManager = {
 init() {
-console.log(‘CartManager init…’); // Debug
+console.log('CartManager init...'); // Debug
 State.loadCartFromStorage();
-console.log(‘Initial cart state:’, State.cart); // Debug
+console.log('Initial cart state:', State.cart); // Debug
 this.bindCartEvents();
 this.updateCartUI();
 
-```
   // Observer les changements de panier
   State.subscribe('cart', () => {
     console.log('Cart state changed, updating UI...'); // Debug
@@ -759,8 +749,8 @@ updateCartList() {
     return;
   }
   
-  console.log('🛒 Mise à jour liste panier - articles:', State.cart.length);
-  console.log('🛒 Contenu panier:', State.cart);
+  console.log('Mise à jour liste panier - articles:', State.cart.length);
+  console.log('Contenu panier:', State.cart);
   
   if (State.cart.length === 0) {
     container.innerHTML = `
@@ -775,7 +765,7 @@ updateCartList() {
   
   // Construire le HTML des articles
   const cartItemsHTML = State.cart.map((item, index) => {
-    console.log(`🛒 Rendu article ${index + 1}:`, item.title);
+    console.log(`Rendu article ${index + 1}:`, item.title);
     
     return `
       <div class="cart-item" data-slug="${item.slug}" style="
@@ -912,7 +902,7 @@ updateCartList() {
   `;
   
   container.innerHTML = cartItemsHTML + totalHTML;
-  console.log('🛒 Panier rendu avec succès');
+  console.log('Panier rendu avec succès');
 },
 
 updateMiniCart() {
@@ -936,7 +926,7 @@ sendQuoteToWhatsApp() {
 },
 
 generateQuoteMessage() {
-  let message = '🛠️ *Demande de devis - Pirates Tools*\n\n';
+  let message = 'Demande de devis - Pirates Tools\n\n';
   
   State.cart.forEach((item, index) => {
     message += `${index + 1}. ${item.title}\n`;
@@ -944,8 +934,8 @@ generateQuoteMessage() {
     message += `   Prix unitaire HT: ${item.price}€\n\n`;
   });
   
-  message += `💰 *Total HT: ${State.cartTotal.toFixed(2)}€*\n`;
-  message += `💰 *Total TTC: ${(State.cartTotal * 1.20).toFixed(2)}€*\n\n`;
+  message += `Total HT: ${State.cartTotal.toFixed(2)}€\n`;
+  message += `Total TTC: ${(State.cartTotal * 1.20).toFixed(2)}€\n\n`;
   message += `Merci de me confirmer la disponibilité et les délais de livraison.`;
   
   return message;
@@ -958,7 +948,6 @@ pulseCartButton() {
     setTimeout(() => cartBtn.classList.remove('pulse'), 600);
   }
 }
-```
 
 };
 
@@ -972,7 +961,6 @@ this.loadUserFromStorage();
 this.bindAuthEvents();
 },
 
-```
 bindAuthEvents() {
   // Tabs
   const loginTab = document.getElementById('authLoginTab');
@@ -1209,7 +1197,6 @@ async hashPassword(password) {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 }
-```
 
 };
 
@@ -1221,10 +1208,9 @@ const UI = {
 // Menu système unifié (éviter conflit avec HTML)
 Menu: {
 isOpen() {
-return !document.getElementById(‘side-menu’)?.classList.contains(‘hidden’);
+return !document.getElementById('side-menu')?.classList.contains('hidden');
 },
 
-```
   open() {
     if (window.__ptMenuUnified) return; // Déléguer au système HTML
     
@@ -1307,7 +1293,6 @@ updateInstallButton() {
     installBtn.removeAttribute('hidden');
   }
 }
-```
 
 };
 
@@ -1321,7 +1306,6 @@ this.bindScrollEvents();
 this.updateHeroLogo();
 },
 
-```
 bindScrollEvents() {
   let ticking = false;
   
@@ -1385,7 +1369,6 @@ updateHeroLogo() {
       break;
   }
 }
-```
 
 };
 
@@ -1397,14 +1380,13 @@ const PDP = {
 render(product) {
 if (!product) return;
 
-```
   this.updateProductImage(product);
   this.updateProductInfo(product);
   this.updateProductSpecs(product);
   this.bindProductActions(product);
   this.loadRelatedProducts(product);
   
-  // **FIX SPÉCIAL** : Appliquer le fix bouton après rendu
+  // FIX SPÉCIAL : Appliquer le fix bouton après rendu
   setTimeout(() => {
     this.fixAddToCartButton(product);
   }, 100);
@@ -1472,7 +1454,7 @@ bindProductActions(product) {
  * Bloque ABSOLUMENT toute navigation
  */
 fixAddToCartButton(product) {
-  console.log('🛡️ Fix RADICAL bouton panier pour:', product.title);
+  console.log('Fix RADICAL bouton panier pour:', product.title);
   
   const button = document.getElementById('pdpQuote');
   
@@ -1549,7 +1531,7 @@ fixAddToCartButton(product) {
     
     // UN SEUL event listener qui fait TOUT
     finalButton.addEventListener('click', (e) => {
-      console.log('🛡️ CLIC INTERCEPTÉ - Blocage navigation TOTAL');
+      console.log('CLIC INTERCEPTÉ - Blocage navigation TOTAL');
       
       // Bloquer ABSOLUMENT tout
       e.preventDefault();
@@ -1579,7 +1561,7 @@ fixAddToCartButton(product) {
       if (success) {
         // Feedback visuel sans toucher au style existant
         const originalText = finalButton.textContent;
-        finalButton.textContent = '✓ Ajouté au panier !';
+        finalButton.textContent = 'Ajouté au panier !';
         finalButton.style.cssText += 'background-color: #00e1b4 !important; color: white !important;';
         
         // Animation du dock si présent
@@ -1598,14 +1580,14 @@ fixAddToCartButton(product) {
           finalButton.style.color = '';
         }, 2500);
         
-        console.log('✅ Produit ajouté - AUCUNE navigation');
+        console.log('Produit ajouté - AUCUNE navigation');
       }
       
       return false;
       
     }, { capture: true, passive: false, once: false });
     
-    console.log('✅ Fix RADICAL appliqué avec succès');
+    console.log('Fix RADICAL appliqué avec succès');
     
   }, 100);
 },
@@ -1658,7 +1640,6 @@ loadRelatedProducts(product) {
     </div>
   `;
 }
-```
 
 };
 
@@ -1669,7 +1650,6 @@ loadRelatedProducts(product) {
 const PWAManager = {
 deferredPrompt: null,
 
-```
 init() {
   this.registerServiceWorker();
   this.bindInstallEvents();
@@ -1727,7 +1707,6 @@ updateAppVh() {
   updateVh();
   window.addEventListener('resize', Utils.debounce(updateVh, 150));
 }
-```
 
 };
 
@@ -1738,17 +1717,16 @@ updateAppVh() {
 const Utils = {
 debounce(func, wait) {
 let timeout;
-return function executedFunction(…args) {
+return function executedFunction(...args) {
 const later = () => {
 clearTimeout(timeout);
-func(…args);
+func(...args);
 };
 clearTimeout(timeout);
 timeout = setTimeout(later, wait);
 };
 },
 
-```
 throttle(func, wait) {
   let inThrottle;
   return function executedFunction(...args) {
@@ -1787,7 +1765,6 @@ generateId() {
 isOnline() {
   return navigator.onLine;
 }
-```
 
 };
 
@@ -1798,10 +1775,9 @@ isOnline() {
 const App = {
 async init() {
 try {
-console.log(‘🏴‍☠️ Pirates Tools App v2.0 - Initialisation…’);
-console.log(‘DOM ready state:’, document.readyState);
+console.log('Pirates Tools App v2.0 - Initialisation...');
+console.log('DOM ready state:', document.readyState);
 
-```
     // Vérifier les éléments critiques
     const criticalElements = [
       'view-home', 'view-catalogue', 'view-produit', 'view-devis', 'view-compte', 'view-auth',
@@ -1829,10 +1805,10 @@ console.log(‘DOM ready state:’, document.readyState);
     console.log('Cart after init:', State.cart);
     console.log('Cart count after init:', State.cartCount);
     
-    console.log('⚡ Application prete !');
+    console.log('Application prete !');
     
   } catch (error) {
-    console.error('💥 Erreur d\'initialisation:', error);
+    console.error('Erreur d\'initialisation:', error);
     console.error('Error stack:', error.stack);
     UI.showToast('Erreur de chargement de l\'application', 'error');
   }
@@ -1945,7 +1921,6 @@ handleGlobalAction(action, element) {
       console.warn('Action inconnue:', action);
   }
 }
-```
 
 };
 
@@ -1953,13 +1928,12 @@ handleGlobalAction(action, element) {
 // EXPORT & START
 // ===========================================
 
-// Initialisation immédiate de l’API globale
+// Initialisation immédiate de l'API globale
 window.PiratesTools = {
 // État par défaut
 _initialized: false,
 _initPromise: null,
 
-```
 // API publique immédiate (même avant init complète)
 getState() {
   return State;
@@ -2058,27 +2032,27 @@ testAddToCart() {
 
 // Diagnostic du bouton PDP
 diagnoseAddToCartButton() {
-  console.log('=== 🔍 DIAGNOSTIC BOUTON AJOUTER AU PANIER ===');
+  console.log('=== DIAGNOSTIC BOUTON AJOUTER AU PANIER ===');
   
   const btn = document.getElementById('pdpQuote');
   console.log('Bouton trouvé:', !!btn);
   
   if (btn) {
-    console.log('📋 Attributs du bouton:');
+    console.log('Attributs du bouton:');
     for (let attr of btn.attributes) {
       console.log(`  ${attr.name}: "${attr.value}"`);
     }
     
-    console.log('📋 Propriétés du bouton:');
+    console.log('Propriétés du bouton:');
     console.log('  onclick:', btn.onclick);
     console.log('  href:', btn.href);
     console.log('  tagName:', btn.tagName);
     console.log('  className:', btn.className);
     console.log('  textContent:', btn.textContent.trim());
     
-    console.log('📋 Parent du bouton:', btn.parentElement?.tagName, btn.parentElement?.className);
+    console.log('Parent du bouton:', btn.parentElement?.tagName, btn.parentElement?.className);
     
-    console.log('📋 Listeners détectés:');
+    console.log('Listeners détectés:');
     // Vérifier les event listeners (approximatif)
     const events = ['click', 'mousedown', 'mouseup'];
     events.forEach(eventType => {
@@ -2086,11 +2060,11 @@ diagnoseAddToCartButton() {
       console.log(`  ${eventType}: listeners probablement présents`);
     });
     
-    console.log('📋 Route actuelle:', State.currentRoute);
-    console.log('📋 Produit actuel:', State.currentProduct?.title || 'Non défini');
+    console.log('Route actuelle:', State.currentRoute);
+    console.log('Produit actuel:', State.currentProduct?.title || 'Non défini');
     
     // Test de clic simulé
-    console.log('🧪 Test de clic simulé...');
+    console.log('Test de clic simulé...');
     const testEvent = new MouseEvent('click', {
       bubbles: true,
       cancelable: true,
@@ -2103,16 +2077,16 @@ diagnoseAddToCartButton() {
     
     setTimeout(() => {
       if (window.location.hash !== originalHash) {
-        console.log('❌ PROBLÈME: Navigation détectée pendant le test !');
+        console.log('PROBLÈME: Navigation détectée pendant le test !');
         console.log('  Hash avant:', originalHash);
         console.log('  Hash après:', window.location.hash);
       } else {
-        console.log('✅ Test OK: Pas de navigation inattendue');
+        console.log('Test OK: Pas de navigation inattendue');
       }
     }, 100);
     
   } else {
-    console.log('❌ Bouton non trouvé - vérifier que vous êtes sur une fiche produit');
+    console.log('Bouton non trouvé - vérifier que vous êtes sur une fiche produit');
   }
   
   console.log('=====================================');
@@ -2120,11 +2094,11 @@ diagnoseAddToCartButton() {
 
 // Fix d'urgence pour forcer le bouton à fonctionner
 emergencyFixButton() {
-  console.log('🚨 FIX D\'URGENCE pour le bouton panier');
+  console.log('FIX D\'URGENCE pour le bouton panier');
   
   const btn = document.getElementById('pdpQuote');
   if (!btn) {
-    console.log('❌ Bouton non trouvé');
+    console.log('Bouton non trouvé');
     return;
   }
   
@@ -2138,7 +2112,7 @@ emergencyFixButton() {
   // Stopper TOUS les événements
   ['click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(eventType => {
     btn.addEventListener(eventType, (e) => {
-      console.log(`🚨 Événement ${eventType} intercepté et bloqué`);
+      console.log(`Événement ${eventType} intercepté et bloqué`);
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -2147,7 +2121,7 @@ emergencyFixButton() {
         // Simuler l'ajout au panier
         if (State.currentProduct) {
           CartManager.addToCart(State.currentProduct.slug);
-          btn.textContent = '✅ Ajouté !';
+          btn.textContent = 'Ajouté !';
           setTimeout(() => {
             btn.textContent = 'Ajouter au panier';
           }, 2000);
@@ -2158,7 +2132,7 @@ emergencyFixButton() {
     }, { capture: true, passive: false });
   });
   
-  console.log('✅ Fix d\'urgence appliqué');
+  console.log('Fix d\'urgence appliqué');
 },
 
 // Méthode d'initialisation
@@ -2188,29 +2162,27 @@ async init() {
   
   return this._initPromise;
 }
-```
 
 };
 
 // Debug global pour les tests
 window.debugPiratesTools = () => {
-console.log(’=== PIRATES TOOLS DEBUG ===’);
-console.log(‘Initialized:’, window.PiratesTools._initialized);
-console.log(‘State:’, State);
-console.log(‘Cart in localStorage:’, localStorage.getItem(‘cart’));
-console.log(‘Cart in pt_cart:’, localStorage.getItem(‘pt_cart’));
-console.log(‘Current route:’, State.currentRoute);
-console.log(‘Products loaded:’, State.products?.length || 0);
-console.log(‘Available methods:’, Object.keys(window.PiratesTools));
-console.log(’============================’);
+console.log('=== PIRATES TOOLS DEBUG ===');
+console.log('Initialized:', window.PiratesTools._initialized);
+console.log('State:', State);
+console.log('Cart in localStorage:', localStorage.getItem('cart'));
+console.log('Cart in pt_cart:', localStorage.getItem('pt_cart'));
+console.log('Current route:', State.currentRoute);
+console.log('Products loaded:', State.products?.length || 0);
+console.log('Available methods:', Object.keys(window.PiratesTools));
+console.log('============================');
 };
 
 // Auto-start robuste
 function startApp() {
-console.log(‘Starting Pirates Tools App…’);
-console.log(‘Document ready state:’, document.readyState);
+console.log('Starting Pirates Tools App...');
+console.log('Document ready state:', document.readyState);
 
-```
 // Démarrer l'initialisation
 window.PiratesTools.init().catch(error => {
   console.error('App initialization failed:', error);
@@ -2223,14 +2195,13 @@ window.PiratesTools.init().catch(error => {
     });
   }, 2000);
 });
-```
 
 }
 
 // Démarrage selon état du DOM
-if (document.readyState === ‘loading’) {
-document.addEventListener(‘DOMContentLoaded’, startApp);
-} else if (document.readyState === ‘interactive’) {
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', startApp);
+} else if (document.readyState === 'interactive') {
 // DOM prêt mais ressources en cours de chargement
 setTimeout(startApp, 100);
 } else {
