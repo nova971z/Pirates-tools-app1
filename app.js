@@ -42,134 +42,175 @@ SETTINGS: 'pt_settings'
 
 // Initialisation immédiate du State
 window.State = window.State || {
-currentRoute: '/',
+currentRoute: ‘/’,
 user: null,
 isAuthenticated: false,
 products: [],
 filteredProducts: [],
 cart: [],
 currentProduct: null,
-searchQuery: '',
-selectedTag: '',
+searchQuery: ‘’,
+selectedTag: ‘’,
 isLoading: false,
-heroState: 'active' // active, transitioning, hidden
+heroState: ‘active’ // active, transitioning, hidden
 };
 
 const State = window.State;
 
 // Ajouter les méthodes au State existant
 Object.assign(State, {
-// Getters
+// Getters CORRIGÉS avec protection
 get cartCount() {
-return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+// Protection: s’assurer que cart est toujours un array
+if (!this.cart || !Array.isArray(this.cart)) {
+console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+this.cart = [];
+}
+return this.cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
 },
 
 get cartTotal() {
-  return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+// Protection: s’assurer que cart est toujours un array  
+if (!this.cart || !Array.isArray(this.cart)) {
+console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+this.cart = [];
+}
+return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
 },
 
 // Mutations
 setRoute(route) {
-  this.currentRoute = route;
-  console.log('Route changed to:', route); // Debug
-  this.notifyStateChange('route', route);
+this.currentRoute = route;
+console.log(‘Route changed to:’, route); // Debug
+this.notifyStateChange(‘route’, route);
 },
 
 setUser(user) {
-  this.user = user;
-  this.isAuthenticated = !!user;
-  this.notifyStateChange('user', user);
+this.user = user;
+this.isAuthenticated = !!user;
+this.notifyStateChange(‘user’, user);
 },
 
 setProducts(products) {
-  this.products = products;
-  this.filteredProducts = products;
-  this.notifyStateChange('products', products);
+this.products = products;
+this.filteredProducts = products;
+this.notifyStateChange(‘products’, products);
 },
 
 setCart(cart) {
-  console.log('Setting cart to:', cart); // Debug
-  this.cart = cart;
-  this.saveCartToStorage();
-  this.notifyStateChange('cart', cart);
+// CORRECTION: Validation du paramètre cart
+if (!Array.isArray(cart)) {
+console.error(‘setCart: cart must be an array, received:’, typeof cart, cart);
+cart = [];
+}
+
+
+console.log('Setting cart to:', cart); // Debug
+this.cart = cart;
+this.saveCartToStorage();
+this.notifyStateChange('cart', cart);
+
+
 },
 
 // Observers
 observers: new Map(),
 
 subscribe(event, callback) {
-  if (!this.observers.has(event)) {
-    this.observers.set(event, new Set());
-  }
-  this.observers.get(event).add(callback);
-  
-  // Retourner fonction de désabonnement
-  return () => {
-    this.observers.get(event)?.delete(callback);
-  };
+if (!this.observers.has(event)) {
+this.observers.set(event, new Set());
+}
+this.observers.get(event).add(callback);
+
+
+// Retourner fonction de désabonnement
+return () => {
+  this.observers.get(event)?.delete(callback);
+};
+
+
 },
 
 notifyStateChange(event, data) {
-  this.observers.get(event)?.forEach(callback => {
-    try {
-      callback(data);
-    } catch (error) {
-      console.error('State observer error:', error);
-    }
-  });
+this.observers.get(event)?.forEach(callback => {
+try {
+callback(data);
+} catch (error) {
+console.error(‘State observer error:’, error);
+}
+});
 },
 
 // Persistence
 saveCartToStorage() {
-  try {
-    // Utiliser la même clé que votre système existant pour compatibilité
-    const cartData = {
-      version: CONFIG.CACHE_VERSION,
-      timestamp: Date.now(),
-      items: this.cart
-    };
-    
-    // Sauvegarder avec les deux clés pour compatibilité
-    localStorage.setItem('cart', JSON.stringify(this.cart)); // Clé simple pour compatibilité HTML
-    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData)); // Clé avec version
-    
-    console.log('Cart saved to storage with keys: cart, pt_cart'); // Debug
-    console.log('Saved cart data:', this.cart); // Debug
-  } catch (error) {
-    console.error('Failed to save cart:', error);
-  }
+try {
+// CORRECTION: Vérifier que cart est valide avant sauvegarde
+if (!Array.isArray(this.cart)) {
+console.warn(‘saveCartToStorage: cart is not an array, skipping save’);
+return;
+}
+
+
+  // Utiliser la même clé que votre système existant pour compatibilité
+  const cartData = {
+    version: CONFIG.CACHE_VERSION,
+    timestamp: Date.now(),
+    items: this.cart
+  };
+  
+  // Sauvegarder avec les deux clés pour compatibilité
+  localStorage.setItem('cart', JSON.stringify(this.cart)); // Clé simple pour compatibilité HTML
+  localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData)); // Clé avec version
+  
+  console.log('Cart saved to storage with keys: cart, pt_cart'); // Debug
+  console.log('Saved cart data:', this.cart); // Debug
+} catch (error) {
+  console.error('Failed to save cart:', error);
+}
+
+
 },
 
 loadCartFromStorage() {
-  try {
-    // Essayer d'abord la nouvelle clé, puis l'ancienne pour compatibilité
-    let cartData = null;
-    
-    const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
-    if (newFormat) {
-      const parsed = JSON.parse(newFormat);
-      if (Array.isArray(parsed)) {
-        cartData = parsed; // Ancien format
-      } else if (parsed.items) {
-        cartData = parsed.items; // Nouveau format
-      }
+try {
+// Essayer d’abord la nouvelle clé, puis l’ancienne pour compatibilité
+let cartData = null;
+
+
+  const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
+  if (newFormat) {
+    const parsed = JSON.parse(newFormat);
+    if (Array.isArray(parsed)) {
+      cartData = parsed; // Ancien format
+    } else if (parsed && parsed.items && Array.isArray(parsed.items)) {
+      cartData = parsed.items; // Nouveau format
     }
-    
-    // Fallback sur l'ancienne clé
-    if (!cartData) {
-      const oldFormat = localStorage.getItem('cart');
-      if (oldFormat) {
-        cartData = JSON.parse(oldFormat);
-      }
-    }
-    
-    this.cart = cartData || [];
-    console.log('Cart loaded from storage:', this.cart); // Debug
-    console.log('Cart items count:', this.cart.length); // Debug
-  } catch (error) {
-    console.error('Failed to load cart:', error);
-    this.cart = [];
   }
+  
+  // Fallback sur l'ancienne clé
+  if (!cartData) {
+    const oldFormat = localStorage.getItem('cart');
+    if (oldFormat) {
+      const parsed = JSON.parse(oldFormat);
+      if (Array.isArray(parsed)) {
+        cartData = parsed;
+      }
+    }
+  }
+  
+  // CORRECTION: S'assurer que cartData est toujours un array valide
+  this.cart = Array.isArray(cartData) ? cartData : [];
+  
+  console.log('Cart loaded from storage:', this.cart); // Debug
+  console.log('Cart items count:', this.cart.length); // Debug
+  
+} catch (error) {
+  console.error('Failed to load cart:', error);
+  // CORRECTION: En cas d'erreur, initialiser un panier vide
+  this.cart = [];
+}
+
+
 }
 
 }); // Fermeture de Object.assign
