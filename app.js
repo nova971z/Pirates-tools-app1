@@ -202,6 +202,14 @@ let cartData = null;
 }
 
 }); // Fermeture de Object.assign
+
+// Initialisation du cart au chargement
+State.loadCartFromStorage();
+
+// Rendre State disponible globalement
+window.PiratesToolsState = State;
+
+})(); // CORRECTION: Fermeture de la fonction auto-exécutée
 // ===========================================
 // 3. ROUTER SYSTEM
 // ===========================================
