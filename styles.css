@@ -2,8 +2,8 @@
 Pirates Tools — styles.css (HARMONISÉ v5)
 • Aligné app.js : overshoot → blur → fade rapide du hero
 • Safe areas + –safe-top (posée par JS) + dock robuste (#dock)
-• Z-index/pointer-events sûrs quand le hero “passe derrière”
-• –listGap animé par app.js pour libérer les bulles sur l’accueil
+• Z-index/pointer-events sûrs quand le hero "passe derrière"
+• –listGap animé par app.js pour libérer les bulles sur l'accueil
 ========================================================= */
 
 /* ========== 01) THÈME & VARIABLES GLOBALES ========== */
@@ -48,7 +48,7 @@ background:
 radial-gradient(60% 40% at 50% 30%, rgba(25,211,255,.08), transparent 70%),
 linear-gradient(180deg,#0a0f14 0%,#06141b 100%);
 color:var(–fg);
-font:500 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,“Inter”,“Segoe UI”,Roboto,Arial,sans-serif;
+font:500 16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
 -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
 padding-bottom: calc(var(–dockH) + var(–safe-bottom) + 16px);
 }
@@ -91,7 +91,7 @@ display:block !important; height:28px; width:auto; object-fit:contain;
 image-rendering:-webkit-optimize-contrast; backface-visibility:hidden;
 -webkit-backface-visibility:hidden; transform:translateZ(0);
 /* CORRECTION: Utilisation du vrai logo pirates-tools-logo.png */
-content:url(‘pirates-tools-logo.png’);
+content:url('pirates-tools-logo.png');
 }
 
 /* Appels rapides */
@@ -136,7 +136,7 @@ padding-bottom: max(0px, env(safe-area-inset-bottom));
 overflow: visible; /* le logo peut dépasser pendant le zoom */
 }
 
-/* Quand le hero est “passé”, on le met vraiment sous la page */
+/* Quand le hero est "passé", on le met vraiment sous la page */
 .hero-full.hero-out, #hero.hero-out{
 z-index:-1;
 height:0 !important; min-height:0 !important;
@@ -149,7 +149,7 @@ z-index:-1; pointer-events:none;
 height:0 !important; min-height:0 !important; display:none !important;
 }
 
-/* === LOGO : Base + États d’animation === */
+/* === LOGO : Base + États d'animation === */
 #heroLogo, .hero-logo{
 display:block; margin:0 auto; background:transparent; border:0; border-radius:0; box-shadow:none;
 width: clamp(256px, 66vmin, 900px);
@@ -199,7 +199,7 @@ background:linear-gradient(180deg, rgba(10,15,20,0) 0%, rgba(10,15,20,.82) 60%, 
 
 /* Sécurité anti-ligne entre hero et contenu */
 body::after{
-content:””;
+content:"";
 position:fixed; left:0; right:0; top:calc(100vh - var(–heroFadeH));
 height:var(–heroFadeH); pointer-events:none; z-index:29;
 background:linear-gradient(180deg, rgba(10,15,20,0) 0%, var(–bg) 85%, var(–bg) 100%);
@@ -252,7 +252,7 @@ display: none !important;
 visibility: hidden !important;
 }
 
-/* S’assurer que le logo n’apparait que sur l’accueil */
+/* S'assurer que le logo n'apparait que sur l'accueil */
 body.page-home #hero {
 display: block;
 }
@@ -282,7 +282,7 @@ width:100%; min-height:44px; outline:none; appearance:none; -webkit-appearance:n
 .search::placeholder{ color:#7f94a5 }
 .select{
 padding-right:2.1rem;
-background-image:url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘14’ height=‘14’ viewBox=‘0 0 24 24’ fill=‘none’ stroke=’%239fb4c5’ stroke-width=‘2’ stroke-linecap=‘round’ stroke-linejoin=‘round’%3E%3Cpolyline points=‘6 9 12 15 18 9’/%3E%3C/svg%3E”);
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239fb4c5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 background-repeat:no-repeat; background-position:right .65rem center; background-size:.9rem auto;
 }
 .select:focus, .search:focus{
@@ -293,7 +293,7 @@ border-color:rgba(25,211,255,.55);
 
 /* ========== 07) LISTES & CARTES ========== */
 .list{ display:grid; gap:1rem; position:relative; z-index:10 }
-.list::before{ content:””; display:block; height:var(–listGap); transition:height .22s ease-out }
+.list::before{ content:""; display:block; height:var(–listGap); transition:height .22s ease-out }
 .card{
 background:var(–card); border:1px solid var(–border); border-radius:var(–radius);
 box-shadow:var(–shadow); overflow:hidden; position:relative;
@@ -413,9 +413,9 @@ transform: scale(0.95);
 }
 
 /* 3 premières icônes : gris foncé exactement comme votre image */
-.dock__btn–tools,
-.dock__btn–account,
-.dock__btn–cart {
+.dock__btn--tools,
+.dock__btn--account,
+.dock__btn--cart {
 background: #505050 !important;
 color: #ffffff !important;
 box-shadow: none !important;
@@ -423,13 +423,13 @@ border: none !important;
 }
 
 /* Téléphone : bleu clair */
-.dock__btn–call {
+.dock__btn--call {
 background: #00bfff !important;
 color: #ffffff !important;
 }
 
 /* WhatsApp : vert */
-.dock__btn–wa {
+.dock__btn--wa {
 background: #25d366 !important;
 color: #ffffff !important;
 }
@@ -487,7 +487,7 @@ transform: translateX(0) !important;
 /* États fermés */
 .drawer:not(.open),
 .drawer.hidden,
-.drawer[aria-hidden=“true”]:not(.open) {
+.drawer[aria-hidden="true"]:not(.open) {
 transform: translateX(-100%) !important;
 }
 
@@ -763,11 +763,11 @@ position:fixed; left:50%; transform:translateX(-50%);
 bottom:calc(72px + var(–safe-bottom));
 background:rgba(10,15,20,.88); border:1px solid var(–border);
 padding:.5rem .8rem; border-radius:10px; z-index:120; box-shadow:var(–shadow);
-font:600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,“Inter”,“Segoe UI”,Roboto,Arial,sans-serif;
+font:600 14px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;
 color:#e6edf5; display:none;
 }
 
-/* ========== 22) ANIM “EXIT” & REDUCED MOTION ========== */
+/* ========== 22) ANIM "EXIT" & REDUCED MOTION ========== */
 @keyframes exitLeft{ to{ transform:translateX(-60px); opacity:0; filter:blur(2px) } }
 @keyframes exitRight{ to{ transform:translateX(60px); opacity:0; filter:blur(2px) } }
 .tool–exit-left{ animation:exitLeft 420ms cubic-bezier(.22,.61,.36,1) forwards; will-change:transform,opacity }
@@ -876,7 +876,7 @@ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 .hero-full.hero-out{ z-index:-1 }
 #heroLogo, .hero-logo{ will-change:transform, opacity }
 
-/* ==== PATCH défilement (empêche tout “lock” en bas) ==== */
+/* ==== PATCH défilement (empêche tout "lock" en bas) ==== */
 html, body{
 overscroll-behavior-y: auto;
 -webkit-overflow-scrolling: touch;
@@ -920,7 +920,7 @@ height: auto;
 will-change: opacity, transform, filter;
 }
 
-/* Respect des préférences d’accessibilité */
+/* Respect des préférences d'accessibilité */
 @media (prefers-reduced-motion: reduce){
 .hero .hero-logo,
 .hero-full .hero-logo,
