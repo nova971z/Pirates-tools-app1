@@ -42,37 +42,37 @@ SETTINGS: 'pt_settings'
 
 // Initialisation immédiate du State
 window.State = window.State || {
-currentRoute: ‘/’,
+currentRoute: '/',
 user: null,
 isAuthenticated: false,
 products: [],
 filteredProducts: [],
 cart: [],
 currentProduct: null,
-searchQuery: ‘’,
-selectedTag: ‘’,
+searchQuery: '',
+selectedTag: '',
 isLoading: false,
-heroState: ‘active’ // active, transitioning, hidden
+heroState: 'active' // active, transitioning, hidden
 };
 
 const State = window.State;
 
 // Ajouter les méthodes au State existant
 Object.assign(State, {
-// Getters CORRIGÉS avec protection
+// Getters CORRIGES avec protection
 get cartCount() {
-// Protection: s’assurer que cart est toujours un array
+// Protection: s'assurer que cart est toujours un array
 if (!this.cart || !Array.isArray(this.cart)) {
-console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
 return this.cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
 },
 
 get cartTotal() {
-// Protection: s’assurer que cart est toujours un array  
+// Protection: s'assurer que cart est toujours un array  
 if (!this.cart || !Array.isArray(this.cart)) {
-console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
 return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
@@ -81,36 +81,33 @@ return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity
 // Mutations
 setRoute(route) {
 this.currentRoute = route;
-console.log(‘Route changed to:’, route); // Debug
-this.notifyStateChange(‘route’, route);
+console.log('Route changed to:', route); // Debug
+this.notifyStateChange('route', route);
 },
 
 setUser(user) {
 this.user = user;
 this.isAuthenticated = !!user;
-this.notifyStateChange(‘user’, user);
+this.notifyStateChange('user', user);
 },
 
 setProducts(products) {
 this.products = products;
 this.filteredProducts = products;
-this.notifyStateChange(‘products’, products);
+this.notifyStateChange('products', products);
 },
 
 setCart(cart) {
 // CORRECTION: Validation du paramètre cart
 if (!Array.isArray(cart)) {
-console.error(‘setCart: cart must be an array, received:’, typeof cart, cart);
+console.error('setCart: cart must be an array, received:', typeof cart, cart);
 cart = [];
 }
-
 
 console.log('Setting cart to:', cart); // Debug
 this.cart = cart;
 this.saveCartToStorage();
 this.notifyStateChange('cart', cart);
-
-
 },
 
 // Observers
@@ -122,13 +119,10 @@ this.observers.set(event, new Set());
 }
 this.observers.get(event).add(callback);
 
-
 // Retourner fonction de désabonnement
 return () => {
   this.observers.get(event)?.delete(callback);
 };
-
-
 },
 
 notifyStateChange(event, data) {
@@ -136,7 +130,7 @@ this.observers.get(event)?.forEach(callback => {
 try {
 callback(data);
 } catch (error) {
-console.error(‘State observer error:’, error);
+console.error('State observer error:', error);
 }
 });
 },
@@ -146,10 +140,9 @@ saveCartToStorage() {
 try {
 // CORRECTION: Vérifier que cart est valide avant sauvegarde
 if (!Array.isArray(this.cart)) {
-console.warn(‘saveCartToStorage: cart is not an array, skipping save’);
+console.warn('saveCartToStorage: cart is not an array, skipping save');
 return;
 }
-
 
   // Utiliser la même clé que votre système existant pour compatibilité
   const cartData = {
@@ -167,15 +160,12 @@ return;
 } catch (error) {
   console.error('Failed to save cart:', error);
 }
-
-
 },
 
 loadCartFromStorage() {
 try {
-// Essayer d’abord la nouvelle clé, puis l’ancienne pour compatibilité
+// Essayer d'abord la nouvelle clé, puis l'ancienne pour compatibilité
 let cartData = null;
-
 
   const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
   if (newFormat) {
@@ -209,12 +199,9 @@ let cartData = null;
   // CORRECTION: En cas d'erreur, initialiser un panier vide
   this.cart = [];
 }
-
-
 }
 
 }); // Fermeture de Object.assign
-
 // ===========================================
 // 3. ROUTER SYSTEM
 // ===========================================
