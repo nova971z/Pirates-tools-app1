@@ -1,4 +1,4 @@
-<!doctype html>
+w<!doctype html>
 
 <html lang="fr">
 <head>
@@ -162,6 +162,116 @@ setTimeout(function () {
     }
   </style>
 
+
+<!-- ========== À AJOUTER DANS VOTRE index.html ========== -->
+
+<!-- 1. Ajouter Three.js AVANT la fermeture de </head> -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<!-- 2. Ajouter la bannière outils APRÈS les bulles de marques -->
+
+<!-- Trouvez cette section dans votre index.html : -->
+
+<!-- <div id="brandGrid" class="brand-grid"></div> -->
+
+<!-- Ajoutez JUSTE APRÈS cette ligne : -->
+
+<section id="tools-banner" class="tools-banner">
+    <h2>Découvrez nos Outils en 3D</h2>
+    <div class="tools-scroll-container">
+        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
+            &#8249;
+        </button>
+        <div class="tools-grid">
+            <!-- Les outils seront générés dynamiquement par JavaScript -->
+            <div class="empty">Chargement des outils 3D...</div>
+        </div>
+        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
+            &#8250;
+        </button>
+    </div>
+</section>
+
+<!-- 3. Alternative si vous voulez l'intégrer différemment -->
+
+<!-- Vous pouvez aussi l'ajouter dans n'importe quelle section de votre page d'accueil -->
+
+<!-- Exemple d'intégration complète dans le body : -->
+
+<!--
+<body class="page-home">
+    <!-- Votre contenu existant -->
+
+```
+<!-- Votre section marques existante -->
+<div id="brandGrid" class="brand-grid"></div>
+
+<!-- NOUVELLE SECTION OUTILS 3D -->
+<section id="tools-banner" class="tools-banner">
+    <h2>Découvrez nos Outils en 3D</h2>
+    <div class="tools-scroll-container">
+        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
+            &#8249;
+        </button>
+        <div class="tools-grid">
+            <div class="empty">Chargement des outils 3D...</div>
+        </div>
+        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
+            &#8250;
+        </button>
+    </div>
+</section>
+
+<!-- Reste de votre contenu -->
+```
+
+</body>
+-->
+
+<!-- 4. Structure HTML complète du modal (généré automatiquement par JS) -->
+
+<!-- CECI EST JUSTE POUR RÉFÉRENCE - NE PAS AJOUTER MANUELLEMENT -->
+
+<!--
+<div id="tool-3d-modal" class="tool-3d-modal">
+    <div class="tool-3d-backdrop"></div>
+    <div class="tool-3d-container">
+        <div class="tool-3d-header">
+            <h2>Nom de l'outil</h2>
+            <button class="tool-3d-close">&times;</button>
+        </div>
+        <div class="tool-3d-viewport" id="tool-3d-viewport">
+            <button class="fullscreen-btn" title="Plein écran">⛶</button>
+            <div class="control-hints">
+                <h4>Contrôles :</h4>
+                <ul>
+                    <li>Clic + glisser : Rotation</li>
+                    <li>Molette : Zoom</li>
+                    <li>Clic droit + glisser : Panoramique</li>
+                </ul>
+            </div>
+        </div>
+        <div class="tool-3d-controls">
+            <div class="tool-info-details">
+                <p><strong>Catégorie:</strong> Électroportatif</p>
+                <p><strong>Description:</strong> Description de l'outil</p>
+                <p><strong>Disponibilité:</strong> Disponible</p>
+            </div>
+            <div class="tool-3d-actions">
+                <button class="btn btn-primary">Réserver cet outil</button>
+                <button class="btn" onclick="resetCamera()">Réinitialiser vue</button>
+            </div>
+        </div>
+    </div>
+</div>
+-->
+
+  
   </head>
 <body>
   <!-- =================== TOPBAR =================== -->
