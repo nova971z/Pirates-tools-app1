@@ -1,0 +1,58 @@
+{
+“tools”: [
+{
+“id”: “tool-1”,
+“name”: “Perceuse”,
+“description”: “Perceuse électrique professionnelle”,
+“model”: “models/tools/perceuse.glb”,
+“thumbnail”: “images/tools/perceuse-thumb.jpg”,
+“category”: “Électroportatif”,
+“available”: true
+},
+{
+“id”: “tool-2”,
+“name”: “Scie circulaire”,
+“description”: “Scie circulaire portative”,
+“model”: “models/tools/scie-circulaire.glb”,
+“thumbnail”: “images/tools/scie-thumb.jpg”,
+“category”: “Découpe”,
+“available”: true
+},
+{
+“id”: “tool-3”,
+“name”: “Meuleuse”,
+“description”: “Meuleuse d’angle 125mm”,
+“model”: “models/tools/meuleuse.glb”,
+“thumbnail”: “images/tools/meuleuse-thumb.jpg”,
+“category”: “Ponçage”,
+“available”: true
+},
+{
+“id”: “tool-4”,
+“name”: “Marteau-piqueur”,
+“description”: “Marteau-piqueur pneumatique”,
+“model”: “models/tools/marteau-piqueur.glb”,
+“thumbnail”: “images/tools/marteau-thumb.jpg”,
+“category”: “Démolition”,
+“available”: true
+},
+{
+“id”: “tool-5”,
+“name”: “Ponceuse”,
+“description”: “Ponceuse orbitale”,
+“model”: “models/tools/ponceuse.glb”,
+“thumbnail”: “images/tools/ponceuse-thumb.jpg”,
+“category”: “Finition”,
+“available”: true
+},
+{
+“id”: “tool-6”,
+“name”: “Scie sauteuse”,
+“description”: “Scie sauteuse précision”,
+“model”: “models/tools/scie-sauteuse.glb”,
+“thumbnail”: “images/tools/scie-sauteuse-thumb.jpg”,
+“category”: “Découpe”,
+“available”: true
+}
+]
+}
