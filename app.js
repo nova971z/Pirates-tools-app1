@@ -66,7 +66,7 @@ if (!this.cart || !Array.isArray(this.cart)) {
 console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
-return this.cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+return this.cart.reduce((sum, item) => sum + (item.quantity || item.qty || 0), 0);
 },
 
 get cartTotal() {
@@ -75,7 +75,7 @@ if (!this.cart || !Array.isArray(this.cart)) {
 console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
-return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || item.qty || 0)), 0);
 },
 
 // Mutations
@@ -135,7 +135,7 @@ console.error('State observer error:', error);
 });
 },
 
-// Persistence
+// Persistence CORRIGÉE
 saveCartToStorage() {
 try {
 // CORRECTION: Vérifier que cart est valide avant sauvegarde
@@ -144,19 +144,30 @@ console.warn('saveCartToStorage: cart is not an array, skipping save');
 return;
 }
 
-  // Utiliser la même clé que votre système existant pour compatibilité
+  // CORRECTION : Sauvegarder dans les DEUX formats pour compatibilité totale
+  const simpleCart = this.cart.map(item => ({
+    key: item.slug || item.key,
+    title: item.title,
+    brand: item.brand || '',
+    price: item.price || 0,
+    qty: item.quantity || item.qty || 1,
+    image: item.image
+  }));
+  
+  // Format simple pour HTML
+  localStorage.setItem('cart', JSON.stringify(simpleCart));
+  
+  // Format avancé pour app.js
   const cartData = {
     version: CONFIG.CACHE_VERSION,
     timestamp: Date.now(),
     items: this.cart
   };
+  localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData));
   
-  // Sauvegarder avec les deux clés pour compatibilité
-  localStorage.setItem('cart', JSON.stringify(this.cart)); // Clé simple pour compatibilité HTML
-  localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData)); // Clé avec version
-  
-  console.log('Cart saved to storage with keys: cart, pt_cart'); // Debug
-  console.log('Saved cart data:', this.cart); // Debug
+  console.log('Cart saved in both formats'); 
+  console.log('Simple cart for HTML:', simpleCart);
+  console.log('Advanced cart for app.js:', this.cart);
 } catch (error) {
   console.error('Failed to save cart:', error);
 }
@@ -164,9 +175,10 @@ return;
 
 loadCartFromStorage() {
 try {
-// Essayer d'abord la nouvelle clé, puis l'ancienne pour compatibilité
+// CORRECTION: Essayer les deux formats et normaliser
 let cartData = null;
 
+  // Essayer d'abord le format avancé
   const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
   if (newFormat) {
     const parsed = JSON.parse(newFormat);
@@ -177,13 +189,21 @@ let cartData = null;
     }
   }
   
-  // Fallback sur l'ancienne clé
+  // Fallback sur le format simple
   if (!cartData) {
     const oldFormat = localStorage.getItem('cart');
     if (oldFormat) {
       const parsed = JSON.parse(oldFormat);
       if (Array.isArray(parsed)) {
-        cartData = parsed;
+        // CORRECTION: Normaliser les données du format simple vers le format app.js
+        cartData = parsed.map(item => ({
+          slug: item.key || item.slug,
+          title: item.title,
+          brand: item.brand || '',
+          price: item.price || 0,
+          quantity: item.qty || item.quantity || 1,
+          image: item.image
+        }));
       }
     }
   }
@@ -634,7 +654,7 @@ cacheProducts(products) {
 };
 
 // ===========================================
-// 5. CART SYSTEM
+// 5. CART SYSTEM - CORRIGÉ
 // ===========================================
 
 const CartManager = {
@@ -706,6 +726,7 @@ addToCart(productSlug, quantity = 1) {
     State.cart.push({
       slug: productSlug,
       title: product.title,
+      brand: product.brand || product.tag || '',
       price: product.price || 0,
       image: product.image,
       quantity: quantity
@@ -778,10 +799,11 @@ updateCartCount() {
   }
 },
 
+// FONCTION CORRIGÉE - Compatible avec le système HTML
 updateCartList() {
   const container = document.getElementById('devisList');
   if (!container) {
-    console.warn('Container devisList non trouve - element manquant dans le HTML');
+    console.warn('Container devisList non trouvé');
     return;
   }
   
@@ -793,119 +815,59 @@ updateCartList() {
       <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--muted);">
         <h3 style="margin-bottom: 16px; color: var(--fg);">Votre panier est vide</h3>
         <p style="margin-bottom: 24px;">Découvrez nos produits et ajoutez-les à votre panier</p>
-        <a href="#/catalogue" class="btn primary" style="display: inline-block; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Voir le catalogue</a>
+        <a href="#/catalogue" class="btn primary">Voir le catalogue</a>
       </div>
     `;
     return;
   }
   
-  // Construire le HTML des articles
+  // CORRECTION : Utiliser la structure compatible avec HTML
   const cartItemsHTML = State.cart.map((item, index) => {
-    console.log(`Rendu article ${index + 1}:`, item.title);
+    // Adapter les noms de propriétés
+    const key = item.slug || item.key || `item-${index}`;
+    const qty = item.quantity || item.qty || 1;
+    const title = item.title || 'Article';
+    const price = item.price || 0;
+    const image = item.image || 'icons/icon-180.png';
+    const brand = item.brand || '';
     
     return `
-      <div class="cart-item" data-slug="${item.slug}" style="
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 16px; 
-        margin-bottom: 12px; 
-        background: var(--card); 
-        border-radius: 8px; 
-        border: 1px solid var(--border);
+      <div class="line" data-i="${index}" style="
+        display: grid; 
+        grid-template-columns: 56px 1fr auto; 
+        gap: 0.6rem; 
+        align-items: center;
+        padding: 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
       ">
-        <div class="cart-item__info" style="display: flex; align-items: center; gap: 12px; flex: 1;">
-          ${item.image ? `
-            <img src="${item.image}" alt="${Utils.escapeHtml(item.title)}" style="
-              width: 60px; 
-              height: 60px; 
-              object-fit: cover; 
-              border-radius: 8px; 
-              border: 1px solid var(--border);
-            ">
-          ` : `
-            <div style="
-              width: 60px; 
-              height: 60px; 
-              background: var(--border); 
-              border-radius: 8px; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              color: var(--muted);
-            ">📦</div>
-          `}
-          <div style="flex: 1;">
-            <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--fg);">${Utils.escapeHtml(item.title)}</h4>
-            <p style="margin: 4px 0; color: var(--brand); font-weight: 500; font-size: 13px;">Prix unitaire: ${item.price}€ HT</p>
-            <p style="margin: 4px 0; color: var(--muted); font-size: 12px;">Sous-total: ${(item.price * item.quantity).toFixed(2)}€ HT</p>
-          </div>
+        <img alt="" src="${image}" width="56" height="56" style="
+          object-fit: cover; 
+          border-radius: 8px; 
+          border: 1px solid rgba(255,255,255,0.08);
+        "/>
+        <div>
+          <div style="font-weight: 600; color: #fff;">${Utils.escapeHtml(title)}</div>
+          ${brand ? `<div style="opacity: 0.8; color: #b8c5d1;">${Utils.escapeHtml(brand)}</div>` : ''}
+          <div style="opacity: 0.8; color: #b8c5d1;">Prix: ${price.toFixed(2)}€</div>
         </div>
-        <div class="cart-item__controls" style="display: flex; align-items: center; gap: 8px;">
-          <button 
-            onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity - 1})" 
-            style="
-              width: 32px; 
-              height: 32px; 
-              border-radius: 50%; 
+        <div style="display: grid; gap: 0.35rem; justify-items: end;">
+          <div style="color: #fff; font-weight: 700;">${(price * qty).toFixed(2)}€</div>
+          <label class="chip" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <span style="opacity: 0.85;">Qté</span>
+            <input type="number" min="1" value="${qty}" class="qty" style="
+              width: 64px; 
+              text-align: center; 
+              background: var(--card); 
               border: 1px solid var(--border); 
-              background: var(--panel); 
+              border-radius: 4px; 
               color: var(--fg); 
-              cursor: pointer; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center;
-              font-weight: bold;
-            "
-            ${item.quantity <= 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
-          >-</button>
-          
-          <span style="
-            min-width: 32px; 
-            text-align: center; 
-            font-weight: 600; 
-            background: var(--card); 
-            padding: 4px 8px; 
-            border-radius: 4px; 
-            border: 1px solid var(--border);
-            color: var(--fg);
-          ">${item.quantity}</span>
-          
-          <button 
-            onclick="window.PiratesTools.updateCartQuantity('${item.slug}', ${item.quantity + 1})" 
-            style="
-              width: 32px; 
-              height: 32px; 
-              border-radius: 50%; 
-              border: 1px solid var(--border); 
-              background: var(--panel); 
-              color: var(--fg); 
-              cursor: pointer; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center;
-              font-weight: bold;
-            "
-          >+</button>
-          
-          <button 
-            onclick="window.PiratesTools.removeFromCart('${item.slug}')" 
-            style="
-              width: 32px; 
-              height: 32px; 
-              border-radius: 50%; 
-              border: 1px solid var(--border); 
-              background: var(--panel); 
-              color: #ff6b6b; 
-              cursor: pointer; 
-              margin-left: 8px; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center;
-              font-weight: bold;
-            "
-            title="Supprimer cet article"
-          >×</button>
+              padding: 4px;
+            " />
+          </label>
+          <button class="btn" data-action="rm" style="font-size: 12px; padding: 0.3rem 0.5rem;">Retirer</button>
         </div>
       </div>
     `;
@@ -916,20 +878,20 @@ updateCartList() {
   const totalTTC = totalHT * 1.20;
   
   const totalHTML = `
-    <div class="cart-total" style="
+    <div style="
       margin-top: 20px; 
       padding: 20px; 
-      background: var(--panel); 
-      border-radius: 8px; 
-      border: 1px solid var(--border);
+      background: rgba(139, 92, 246, 0.15); 
+      border-radius: 12px; 
+      border: 2px solid rgba(139, 92, 246, 0.3);
     ">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-        <span style="color: var(--muted);">Total HT:</span>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #fff;">
+        <span>Total HT:</span>
         <span style="font-size: 18px; font-weight: 600; color: var(--brand);">${totalHT.toFixed(2)}€</span>
       </div>
-      <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border);">
-        <span style="color: var(--muted);">Total TTC (20% TVA):</span>
-        <span style="font-size: 20px; font-weight: 700; color: var(--fg);">${totalTTC.toFixed(2)}€</span>
+      <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(139, 92, 246, 0.3); color: #fff;">
+        <span>Total TTC (20% TVA):</span>
+        <span style="font-size: 20px; font-weight: 700; color: var(--brand);">${totalTTC.toFixed(2)}€</span>
       </div>
       <div style="margin-top: 12px; font-size: 12px; color: var(--muted);">
         ${State.cartCount} article${State.cartCount > 1 ? 's' : ''} dans votre panier
@@ -938,6 +900,35 @@ updateCartList() {
   `;
   
   container.innerHTML = cartItemsHTML + totalHTML;
+  
+  // CORRECTION : Bind les événements avec les vraies fonctions
+  container.querySelectorAll('.line').forEach(function(row) {
+    const i = +row.getAttribute('data-i') || 0;
+    
+    // Quantity change
+    const qtyInp = row.querySelector('.qty');
+    if (qtyInp) {
+      qtyInp.addEventListener('change', function() {
+        const newQty = Math.max(1, Number(qtyInp.value) || 1);
+        if (State.cart[i]) {
+          // Mettre à jour avec les bons noms de propriétés
+          State.cart[i].quantity = newQty;
+          State.cart[i].qty = newQty; // Compatibilité
+          State.setCart([...State.cart]);
+        }
+      });
+    }
+    
+    // Remove button
+    const rmBtn = row.querySelector('[data-action="rm"]');
+    if (rmBtn) {
+      rmBtn.addEventListener('click', function() {
+        State.cart.splice(i, 1);
+        State.setCart([...State.cart]);
+      });
+    }
+  });
+  
   console.log('Panier rendu avec succès');
 },
 
@@ -2626,4 +2617,3 @@ window.addEventListener('resize', handleResize);
 
 
 })();
-
