@@ -7,16 +7,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Pirates Tools • Outillage pro (PWA)</title>
   <meta name="description" content="Pirates Tools — Visseuses à chocs DeWALT, dispo Antilles. PWA rapide, contact immédiat (téléphone & WhatsApp)." />
+
   <!-- IMPORTANT: base + canonique -->
+
   <base href="/Pirates-tools-app1/">
   <link rel="canonical" href="https://nova971z.github.io/Pirates-tools-app1/">
- <!-- Cache-bust assets -->
+
+  <!-- Cache-bust assets -->
+
   <script>window.__ASSET_VER="42";</script>
+
   <!-- CSS (Android + iOS) -->
-<link rel="preload" href="styles.css?v=42" as="style">
-<link id="app-css" rel="stylesheet" href="styles.css?v=42">
-<link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
+
+  <link rel="preload" href="styles.css?v=42" as="style">
+  <link id="app-css" rel="stylesheet" href="styles.css?v=42">
+  <link rel="stylesheet" href="styles.css" data-ci="true" media="not all" disabled>
+
   <!-- PWA -->
+
   <meta name="theme-color" content="#0a0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -25,7 +33,9 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" sizes="180x180" />
+
   <!-- ?ptlog=1 + fallback CSS -->
+
   <script>
   (function () {
     'use strict';
@@ -48,26 +58,23 @@
       return false;
     }
 
-setTimeout(function () {
-  if (!cssPresent()) {
-    var link = document.getElementById('app-css');
-    var href = (document.baseURI ? new URL('styles.css?v=42', document.baseURI).href : 'styles.css?v=42');
-    if (!link) {
-      link = document.createElement('link');
-      link.id = 'app-css';
-      link.rel = 'stylesheet';
-      link.href = href;
-      document.head.appendChild(link);
-    } else {
-      link.href = href.replace(/([?&])v=\d+/, '$1v=' + Date.now());
-    }
-  }
-}, 600);
-
-})();
-</script>
-
-<!-- PT HERO  -->
+    setTimeout(function () {
+      if (!cssPresent()) {
+        var link = document.getElementById('app-css');
+        var href = (document.baseURI ? new URL('styles.css?v=42', document.baseURI).href : 'styles.css?v=42');
+        if (!link) {
+          link = document.createElement('link');
+          link.id = 'app-css';
+          link.rel = 'stylesheet';
+          link.href = href;
+          document.head.appendChild(link);
+        } else {
+          link.href = href.replace(/([?&])v=\d+/, '$1v=' + Date.now());
+        }
+      }
+    }, 600);
+  })();
+  </script>
 
   <!-- Patch UI : haut non tronqué + dock centré + bulles -->
 
@@ -106,7 +113,7 @@ setTimeout(function () {
   <style id="hero-scroll-animation">
     /* === HÉRO AVEC ANIMATION DE SCROLL === */
     .hero-full {
-      height: 50vh; /* Espace encore plus réduit */
+      height: 50vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -151,7 +158,7 @@ setTimeout(function () {
       visibility: hidden;
     }
 
-    <!-- Responsive pour mobile -->
+    /* Responsive pour mobile */
     @media (max-width: 768px) {
       .hero-logo {
         width: 90vw !important; 
@@ -162,126 +169,25 @@ setTimeout(function () {
     }
   </style>
 
+  <!-- Three.js pour les outils 3D -->
 
-<!-- ========== À AJOUTER DANS VOTRE index.html ========== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-<!-- 1. Ajouter Three.js AVANT la fermeture de </head> -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
-<!-- 2. Ajouter la bannière outils APRÈS les bulles de marques -->
-
-<!-- Trouvez cette section dans votre index.html : -->
-
-<!-- <div id="brandGrid" class="brand-grid"></div> -->
-
-<!-- Ajoutez JUSTE APRÈS cette ligne : -->
-
-<section id="tools-banner" class="tools-banner">
-    <h2>Découvrez nos Outils en 3D</h2>
-    <div class="tools-scroll-container">
-        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
-            &#8249;
-        </button>
-        <div class="tools-grid">
-            <!-- Les outils seront générés dynamiquement par JavaScript -->
-            <div class="empty">Chargement des outils 3D...</div>
-        </div>
-        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
-            &#8250;
-        </button>
-    </div>
-</section>
-
-<!-- 3. Alternative si vous voulez l'intégrer différemment -->
-
-<!-- Vous pouvez aussi l'ajouter dans n'importe quelle section de votre page d'accueil -->
-
-<!-- Exemple d'intégration complète dans le body : -->
-
-<!--
-<body class="page-home">
-    <!-- Votre contenu existant -->
-
-```
-<!-- Votre section marques existante -->
-<div id="brandGrid" class="brand-grid"></div>
-
-<!-- NOUVELLE SECTION OUTILS 3D -->
-<section id="tools-banner" class="tools-banner">
-    <h2>Découvrez nos Outils en 3D</h2>
-    <div class="tools-scroll-container">
-        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
-            &#8249;
-        </button>
-        <div class="tools-grid">
-            <div class="empty">Chargement des outils 3D...</div>
-        </div>
-        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
-            &#8250;
-        </button>
-    </div>
-</section>
-
-<!-- Reste de votre contenu -->
-```
-
-</body>
--->
-
-<!-- 4. Structure HTML complète du modal (généré automatiquement par JS) -->
-
-<!-- CECI EST JUSTE POUR RÉFÉRENCE - NE PAS AJOUTER MANUELLEMENT -->
-
-<!--
-<div id="tool-3d-modal" class="tool-3d-modal">
-    <div class="tool-3d-backdrop"></div>
-    <div class="tool-3d-container">
-        <div class="tool-3d-header">
-            <h2>Nom de l'outil</h2>
-            <button class="tool-3d-close">&times;</button>
-        </div>
-        <div class="tool-3d-viewport" id="tool-3d-viewport">
-            <button class="fullscreen-btn" title="Plein écran">⛶</button>
-            <div class="control-hints">
-                <h4>Contrôles :</h4>
-                <ul>
-                    <li>Clic + glisser : Rotation</li>
-                    <li>Molette : Zoom</li>
-                    <li>Clic droit + glisser : Panoramique</li>
-                </ul>
-            </div>
-        </div>
-        <div class="tool-3d-controls">
-            <div class="tool-info-details">
-                <p><strong>Catégorie:</strong> Électroportatif</p>
-                <p><strong>Description:</strong> Description de l'outil</p>
-                <p><strong>Disponibilité:</strong> Disponible</p>
-            </div>
-            <div class="tool-3d-actions">
-                <button class="btn btn-primary">Réserver cet outil</button>
-                <button class="btn" onclick="resetCamera()">Réinitialiser vue</button>
-            </div>
-        </div>
-    </div>
-</div>
--->
-
-  
-  </head>
 <body>
   <!-- =================== TOPBAR =================== -->
-
   <header class="topbar" role="banner">
     <div class="topbar-left">
       <button id="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="side-menu">
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
+```
   <a id="homeLink" class="topbar-logo-link" href="#/" data-nav="/">
     <img
       id="topbarLogo"
@@ -297,285 +203,291 @@ setTimeout(function () {
   <a id="callBtn" class="btn btn-call" href="tel:+33774230195" data-action="call">📞 <strong>07 74 23 01 95</strong></a>
   <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
 </div>
+```
 
   </header>
 
   <!-- =================== HÉRO AVEC ANIMATION INTÉGRÉE =================== -->
 
-<!-- HÉRO AVEC ANIMATION DE SCROLL -->
-
-<section id="hero" class="hero-full" aria-hidden="true">
-  <div class="hero-logo-container initial" id="heroLogoContainer">
-    <img
-      id="heroLogo"
-      class="hero-logo on"
-      alt="Pirates Tools"
-      src="icons/icon-512.png"
-      srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
-      sizes="(max-width: 768px) 90vw, 60vw"
-      width="600" height="600"
-      decoding="async" loading="eager" fetchpriority="high" />
-  </div>
-</section>
+  <section id="hero" class="hero-full" aria-hidden="true">
+    <div class="hero-logo-container initial" id="heroLogoContainer">
+      <img
+        id="heroLogo"
+        class="hero-logo on"
+        alt="Pirates Tools"
+        src="icons/icon-512.png"
+        srcset="icons/icon-256.png 256w, icons/icon-384.png 384w, icons/icon-512.png 512w"
+        sizes="(max-width: 768px) 90vw, 60vw"
+        width="600" height="600"
+        decoding="async" loading="eager" fetchpriority="high" />
+    </div>
+  </section>
 
   <!-- =================== VUES (SPA) =================== -->
 
   <main id="app" role="main">
 
+```
 <!-- HOME -->
-
 <section id="view-home" class="view" data-route="/" role="region" aria-labelledby="home-h1">
   <div class="container">
     <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
     <ul class="brand-grid" data-home-brands></ul>
     <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
     <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
+    
+    <!-- BANNIÈRE OUTILS 3D - Ajoutée ici après les marques -->
+    <section id="tools-banner" class="tools-banner">
+      <h2>Découvrez nos Outils en 3D</h2>
+      <div class="tools-scroll-container">
+        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
+          &#8249;
+        </button>
+        <div class="tools-grid">
+          <!-- Les outils seront générés dynamiquement par JavaScript -->
+          <div class="empty">Chargement des outils 3D...</div>
+        </div>
+        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
+          &#8250;
+        </button>
+      </div>
+    </section>
   </div>
 </section>
 
 <!-- CATALOGUE -->
-
 <section id="view-catalogue" class="view hidden" data-route="/catalogue" role="region" aria-labelledby="catalogue-h1">
   <div class="container">
     <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
 
-<div class="toolbar">
-  <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
-  <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
-    <option value="">Tous</option>
-  </select>
-</div>
+    <div class="toolbar">
+      <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
+      <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
+        <option value="">Tous</option>
+      </select>
+    </div>
 
-<div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
-<div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
-
+    <div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
+    <div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
   </div>
 </section>
 
 <!-- PRODUIT (PDP) -->
-
 <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
   <div class="container pdp" id="pdp">
     <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
-<div class="pdp__grid">
-  <div class="pdp__media">
-    <img id="pdpImg" alt="" />
-  </div>
+    <div class="pdp__grid">
+      <div class="pdp__media">
+        <img id="pdpImg" alt="" />
+      </div>
 
-  <div class="pdp__info">
-    <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
-    <div id="pdpTag" class="pdp__tag"></div>
-    <p id="pdpDesc" class="pdp__desc"></p>
-    <div class="pdp__price" id="pdpPrice"></div>
-    <ul id="pdpSpecs" class="pdp__specs"></ul>
+      <div class="pdp__info">
+        <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
+        <div id="pdpTag" class="pdp__tag"></div>
+        <p id="pdpDesc" class="pdp__desc"></p>
+        <div class="pdp__price" id="pdpPrice"></div>
+        <ul id="pdpSpecs" class="pdp__specs"></ul>
 
-    <div class="actions">
-      <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-      <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
-      <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
+        <div class="actions">
+          <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
+          <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
+          <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<div class="pdp__related" id="pdpRelated" data-bind="related"></div>
-
+    <div class="pdp__related" id="pdpRelated" data-bind="related"></div>
   </div>
 </section>
 
 <!-- DEVIS (panier) -->
-
 <section id="view-devis" class="view hidden" data-route="/devis" role="region" aria-labelledby="devis-h1">
   <div class="container">
     <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
 
-<div class="card">
-  <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
-
-  <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
-
-  <div class="actions">
-    <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
-    <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
-  </div>
-</div>
-
+    <div class="card">
+      <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
+      <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
+      <div class="actions">
+        <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
+        <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- COMPTE -->
-
 <section id="view-compte" class="view hidden" data-route="/compte" role="region" aria-labelledby="compte-h1">
   <div class="container">
     <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
 
-<div class="card">
-  <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
-  <div class="specs">
-    
-    <!-- Avatar -->
-    
-    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
-      <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
-      <label class="chip" style="cursor:pointer">
-        <input id="accAvatar" type="file" accept="image/*" hidden />
-        Ajouter une photo de profil
-      </label>
-    </div>
+    <div class="card">
+      <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
+      <div class="specs">
+        
+        <!-- Avatar -->
+        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
+          <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
+          <label class="chip" style="cursor:pointer">
+            <input id="accAvatar" type="file" accept="image/*" hidden />
+            Ajouter une photo de profil
+          </label>
+        </div>
 
-    <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
-      <label>Nom
-        <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
-      </label>
-      <label>Email
-        <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
-      </label>
-      <div class="actions">
-        <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
+        <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
+          <label>Nom
+            <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
+          </label>
+          <label>Email
+            <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
+          </label>
+          <div class="actions">
+            <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
+          </div>
+        </form>
+
+        <!-- Mini récap panier -->
+        <div class="card" style="margin-top:1rem;max-width:520px">
+          <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
+          <div id="accCartMini" class="specs">
+            <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
+            <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
+          </div>
+        </div>
+
+        <!-- Jauge fidélité -->
+        <div class="meter" style="max-width:520px;margin-top:1rem">
+          <div class="meter__rail">
+            <div id="accFill" class="meter__fill"></div>
+            <div id="accCursor" class="meter__cursor" style="left:0%"></div>
+          </div>
+          <div class="meter__scale"><span>0%</span><span>100%</span></div>
+          <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
+        </div>
       </div>
-    </form>
-
-    <!-- Mini récap panier -->
-    
-    <div class="card" style="margin-top:1rem;max-width:520px">
-      <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
-      <div id="accCartMini" class="specs">
-        <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
-        <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
-      </div>
     </div>
-
-    <!-- Jauge fidélité -->
-    
-    <div class="meter" style="max-width:520px;margin-top:1rem">
-      <div class="meter__rail">
-        <div id="accFill" class="meter__fill"></div>
-        <div id="accCursor" class="meter__cursor" style="left:0%"></div>
-      </div>
-      <div class="meter__scale"><span>0%</span><span>100%</span></div>
-      <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
-    </div>
-  </div>
-</div>
-
   </div>
 </section>
 
-   <!-- AUTH -->
-
+<!-- AUTH -->
 <section id="view-auth" class="view hidden" data-route="/auth" role="region" aria-labelledby="auth-h1">
   <div class="container">
     <h1 id="auth-h1" tabindex="-1">Compte</h1>
     <div class="card">
       <div class="head"><h3 class="title">Bienvenue</h3><span class="badge">Compte</span></div>
 
-  <div class="specs" style="display:block">
-    <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
-      <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
-      <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
-    </div>
-
-    <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
-      <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
-        <label>Email
-          <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-        </label>
-        <label>Mot de passe
-          <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
-        </label>
-        <div class="actions">
-          <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
+      <div class="specs" style="display:block">
+        <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
+          <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
+          <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
         </div>
-      </form>
-    </div>
 
-    <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
-      <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
-        <label>Nom complet
-          <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
-        </label>
-        <label>Email
-          <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-        </label>
-        <label>Mot de passe
-          <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
-        </label>
-        <div class="actions">
-          <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
+        <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
+          <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+            <label>Email
+              <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+            </label>
+            <label>Mot de passe
+              <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
+            </label>
+            <div class="actions">
+              <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
-  </div>
-</div>
 
+        <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
+          <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+            <label>Nom complet
+              <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+            </label>
+            <label>Email
+              <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+            </label>
+            <label>Mot de passe
+              <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
+            </label>
+            <div class="actions">
+              <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
+```
 
   </main>
 
   <!-- =================== DOCK =================== -->
 
- <nav id="dock" class="dock" aria-label="Barre d'action">
-  <div class="dock__shell">
-    <button id="dockQuoteBtn" class="dock__btn dock__btn--tools" type="button" aria-label="Catalogue" data-nav="/catalogue">🛠️</button>
-    <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte" data-nav="/compte">👤</button>
-    <button id="dockCartBtn" class="dock__btn dock__btn--cart" type="button" aria-label="Voir le panier" data-nav="/devis">🛒</button>
-    <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
-    <a class="dock__btn dock__btn--wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
-  </div>
-  <span id="dockCount" style="display: none;">0</span>
-</nav>
-
-<!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
-
-<div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
-
-<aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
-       aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
-  <h2 id="menuTitle" class="menu-title">Menu</h2>
-
-  <nav class="menu" aria-label="Navigation principale">
-    <a href="#/" data-route="#/">
-      <!-- Home -->
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>Accueil</span>
-    </a>
-
-<a href="#/catalogue" data-route="#/catalogue">
-  <!-- Toolbox -->
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <rect x="3" y="7" width="18" height="12" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
-    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5"/>
-    <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2.5"/>
-  </svg>
-  <span>Catalogue</span>
-</a>
-
-<a href="#/devis" data-route="#/devis">
-  <!-- Cart -->
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M7 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M12 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  </svg>
-  <span>Devis</span>
-</a>
-
-<a href="#/compte" data-route="#/compte">
-  <!-- User -->
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="12" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
-    <path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-  </svg>
-  <span>Compte</span>
-</a>
-
+  <nav id="dock" class="dock" aria-label="Barre d'action">
+    <div class="dock__shell">
+      <button id="dockQuoteBtn" class="dock__btn dock__btn--tools" type="button" aria-label="Catalogue" data-nav="/catalogue">🛠️</button>
+      <button id="dockAccountBtn" class="dock__btn dock__btn--account" type="button" aria-label="Mon compte" data-nav="/compte">👤</button>
+      <button id="dockCartBtn" class="dock__btn dock__btn--cart" type="button" aria-label="Voir le panier" data-nav="/devis">🛒</button>
+      <a class="dock__btn dock__btn--call" href="tel:+33774230195" aria-label="Appeler">📞</a>
+      <a class="dock__btn dock__btn--wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
+    </div>
+    <span id="dockCount" style="display: none;">0</span>
   </nav>
-</aside>
+
+  <!-- =================== OVERLAY + MENU LATÉRAL (iOS-style) =================== -->
+
+  <div id="menuBackdrop" class="backdrop hidden" aria-hidden="true" hidden></div>
+
+  <aside id="side-menu" class="drawer" role="dialog" aria-modal="true"
+         aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
+    <h2 id="menuTitle" class="menu-title">Menu</h2>
+
+```
+<nav class="menu" aria-label="Navigation principale">
+  <a href="#/" data-route="#/">
+    <!-- Home -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>Accueil</span>
+  </a>
+
+  <a href="#/catalogue" data-route="#/catalogue">
+    <!-- Toolbox -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="7" width="18" height="12" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    </svg>
+    <span>Catalogue</span>
+  </a>
+
+  <a href="#/devis" data-route="#/devis">
+    <!-- Cart -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M12 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+    <span>Devis</span>
+  </a>
+
+  <a href="#/compte" data-route="#/compte">
+    <!-- User -->
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <span>Compte</span>
+  </a>
+</nav>
+```
+
+  </aside>
+
   <!-- =================== TOASTS + A11y roots =================== -->
+
   <div id="toasts" aria-live="polite"></div>
   <div id="sr-live" class="sr-only" aria-live="polite" role="status"></div>
 
@@ -591,276 +503,276 @@ setTimeout(function () {
 
   <!-- =================== JS =================== -->
 
-<!-- Désactive le menu PT (on utilise notre burger unifié) -->
+  <!-- Désactive le menu PT (on utilise notre burger unifié) -->
 
-<script>window.__ptMenuUnified = 1;</script>
+  <script>window.__ptMenuUnified = 1;</script>
 
-<!-- PT (si présent) -->
+  <!-- PT (si présent) -->
 
-<script defer src="pt.js"></script>
+  <script defer src="pt.js"></script>
 
   <!-- Micro-styles UI complémentaires -->
 
-<style id="pt-ui">
-/* Masquer le héro quand il est sorti */
-.hero-full.hero-out{ 
-  z-index: -1;
-  height: 0 !important; 
-  min-height: 0 !important;
-  display: none !important; 
-  pointer-events: none !important;
-}
-.list{ margin-top: var(--listGap, 22vh); }
+  <style id="pt-ui">
+    /* Masquer le héro quand il est sorti */
+    .hero-full.hero-out{ 
+      z-index: -1;
+      height: 0 !important; 
+      min-height: 0 !important;
+      display: none !important; 
+      pointer-events: none !important;
+    }
+    .list{ margin-top: var(--listGap, 22vh); }
 
-.brand-grid--3col{
-  display:grid; gap:.8rem;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-}
-@media (min-width:680px){ .brand-grid--3col{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
-.brand{ display:flex; flex-direction:column; align-items:center; gap:.4rem; background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:.8rem; cursor:pointer; }
-.brand__bubble{ width:90px; height:90px; display:grid; place-items:center; }
-.brand__logo{ max-width:100%; max-height:100%; }
+    .brand-grid--3col{
+      display:grid; gap:.8rem;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+    @media (min-width:680px){ .brand-grid--3col{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    .brand{ display:flex; flex-direction:column; align-items:center; gap:.4rem; background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:.8rem; cursor:pointer; }
+    .brand__bubble{ width:90px; height:90px; display:grid; place-items:center; }
+    .brand__logo{ max-width:100%; max-height:100%; }
 
-.chips{ display:flex; flex-wrap:wrap; gap:.4rem; }
-.chip{ border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); border-radius:999px; padding:.35rem .7rem; }
-.chip--on{ background:rgba(255,255,255,.14); }
+    .chips{ display:flex; flex-wrap:wrap; gap:.4rem; }
+    .chip{ border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); border-radius:999px; padding:.35rem .7rem; }
+    .chip--on{ background:rgba(255,255,255,.14); }
 
-#toasts{ position:fixed; right:.8rem; bottom:calc(var(--safe-bottom,0px) + 1rem);
-  display:grid; gap:.4rem; z-index:10000; }
-.toast{ background:rgba(0,0,0,.8); color:#fff; border-radius:8px; padding:.6rem .8rem; }
-.toast--success{ background:rgba(23,135,44,.9); }
-.toast--info{ background:rgba(39,96,201,.9); }
-@keyframes toast-out{ to{ opacity:0; transform:translateY(8px); } }
+    #toasts{ position:fixed; right:.8rem; bottom:calc(var(--safe-bottom,0px) + 1rem);
+      display:grid; gap:.4rem; z-index:10000; }
+    .toast{ background:rgba(0,0,0,.8); color:#fff; border-radius:8px; padding:.6rem .8rem; }
+    .toast--success{ background:rgba(23,135,44,.9); }
+    .toast--info{ background:rgba(39,96,201,.9); }
+    @keyframes toast-out{ to{ opacity:0; transform:translateY(8px); } }
 
-.sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0; }
-.pt-root{ z-index:2147483000; }
+    .sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0; }
+    .pt-root{ z-index:2147483000; }
 
-/* = Drawer (menu latéral) = */
-.drawer{
-  position:fixed; top:0; bottom:0; left:0; right:auto;
-  width:min(86vw,360px); max-width:92vw; box-sizing:border-box;
-  background:rgba(0,0,0,.9);
-  -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
-  transform:translate3d(-102%,0,0); transition:transform .25s ease; z-index:1001;
-  padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
-  align-content:start; justify-items:start;
-}
-.drawer.open{ transform:translate3d(0,0,0); }
-.menu-open #side-menu{ transform:translate3d(0,0,0); }
-.menu-open #menuBackdrop{ display:block; }
+    /* = Drawer (menu latéral) = */
+    .drawer{
+      position:fixed; top:0; bottom:0; left:0; right:auto;
+      width:min(86vw,360px); max-width:92vw; box-sizing:border-box;
+      background:rgba(0,0,0,.9);
+      -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
+      transform:translate3d(-102%,0,0); transition:transform .25s ease; z-index:1001;
+      padding:90px 0 28px 18px; display:grid; grid-auto-rows:min-content; gap:28px;
+      align-content:start; justify-items:start;
+    }
+    .drawer.open{ transform:translate3d(0,0,0); }
+    .menu-open #side-menu{ transform:translate3d(0,0,0); }
+    .menu-open #menuBackdrop{ display:block; }
 
-.backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
-.backdrop.hidden{ display:none; }
-[hidden]{ display:none !important; }
+    .backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; }
+    .backdrop.hidden{ display:none; }
+    [hidden]{ display:none !important; }
 
-.view.hidden{ display:none !important; }
+    .view.hidden{ display:none !important; }
 
-#dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
-#dock .dock__shell{ pointer-events:auto }
+    #dock.dock--visible{ opacity:1; transform:translateX(-50%) translateY(0) }
+    #dock .dock__shell{ pointer-events:auto }
 
-/* pulse sur #dock, en gardant le centrage */
-#dock.dock--pulse{ animation:dockPulse .46s ease }
-@keyframes dockPulse{
-  0%   { transform:translateX(-50%) translateY(0) scale(1) }
-  40%  { transform:translateX(-50%) translateY(0) scale(1.03) }
-  100% { transform:translateX(-50%) translateY(0) scale(1) }
-}
+    /* pulse sur #dock, en gardant le centrage */
+    #dock.dock--pulse{ animation:dockPulse .46s ease }
+    @keyframes dockPulse{
+      0%   { transform:translateX(-50%) translateY(0) scale(1) }
+      40%  { transform:translateX(-50%) translateY(0) scale(1.03) }
+      100% { transform:translateX(-50%) translateY(0) scale(1) }
+    }
 
-.pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
-.pdp__price{ font-size:1.25rem; font-weight:700; }
-.pdp__price-ht{ opacity:.8; }
+    .pdp__tag{ opacity:.8; margin:.2rem 0 .6rem; }
+    .pdp__price{ font-size:1.25rem; font-weight:700; }
+    .pdp__price-ht{ opacity:.8; }
 
-body.page-catalogue .topbar-logo-link,
-body.page-devis .topbar-logo-link,
-body.page-compte .topbar-logo-link { display:none !important; }
+    body.page-catalogue .topbar-logo-link,
+    body.page-devis .topbar-logo-link,
+    body.page-compte .topbar-logo-link { display:none !important; }
 
-/* Force menu states - priorité absolue */
-#side-menu.open,
-.menu-open #side-menu { transform: translateX(0) !important; }
+    /* Force menu states - priorité absolue */
+    #side-menu.open,
+    .menu-open #side-menu { transform: translateX(0) !important; }
 
-#menuBackdrop:not(.hidden),
-.menu-open #menuBackdrop {
-  opacity: 1 !important; visibility: visible !important; display: block !important;
-}
+    #menuBackdrop:not(.hidden),
+    .menu-open #menuBackdrop {
+      opacity: 1 !important; visibility: visible !important; display: block !important;
+    }
 
-#menu-toggle { pointer-events: auto !important; z-index: 1002 !important; }
-</style>
+    #menu-toggle { pointer-events: auto !important; z-index: 1002 !important; }
+  </style>
 
   <!-- Micro-scripts UI (menu + a11y + tabs + avatar + mini-panier + nav boutons) -->
 
   <script>
-(function(){
-  'use strict';
-
-  // Backdrop : classe cohérente
-  var ovl = document.getElementById('menuBackdrop');
-  if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
-
-  // lien "Aller au contenu"
   (function(){
-    var sk = document.querySelector('.skip-link');
-    if (!sk) return;
-    sk.addEventListener('click', function(e){
-      var id  = (sk.getAttribute('href')||'').replace(/^#/, '');
-      var tgt = id && document.getElementById(id);
-      if (!tgt){
-        var view = document.querySelector('.view:not(.hidden)') || document.getElementById('view-home');
-        tgt = (view && view.querySelector('h1')) || document.getElementById('home-h1');
-      }
-      if (!tgt) return;
+    'use strict';
+
+    // Backdrop : classe cohérente
+    var ovl = document.getElementById('menuBackdrop');
+    if (ovl){ ovl.classList.add('backdrop'); ovl.classList.remove('menu-backdrop'); }
+
+    // lien "Aller au contenu"
+    (function(){
+      var sk = document.querySelector('.skip-link');
+      if (!sk) return;
+      sk.addEventListener('click', function(e){
+        var id  = (sk.getAttribute('href')||'').replace(/^#/, '');
+        var tgt = id && document.getElementById(id);
+        if (!tgt){
+          var view = document.querySelector('.view:not(.hidden)') || document.getElementById('view-home');
+          tgt = (view && view.querySelector('h1')) || document.getElementById('home-h1');
+        }
+        if (!tgt) return;
+        e.preventDefault();
+        try{ tgt.setAttribute('tabindex','-1'); }catch(_){}
+        try{ tgt.focus({preventScroll:true}); }catch(_){}
+        try{ tgt.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ window.scrollTo(0, tgt.offsetTop||0); }
+      }, false);
+    })();
+
+    // Boutons data-nav (pour <button>)
+    document.addEventListener('click', function(e){
+      var el = e.target && e.target.closest && e.target.closest('[data-nav]');
+      if (!el) return;
+      if (el.tagName && el.tagName.toLowerCase()==='a') return;
+      var to = el.getAttribute('data-nav') || '/';
+      try{ location.hash = '#' + to.replace(/^#?/, ''); }catch(_){}
       e.preventDefault();
-      try{ tgt.setAttribute('tabindex','-1'); }catch(_){}
-      try{ tgt.focus({preventScroll:true}); }catch(_){}
-      try{ tgt.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ window.scrollTo(0, tgt.offsetTop||0); }
     }, false);
-  })();
 
-  // Boutons data-nav (pour <button>)
-  document.addEventListener('click', function(e){
-    var el = e.target && e.target.closest && e.target.closest('[data-nav]');
-    if (!el) return;
-    if (el.tagName && el.tagName.toLowerCase()==='a') return;
-    var to = el.getAttribute('data-nav') || '/';
-    try{ location.hash = '#' + to.replace(/^#?/, ''); }catch(_){}
-    e.preventDefault();
-  }, false);
+    // Tabs Auth
+    var tabLogin = document.getElementById('authLoginTab');
+    var tabReg   = document.getElementById('authRegisterTab');
+    var panLogin = document.getElementById('authLogin');
+    var panReg   = document.getElementById('authRegister');
 
-  // Tabs Auth
-  var tabLogin = document.getElementById('authLoginTab');
-  var tabReg   = document.getElementById('authRegisterTab');
-  var panLogin = document.getElementById('authLogin');
-  var panReg   = document.getElementById('authRegister');
-
-  function showLogin(){
-    if (!tabLogin || !tabReg) return;
-    tabLogin.setAttribute('aria-selected','true');
-    tabReg.setAttribute('aria-selected','false');
-    if (panLogin) panLogin.hidden = false;
-    if (panReg)   panReg.hidden   = true;
-  }
-  function showRegister(){
-    if (!tabLogin || !tabReg) return;
-    tabLogin.setAttribute('aria-selected','false');
-    tabReg.setAttribute('aria-selected','true');
-    if (panLogin) panLogin.hidden = true;
-    if (panReg)   panReg.hidden   = false;
-  }
-  if (tabLogin) tabLogin.addEventListener('click', showLogin);
-  if (tabReg)   tabReg.addEventListener('click', showRegister);
-
-  // Avatar aperçu
-  var fileInp = document.getElementById('accAvatar');
-  var imgOut  = document.getElementById('accAvatarImg');
-  if (fileInp && imgOut){
-    fileInp.addEventListener('change', function(){
-      var f = this.files && this.files[0]; if (!f) return;
-      var r = new FileReader();
-      r.onload = function(){ imgOut.src = r.result; };
-      r.readAsDataURL(f);
-    });
-  }
-
-  // Mini panier (compte)
-  try{
-    var miniTxt = document.getElementById('accCartMiniTxt');
-    if (miniTxt){
-      var raw = localStorage.getItem('cart') || localStorage.getItem('pt_cart');
-      if (raw){
-        try{
-          var cart  = JSON.parse(raw);
-          var items = Array.isArray(cart) ? cart : (cart.items || []);
-          var count = items.length || 0;
-          var total = (items.reduce(function(s,x){ var p=(+x.price||0), q=(+x.qty||1); return s+p*q; },0)).toFixed(2);
-          miniTxt.textContent = count + ' article' + (count>1?'s':'') + ' — total ' + total + ' €';
-        }catch(_){}
-      }
+    function showLogin(){
+      if (!tabLogin || !tabReg) return;
+      tabLogin.setAttribute('aria-selected','true');
+      tabReg.setAttribute('aria-selected','false');
+      if (panLogin) panLogin.hidden = false;
+      if (panReg)   panReg.hidden   = true;
     }
-  }catch(_){}
-})();
-</script>
+    function showRegister(){
+      if (!tabLogin || !tabReg) return;
+      tabLogin.setAttribute('aria-selected','false');
+      tabReg.setAttribute('aria-selected','true');
+      if (panLogin) panLogin.hidden = true;
+      if (panReg)   panReg.hidden   = false;
+    }
+    if (tabLogin) tabLogin.addEventListener('click', showLogin);
+    if (tabReg)   tabReg.addEventListener('click', showRegister);
+
+    // Avatar aperçu
+    var fileInp = document.getElementById('accAvatar');
+    var imgOut  = document.getElementById('accAvatarImg');
+    if (fileInp && imgOut){
+      fileInp.addEventListener('change', function(){
+        var f = this.files && this.files[0]; if (!f) return;
+        var r = new FileReader();
+        r.onload = function(){ imgOut.src = r.result; };
+        r.readAsDataURL(f);
+      });
+    }
+
+    // Mini panier (compte)
+    try{
+      var miniTxt = document.getElementById('accCartMiniTxt');
+      if (miniTxt){
+        var raw = localStorage.getItem('cart') || localStorage.getItem('pt_cart');
+        if (raw){
+          try{
+            var cart  = JSON.parse(raw);
+            var items = Array.isArray(cart) ? cart : (cart.items || []);
+            var count = items.length || 0;
+            var total = (items.reduce(function(s,x){ var p=(+x.price||0), q=(+x.qty||1); return s+p*q; },0)).toFixed(2);
+            miniTxt.textContent = count + ' article' + (count>1?'s':'') + ' — total ' + total + ' €';
+          }catch(_){}
+        }
+      }
+    }catch(_){}
+  })();
+  </script>
 
   <!-- Router + vues (PATCH #1 : LOGGING) -->
 
-<script>
-(function(){
-  'use strict';
+  <script>
+  (function(){
+    'use strict';
 
-  // ===== LOGGING =====
-  var __LOG=(function(){
-    try { return (localStorage.getItem('pt_log')==='1') || (/[?&](ptlog|log)=1\b/.test(location.search)); }
-    catch(_) { return /[?&](ptlog|log)=1\b/.test(location.search); }
-  })();
-  function log(){ if(!__LOG) return; try{ console.log.apply(console, arguments); }catch(_){ } }
-  function group(t){ if(!__LOG) return; try{ console.groupCollapsed(t); }catch(_){ log(t); } }
-  function groupEnd(){ if(!__LOG) return; try{ console.groupEnd(); }catch(_){ } }
+    // ===== LOGGING =====
+    var __LOG=(function(){
+      try { return (localStorage.getItem('pt_log')==='1') || (/[?&](ptlog|log)=1\b/.test(location.search)); }
+      catch(_) { return /[?&](ptlog|log)=1\b/.test(location.search); }
+    })();
+    function log(){ if(!__LOG) return; try{ console.log.apply(console, arguments); }catch(_){ } }
+    function group(t){ if(!__LOG) return; try{ console.groupCollapsed(t); }catch(_){ log(t); } }
+    function groupEnd(){ if(!__LOG) return; try{ console.groupEnd(); }catch(_){ } }
 
-  // ===== ROUTEUR =====
-  function currentPath(){
-    var h=(location.hash||'#/').replace(/^#/,'');
-    var p=h.split('?')[0].split('#')[0]||'/';
-    return p;
-  }
-  function matchRoute(viewRoute, path){
-    if (viewRoute === '/') return path === '/';
-    return path === viewRoute || path.indexOf(viewRoute + '/') === 0; // accepte /produit/xxx
-  }
-  function syncViews(){
-    var path=currentPath();
-    group('router: syncViews -> '+path);
+    // ===== ROUTEUR =====
+    function currentPath(){
+      var h=(location.hash||'#/').replace(/^#/,'');
+      var p=h.split('?')[0].split('#')[0]||'/';
+      return p;
+    }
+    function matchRoute(viewRoute, path){
+      if (viewRoute === '/') return path === '/';
+      return path === viewRoute || path.indexOf(viewRoute + '/') === 0; // accepte /produit/xxx
+    }
+    function syncViews(){
+      var path=currentPath();
+      group('router: syncViews -> '+path);
 
-    try{
-      var now = Date.now();
-      if (window.__PT_ROUTER_LOCK && (now - window.__PT_ROUTER_LOCK) < 80) { groupEnd(); return; }
-      window.__PT_ROUTER_LOCK = now;
-    }catch(_){}
+      try{
+        var now = Date.now();
+        if (window.__PT_ROUTER_LOCK && (now - window.__PT_ROUTER_LOCK) < 80) { groupEnd(); return; }
+        window.__PT_ROUTER_LOCK = now;
+      }catch(_){}
 
-    document.querySelectorAll('.view').forEach(function(sec){
-      var r = sec.getAttribute('data-route') || '/';
-      var on = matchRoute(r, path);
-      if(__LOG) log('view', r, on?'ON':'off', '#'+(sec.id||''));
-      sec.classList.toggle('hidden', !on);
-      sec.setAttribute('aria-hidden', on ? 'false':'true');
-    });
+      document.querySelectorAll('.view').forEach(function(sec){
+        var r = sec.getAttribute('data-route') || '/';
+        var on = matchRoute(r, path);
+        if(__LOG) log('view', r, on?'ON':'off', '#'+(sec.id||''));
+        sec.classList.toggle('hidden', !on);
+        sec.setAttribute('aria-hidden', on ? 'false':'true');
+      });
 
-    var active = document.querySelector('.view:not(.hidden)');
-    if(active){
-      var h1=active.querySelector('h1');
-      if(h1){ try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){} }
+      var active = document.querySelector('.view:not(.hidden)');
+      if(active){
+        var h1=active.querySelector('h1');
+        if(h1){ try{ h1.setAttribute('tabindex','-1'); h1.focus({preventScroll:true}); }catch(_){} }
+      }
+
+      document.body.className = document.body.className
+        .replace(/\bpage-(home|catalogue|produit|devis|compte|auth)\b/g,'')
+        .trim();
+      var cls='page-' + (path==='/'?'home':path.replace(/^\//,'').split('/')[0]);
+      document.body.classList.add(cls);
+      if(__LOG) log('body class →', cls);
+
+      groupEnd();
     }
 
-    document.body.className = document.body.className
-      .replace(/\bpage-(home|catalogue|produit|devis|compte|auth)\b/g,'')
-      .trim();
-    var cls='page-' + (path==='/'?'home':path.replace(/^\//,'').split('/')[0]);
-    document.body.classList.add(cls);
-    if(__LOG) log('body class →', cls);
+    window.addEventListener('hashchange', function(){ if(__LOG) log('hashchange', location.hash); syncViews(); });
+    if (document.readyState!=='loading') syncViews();
+    else document.addEventListener('DOMContentLoaded', syncViews);
 
-    groupEnd();
-  }
+    // PDP placeholder (inchangé)
+    var pdpImg = document.getElementById('pdpImg');
+    if(pdpImg && !pdpImg.getAttribute('src')){
+      pdpImg.alt = 'Image produit';
+      pdpImg.style.minHeight = '160px';
+    }
 
-  window.addEventListener('hashchange', function(){ if(__LOG) log('hashchange', location.hash); syncViews(); });
-  if (document.readyState!=='loading') syncViews();
-  else document.addEventListener('DOMContentLoaded', syncViews);
-
-  // PDP placeholder (inchangé)
-  var pdpImg = document.getElementById('pdpImg');
-  if(pdpImg && !pdpImg.getAttribute('src')){
-    pdpImg.alt = 'Image produit';
-    pdpImg.style.minHeight = '160px';
-  }
-
-  // Log de l'état d'auth à chaque changement de hash (ne modifie pas la logique)
-  window.addEventListener('hashchange', function(){
-    try{
-      var h=(location.hash||'#/').replace(/^#/,'');
-      var path=h.split('?')[0].split('#')[0]||'/';
-      var logged=!!(function(){ try{ return localStorage.getItem('pt_auth')||''; }catch(_){ return ''; } })();
-      if(__LOG) log('guard', {path:path, logged:!!logged});
-    }catch(_){}
-  });
-})();
-</script>
+    // Log de l'état d'auth à chaque changement de hash (ne modifie pas la logique)
+    window.addEventListener('hashchange', function(){
+      try{
+        var h=(location.hash||'#/').replace(/^#/,'');
+        var path=h.split('?')[0].split('#')[0]||'/';
+        var logged=!!(function(){ try{ return localStorage.getItem('pt_auth')||''; }catch(_){ return ''; } })();
+        if(__LOG) log('guard', {path:path, logged:!!logged});
+      }catch(_){}
+    });
+  })();
+  </script>
 
   <!-- Auth locale simple -->
 
@@ -1334,49 +1246,49 @@ body.page-compte .topbar-logo-link { display:none !important; }
     }
 
    function renderBrandGrid(){
-  if (!BRAND_GRID) return;
-  
-  var brands = [
-    {label:'DeWALT', img:'images/brands/dewalt.png'},
-    {label:'Facom', img:'images/brands/facom.png'},
-    {label:'Festool', img:'images/brands/festool.png'},
-    {label:'FLEX', img:'images/brands/flex.png'},
-    {label:'Makita', img:'images/brands/makita.png'},
-    {label:'Milwaukee', img:'images/brands/milwaukee.png'},
-    {label:'Stanley', img:'images/brands/stanley.png'},
-    {label:'Wera', img:'images/brands/wera.png'}
-  ];
-  
-  BRAND_GRID.innerHTML = brands.map(function(b){
-    return '<button class="brand" data-brand="'+escapeHTML(b.label)+'" aria-label="'+escapeHTML(b.label)+'">'
-      + '<div class="brand__bubble">'
-      + '<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async"/>'
-      + '</div>'
-      + '<div class="brand__label">'+escapeHTML(b.label)+'</div>'
-      + '</button>';
-  }).join('');
-  
-  // Gestion du fallback proprement
-  BRAND_GRID.querySelectorAll('.brand__logo').forEach(function(img){
-    img.addEventListener('error', function(){
-      // Si l'image ne charge pas, remplace par du texte
-      var label = img.getAttribute('alt');
-      var bubble = img.parentElement;
-      bubble.innerHTML = '<span style="display:flex;align-items:center;justify-content:center;height:110%;font-size:1.2rem;font-weight:800;color:#fff">' + label.slice(0,6) + '</span>';
+    if (!BRAND_GRID) return;
+    
+    var brands = [
+      {label:'DeWALT', img:'images/brands/dewalt.png'},
+      {label:'Facom', img:'images/brands/facom.png'},
+      {label:'Festool', img:'images/brands/festool.png'},
+      {label:'FLEX', img:'images/brands/flex.png'},
+      {label:'Makita', img:'images/brands/makita.png'},
+      {label:'Milwaukee', img:'images/brands/milwaukee.png'},
+      {label:'Stanley', img:'images/brands/stanley.png'},
+      {label:'Wera', img:'images/brands/wera.png'}
+    ];
+    
+    BRAND_GRID.innerHTML = brands.map(function(b){
+      return '<button class="brand" data-brand="'+escapeHTML(b.label)+'" aria-label="'+escapeHTML(b.label)+'">'
+        + '<div class="brand__bubble">'
+        + '<img class="brand__logo" alt="'+escapeHTML(b.label)+'" src="'+escapeHTML(b.img)+'" loading="lazy" decoding="async"/>'
+        + '</div>'
+        + '<div class="brand__label">'+escapeHTML(b.label)+'</div>'
+        + '</button>';
+    }).join('');
+    
+    // Gestion du fallback proprement
+    BRAND_GRID.querySelectorAll('.brand__logo').forEach(function(img){
+      img.addEventListener('error', function(){
+        // Si l'image ne charge pas, remplace par du texte
+        var label = img.getAttribute('alt');
+        var bubble = img.parentElement;
+        bubble.innerHTML = '<span style="display:flex;align-items:center;justify-content:center;height:110%;font-size:1.2rem;font-weight:800;color:#fff">' + label.slice(0,6) + '</span>';
+      });
     });
-  });
-  
-  BRAND_GRID.querySelectorAll('[data-brand]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      try{ location.hash = '#/catalogue'; }catch(_){}
-      setTimeout(function(){
-        if (TAG_SELECT){ TAG_SELECT.value=''; }
-        if (SEARCH_INP){ SEARCH_INP.value = btn.getAttribute('data-brand')||''; }
-        applySearch();
-      }, 40);
-    }, false);
-  });
-}
+    
+    BRAND_GRID.querySelectorAll('[data-brand]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        try{ location.hash = '#/catalogue'; }catch(_){}
+        setTimeout(function(){
+          if (TAG_SELECT){ TAG_SELECT.value=''; }
+          if (SEARCH_INP){ SEARCH_INP.value = btn.getAttribute('data-brand')||''; }
+          applySearch();
+        }, 40);
+      }, false);
+    });
+  }
 
     // ---------- Routeur PDP hookup ----------
     function tryRenderPDPFromURL(){
@@ -1423,327 +1335,249 @@ body.page-compte .topbar-logo-link { display:none !important; }
     })();
 
     /* ---------- Helpers globaux ---------- */
-  window.ptToast = window.ptToast || function(msg,type){
-    var host=document.getElementById('toasts'); if(!host) return alert(msg);
-    var el=document.createElement('div');
-    el.className='toast toast--'+(type||'info');
-    el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+escapeHTML(msg)+'</div>';
-    host.appendChild(el);
-    setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); }, 200); }, 2000);
-  };
+    window.ptToast = window.ptToast || function(msg,type){
+      var host=document.getElementById('toasts'); if(!host) return alert(msg);
+      var el=document.createElement('div');
+      el.className='toast toast--'+(type||'info');
+      el.innerHTML='<div class="toast__icon">ℹ️</div><div class="toast__body">'+escapeHTML(msg)+'</div>';
+      host.appendChild(el);
+      setTimeout(function(){ el.style.animation='toast-out .18s ease-in both'; setTimeout(function(){ el.remove(); }, 200); }, 2000);
+    };
 
-  /* ---------- INIT ---------- */
-  function init(){
-    updateDockCount();
-    syncMiniCart();
-    loadProducts().then(function(all){
-      renderFilters(all);
-      renderBrandGrid();
-      applySearch();
-    }).catch(function(){});
-    tryRenderPDPFromURL();
-    if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
-    if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
-    // if (document.body) document.body.classList.add('after-hero');
+    /* ---------- INIT ---------- */
+    function init(){
+      updateDockCount();
+      syncMiniCart();
+      loadProducts().then(function(all){
+        renderFilters(all);
+        renderBrandGrid();
+        applySearch();
+      }).catch(function(){});
+      tryRenderPDPFromURL();
+      if (SEARCH_INP) SEARCH_INP.addEventListener('input', applySearch, false);
+      if (TAG_SELECT) TAG_SELECT.addEventListener('change', applySearch, false);
 
-    // Affiche le dock
-    var dock=document.getElementById('dock');
-    if(dock) dock.classList.add('dock--visible');
-  }
-
-  if (document.readyState!=='loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-
-})(); /* ferme l'IIFE "Produits: chargement + PDP" */
-</script>
-
-<!-- PWA: bouton d'installation + SW -->
-
-<script>
-(function(){
-  var installBtn = document.getElementById('installBtn');
-  var deferred = null;
-
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault();
-    deferred = e;
-    if (installBtn){ installBtn.hidden=false; installBtn.classList.remove('hidden'); }
-  });
-
-  if (installBtn){
-    installBtn.addEventListener('click', async function(){
-      if (!deferred) return;
-      deferred.prompt();
-      try{ await deferred.userChoice; }catch(_){}
-      deferred = null;
-      installBtn.hidden=true; installBtn.classList.add('hidden');
-    }, false);
-  }
-
-  // SW (si présent)
-  if ('serviceWorker' in navigator){
-    try{ navigator.serviceWorker.register('sw.js'); }catch(_){}
-  }
-
-  // Ajuste app-vh (viewport mobile)
-  function setVH(){
-    var vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--app-vh', vh+'px');
-  }
-  setVH(); window.addEventListener('resize', setVH);
-})();
-</script>
-
-<!-- Script applicatif (externe) -->
-
-<script defer src="app.js"></script> 
-
-<script>
-/* Menu burger unifié - solution unique */
-(function () {
-  'use strict';
-  
-  if (window.__menuWired) return;
-  window.__menuWired = true;
-  
-  const btn = document.getElementById('menu-toggle');
-  const menu = document.getElementById('side-menu');
-  const backdrop = document.getElementById('menuBackdrop');
-  
-  if (!btn || !menu || !backdrop) return;
-  
-  let isOpen = false;
-  
-  function openMenu() {
-    if (isOpen) return;
-    isOpen = true;
-    
-    document.body.classList.add('menu-open');
-    menu.classList.add('open');
-    menu.removeAttribute('hidden');
-    menu.setAttribute('aria-hidden', 'false');
-    backdrop.classList.remove('hidden');
-    backdrop.removeAttribute('hidden');
-    backdrop.setAttribute('aria-hidden', 'false');
-    btn.setAttribute('aria-expanded', 'true');
-    
-    setTimeout(() => {
-      try { menu.focus(); } catch(_) {}
-    }, 100);
-  }
-  
-  function closeMenu() {
-    if (!isOpen) return;
-    isOpen = false;
-    
-    document.body.classList.remove('menu-open');
-    menu.classList.remove('open');
-    menu.setAttribute('hidden', '');
-    menu.setAttribute('aria-hidden', 'true');
-    backdrop.classList.add('hidden');
-    backdrop.setAttribute('hidden', '');
-    backdrop.setAttribute('aria-hidden', 'true');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-  
-  function toggle() {
-    isOpen ? closeMenu() : openMenu();
-  }
-  
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    toggle();
-  });
-  
-  backdrop.addEventListener('click', closeMenu);
-  
-  menu.addEventListener('click', function(e) {
-    const link = e.target.closest('a[href]');
-    if (link) {
-      setTimeout(closeMenu, 50);
+      // Affiche le dock
+      var dock=document.getElementById('dock');
+      if(dock) dock.classList.add('dock--visible');
     }
-  });
-  
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && isOpen) {
-      closeMenu();
+
+    if (document.readyState!=='loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+
+  })(); /* ferme l'IIFE "Produits: chargement + PDP" */
+  </script>
+
+  <!-- PWA: bouton d'installation + SW -->
+
+  <script>
+  (function(){
+    var installBtn = document.getElementById('installBtn');
+    var deferred = null;
+
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferred = e;
+      if (installBtn){ installBtn.hidden=false; installBtn.classList.remove('hidden'); }
+    });
+
+    if (installBtn){
+      installBtn.addEventListener('click', async function(){
+        if (!deferred) return;
+        deferred.prompt();
+        try{ await deferred.userChoice; }catch(_){}
+        deferred = null;
+        installBtn.hidden=true; installBtn.classList.add('hidden');
+      }, false);
     }
-  });
-  
-  window.addEventListener('hashchange', closeMenu);
-})();
-</script>
 
-<!-- ANIMATION DE SCROLL - SANS CONFLIT -->
-
-<script>
-// Animation logo avec namespace unique pour éviter conflits
-window.PiratesToolsLogoAnimation = (function() {
-  'use strict';
-  
-  var logoContainer, isAnimating = false;
-  
-  function handleLogoScroll() {
-    if (isAnimating) return;
-    isAnimating = true;
-    
-    logoContainer = logoContainer || document.getElementById('heroLogoContainer');
-    if (!logoContainer) {
-      isAnimating = false;
-      return;
+    // SW (si présent)
+    if ('serviceWorker' in navigator){
+      try{ navigator.serviceWorker.register('sw.js'); }catch(_){}
     }
-    
-    var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-    var windowHeight = window.innerHeight || 600;
-    var startScroll = 100;
-    var animationDistance = windowHeight * 0.8;
-    
-    try {
-      if (scrollY < startScroll) {
-        logoContainer.className = 'hero-logo-container initial';
-        logoContainer.style.removeProperty('--scale-factor');
-        logoContainer.style.removeProperty('--opacity-factor');
-      } else if (scrollY < startScroll + animationDistance) {
-        var progress = (scrollY - startScroll) / animationDistance;
-        var scaleFactor = 1 + (progress * 5);
-        var opacityFactor = Math.max(0, 1 - progress);
-        
-        logoContainer.className = 'hero-logo-container scaling';
-        logoContainer.style.setProperty('--scale-factor', scaleFactor.toFixed(3));
-        logoContainer.style.setProperty('--opacity-factor', opacityFactor.toFixed(3));
-      } else {
-        logoContainer.className = 'hero-logo-container hidden';
-        logoContainer.style.setProperty('--scale-factor', '6');
-        logoContainer.style.setProperty('--opacity-factor', '0');
-      }
-    } catch (e) {
-      console.log('Logo animation error:', e);
+
+    // Ajuste app-vh (viewport mobile)
+    function setVH(){
+      var vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--app-vh', vh+'px');
     }
+    setVH(); window.addEventListener('resize', setVH);
+  })();
+  </script>
+
+  <!-- Script applicatif (externe) -->
+
+  <script defer src="app.js"></script> 
+
+  <!-- Menu burger unifié - solution unique -->
+
+  <script>
+  (function () {
+    'use strict';
     
-    setTimeout(function() { isAnimating = false; }, 16);
-  }
-
-  function init() {
-    handleLogoScroll();
+    if (window.__menuWired) return;
+    window.__menuWired = true;
     
-    // Supprime d'éventuels anciens listeners
-    window.removeEventListener('scroll', handleLogoScroll);
-    window.addEventListener('scroll', handleLogoScroll, { passive: true });
-  }
-
-  // Initialisation sécurisée
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    setTimeout(init, 100); // Délai pour éviter les conflits
-  }
-  
-  return { init: init, handleScroll: handleLogoScroll };
-})();
-</script>
-
-
-<script>
-// Menu latéral - Version finale propre
-(function() {
-  function initMenu() {
-    const menuToggle = document.getElementById('menu-toggle');
-    const drawer = document.getElementById('side-menu');
+    const btn = document.getElementById('menu-toggle');
+    const menu = document.getElementById('side-menu');
     const backdrop = document.getElementById('menuBackdrop');
     
-    if (!menuToggle || !drawer || !backdrop) return;
+    if (!btn || !menu || !backdrop) return;
     
     let isOpen = false;
     
-    function closeMenu() {
-      isOpen = false;
-      document.body.classList.remove('menu-open');
-      drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden', 'true');
-      backdrop.classList.add('hidden');
-      menuToggle.setAttribute('aria-expanded', 'false');
-    }
-    
     function openMenu() {
+      if (isOpen) return;
       isOpen = true;
+      
       document.body.classList.add('menu-open');
-      drawer.classList.add('open');
-      drawer.setAttribute('aria-hidden', 'false');
+      menu.classList.add('open');
+      menu.removeAttribute('hidden');
+      menu.setAttribute('aria-hidden', 'false');
       backdrop.classList.remove('hidden');
-      menuToggle.setAttribute('aria-expanded', 'true');
+      backdrop.removeAttribute('hidden');
+      backdrop.setAttribute('aria-hidden', 'false');
+      btn.setAttribute('aria-expanded', 'true');
+      
+      setTimeout(() => {
+        try { menu.focus(); } catch(_) {}
+      }, 100);
     }
     
-    // Bouton hamburger
-    menuToggle.addEventListener('click', function(e) {
+    function closeMenu() {
+      if (!isOpen) return;
+      isOpen = false;
+      
+      document.body.classList.remove('menu-open');
+      menu.classList.remove('open');
+      menu.setAttribute('hidden', '');
+      menu.setAttribute('aria-hidden', 'true');
+      backdrop.classList.add('hidden');
+      backdrop.setAttribute('hidden', '');
+      backdrop.setAttribute('aria-hidden', 'true');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    
+    function toggle() {
+      isOpen ? closeMenu() : openMenu();
+    }
+    
+    btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      if (isOpen) closeMenu(); else openMenu();
+      toggle();
     });
     
-    // Fermeture backdrop
     backdrop.addEventListener('click', closeMenu);
     
-    // Fermeture Escape
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && isOpen) closeMenu();
-    });
-    
-    // Fermeture liens menu
-    drawer.addEventListener('click', function(e) {
-      if (e.target.closest('a[href]')) {
+    menu.addEventListener('click', function(e) {
+      const link = e.target.closest('a[href]');
+      if (link) {
         setTimeout(closeMenu, 50);
       }
     });
     
-    // Fermeture changement page
-    window.addEventListener('hashchange', closeMenu);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && isOpen) {
+        closeMenu();
+      }
+    });
     
-    // État initial fermé
-    closeMenu();
-  }
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMenu);
-  } else {
-    initMenu();
-  }
-})();
-</script>
+    window.addEventListener('hashchange', closeMenu);
+  })();
+  </script>
 
+  <!-- ANIMATION DE SCROLL - SANS CONFLIT -->
 
-<script>
-// Correction logo topbar - utiliser le vrai logo pirate
-(function() {
-  function fixLogo() {
-    const logoImg = document.getElementById('topbarLogo');
-    if (logoImg) {
-      logoImg.src = 'icons/icon-512.png'; // Votre vrai logo
-      logoImg.style.width = '30px';
-      logoImg.style.height = '30px';
-      logoImg.style.borderRadius = '6px';
-      logoImg.style.objectFit = 'contain';
+  <script>
+  // Animation logo avec namespace unique pour éviter conflits
+  window.PiratesToolsLogoAnimation = (function() {
+    'use strict';
+    
+    var logoContainer, isAnimating = false;
+    
+    function handleLogoScroll() {
+      if (isAnimating) return;
+      isAnimating = true;
+      
+      logoContainer = logoContainer || document.getElementById('heroLogoContainer');
+      if (!logoContainer) {
+        isAnimating = false;
+        return;
+      }
+      
+      var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var windowHeight = window.innerHeight || 600;
+      var startScroll = 100;
+      var animationDistance = windowHeight * 0.8;
+      
+      try {
+        if (scrollY < startScroll) {
+          logoContainer.className = 'hero-logo-container initial';
+          logoContainer.style.removeProperty('--scale-factor');
+          logoContainer.style.removeProperty('--opacity-factor');
+        } else if (scrollY < startScroll + animationDistance) {
+          var progress = (scrollY - startScroll) / animationDistance;
+          var scaleFactor = 1 + (progress * 5);
+          var opacityFactor = Math.max(0, 1 - progress);
+          
+          logoContainer.className = 'hero-logo-container scaling';
+          logoContainer.style.setProperty('--scale-factor', scaleFactor.toFixed(3));
+          logoContainer.style.setProperty('--opacity-factor', opacityFactor.toFixed(3));
+        } else {
+          logoContainer.className = 'hero-logo-container hidden';
+          logoContainer.style.setProperty('--scale-factor', '6');
+          logoContainer.style.setProperty('--opacity-factor', '0');
+        }
+      } catch (e) {
+        console.log('Logo animation error:', e);
+      }
+      
+      setTimeout(function() { isAnimating = false; }, 16);
     }
-  }
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixLogo);
-  } else {
-    fixLogo();
-  }
-  setTimeout(fixLogo, 100);
-})();
-</script>
+
+    function init() {
+      handleLogoScroll();
+      
+      // Supprime d'éventuels anciens listeners
+      window.removeEventListener('scroll', handleLogoScroll);
+      window.addEventListener('scroll', handleLogoScroll, { passive: true });
+    }
+
+    // Initialisation sécurisée
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      setTimeout(init, 100); // Délai pour éviter les conflits
+    }
+    
+    return { init: init, handleScroll: handleLogoScroll };
+  })();
+  </script>
+
+  <!-- Correction logo topbar - utiliser le vrai logo pirate -->
+
+  <script>
+  (function() {
+    function fixLogo() {
+      const logoImg = document.getElementById('topbarLogo');
+      if (logoImg) {
+        logoImg.src = 'icons/icon-512.png'; // Votre vrai logo
+        logoImg.style.width = '30px';
+        logoImg.style.height = '30px';
+        logoImg.style.borderRadius = '6px';
+        logoImg.style.objectFit = 'contain';
+      }
+    }
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fixLogo);
+    } else {
+      fixLogo();
+    }
+    setTimeout(fixLogo, 100);
+  })();
+  </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
