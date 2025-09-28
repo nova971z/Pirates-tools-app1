@@ -882,3 +882,222 @@ pointer-events: none;
 .list {
 margin-top: var(–listGap, 22vh);
 }
+
+
+
+/* ========== CORRECTIONS SPÉCIFIQUES PAGE DEVIS ========== */
+
+/* 1. Logo en fond d’écran pour toutes les pages avec fond dark */
+body::before {
+content: “”;
+position: fixed;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+background-image: url(‘pirates-tools-logo.png’);
+background-size: 80vmin; /* Très grande taille */
+background-repeat: no-repeat;
+background-position: center;
+opacity: 0.6; /* 60% d’opacité */
+z-index: 0; /* Derrière tout le contenu */
+pointer-events: none;
+background-attachment: fixed;
+}
+
+/* S’assurer que le contenu reste au-dessus du logo de fond */
+.container,
+.view,
+.topbar,
+#dock,
+.drawer {
+position: relative;
+z-index: 10;
+}
+
+/* 2. Corrections spécifiques pour la page devis - produits visibles */
+body.page-devis #devisList,
+body.page-devis .list,
+#view-devis .list,
+#view-devis #devisList {
+display: grid !important;
+visibility: visible !important;
+opacity: 1 !important;
+}
+
+/* 3. Réduction de la taille des produits dans la page devis */
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+transform: scale(0.85); /* Réduit la taille de 15% */
+margin: 0.5rem 0; /* Compense l’espacement */
+transform-origin: center;
+}
+
+/* 4. Fond flou pour les produits dans la page devis */
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+background: rgba(139, 92, 246, 0.08); /* Fond violet plus transparent */
+backdrop-filter: blur(12px); /* Effet flou sur le fond */
+-webkit-backdrop-filter: blur(12px);
+border: 2px solid #8B5CF6;
+border-radius: 20px; /* Bords plus arrondis */
+position: relative;
+overflow: hidden;
+}
+
+/* 5. Contour violet amélioré avec effet flottant */
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+border: 3px solid #8B5CF6; /* Bordure plus épaisse */
+border-radius: 24px; /* Bords très arrondis */
+box-shadow:
+0 8px 32px rgba(139, 92, 246, 0.4), /* Ombre portée violette */
+0 12px 24px rgba(0, 0, 0, 0.3), /* Ombre noire pour la profondeur */
+0 0 20px rgba(139, 92, 246, 0.3), /* Lueur externe violette */
+inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Surbrillance interne */
+transform: scale(0.85) translateY(-4px); /* Effet flottant */
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Effet hover amélioré pour les cartes devis */
+body.page-devis .card:hover,
+#view-devis .card:hover,
+#devisList .card:hover {
+border-color: #A855F7;
+transform: scale(0.88) translateY(-8px); /* Flotte plus haut au hover */
+box-shadow:
+0 12px 40px rgba(168, 85, 247, 0.5),
+0 16px 32px rgba(0, 0, 0, 0.4),
+0 0 30px rgba(168, 85, 247, 0.4),
+inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* 6. Amélioration du contenu des cartes pour la lisibilité */
+body.page-devis .card .head,
+#view-devis .card .head,
+#devisList .card .head {
+background: rgba(139, 92, 246, 0.15);
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+border-bottom: 2px solid rgba(139, 92, 246, 0.4);
+border-radius: 20px 20px 0 0;
+margin: -1rem -1.1rem 0.6rem -1.1rem;
+padding: 1.2rem 1.3rem 1rem;
+}
+
+/* 7. Titre des produits plus visible */
+body.page-devis .card .title,
+#view-devis .card .title,
+#devisList .card .title {
+color: #ffffff;
+text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+font-weight: 900;
+font-size: 1.1rem;
+}
+
+/* 8. Actions/boutons dans les cartes devis */
+body.page-devis .card .actions,
+#view-devis .card .actions,
+#devisList .card .actions {
+background: rgba(139, 92, 246, 0.1);
+margin: 0.6rem -1.1rem -1.1rem -1.1rem;
+padding: 1rem 1.3rem 1.2rem;
+border-radius: 0 0 20px 20px;
+border-top: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* 9. Style spécial pour la liste vide */
+body.page-devis .empty,
+#view-devis .empty {
+background: rgba(139, 92, 246, 0.1);
+border: 2px dashed #8B5CF6;
+border-radius: 20px;
+padding: 3rem 2rem;
+margin: 2rem 0;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+}
+
+/* 10. Responsive pour la page devis */
+@media (max-width: 768px) {
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+transform: scale(0.9) translateY(-2px);
+margin: 0.3rem 0;
+}
+
+body.page-devis .card:hover,
+#view-devis .card:hover,
+#devisList .card:hover {
+transform: scale(0.92) translateY(-4px);
+}
+
+/* Logo de fond plus petit sur mobile */
+body::before {
+background-size: 60vmin;
+}
+}
+
+@media (max-width: 480px) {
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+transform: scale(0.95) translateY(-1px);
+}
+
+/* Logo de fond encore plus petit sur très petit écran */
+body::before {
+background-size: 50vmin;
+}
+}
+
+/* 11. Animation d’apparition pour les cartes */
+body.page-devis .card,
+#view-devis .card,
+#devisList .card {
+animation: cardAppear 0.6s ease-out forwards;
+}
+
+@keyframes cardAppear {
+from {
+opacity: 0;
+transform: scale(0.8) translateY(20px);
+}
+to {
+opacity: 1;
+transform: scale(0.85) translateY(-4px);
+}
+}
+
+/* 12. Correction pour s’assurer que les éléments sont visibles */
+#view-devis,
+body.page-devis #view-devis,
+#devisList,
+body.page-devis #devisList {
+display: block !important;
+visibility: visible !important;
+opacity: 1 !important;
+position: relative;
+z-index: 15;
+}
+
+/* Assurer que le contenu du devis est au-dessus du logo de fond */
+#view-devis .container {
+position: relative;
+z-index: 20;
+}
+
+
+
+
+
+
+
+
+
+
+
