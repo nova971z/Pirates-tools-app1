@@ -1092,7 +1092,242 @@ z-index: 20;
 }
 
 
+/* ========== BANNIÈRE OUTILS 3D ========== */
 
+.tools-banner {
+width: min(var(–container-w), 92vw);
+margin: 2rem auto 3rem;
+position: relative;
+z-index: 15;
+}
+
+.tools-banner h2 {
+text-align: center;
+margin: 0 0 1.5rem;
+color: #e6edf5;
+font-size: clamp(1.3rem, 1.1rem + 1.2vw, 1.8rem);
+font-weight: 900;
+text-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+}
+
+.tools-scroll-container {
+position: relative;
+overflow: hidden;
+padding: 1rem 0;
+background: rgba(139, 92, 246, 0.05);
+border: 2px solid rgba(139, 92, 246, 0.3);
+border-radius: 20px;
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+box-shadow:
+0 0 30px rgba(139, 92, 246, 0.2),
+inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tools-grid {
+display: flex;
+gap: 1.5rem;
+padding: 0 2rem;
+overflow-x: auto;
+scroll-behavior: smooth;
+-webkit-overflow-scrolling: touch;
+scrollbar-width: none; /* Firefox */
+-ms-overflow-style: none; /* IE/Edge */
+}
+
+.tools-grid::-webkit-scrollbar {
+display: none; /* Chrome/Safari */
+}
+
+.tool-card {
+flex: 0 0 280px;
+background: rgba(255, 255, 255, 0.08);
+border: 2px solid rgba(139, 92, 246, 0.4);
+border-radius: 16px;
+padding: 1.5rem;
+cursor: pointer;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+position: relative;
+overflow: hidden;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+box-shadow:
+0 8px 32px rgba(0, 0, 0, 0.3),
+0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+.tool-card::before {
+content: “”;
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 4px;
+background: linear-gradient(90deg, #8B5CF6, #A855F7, #C084FC);
+opacity: 0;
+transition: opacity 0.3s ease;
+}
+
+.tool-card:hover::before {
+opacity: 1;
+}
+
+.tool-card:hover {
+transform: translateY(-8px) scale(1.02);
+border-color: #A855F7;
+box-shadow:
+0 16px 40px rgba(0, 0, 0, 0.4),
+0 0 30px rgba(168, 85, 247, 0.4),
+0 0 60px rgba(168, 85, 247, 0.2);
+}
+
+.tool-preview {
+width: 100%;
+height: 180px;
+background: rgba(139, 92, 246, 0.1);
+border: 1px solid rgba(139, 92, 246, 0.3);
+border-radius: 12px;
+margin-bottom: 1rem;
+position: relative;
+overflow: hidden;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.tool-preview img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+transition: transform 0.3s ease;
+}
+
+.tool-card:hover .tool-preview img {
+transform: scale(1.1);
+}
+
+.tool-3d-icon {
+position: absolute;
+top: 10px;
+right: 10px;
+background: rgba(139, 92, 246, 0.9);
+color: white;
+padding: 6px;
+border-radius: 8px;
+font-size: 14px;
+font-weight: bold;
+text-shadow: none;
+}
+
+.tool-info h3 {
+margin: 0 0 0.5rem;
+color: #ffffff;
+font-size: 1.1rem;
+font-weight: 800;
+text-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+}
+
+.tool-info p {
+margin: 0 0 0.8rem;
+color: #b8c5d1;
+font-size: 0.9rem;
+line-height: 1.4;
+}
+
+.tool-category {
+display: inline-block;
+background: rgba(139, 92, 246, 0.2);
+color: #D8B4FE;
+padding: 0.3rem 0.8rem;
+border-radius: 20px;
+font-size: 0.8rem;
+font-weight: 600;
+border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.tool-card.unavailable {
+opacity: 0.6;
+cursor: not-allowed;
+}
+
+.tool-card.unavailable:hover {
+transform: none;
+box-shadow:
+0 8px 32px rgba(0, 0, 0, 0.3),
+0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+/* Indicateurs de scroll */
+.scroll-indicator {
+position: absolute;
+top: 50%;
+transform: translateY(-50%);
+background: rgba(139, 92, 246, 0.8);
+color: white;
+border: none;
+width: 40px;
+height: 40px;
+border-radius: 50%;
+cursor: pointer;
+z-index: 20;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+transition: all 0.3s ease;
+box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.scroll-indicator:hover {
+background: rgba(168, 85, 247, 0.9);
+transform: translateY(-50%) scale(1.1);
+}
+
+.scroll-left {
+left: 10px;
+}
+
+.scroll-right {
+right: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+.tool-card {
+flex: 0 0 240px;
+padding: 1.2rem;
+}
+
+.tool-preview {
+height: 150px;
+}
+
+.tools-grid {
+padding: 0 1rem;
+gap: 1rem;
+}
+
+.scroll-indicator {
+width: 36px;
+height: 36px;
+font-size: 16px;
+}
+}
+
+@media (max-width: 480px) {
+.tool-card {
+flex: 0 0 200px;
+padding: 1rem;
+}
+
+.tool-preview {
+height: 120px;
+}
+
+.tools-grid {
+gap: 0.8rem;
+}
+}
 
 
 
