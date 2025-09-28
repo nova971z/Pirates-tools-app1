@@ -2245,4 +2245,385 @@ setTimeout(startApp, 100);
 startApp();
 }
 
+
+// ========== BANNIÈRE OUTILS 3D ==========
+
+// Variables globales pour les outils 3D
+let toolsData = [];
+let currentTool = null;
+let scene, camera, renderer, controls;
+let toolModel = null;
+
+// Chargement des données des outils
+async function loadToolsData() {
+    try {
+        const response = await fetch('models/tools.json');
+        const data = await response.json();
+        toolsData = data.tools;
+        renderToolsBanner();
+    } catch (error) {
+        console.error('Erreur chargement tools.json:', error);
+        showFallbackBanner();
+    }
+}
+
+// Affichage de la bannière d'outils
+function renderToolsBanner() {
+    const bannerContainer = document.getElementById('tools-banner');
+    if (!bannerContainer) return;
+
+    const toolsGrid = bannerContainer.querySelector('.tools-grid');
+    if (!toolsGrid) return;
+
+    toolsGrid.innerHTML = '';
+
+    toolsData.forEach(tool => {
+        const toolCard = createToolCard(tool);
+        toolsGrid.appendChild(toolCard);
+    });
+
+    // Initialiser les contrôles de scroll
+    initScrollControls();
+}
+
+// Création d'une carte d'outil
+function createToolCard(tool) {
+    const card = document.createElement('div');
+    card.className = `tool-card ${!tool.available ? 'unavailable' : ''}`;
+    card.dataset.toolId = tool.id;
+
+    card.innerHTML = `
+        <div class="tool-preview">
+            <img src="${tool.thumbnail}" alt="${tool.name}" loading="lazy">
+            <div class="tool-3d-icon">3D</div>
+        </div>
+        <div class="tool-info">
+            <h3>${tool.name}</h3>
+            <p>${tool.description}</p>
+            <span class="tool-category">${tool.category}</span>
+        </div>
+    `;
+
+    // Gestion du clic
+    if (tool.available) {
+        card.addEventListener('click', () => {
+            openTool3DViewer(tool);
+        });
+    }
+
+    return card;
+}
+
+// Contrôles de scroll
+function initScrollControls() {
+    const container = document.querySelector('.tools-scroll-container');
+    const grid = document.querySelector('.tools-grid');
+    const leftBtn = document.querySelector('.scroll-left');
+    const rightBtn = document.querySelector('.scroll-right');
+
+    if (!container || !grid || !leftBtn || !rightBtn) return;
+
+    const scrollAmount = 300;
+
+    leftBtn.addEventListener('click', () => {
+        grid.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    });
+
+    rightBtn.addEventListener('click', () => {
+        grid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    });
+
+    // Mettre à jour la visibilité des boutons
+    function updateScrollButtons() {
+        const isAtStart = grid.scrollLeft <= 0;
+        const isAtEnd = grid.scrollLeft >= grid.scrollWidth - grid.clientWidth;
+        
+        leftBtn.style.opacity = isAtStart ? '0.5' : '1';
+        rightBtn.style.opacity = isAtEnd ? '0.5' : '1';
+        leftBtn.style.pointerEvents = isAtStart ? 'none' : 'auto';
+        rightBtn.style.pointerEvents = isAtEnd ? 'none' : 'auto';
+    }
+
+    grid.addEventListener('scroll', updateScrollButtons);
+    updateScrollButtons();
+}
+
+// Ouverture du visualiseur 3D
+function openTool3DViewer(tool) {
+    currentTool = tool;
+    
+    // Créer et afficher le modal 3D
+    createTool3DModal(tool);
+    
+    // Initialiser Three.js
+    setTimeout(() => {
+        initThreeJS(tool);
+    }, 100);
+}
+
+// Création du modal 3D
+function createTool3DModal(tool) {
+    // Supprimer le modal existant s'il y en a un
+    const existingModal = document.getElementById('tool-3d-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'tool-3d-modal';
+    modal.className = 'tool-3d-modal';
+    
+    modal.innerHTML = `
+        <div class="tool-3d-backdrop"></div>
+        <div class="tool-3d-container">
+            <div class="tool-3d-header">
+                <h2>${tool.name}</h2>
+                <button class="tool-3d-close">&times;</button>
+            </div>
+            <div class="tool-3d-viewport" id="tool-3d-viewport">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Chargement du modèle 3D...</p>
+                </div>
+            </div>
+            <div class="tool-3d-controls">
+                <div class="tool-info-details">
+                    <p><strong>Catégorie:</strong> ${tool.category}</p>
+                    <p><strong>Description:</strong> ${tool.description}</p>
+                    <p><strong>Disponibilité:</strong> ${tool.available ? 'Disponible' : 'Non disponible'}</p>
+                </div>
+                <div class="tool-3d-actions">
+                    <button class="btn btn-primary">Réserver cet outil</button>
+                    <button class="btn" onclick="resetCamera()">Réinitialiser vue</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    // Gestion des événements
+    modal.querySelector('.tool-3d-close').addEventListener('click', closeTool3DModal);
+    modal.querySelector('.tool-3d-backdrop').addEventListener('click', closeTool3DModal);
+    
+    // ESC pour fermer
+    document.addEventListener('keydown', handleModalKeydown);
+    
+    // Animation d'ouverture
+    requestAnimationFrame(() => {
+        modal.classList.add('open');
+    });
+}
+
+// Fermeture du modal 3D
+function closeTool3DModal() {
+    const modal = document.getElementById('tool-3d-modal');
+    if (!modal) return;
+
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleModalKeydown);
+
+    // Nettoyer Three.js
+    if (renderer) {
+        renderer.dispose();
+        renderer = null;
+    }
+    if (scene) {
+        scene.clear();
+        scene = null;
+    }
+    
+    setTimeout(() => {
+        modal.remove();
+    }, 300);
+}
+
+// Gestion des touches
+function handleModalKeydown(e) {
+    if (e.key === 'Escape') {
+        closeTool3DModal();
+    }
+}
+
+// Initialisation de Three.js
+async function initThreeJS(tool) {
+    const viewport = document.getElementById('tool-3d-viewport');
+    if (!viewport) return;
+
+    try {
+        // Configuration de la scène
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0f14);
+
+        // Caméra
+        camera = new THREE.PerspectiveCamera(
+            75,
+            viewport.clientWidth / viewport.clientHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 0, 5);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Contrôles
+        if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+        }
+
+        // Éclairage
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0x8B5CF6, 0.5, 100);
+        pointLight.position.set(-10, -10, -10);
+        scene.add(pointLight);
+
+        // Ajouter le renderer au DOM
+        viewport.innerHTML = '';
+        viewport.appendChild(renderer.domElement);
+
+        // Charger le modèle 3D
+        await loadTool3DModel(tool);
+
+        // Démarrer la boucle de rendu
+        animate();
+
+    } catch (error) {
+        console.error('Erreur initialisation Three.js:', error);
+        showModelError(viewport);
+    }
+}
+
+// Chargement du modèle 3D
+async function loadTool3DModel(tool) {
+    return new Promise((resolve, reject) => {
+        const loader = new THREE.GLTFLoader();
+        
+        loader.load(
+            tool.model,
+            (gltf) => {
+                toolModel = gltf.scene;
+                
+                // Centrer et redimensionner le modèle
+                const box = new THREE.Box3().setFromObject(toolModel);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                toolModel.position.x = -center.x;
+                toolModel.position.y = -center.y;
+                toolModel.position.z = -center.z;
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 2 / maxDim;
+                toolModel.scale.setScalar(scale);
+                
+                // Ombres
+                toolModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                scene.add(toolModel);
+                resolve();
+            },
+            (progress) => {
+                // Optionnel: afficher le progrès
+                console.log('Chargement:', (progress.loaded / progress.total * 100) + '%');
+            },
+            (error) => {
+                console.error('Erreur chargement modèle:', error);
+                reject(error);
+            }
+        );
+    });
+}
+
+// Boucle d'animation
+function animate() {
+    if (!renderer || !scene || !camera) return;
+    
+    requestAnimationFrame(animate);
+    
+    if (controls) {
+        controls.update();
+    }
+    
+    // Rotation automatique du modèle
+    if (toolModel) {
+        toolModel.rotation.y += 0.005;
+    }
+    
+    renderer.render(scene, camera);
+}
+
+// Réinitialiser la caméra
+function resetCamera() {
+    if (camera && controls) {
+        camera.position.set(0, 0, 5);
+        controls.reset();
+    }
+}
+
+// Gestion du redimensionnement
+function handleResize() {
+    const viewport = document.getElementById('tool-3d-viewport');
+    if (!viewport || !camera || !renderer) return;
+    
+    camera.aspect = viewport.clientWidth / viewport.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+}
+
+// Affichage d'erreur pour le modèle
+function showModelError(viewport) {
+    viewport.innerHTML = `
+        <div class="model-error">
+            <p>❌ Erreur de chargement du modèle 3D</p>
+            <p>Vérifiez que le fichier existe et est au bon format</p>
+        </div>
+    `;
+}
+
+// Bannière de fallback si pas de données
+function showFallbackBanner() {
+    const bannerContainer = document.getElementById('tools-banner');
+    if (!bannerContainer) return;
+    
+    bannerContainer.innerHTML = `
+        <h2>Nos Outils Professionnels</h2>
+        <div class="tools-scroll-container">
+            <p class="empty">Chargement des outils 3D...</p>
+        </div>
+    `;
+}
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.body.classList.contains('page-home')) {
+        loadToolsData();
+    }
+});
+
+// Gestion du redimensionnement
+window.addEventListener('resize', handleResize);
+
+
 })();
+
