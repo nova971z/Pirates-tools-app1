@@ -92,6 +92,22 @@ image-rendering:-webkit-optimize-contrast; backface-visibility:hidden;
 -webkit-backface-visibility:hidden; transform:translateZ(0);
 /* CORRECTION: Utilisation du vrai logo pirates-tools-logo.png */
 content:url('pirates-tools-logo.png');
+/* CORRECTION: Alternative si le logo ne charge pas */
+background-image:url('pirates-tools-logo.png');
+background-size:contain;
+background-repeat:no-repeat;
+background-position:center;
+}
+
+/* CORRECTION: Le logo topbar doit être visible sur TOUTES les pages */
+body.page-catalogue .topbar-logo-link,
+body.page-devis .topbar-logo-link,
+body.page-compte .topbar-logo-link,
+body.page-produit .topbar-logo-link,
+body.page-auth .topbar-logo-link {
+display: inline-flex !important;
+visibility: visible !important;
+opacity: 1 !important;
 }
 
 /* Appels rapides */
@@ -102,16 +118,18 @@ padding:.58rem .9rem; border-radius:12px; font-weight:700; color:#001018; border
 }
 .btn:active{ transform:translateY(1px) }
 .btn.btn-call{
-background:linear-gradient(90deg,#42c9ff,#00aaff);
+background:linear-gradient(90deg,#42c9ff,#00aaff) !important;
 font-size:clamp(14px, 3.6vw, 18px);
-padding:.45rem .85rem; border-radius:22px; color:#001;
+padding:.45rem .85rem; border-radius:22px; color:#001 !important;
 min-width:0; max-width:62vw; overflow:hidden; text-overflow:ellipsis;
+box-shadow:0 4px 12px rgba(66, 201, 255, 0.4) !important;
 }
 .btn.btn-call strong{ font-weight:800 }
 .btn.btn-wa{
 padding:.7rem .95rem; border-radius:12px;
-background:linear-gradient(90deg,var(–wa-1),var(–wa-2));
-color:#042016; font-size:1rem; line-height:1.1; box-shadow:var(–shadow);
+background:linear-gradient(90deg,var(–wa-1),var(–wa-2)) !important;
+color:#042016 !important; font-size:1rem; line-height:1.1; 
+box-shadow:0 4px 12px rgba(37, 211, 102, 0.4) !important;
 }
 .topbar .btn.btn-wa{
 width:44px; height:44px; padding:0; border-radius:999px;
@@ -295,31 +313,102 @@ border-color:rgba(25,211,255,.55);
 .list{ display:grid; gap:1rem; position:relative; z-index:10 }
 .list::before{ content:""; display:block; height:var(–listGap); transition:height .22s ease-out }
 .card{
-background:var(–card); border:1px solid var(–border); border-radius:var(–radius);
-box-shadow:var(–shadow); overflow:hidden; position:relative;
+/* CORRECTION: Effet néon violet au lieu du fond gris */
+background: rgba(139, 92, 246, 0.05); /* Fond violet très transparent */
+border: 2px solid #8B5CF6; /* Bordure violette */
+border-radius:var(–radius);
+box-shadow: 
+  0 0 10px rgba(139, 92, 246, 0.3),
+  0 0 20px rgba(139, 92, 246, 0.2),
+  0 0 30px rgba(139, 92, 246, 0.1),
+  inset 0 1px 0 rgba(139, 92, 246, 0.2); /* Effet néon violet */
+overflow:hidden; position:relative;
+transition: all 0.3s ease;
 }
-.card .head{ display:flex; align-items:center; justify-content:space-between; padding:1rem 1.1rem .6rem; border-bottom:1px solid rgba(255,255,255,.04) }
-.title{ margin:0; font-size:1.05rem; font-weight:800 }
+
+.card:hover{
+border-color: #A855F7;
+box-shadow: 
+  0 0 15px rgba(168, 85, 247, 0.4),
+  0 0 25px rgba(168, 85, 247, 0.3),
+  0 0 35px rgba(168, 85, 247, 0.2),
+  inset 0 1px 0 rgba(168, 85, 247, 0.3);
+transform: translateY(-2px);
+}
+
+.cat-card{
+/* CORRECTION: Effet néon violet pour les cartes catalogue */
+background: rgba(139, 92, 246, 0.05); /* Fond violet très transparent */
+border: 2px solid #8B5CF6; /* Bordure violette */
+border-radius:var(–radius);
+padding:1rem 1.1rem; cursor:pointer;
+box-shadow: 
+  0 0 10px rgba(139, 92, 246, 0.3),
+  0 0 20px rgba(139, 92, 246, 0.2),
+  0 0 30px rgba(139, 92, 246, 0.1),
+  inset 0 1px 0 rgba(139, 92, 246, 0.2); /* Effet néon violet */
+transition: all 0.3s ease;
+}
+.cat-card:hover{ 
+border-color: #A855F7;
+box-shadow: 
+  0 0 15px rgba(168, 85, 247, 0.4),
+  0 0 25px rgba(168, 85, 247, 0.3),
+  0 0 35px rgba(168, 85, 247, 0.2),
+  inset 0 1px 0 rgba(168, 85, 247, 0.3);
+transform:translateY(-2px);
+}
+
+/* Éléments internes des cartes */
+.card .head{ 
+display:flex; align-items:center; justify-content:space-between; 
+padding:1rem 1.1rem .6rem; 
+border-bottom:1px solid rgba(139, 92, 246, 0.3); /* Bordure violette */
+}
+.title{ margin:0; font-size:1.05rem; font-weight:800; color:#e6edf5; }
 .badge{
 display:inline-flex; align-items:center; padding:.35rem .7rem; border-radius:999px;
-font-weight:700; color:#cfeaf8;
-background:linear-gradient(180deg, rgba(25,211,255,.18), rgba(25,211,255,.06));
-border:1px solid rgba(25,211,255,.35);
+font-weight:700; color:#e6edf5;
+/* CORRECTION: Badge avec effet violet */
+background:linear-gradient(180deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.1));
+border:1px solid rgba(139, 92, 246, 0.5);
+box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
 }
-.specs{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; padding:1rem 1.1rem; color:var(–muted) }
-
-/* Actions */
-.actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem; flex-wrap:wrap }
-.actions .btn{ min-width:0; flex:0 1 auto }
-@media (max-width:560px){ .actions .btn{ flex:1 1 100%; white-space:nowrap } }
-
-.btn.primary{
-background:linear-gradient(90deg, var(–brand) 0%, var(–brand-2) 100%);
-color:#001018; font-weight:800; padding:.7rem .95rem; border-radius:12px;
+.specs{ 
+display:flex; flex-wrap:wrap; gap:.5rem 1rem; 
+padding:1rem 1.1rem; color:var(–muted);
 }
 
 /* Perf */
 .card, .cat-card{ content-visibility:auto; contain-intrinsic-size:320px }
+
+/* Actions */
+.actions{ display:flex; gap:.6rem; padding:0 1.1rem 1.1rem; flex-wrap:wrap }
+.actions .btn{ 
+min-width:0; flex:0 1 auto;
+/* CORRECTION: Couleurs pour tous les boutons des fiches produits */
+background:linear-gradient(90deg, #00bfff, #0099cc) !important;
+color:#ffffff !important;
+border:none !important;
+box-shadow:0 4px 12px rgba(0, 191, 255, 0.4) !important;
+}
+@media (max-width:560px){ .actions .btn{ flex:1 1 100%; white-space:nowrap } }
+
+.btn.primary{
+background:linear-gradient(90deg, var(–brand) 0%, var(–brand-2) 100%) !important;
+color:#001018 !important; font-weight:800; padding:.7rem .95rem; border-radius:12px;
+box-shadow:0 4px 12px rgba(25, 211, 255, 0.4) !important;
+}
+
+/* CORRECTION: Tous les boutons génériques doivent être visibles */
+.btn{
+display:inline-flex; align-items:center; gap:.5rem; flex-shrink:0;
+padding:.58rem .9rem; border-radius:12px; font-weight:700; border:0; cursor:pointer;
+/* Couleur par défaut pour tous les boutons */
+background:linear-gradient(90deg, #00bfff, #0099cc) !important;
+color:#ffffff !important;
+box-shadow:0 4px 12px rgba(0, 191, 255, 0.4) !important;
+}
 
 /* ========== 08) AVIS ========== */
 .ratings{
