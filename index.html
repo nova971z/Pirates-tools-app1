@@ -187,7 +187,6 @@
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </button>
 
-```
   <a id="homeLink" class="topbar-logo-link" href="#/" data-nav="/">
     <img
       id="topbarLogo"
@@ -203,7 +202,6 @@
   <a id="callBtn" class="btn btn-call" href="tel:+33774230195" data-action="call">📞 <strong>07 74 23 01 95</strong></a>
   <a id="waBtn" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" data-action="open-wa">💬</a>
 </div>
-```
 
   </header>
 
@@ -227,197 +225,219 @@
 
   <main id="app" role="main">
 
-```
 <!-- HOME -->
+
 <section id="view-home" class="view" data-route="/" role="region" aria-labelledby="home-h1">
   <div class="container">
     <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
     <ul class="brand-grid" data-home-brands></ul>
     <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
     <div id="brandGrid" class="brand-grid brand-grid--3col" role="list" data-bind="brands"></div>
-    
-    <!-- BANNIÈRE OUTILS 3D - Ajoutée ici après les marques -->
-    <section id="tools-banner" class="tools-banner">
-      <h2>Découvrez nos Outils en 3D</h2>
-      <div class="tools-scroll-container">
-        <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
-          &#8249;
-        </button>
-        <div class="tools-grid">
-          <!-- Les outils seront générés dynamiquement par JavaScript -->
-          <div class="empty">Chargement des outils 3D...</div>
-        </div>
-        <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
-          &#8250;
-        </button>
-      </div>
-    </section>
+
+```
+<!-- BANNIÈRE OUTILS 3D - Ajoutée ici après les marques -->
+<section id="tools-banner" class="tools-banner">
+  <h2>Découvrez nos Outils en 3D</h2>
+  <div class="tools-scroll-container">
+    <button class="scroll-indicator scroll-left" aria-label="Défiler vers la gauche">
+      &#8249;
+    </button>
+    <div class="tools-grid">
+      <!-- Les outils seront générés dynamiquement par JavaScript -->
+      <div class="empty">Chargement des outils 3D...</div>
+    </div>
+    <button class="scroll-indicator scroll-right" aria-label="Défiler vers la droite">
+      &#8250;
+    </button>
+  </div>
+</section>
+```
+
   </div>
 </section>
 
 <!-- CATALOGUE -->
+
 <section id="view-catalogue" class="view hidden" data-route="/catalogue" role="region" aria-labelledby="catalogue-h1">
   <div class="container">
     <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
 
-    <div class="toolbar">
-      <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
-      <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
-        <option value="">Tous</option>
-      </select>
-    </div>
+```
+<div class="toolbar">
+  <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" data-bind="search" />
+  <select id="tag" class="select" aria-label="Filtrer par catégorie" data-bind="tag">
+    <option value="">Tous</option>
+  </select>
+</div>
 
-    <div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
-    <div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
+<div id="catList" class="cat-list" aria-label="Catégories" data-bind="cats"></div>
+<div id="list" class="list" aria-live="polite" aria-busy="false" data-bind="results"></div>
+```
+
   </div>
 </section>
 
 <!-- PRODUIT (PDP) -->
+
 <section id="view-produit" class="view hidden" data-route="/produit" role="region" aria-labelledby="pdpTitle">
   <div class="container pdp" id="pdp">
     <a class="chip chip--back" href="#/catalogue" data-nav="/catalogue" aria-label="Retour au catalogue">← Retour</a>
 
-    <div class="pdp__grid">
-      <div class="pdp__media">
-        <img id="pdpImg" alt="" />
-      </div>
+```
+<div class="pdp__grid">
+  <div class="pdp__media">
+    <img id="pdpImg" alt="" />
+  </div>
 
-      <div class="pdp__info">
-        <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
-        <div id="pdpTag" class="pdp__tag"></div>
-        <p id="pdpDesc" class="pdp__desc"></p>
-        <div class="pdp__price" id="pdpPrice"></div>
-        <ul id="pdpSpecs" class="pdp__specs"></ul>
+  <div class="pdp__info">
+    <h1 id="pdpTitle" class="pdp__title" tabindex="-1" aria-describedby="pdpTag">Produit</h1>
+    <div id="pdpTag" class="pdp__tag"></div>
+    <p id="pdpDesc" class="pdp__desc"></p>
+    <div class="pdp__price" id="pdpPrice"></div>
+    <ul id="pdpSpecs" class="pdp__specs"></ul>
 
-        <div class="actions">
-          <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
-          <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
-          <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
-        </div>
-      </div>
+    <div class="actions">
+      <button id="pdpQuote" class="btn primary" type="button" data-action="add-to-cart">Ajouter au panier</button>
+      <a id="pdpWa" class="btn btn-wa" href="https://wa.me/33774230195" target="_blank" rel="noopener noreferrer" aria-label="Partager sur WhatsApp" data-action="share-wa">WhatsApp</a>
+      <button id="pdpShare" class="btn" type="button" data-action="share">Partager</button>
     </div>
+  </div>
+</div>
 
-    <div class="pdp__related" id="pdpRelated" data-bind="related"></div>
+<div class="pdp__related" id="pdpRelated" data-bind="related"></div>
+```
+
   </div>
 </section>
 
 <!-- DEVIS (panier) -->
+
 <section id="view-devis" class="view hidden" data-route="/devis" role="region" aria-labelledby="devis-h1">
   <div class="container">
     <h1 id="devis-h1" tabindex="-1">Mon devis</h1>
 
-    <div class="card">
-      <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
-      <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
-      <div class="actions">
-        <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
-        <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
-      </div>
-    </div>
+```
+<div class="card">
+  <div class="head"><h3 class="title">Articles</h3><span class="badge">Panier</span></div>
+  <div id="devisList" class="specs" style="display:grid;gap:.8rem" data-bind="cart"></div>
+  <div class="actions">
+    <button id="devisSend" class="btn primary" type="button" data-action="send-quote">Envoyer le devis (WhatsApp)</button>
+    <button id="devisClear" class="btn" type="button" data-action="clear-cart">Vider</button>
+  </div>
+</div>
+```
+
   </div>
 </section>
 
 <!-- COMPTE -->
+
 <section id="view-compte" class="view hidden" data-route="/compte" role="region" aria-labelledby="compte-h1">
   <div class="container">
     <h1 id="compte-h1" tabindex="-1">Mon compte</h1>
 
-    <div class="card">
-      <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
-      <div class="specs">
-        
-        <!-- Avatar -->
-        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
-          <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
-          <label class="chip" style="cursor:pointer">
-            <input id="accAvatar" type="file" accept="image/*" hidden />
-            Ajouter une photo de profil
-          </label>
-        </div>
+```
+<div class="card">
+  <div class="head"><h3 class="title">Créer / Mettre à jour</h3><span class="badge">Démo</span></div>
+  <div class="specs">
+    
+    <!-- Avatar -->
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
+      <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;border:1px solid rgba(255,255,255,.16);object-fit:cover"/>
+      <label class="chip" style="cursor:pointer">
+        <input id="accAvatar" type="file" accept="image/*" hidden />
+        Ajouter une photo de profil
+      </label>
+    </div>
 
-        <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
-          <label>Nom
-            <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
-          </label>
-          <label>Email
-            <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
-          </label>
-          <div class="actions">
-            <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
-          </div>
-        </form>
+    <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
+      <label>Nom
+        <input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" />
+      </label>
+      <label>Email
+        <input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" />
+      </label>
+      <div class="actions">
+        <button id="accSave" class="btn primary" type="button" data-action="account-save">Enregistrer</button>
+      </div>
+    </form>
 
-        <!-- Mini récap panier -->
-        <div class="card" style="margin-top:1rem;max-width:520px">
-          <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
-          <div id="accCartMini" class="specs">
-            <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
-            <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
-          </div>
-        </div>
-
-        <!-- Jauge fidélité -->
-        <div class="meter" style="max-width:520px;margin-top:1rem">
-          <div class="meter__rail">
-            <div id="accFill" class="meter__fill"></div>
-            <div id="accCursor" class="meter__cursor" style="left:0%"></div>
-          </div>
-          <div class="meter__scale"><span>0%</span><span>100%</span></div>
-          <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
-        </div>
+    <!-- Mini récap panier -->
+    <div class="card" style="margin-top:1rem;max-width:520px">
+      <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
+      <div id="accCartMini" class="specs">
+        <p id="accCartMiniTxt" style="opacity:.9">0 article — total 0 €</p>
+        <div class="actions"><a class="btn" href="#/devis" data-nav="/devis">Voir le panier</a></div>
       </div>
     </div>
+
+    <!-- Jauge fidélité -->
+    <div class="meter" style="max-width:520px;margin-top:1rem">
+      <div class="meter__rail">
+        <div id="accFill" class="meter__fill"></div>
+        <div id="accCursor" class="meter__cursor" style="left:0%"></div>
+      </div>
+      <div class="meter__scale"><span>0%</span><span>100%</span></div>
+      <input id="accSlider" type="range" min="0" max="1000" step="10" value="0" />
+    </div>
+  </div>
+</div>
+```
+
   </div>
 </section>
 
 <!-- AUTH -->
+
 <section id="view-auth" class="view hidden" data-route="/auth" role="region" aria-labelledby="auth-h1">
   <div class="container">
     <h1 id="auth-h1" tabindex="-1">Compte</h1>
     <div class="card">
       <div class="head"><h3 class="title">Bienvenue</h3><span class="badge">Compte</span></div>
 
-      <div class="specs" style="display:block">
-        <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
-          <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
-          <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
-        </div>
+```
+  <div class="specs" style="display:block">
+    <div class="auth-switch" role="tablist" aria-label="Choix de formulaire" style="display:flex;gap:.5rem;margin:.5rem 0 1rem">
+      <button id="authLoginTab" class="chip" role="tab" aria-controls="authLogin" aria-selected="true">Connexion</button>
+      <button id="authRegisterTab" class="chip" role="tab" aria-controls="authRegister" aria-selected="false">Inscription</button>
+    </div>
 
-        <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
-          <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
-            <label>Email
-              <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-            </label>
-            <label>Mot de passe
-              <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
-            </label>
-            <div class="actions">
-              <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
-            </div>
-          </form>
+    <div id="authLogin" role="tabpanel" aria-labelledby="authLoginTab">
+      <form id="loginForm" style="display:grid;gap:.6rem;max-width:420px">
+        <label>Email
+          <input id="loginEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+        </label>
+        <label>Mot de passe
+          <input id="loginPwd" type="password" class="search" placeholder="••••••••" autocomplete="current-password" required />
+        </label>
+        <div class="actions">
+          <button id="loginSubmit" class="btn primary" type="submit" data-action="login">Connexion</button>
         </div>
+      </form>
+    </div>
 
-        <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
-          <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
-            <label>Nom complet
-              <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
-            </label>
-            <label>Email
-              <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
-            </label>
-            <label>Mot de passe
-              <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
-            </label>
-            <div class="actions">
-              <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
-            </div>
-          </form>
+    <div id="authRegister" role="tabpanel" aria-labelledby="authRegisterTab" hidden>
+      <form id="registerForm" style="display:grid;gap:.6rem;max-width:420px">
+        <label>Nom complet
+          <input id="regName" type="text" class="search" placeholder="Jean Dupont" autocomplete="name" required />
+        </label>
+        <label>Email
+          <input id="regEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" required />
+        </label>
+        <label>Mot de passe
+          <input id="regPwd" type="password" class="search" placeholder="••••••••" minlength="6" autocomplete="new-password" required />
+        </label>
+        <div class="actions">
+          <button id="regSubmit" class="btn primary" type="submit" data-action="register">Créer le compte</button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
-</section>
+</div>
 ```
+
+  </div>
+</section>
 
   </main>
 
@@ -442,7 +462,6 @@
          aria-labelledby="menuTitle" aria-hidden="true" tabindex="-1">
     <h2 id="menuTitle" class="menu-title">Menu</h2>
 
-```
 <nav class="menu" aria-label="Navigation principale">
   <a href="#/" data-route="#/">
     <!-- Home -->
@@ -482,7 +501,6 @@
     <span>Compte</span>
   </a>
 </nav>
-```
 
   </aside>
 
