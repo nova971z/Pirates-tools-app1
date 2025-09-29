@@ -1,9 +1,7 @@
 /* =========================================================
-Pirates Tools — styles.css (HARMONISÉ v7 - CORRIGÉ)
-• Variables CSS corrigées (-- au lieu de –)
-• Intégration bannière 3D et corrections devis
-• Suppression des redondances
-• Code réorganisé et optimisé
+Pirates Tools — styles.css (HARMONISÉ v8 - FINAL)
+• Correction animation et espacement du logo
+• Suppression du logo de fond global
 ========================================================= */
 
 /* ========== 01) THÈME & VARIABLES GLOBALES ========== */
@@ -28,7 +26,7 @@ color-scheme: dark;
 --container-w: 1100px;
 
 /* Layout dynamiques (pilotés par JS) */
---listGap: 11vh;
+--listGap: 4vh; /* Réduction de l'espacement excessif */
 --heroFadeH: 26vh;
 --safe-top: 70px;
 --app-vh: 1vh;
@@ -80,24 +78,6 @@ font: 500 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Segoe
 padding-bottom: calc(var(--dockH) + var(--safe-bottom) + 16px);
 overscroll-behavior-y: auto;
 -webkit-overflow-scrolling: touch;
-}
-
-/* Logo en fond d'écran pour toutes les pages */
-body::before {
-content: "";
-position: fixed;
-top: 0;
-left: 0;
-width: 100vw;
-height: 100vh;
-background-image: url('pirates-tools-logo.png');
-background-size: 80vmin;
-background-repeat: no-repeat;
-background-position: center;
-background-attachment: fixed;
-opacity: 0.6;
-z-index: 0;
-pointer-events: none;
 }
 
 /* Couche de masquage du hero après scroll */
@@ -441,22 +421,15 @@ body.menu-open { overflow: hidden; }
 
 /* ========== 06) HÉRO ========== */
 #hero, .hero-full {
-position: relative;
-position: sticky;
-top: 0;
-height: 100vh;
-height: 100svh;
-height: 100dvh;
-display: grid;
-place-items: center;
-pointer-events: none;
-isolation: isolate;
-background: transparent;
-z-index: 900;
-padding-top: max(0px, env(safe-area-inset-top));
-padding-bottom: max(0px, env(safe-area-inset-bottom));
-overflow: visible;
-contain: paint;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    background: transparent;
+    z-index: 10;
+    overflow: visible;
 }
 
 .hero-full.hero-out, #hero.hero-out {
@@ -476,32 +449,26 @@ display: none !important;
 }
 
 #heroLogo, .hero-logo {
-display: block;
-margin: 0 auto;
-background: transparent;
-border: 0;
-border-radius: 0;
-box-shadow: none;
-width: clamp(256px, 66vmin, 900px);
-max-width: min(92vw, 900px);
-height: auto;
-aspect-ratio: 1/1;
-object-fit: contain;
-object-position: center;
-transform-origin: 50% 50%;
-transform: translateZ(0);
-image-rendering: auto;
-image-rendering: -webkit-optimize-contrast;
-backface-visibility: hidden;
--webkit-backface-visibility: hidden;
-opacity: 0;
-filter: blur(0px);
-transition: opacity .3s ease-out, transform .25s ease-out, filter .25s ease-out;
-will-change: transform, opacity, filter;
-contain: paint style;
+    position: relative;
+    z-index: 11;
+    display: block;
+    margin: 0 auto;
+    width: clamp(256px, 60vmin, 800px);
+    max-width: min(90vw, 800px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    transform-origin: 50% 50%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+    will-change: transform, opacity;
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
 }
 
-#heroLogo.on, .hero-logo.on { opacity: 1; }
+#heroLogo.on, .hero-logo.on {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
 
 /* Masquer le hero sur toutes les pages sauf accueil */
 body:not(.page-home) #hero,
@@ -565,8 +532,8 @@ opacity: 1 !important;
 
 /* ========== 07) ACCUEIL — ESPACEMENT ========== */
 #view-home .container {
-margin-top: var(--listGap, 22vh);
-transition: margin-top .22s ease-out;
+    margin-top: var(--listGap, 4vh);
+    transition: margin-top 0.22s ease-out;
 }
 
 /* ========== 08) TOOLBAR & CHAMPS ========== */
@@ -621,18 +588,10 @@ gap: .5rem;
 
 /* ========== 09) LISTES & CARTES AVEC EFFET NÉON VIOLET ========== */
 .list {
-display: grid;
-gap: 1rem;
-position: relative;
-z-index: 10;
-margin-top: var(--listGap, 22vh);
-}
-
-.list::before {
-content: "";
-display: block;
-height: var(--listGap);
-transition: height .22s ease-out;
+    display: grid;
+    gap: 1rem;
+    position: relative;
+    z-index: 10;
 }
 
 /* CARTES AVEC EFFET NÉON VIOLET */

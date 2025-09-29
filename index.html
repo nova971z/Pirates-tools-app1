@@ -114,12 +114,12 @@
 
     /* Logo container avec animation de scroll */
     .hero-logo-container {
-      position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      z-index: 9999 !important;
-      transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 500;
+      transition: transform 0.1s ease-out;
     }
 
     .hero-logo {
@@ -138,13 +138,13 @@
     }
 
     .hero-logo-container.scaling {
-      transform: translate(-50%, -50%) scale(var(--scale-factor)) !important;
+      transform: translate(-50%, -50%) scale(var(--scale-factor));
       opacity: var(--opacity-factor);
     }
 
     .hero-logo-container.hidden {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(8) !important;
+      transform: translate(-50%, -50%) scale(6);
       pointer-events: none;
       visibility: hidden;
     }
@@ -1072,7 +1072,7 @@
       if(!items.length){ host.innerHTML='<p style="opacity:.85">Votre panier est vide.</p>'; return; }
       host.innerHTML = items.map(function(it, i){
         var price=Number(it.price||0);
-        return '<div class="product line" data-i="'+i+'" style="display:grid;grid-template-columns:56px 1fr auto;gap:.6rem;align-items:center">'
+        return '<div class="line" data-i="'+i+'" style="display:grid;grid-template-columns:56px 1fr auto;gap:.6rem;align-items:center">'
           + '<img alt="" src="'+(it.image||'icons/icon-180.png')+'" width="56" height="56" style="object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.08)"/>'
           + '<div><div style="font-weight:600">'+escapeHTML(it.title||'Article')+'</div>'
           + (it.brand?('<div style="opacity:.8">'+escapeHTML(it.brand)+'</div>'):'')
@@ -1480,7 +1480,7 @@
           logoContainer.style.removeProperty('--opacity-factor');
         } else if (scrollY < startScroll + animationDistance) {
           var progress = (scrollY - startScroll) / animationDistance;
-          var scaleFactor = 1 + (progress * 8);
+          var scaleFactor = 1 + (progress * 5);
           var opacityFactor = Math.max(0, 1 - progress);
           
           logoContainer.className = 'hero-logo-container scaling';

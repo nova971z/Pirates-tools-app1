@@ -4,7 +4,7 @@
 - Compatible avec HTML/CSS existant. */
 
 (function() {
-‘use strict’;
+'use strict';
 
 /* ===========================================
 
@@ -12,30 +12,30 @@
    =========================================== */
 
 const CONFIG = {
-API_BASE: window.location.origin + window.location.pathname.replace(//$/, ‘’),
-PRODUCTS_URL: ‘data/products.json’,
-CACHE_VERSION: window.__ASSET_VER || ‘35’,
+API_BASE: window.location.origin + window.location.pathname.replace(/\/?$/, ''),
+PRODUCTS_URL: 'data/products.json',
+CACHE_VERSION: window.__ASSET_VER || '35',
 DEBOUNCE_DELAY: 300,
 ANIMATION_DURATION: 300,
-WA_NUMBER: ‘33774230195’,
-PHONE_NUMBER: ‘+33774230195’
+WA_NUMBER: '33774230195',
+PHONE_NUMBER: '+33774230195'
 };
 
 const ROUTES = {
-HOME: ‘/’,
-CATALOGUE: ‘/catalogue’,
-PRODUIT: ‘/produit’,
-DEVIS: ‘/devis’,
-COMPTE: ‘/compte’,
-AUTH: ‘/auth’
+HOME: '/',
+CATALOGUE: '/catalogue',
+PRODUIT: '/produit',
+DEVIS: '/devis',
+COMPTE: '/compte',
+AUTH: '/auth'
 };
 
 const STORAGE_KEYS = {
-CART: ‘pt_cart’,
-USER: ‘pt_user’,
-AUTH: ‘pt_auth’,
-PRODUCTS_CACHE: ‘pt_products_cache’,
-SETTINGS: ‘pt_settings’
+CART: 'pt_cart',
+USER: 'pt_user',
+AUTH: 'pt_auth',
+PRODUCTS_CACHE: 'pt_products_cache',
+SETTINGS: 'pt_settings'
 };
 
 // ===========================================
@@ -44,17 +44,17 @@ SETTINGS: ‘pt_settings’
 
 // Initialisation immédiate du State
 window.State = window.State || {
-currentRoute: ‘/’,
+currentRoute: '/',
 user: null,
 isAuthenticated: false,
 products: [],
 filteredProducts: [],
 cart: [],
 currentProduct: null,
-searchQuery: ‘’,
-selectedTag: ‘’,
+searchQuery: '',
+selectedTag: '',
 isLoading: false,
-heroState: ‘active’ // active, transitioning, hidden
+heroState: 'active' // active, transitioning, hidden
 };
 
 const State = window.State;
@@ -63,18 +63,18 @@ const State = window.State;
 Object.assign(State, {
 // Getters CORRIGES avec protection
 get cartCount() {
-// Protection: s’assurer que cart est toujours un array
+// Protection: s'assurer que cart est toujours un array
 if (!this.cart || !Array.isArray(this.cart)) {
-console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
 return this.cart.reduce((sum, item) => sum + (item.quantity || item.qty || 0), 0);
 },
 
 get cartTotal() {
-// Protection: s’assurer que cart est toujours un array  
+// Protection: s'assurer que cart est toujours un array
 if (!this.cart || !Array.isArray(this.cart)) {
-console.warn(‘Cart is undefined or not an array, initializing empty cart’);
+console.warn('Cart is undefined or not an array, initializing empty cart');
 this.cart = [];
 }
 return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || item.qty || 0)), 0);
@@ -83,33 +83,33 @@ return this.cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity
 // Mutations
 setRoute(route) {
 this.currentRoute = route;
-console.log(‘Route changed to:’, route); // Debug
-this.notifyStateChange(‘route’, route);
+console.log('Route changed to:', route); // Debug
+this.notifyStateChange('route', route);
 },
 
 setUser(user) {
 this.user = user;
 this.isAuthenticated = !!user;
-this.notifyStateChange(‘user’, user);
+this.notifyStateChange('user', user);
 },
 
 setProducts(products) {
 this.products = products;
 this.filteredProducts = products;
-this.notifyStateChange(‘products’, products);
+this.notifyStateChange('products', products);
 },
 
 setCart(cart) {
 // CORRECTION: Validation du paramètre cart
 if (!Array.isArray(cart)) {
-console.error(‘setCart: cart must be an array, received:’, typeof cart, cart);
+console.error('setCart: cart must be an array, received:', typeof cart, cart);
 cart = [];
 }
 
-console.log(‘Setting cart to:’, cart); // Debug
+console.log('Setting cart to:', cart); // Debug
 this.cart = cart;
 this.saveCartToStorage();
-this.notifyStateChange(‘cart’, cart);
+this.notifyStateChange('cart', cart);
 },
 
 // Observers
@@ -132,95 +132,76 @@ this.observers.get(event)?.forEach(callback => {
 try {
 callback(data);
 } catch (error) {
-console.error(‘State observer error:’, error);
+console.error('State observer error:', error);
 }
 });
 },
 
-// Persistence CORRIGÉE
+// Persistence unifiée
 saveCartToStorage() {
-try {
-// CORRECTION: Vérifier que cart est valide avant sauvegarde
-if (!Array.isArray(this.cart)) {
-console.warn(‘saveCartToStorage: cart is not an array, skipping save’);
-return;
-}
-
-// CORRECTION : Sauvegarder dans les DEUX formats pour compatibilité totale
-const simpleCart = this.cart.map(item => ({
-key: item.slug || item.key,
-title: item.title,
-brand: item.brand || ‘’,
-price: item.price || 0,
-qty: item.quantity || item.qty || 1,
-image: item.image
-}));
-
-// Format simple pour HTML
-localStorage.setItem(‘cart’, JSON.stringify(simpleCart));
-
-// Format avancé pour app.js
-const cartData = {
-version: CONFIG.CACHE_VERSION,
-timestamp: Date.now(),
-items: this.cart
-};
-localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData));
-
-console.log(‘Cart saved in both formats’);
-console.log(‘Simple cart for HTML:’, simpleCart);
-console.log(‘Advanced cart for app.js:’, this.cart);
-} catch (error) {
-console.error(‘Failed to save cart:’, error);
-}
+    try {
+        if (!Array.isArray(this.cart)) {
+            console.warn('saveCartToStorage: cart is not an array, skipping save');
+            return;
+        }
+        const cartData = {
+            version: CONFIG.CACHE_VERSION,
+            timestamp: Date.now(),
+            items: this.cart
+        };
+        // Utiliser une seule clé de stockage pour la cohérence
+        localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cartData));
+        // Supprimer l'ancienne clé pour nettoyer
+        localStorage.removeItem('cart');
+        console.log('Cart saved to pt_cart:', this.cart);
+    } catch (error) {
+        console.error('Failed to save cart:', error);
+    }
 },
 
 loadCartFromStorage() {
-try {
-// CORRECTION: Essayer les deux formats et normaliser
-let cartData = null;
+    try {
+        let cartItems = [];
+        // Lire uniquement depuis la nouvelle clé de stockage
+        const storedCart = localStorage.getItem(STORAGE_KEYS.CART);
 
-// Essayer d’abord le format avancé
-const newFormat = localStorage.getItem(STORAGE_KEYS.CART);
-if (newFormat) {
-const parsed = JSON.parse(newFormat);
-if (Array.isArray(parsed)) {
-cartData = parsed; // Ancien format
-} else if (parsed && parsed.items && Array.isArray(parsed.items)) {
-cartData = parsed.items; // Nouveau format
-}
-}
+        if (storedCart) {
+            const parsed = JSON.parse(storedCart);
+            // Gérer l'ancien format (tableau simple) et le nouveau ({ items: [...] })
+            if (Array.isArray(parsed)) {
+                cartItems = parsed;
+            } else if (parsed && Array.isArray(parsed.items)) {
+                cartItems = parsed.items;
+            }
+        } else {
+            // Fallback pour migrer les données de l'ancienne clé si elle existe
+            const oldFormat = localStorage.getItem('cart');
+            if (oldFormat) {
+                const parsed = JSON.parse(oldFormat);
+                if (Array.isArray(parsed)) {
+                    cartItems = parsed.map(item => ({
+                        slug: item.key || item.slug,
+                        title: item.title,
+                        brand: item.brand || '',
+                        price: item.price || 0,
+                        quantity: item.qty || item.quantity || 1,
+                        image: item.image
+                    }));
+                    // Sauvegarder dans le nouveau format et supprimer l'ancien
+                    this.cart = cartItems;
+                    this.saveCartToStorage();
+                }
+            }
+        }
 
-// Fallback sur le format simple
-if (!cartData) {
-const oldFormat = localStorage.getItem(‘cart’);
-if (oldFormat) {
-const parsed = JSON.parse(oldFormat);
-if (Array.isArray(parsed)) {
-// CORRECTION: Normaliser les données du format simple vers le format app.js
-cartData = parsed.map(item => ({
-slug: item.key || item.slug,
-title: item.title,
-brand: item.brand || ‘’,
-price: item.price || 0,
-quantity: item.qty || item.quantity || 1,
-image: item.image
-}));
-}
-}
-}
+        // S'assurer que le panier est toujours un tableau valide
+        this.cart = cartItems.filter(item => item && typeof item === 'object');
 
-// CORRECTION: S’assurer que cartData est toujours un array valide
-this.cart = Array.isArray(cartData) ? cartData : [];
-
-console.log(‘Cart loaded from storage:’, this.cart); // Debug
-console.log(‘Cart items count:’, this.cart.length); // Debug
-
-} catch (error) {
-console.error(‘Failed to load cart:’, error);
-// CORRECTION: En cas d’erreur, initialiser un panier vide
-this.cart = [];
-}
+        console.log('Cart loaded from pt_cart:', this.cart);
+    } catch (error) {
+        console.error('Failed to load cart:', error);
+        this.cart = []; // Initialiser avec un panier vide en cas d'erreur
+    }
 }
 
 }); // Fermeture de Object.assign
@@ -231,32 +212,31 @@ State.loadCartFromStorage();
 // Rendre State disponible globalement
 window.PiratesToolsState = State;
 
-})(); // CORRECTION: Fermeture de la fonction auto-exécutée
 // ===========================================
 // 3. ROUTER SYSTEM
 // ===========================================
 
 const Router = {
 init() {
-console.log(‘Router init…’);
+console.log('Router init...');
 
 // Éviter conflit avec router HTML existant
 if (window.__ptRouterActive) {
-console.log(‘Router deja actif, utilisation du systeme existant’);
+console.log('Router deja actif, utilisation du systeme existant');
 return;
 }
 
 // Vérifier si des fonctions de routage existent déjà
 if (window.syncViews || window.matchRoute) {
-console.log(‘Router HTML detecte, integration…’);
-// S’intégrer avec le router existant
+console.log('Router HTML detecte, integration...');
+// S'intégrer avec le router existant
 this.integrateWithExistingRouter();
 return;
 }
 
-console.log(‘Initializing new router…’);
-window.addEventListener(‘hashchange’, this.handleHashChange.bind(this));
-window.addEventListener(‘popstate’, this.handlePopState.bind(this));
+console.log('Initializing new router...');
+window.addEventListener('hashchange', this.handleHashChange.bind(this));
+window.addEventListener('popstate', this.handlePopState.bind(this));
 
 // Route initiale
 this.navigateToCurrentHash();
@@ -264,15 +244,14 @@ window.__ptRouterActive = true;
 },
 
 integrateWithExistingRouter() {
-console.log(‘Integrating with existing HTML router…’);
+console.log('Integrating with existing HTML router...');
 
 // Observer les changements de route via le système existant
-window.addEventListener(‘hashchange’, () => {
-const hash = window.location.hash.slice(1) || ‘/’;
-console.log(‘Route changed via existing router:’, hash);
+window.addEventListener('hashchange', () => {
+const hash = window.location.hash.slice(1) || '/';
+console.log('Route changed via existing router:', hash);
 State.setRoute(hash);
 
-```
 // Gérer le logo selon la route
 this.updateHeroState(hash);
 
@@ -283,12 +262,10 @@ if (hash === '/devis') {
     CartManager.updateCartUI();
   }, 100);
 }
-```
-
 });
 
 // Trigger initial
-const currentHash = window.location.hash.slice(1) || ‘/’;
+const currentHash = window.location.hash.slice(1) || '/';
 State.setRoute(currentHash);
 this.updateHeroState(currentHash);
 },
@@ -302,14 +279,14 @@ this.navigateToCurrentHash();
 },
 
 navigateToCurrentHash() {
-const hash = window.location.hash.slice(1) || ‘/’;
-const [path, …params] = hash.split(’/’);
+const hash = window.location.hash.slice(1) || '/';
+const [path, ...params] = hash.split('/');
 
-let route = ‘/’;
-if (path) route = ‘/’ + path;
+let route = '/';
+if (path) route = '/' + path;
 
 // Routes avec paramètres
-if (route === ‘/produit’ && params.length > 0) {
+if (route === '/produit' && params.length > 0) {
 this.navigateToProduct(params[0]);
 return;
 }
@@ -318,6 +295,7 @@ this.navigateTo(route);
 },
 
 navigateTo(route) {
+window.scrollTo(0, 0);
 // Protection auth si nécessaire
 if (this.requiresAuth(route) && !State.isAuthenticated) {
 this.redirectToAuth();
@@ -344,17 +322,18 @@ UI.Menu.close();
 },
 
 navigateToProduct(slug) {
+window.scrollTo(0, 0);
 const product = ProductManager.findBySlug(slug);
 if (!product) {
 this.navigateTo(ROUTES.CATALOGUE);
-UI.showToast(‘Produit non trouvé’, ‘error’);
+UI.showToast('Produit non trouvé', 'error');
 return;
 }
 
 State.currentProduct = product;
 State.setRoute(ROUTES.PRODUIT);
 this.updateViews(ROUTES.PRODUIT);
-this.updateBodyClass(‘produit’);
+this.updateBodyClass('produit');
 this.updateHeroState(ROUTES.PRODUIT);
 
 // Rendre la fiche produit
@@ -362,14 +341,13 @@ PDP.render(product);
 },
 
 updateViews(route) {
-const views = document.querySelectorAll(’.view’);
+const views = document.querySelectorAll('.view');
 views.forEach(view => {
 const viewRoute = view.dataset.route;
 if (viewRoute === route) {
-view.classList.remove(‘hidden’);
-console.log(‘Showing view:’, route); // Debug
+view.classList.remove('hidden');
+console.log('Showing view:', route); // Debug
 
-```
   // Si c'est la vue panier, forcer la mise à jour
   if (route === ROUTES.DEVIS) {
     console.log('Devis view shown, forcing cart update...'); // Debug
@@ -384,49 +362,47 @@ console.log(‘Showing view:’, route); // Debug
 } else {
   view.classList.add('hidden');
 }
-```
-
 });
 },
 
 updateBodyClass(route) {
 document.body.className = document.body.className
-.replace(/page-\w+/g, ‘’)
+.replace(/page-\w+/g, '')
 .trim();
 
-const pageClass = ‘page-’ + route.slice(1) || ‘home’;
+const pageClass = 'page-' + route.slice(1) || 'home';
 document.body.classList.add(pageClass);
 },
 
 updateHeroState(route) {
-const hero = document.getElementById(‘hero’);
-const heroLogo = document.getElementById(‘heroLogo’);
+const hero = document.getElementById('hero');
+const heroLogo = document.getElementById('heroLogo');
 const isHomePage = route === ROUTES.HOME;
 
-console.log(‘Updating hero state for route:’, route, ‘isHomePage:’, isHomePage);
+console.log('Updating hero state for route:', route, 'isHomePage:', isHomePage);
 
 if (isHomePage) {
-// Page d’accueil : afficher le héro et le logo
-State.heroState = ‘active’;
+// Page d'accueil : afficher le héro et le logo
+State.heroState = 'active';
 if (hero) {
-hero.classList.remove(‘hero-out’);
-hero.style.display = ‘block’;
+hero.classList.remove('hero-out');
+hero.style.display = 'block';
 }
 if (heroLogo) {
-heroLogo.style.display = ‘block’;
+heroLogo.style.display = 'block';
 }
-document.body.classList.remove(‘after-hero’);
+document.body.classList.remove('after-hero');
 } else {
 // Autres pages : masquer complètement le héro et le logo
-State.heroState = ‘hidden’;
+State.heroState = 'hidden';
 if (hero) {
-hero.classList.add(‘hero-out’);
-hero.style.display = ‘none’; // Force le masquage
+hero.classList.add('hero-out');
+hero.style.display = 'none'; // Force le masquage
 }
 if (heroLogo) {
-heroLogo.style.display = ‘none’; // Force le masquage du logo
+heroLogo.style.display = 'none'; // Force le masquage du logo
 }
-document.body.classList.add(‘after-hero’);
+document.body.classList.add('after-hero');
 }
 
 Animation.updateHeroLogo();
@@ -437,7 +413,7 @@ return route === ROUTES.COMPTE;
 },
 
 redirectToAuth() {
-window.location.hash = ‘#/auth’;
+window.location.hash = '#/auth';
 }
 
 };
@@ -458,11 +434,10 @@ try {
 const cached = this.getCachedProducts();
 if (cached && cached.version === CONFIG.CACHE_VERSION) {
 State.setProducts(cached.products);
-console.log(‘Produits chargés depuis le cache’);
+console.log('Produits chargés depuis le cache');
 return;
 }
 
-```
 // Charger depuis le serveur
 State.isLoading = true;
 const response = await fetch(`${CONFIG.PRODUCTS_URL}?v=${CONFIG.CACHE_VERSION}`);
@@ -484,11 +459,9 @@ State.setProducts(enrichedProducts);
 this.cacheProducts(enrichedProducts);
 
 console.log(`${enrichedProducts.length} produits chargés`);
-```
-
 } catch (error) {
-console.error(‘Erreur chargement produits:’, error);
-UI.showToast(‘Erreur de chargement des produits’, ‘error’);
+console.error('Erreur chargement produits:', error);
+UI.showToast('Erreur de chargement des produits', 'error');
 // Fallback sur cache même si obsolète
 const cached = this.getCachedProducts();
 if (cached) {
@@ -500,17 +473,17 @@ State.isLoading = false;
 },
 
 bindSearchEvents() {
-const searchInput = document.getElementById(‘q’);
-const tagSelect = document.getElementById(‘tag’);
+const searchInput = document.getElementById('q');
+const tagSelect = document.getElementById('tag');
 
 if (searchInput) {
-searchInput.addEventListener(‘input’,
+searchInput.addEventListener('input',
 Utils.debounce((e) => this.handleSearch(e.target.value), CONFIG.DEBOUNCE_DELAY)
 );
 }
 
 if (tagSelect) {
-tagSelect.addEventListener(‘change’, (e) => this.handleTagFilter(e.target.value));
+tagSelect.addEventListener('change', (e) => this.handleTagFilter(e.target.value));
 this.populateTagOptions();
 }
 },
@@ -547,25 +520,25 @@ this.renderProductList();
 },
 
 renderProductList() {
-const container = document.getElementById(‘list’);
+const container = document.getElementById('list');
 if (!container) return;
 
 if (State.filteredProducts.length === 0) {
-container.innerHTML = ‘<p class="empty-state">Aucun produit trouvé</p>’;
+container.innerHTML = '<p class="empty-state">Aucun produit trouvé</p>';
 return;
 }
 
-container.innerHTML = State.filteredProducts.map(product => `<article class="card" data-key="${product.slug}"> <div class="head"> <h3 class="title">${Utils.escapeHtml(product.title)}</h3> ${product.tag ?`<span class="chip">${Utils.escapeHtml(product.tag)}</span>`: ''} </div> ${product.image ?`<img src="${product.image}" alt="${Utils.escapeHtml(product.title)}" loading="lazy">`: ''} ${product.description ?`<p class="desc">${Utils.escapeHtml(product.description)}</p>`: ''} <div class="actions"> <a class="btn primary" href="#/produit/${product.slug}">Voir détails</a> <button class="btn" onclick="CartManager.addToCart('${product.slug}')">Ajouter</button> </div> </article>`).join(’’);
+container.innerHTML = State.filteredProducts.map(product => `<article class="card" data-key="${product.slug}"> <div class="head"> <h3 class="title">${Utils.escapeHtml(product.title)}</h3> ${product.tag ?`<span class="chip">${Utils.escapeHtml(product.tag)}</span>`: ''} </div> ${product.image ?`<img src="${product.image}" alt="${Utils.escapeHtml(product.title)}" loading="lazy">`: ''} ${product.description ?`<p class="desc">${Utils.escapeHtml(product.description)}</p>`: ''} <div class="actions"> <a class="btn primary" href="#/produit/${product.slug}">Voir détails</a> <button class="btn" onclick="CartManager.addToCart('${product.slug}')">Ajouter</button> </div> </article>`).join('');
 },
 
 populateTagOptions() {
-const tagSelect = document.getElementById(‘tag’);
+const tagSelect = document.getElementById('tag');
 if (!tagSelect) return;
 
-const tags = […new Set(State.products.map(p => p.tag).filter(Boolean))];
+const tags = [...new Set(State.products.map(p => p.tag).filter(Boolean))];
 
-tagSelect.innerHTML = ‘<option value="">Tous</option>’ +
-tags.map(tag => `<option value="${tag}">${Utils.escapeHtml(tag)}</option>`).join(’’);
+tagSelect.innerHTML = '<option value="">Tous</option>' +
+tags.map(tag => `<option value="${tag}">${Utils.escapeHtml(tag)}</option>`).join('');
 },
 
 findBySlug(slug) {
@@ -573,36 +546,36 @@ return State.products.find(p => p.slug === slug);
 },
 
 createSlug(title) {
-if (!title) return ‘unknown’;
+if (!title) return 'unknown';
 
 return String(title)
 .toLowerCase()
 .trim()
 // Remplacer les caractères spéciaux
-.replace(/[\u00C0-\u00C5]/g, ‘a’)
-.replace(/[\u00C6]/g, ‘ae’)
-.replace(/[\u00C7]/g, ‘c’)
-.replace(/[\u00C8-\u00CB]/g, ‘e’)
-.replace(/[\u00CC-\u00CF]/g, ‘i’)
-.replace(/[\u00D1]/g, ‘n’)
-.replace(/[\u00D2-\u00D6]/g, ‘o’)
-.replace(/[\u00D9-\u00DC]/g, ‘u’)
-.replace(/[\u00DD]/g, ‘y’)
+.replace(/[\u00C0-\u00C5]/g, 'a')
+.replace(/[\u00C6]/g, 'ae')
+.replace(/[\u00C7]/g, 'c')
+.replace(/[\u00C8-\u00CB]/g, 'e')
+.replace(/[\u00CC-\u00CF]/g, 'i')
+.replace(/[\u00D1]/g, 'n')
+.replace(/[\u00D2-\u00D6]/g, 'o')
+.replace(/[\u00D9-\u00DC]/g, 'u')
+.replace(/[\u00DD]/g, 'y')
 // Minuscules
-.replace(/[\u00E0-\u00E5]/g, ‘a’)
-.replace(/[\u00E6]/g, ‘ae’)
-.replace(/[\u00E7]/g, ‘c’)
-.replace(/[\u00E8-\u00EB]/g, ‘e’)
-.replace(/[\u00EC-\u00EF]/g, ‘i’)
-.replace(/[\u00F1]/g, ‘n’)
-.replace(/[\u00F2-\u00F6]/g, ‘o’)
-.replace(/[\u00F9-\u00FC]/g, ‘u’)
-.replace(/[\u00FD\u00FF]/g, ‘y’)
+.replace(/[\u00E0-\u00E5]/g, 'a')
+.replace(/[\u00E6]/g, 'ae')
+.replace(/[\u00E7]/g, 'c')
+.replace(/[\u00E8-\u00EB]/g, 'e')
+.replace(/[\u00EC-\u00EF]/g, 'i')
+.replace(/[\u00F1]/g, 'n')
+.replace(/[\u00F2-\u00F6]/g, 'o')
+.replace(/[\u00F9-\u00FC]/g, 'u')
+.replace(/[\u00FD\u00FF]/g, 'y')
 // Autres caracteres speciaux
-.replace(/[\u2013\u2014]/g, ‘-’) // em/en dash
-.replace(/[^\w\s-]/g, ‘’) // Garder seulement mots, espaces, tirets
-.replace(/[\s_-]+/g, ‘-’) // Espaces et underscores vers tirets
-.replace(/^-+|-+$/g, ‘’); // Supprimer tirets en debut/fin
+.replace(/[\u2013\u2014]/g, '-') // em/en dash
+.replace(/[^\w\s-]/g, '') // Garder seulement mots, espaces, tirets
+.replace(/[\s_-]+/g, '-') // Espaces et underscores vers tirets
+.replace(/^-+|-+$/g, ''); // Supprimer tirets en debut/fin
 },
 
 createSearchText(product) {
@@ -611,17 +584,17 @@ product.title,
 product.description,
 product.tag,
 product.brand,
-…(product.specifications || [])
+...(product.specifications || [])
 ].filter(Boolean);
 
 return fields
-.join(’ ‘)
+.join(' ')
 .toLowerCase()
-.replace(/[\u2013\u2014]/g, ‘-’)
-.replace(/[\u2018\u2019]/g, “’”)
-.replace(/[\u201C\u201D]/g, ‘”’)
-.replace(/[^\w\s-]/g, ’ ’)
-.replace(/\s+/g, ’ ’)
+.replace(/[\u2013\u2014]/g, '-')
+.replace(/[\u2018\u2019]/g, "'")
+.replace(/[\u201C\u201D]/g, '"')
+.replace(/[^\w\s-]/g, ' ')
+.replace(/\s+/g, ' ')
 .trim();
 },
 
@@ -630,7 +603,7 @@ try {
 const cached = localStorage.getItem(STORAGE_KEYS.PRODUCTS_CACHE);
 return cached ? JSON.parse(cached) : null;
 } catch (error) {
-console.error(‘Cache read error:’, error);
+console.error('Cache read error:', error);
 return null;
 }
 },
@@ -644,7 +617,7 @@ products: products
 };
 localStorage.setItem(STORAGE_KEYS.PRODUCTS_CACHE, JSON.stringify(cacheData));
 } catch (error) {
-console.error(‘Cache write error:’, error);
+console.error('Cache write error:', error);
 }
 }
 
@@ -656,30 +629,29 @@ console.error(‘Cache write error:’, error);
 
 const CartManager = {
 init() {
-console.log(‘CartManager init…’); // Debug
+console.log('CartManager init...'); // Debug
 State.loadCartFromStorage();
-console.log(‘Initial cart state:’, State.cart); // Debug
+console.log('Initial cart state:', State.cart); // Debug
 this.bindCartEvents();
 this.updateCartUI();
 
 // Observer les changements de panier
-State.subscribe(‘cart’, () => {
-console.log(‘Cart state changed, updating UI…’); // Debug
+State.subscribe('cart', () => {
+console.log('Cart state changed, updating UI...'); // Debug
 this.updateCartUI();
 });
 },
 
 bindCartEvents() {
-console.log(‘Binding cart events…’); // Debug
+console.log('Binding cart events...'); // Debug
 
 // Boutons dock - forcer la navigation correcte
-const cartBtn = document.getElementById(‘dockCartBtn’);
+const cartBtn = document.getElementById('dockCartBtn');
 if (cartBtn) {
 // Supprimer les anciens listeners
 const newCartBtn = cartBtn.cloneNode(true);
 cartBtn.parentNode.replaceChild(newCartBtn, cartBtn);
 
-```
 // Ajouter le nouveau listener
 document.getElementById('dockCartBtn').addEventListener('click', (e) => {
   e.preventDefault();
@@ -688,23 +660,21 @@ document.getElementById('dockCartBtn').addEventListener('click', (e) => {
   console.log('Current cart state:', State.cart); // Debug
   window.location.hash = '#/devis';
 });
-```
-
 }
 
 // Actions devis
-const sendBtn = document.getElementById(‘devisSend’);
-const clearBtn = document.getElementById(‘devisClear’);
+const sendBtn = document.getElementById('devisSend');
+const clearBtn = document.getElementById('devisClear');
 
 if (sendBtn) {
-sendBtn.addEventListener(‘click’, (e) => {
+sendBtn.addEventListener('click', (e) => {
 e.preventDefault();
 this.sendQuoteToWhatsApp();
 });
 }
 
 if (clearBtn) {
-clearBtn.addEventListener(‘click’, (e) => {
+clearBtn.addEventListener('click', (e) => {
 e.preventDefault();
 this.clearCart();
 });
@@ -714,7 +684,7 @@ this.clearCart();
 addToCart(productSlug, quantity = 1) {
 const product = ProductManager.findBySlug(productSlug);
 if (!product) {
-UI.showToast(‘Produit non trouvé’, ‘error’);
+UI.showToast('Produit non trouvé', 'error');
 return false;
 }
 
@@ -726,16 +696,16 @@ existingItem.quantity += quantity;
 State.cart.push({
 slug: productSlug,
 title: product.title,
-brand: product.brand || product.tag || ‘’,
+brand: product.brand || product.tag || '',
 price: product.price || 0,
 image: product.image,
 quantity: quantity
 });
 }
 
-State.setCart([…State.cart]);
-console.log(‘Cart updated:’, State.cart); // Debug log
-UI.showToast(`${product.title} ajouté au panier`, ‘success’);
+State.setCart([...State.cart]);
+console.log('Cart updated:', State.cart); // Debug log
+UI.showToast(`${product.title} ajouté au panier`, 'success');
 this.pulseCartButton();
 
 return true; // Succès
@@ -743,7 +713,7 @@ return true; // Succès
 
 removeFromCart(productSlug) {
 State.setCart(State.cart.filter(item => item.slug !== productSlug));
-UI.showToast(‘Produit retiré du panier’, ‘info’);
+UI.showToast('Produit retiré du panier', 'info');
 },
 
 updateQuantity(productSlug, newQuantity) {
@@ -755,16 +725,16 @@ return;
 const item = State.cart.find(item => item.slug === productSlug);
 if (item) {
 item.quantity = newQuantity;
-State.setCart([…State.cart]);
+State.setCart([...State.cart]);
 }
 },
 
 clearCart() {
 if (State.cartCount === 0) return;
 
-if (confirm(‘Vider le panier ?’)) {
+if (confirm('Vider le panier ?')) {
 State.setCart([]);
-UI.showToast(‘Panier vidé’, ‘info’);
+UI.showToast('Panier vidé', 'info');
 }
 },
 
@@ -776,39 +746,39 @@ this.updateMiniCart();
 
 updateCartCount() {
 const count = State.cartCount;
-const countElement = document.getElementById(‘dockCount’);
+const countElement = document.getElementById('dockCount');
 
 if (countElement) {
 if (count > 0) {
 countElement.textContent = count;
-countElement.style.display = ‘block’;
+countElement.style.display = 'block';
 } else {
-countElement.style.display = ‘none’;
+countElement.style.display = 'none';
 }
 }
 
 // Badge sur dock button
-const cartBtn = document.getElementById(‘dockCartBtn’);
+const cartBtn = document.getElementById('dockCartBtn');
 if (cartBtn) {
 if (count > 0) {
-cartBtn.classList.add(‘has-badge’);
+cartBtn.classList.add('has-badge');
 cartBtn.dataset.badge = count;
 } else {
-cartBtn.classList.remove(‘has-badge’);
+cartBtn.classList.remove('has-badge');
 }
 }
 },
 
 // FONCTION CORRIGÉE - Compatible avec le système HTML
 updateCartList() {
-const container = document.getElementById(‘devisList’);
+const container = document.getElementById('devisList');
 if (!container) {
-console.warn(‘Container devisList non trouvé’);
+console.warn('Container devisList non trouvé');
 return;
 }
 
-console.log(‘Mise à jour liste panier - articles:’, State.cart.length);
-console.log(‘Contenu panier:’, State.cart);
+console.log('Mise à jour liste panier - articles:', State.cart.length);
+console.log('Contenu panier:', State.cart);
 
 if (State.cart.length === 0) {
 container.innerHTML = `<div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--muted);"> <h3 style="margin-bottom: 16px; color: var(--fg);">Votre panier est vide</h3> <p style="margin-bottom: 24px;">Découvrez nos produits et ajoutez-les à votre panier</p> <a href="#/catalogue" class="btn primary">Voir le catalogue</a> </div>`;
@@ -820,12 +790,11 @@ const cartItemsHTML = State.cart.map((item, index) => {
 // Adapter les noms de propriétés
 const key = item.slug || item.key || `item-${index}`;
 const qty = item.quantity || item.qty || 1;
-const title = item.title || ‘Article’;
+const title = item.title || 'Article';
 const price = item.price || 0;
-const image = item.image || ‘icons/icon-180.png’;
-const brand = item.brand || ‘’;
+const image = item.image || 'icons/icon-180.png';
+const brand = item.brand || '';
 
-```
 return `
   <div class="line" data-i="${index}" style="
     display: grid; 
@@ -866,9 +835,7 @@ return `
     </div>
   </div>
 `;
-```
-
-}).join(’’);
+}).join('');
 
 // Total
 const totalHT = State.cartTotal;
@@ -879,10 +846,9 @@ const totalHTML = `<div style=" margin-top: 20px;  padding: 20px;  background: r
 container.innerHTML = cartItemsHTML + totalHTML;
 
 // CORRECTION : Bind les événements avec les vraies fonctions
-container.querySelectorAll(’.line’).forEach(function(row) {
-const i = +row.getAttribute(‘data-i’) || 0;
+container.querySelectorAll('.line').forEach(function(row) {
+const i = +row.getAttribute('data-i') || 0;
 
-```
 // Quantity change
 const qtyInp = row.querySelector('.qty');
 if (qtyInp) {
@@ -905,15 +871,13 @@ if (rmBtn) {
     State.setCart([...State.cart]);
   });
 }
-```
-
 });
 
-console.log(‘Panier rendu avec succès’);
+console.log('Panier rendu avec succès');
 },
 
 updateMiniCart() {
-const miniText = document.getElementById(‘accCartMiniTxt’);
+const miniText = document.getElementById('accCartMiniTxt');
 if (miniText) {
 const count = State.cartCount;
 const total = State.cartTotal;
@@ -923,17 +887,17 @@ miniText.textContent = `${count} article${count > 1 ? 's' : ''} — total ${tota
 
 sendQuoteToWhatsApp() {
 if (State.cart.length === 0) {
-UI.showToast(‘Panier vide’, ‘warning’);
+UI.showToast('Panier vide', 'warning');
 return;
 }
 
 const message = this.generateQuoteMessage();
 const url = `https://wa.me/${CONFIG.WA_NUMBER}?text=${encodeURIComponent(message)}`;
-window.open(url, ‘_blank’);
+window.open(url, '_blank');
 },
 
 generateQuoteMessage() {
-let message = ‘Demande de devis - Pirates Tools\n\n’;
+let message = 'Demande de devis - Pirates Tools\n\n';
 
 State.cart.forEach((item, index) => {
 message += `${index + 1}. ${item.title}\n`;
@@ -949,10 +913,10 @@ return message;
 },
 
 pulseCartButton() {
-const cartBtn = document.getElementById(‘dockCartBtn’);
+const cartBtn = document.getElementById('dockCartBtn');
 if (cartBtn) {
-cartBtn.classList.add(‘pulse’);
-setTimeout(() => cartBtn.classList.remove(‘pulse’), 600);
+cartBtn.classList.add('pulse');
+setTimeout(() => cartBtn.classList.remove('pulse'), 600);
 }
 }
 
@@ -970,67 +934,67 @@ this.bindAuthEvents();
 
 bindAuthEvents() {
 // Tabs
-const loginTab = document.getElementById(‘authLoginTab’);
-const registerTab = document.getElementById(‘authRegisterTab’);
+const loginTab = document.getElementById('authLoginTab');
+const registerTab = document.getElementById('authRegisterTab');
 
 if (loginTab) {
-loginTab.addEventListener(‘click’, () => this.showLoginForm());
+loginTab.addEventListener('click', () => this.showLoginForm());
 }
 
 if (registerTab) {
-registerTab.addEventListener(‘click’, () => this.showRegisterForm());
+registerTab.addEventListener('click', () => this.showRegisterForm());
 }
 
 // Forms
-const loginForm = document.getElementById(‘loginForm’);
-const registerForm = document.getElementById(‘registerForm’);
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
 
 if (loginForm) {
-loginForm.addEventListener(‘submit’, (e) => this.handleLogin(e));
+loginForm.addEventListener('submit', (e) => this.handleLogin(e));
 }
 
 if (registerForm) {
-registerForm.addEventListener(‘submit’, (e) => this.handleRegister(e));
+registerForm.addEventListener('submit', (e) => this.handleRegister(e));
 }
 
 // Account form
-const accountForm = document.getElementById(‘accountForm’);
+const accountForm = document.getElementById('accountForm');
 if (accountForm) {
-accountForm.addEventListener(‘submit’, (e) => this.handleAccountUpdate(e));
+accountForm.addEventListener('submit', (e) => this.handleAccountUpdate(e));
 }
 },
 
 showLoginForm() {
-const loginTab = document.getElementById(‘authLoginTab’);
-const registerTab = document.getElementById(‘authRegisterTab’);
-const loginForm = document.getElementById(‘authLogin’);
-const registerForm = document.getElementById(‘authRegister’);
+const loginTab = document.getElementById('authLoginTab');
+const registerTab = document.getElementById('authRegisterTab');
+const loginForm = document.getElementById('authLogin');
+const registerForm = document.getElementById('authRegister');
 
 if (loginTab) {
-loginTab.setAttribute(‘aria-selected’, ‘true’);
-loginTab.classList.add(‘active’);
+loginTab.setAttribute('aria-selected', 'true');
+loginTab.classList.add('active');
 }
 if (registerTab) {
-registerTab.setAttribute(‘aria-selected’, ‘false’);
-registerTab.classList.remove(‘active’);
+registerTab.setAttribute('aria-selected', 'false');
+registerTab.classList.remove('active');
 }
 if (loginForm) loginForm.hidden = false;
 if (registerForm) registerForm.hidden = true;
 },
 
 showRegisterForm() {
-const loginTab = document.getElementById(‘authLoginTab’);
-const registerTab = document.getElementById(‘authRegisterTab’);
-const loginForm = document.getElementById(‘authLogin’);
-const registerForm = document.getElementById(‘authRegister’);
+const loginTab = document.getElementById('authLoginTab');
+const registerTab = document.getElementById('authRegisterTab');
+const loginForm = document.getElementById('authLogin');
+const registerForm = document.getElementById('authRegister');
 
 if (loginTab) {
-loginTab.setAttribute(‘aria-selected’, ‘false’);
-loginTab.classList.remove(‘active’);
+loginTab.setAttribute('aria-selected', 'false');
+loginTab.classList.remove('active');
 }
 if (registerTab) {
-registerTab.setAttribute(‘aria-selected’, ‘true’);
-registerTab.classList.add(‘active’);
+registerTab.setAttribute('aria-selected', 'true');
+registerTab.classList.add('active');
 }
 if (loginForm) loginForm.hidden = true;
 if (registerForm) registerForm.hidden = false;
@@ -1039,11 +1003,11 @@ if (registerForm) registerForm.hidden = false;
 async handleLogin(event) {
 event.preventDefault();
 
-const email = document.getElementById(‘loginEmail’)?.value;
-const password = document.getElementById(‘loginPwd’)?.value;
+const email = document.getElementById('loginEmail')?.value;
+const password = document.getElementById('loginPwd')?.value;
 
 if (!email || !password) {
-UI.showToast(‘Veuillez remplir tous les champs’, ‘error’);
+UI.showToast('Veuillez remplir tous les champs', 'error');
 return;
 }
 
@@ -1052,7 +1016,6 @@ const users = this.getStoredUsers();
 const hashedPassword = await this.hashPassword(password);
 const user = users.find(u => u.email === email && u.password === hashedPassword);
 
-```
 if (!user) {
   UI.showToast('Email ou mot de passe incorrect', 'error');
   return;
@@ -1061,35 +1024,32 @@ if (!user) {
 this.setCurrentUser(user);
 UI.showToast('Connexion réussie', 'success');
 Router.navigateTo(ROUTES.COMPTE);
-```
-
 } catch (error) {
-console.error(‘Login error:’, error);
-UI.showToast(‘Erreur de connexion’, ‘error’);
+console.error('Login error:', error);
+UI.showToast('Erreur de connexion', 'error');
 }
 },
 
 async handleRegister(event) {
 event.preventDefault();
 
-const name = document.getElementById(‘regName’)?.value;
-const email = document.getElementById(‘regEmail’)?.value;
-const password = document.getElementById(‘regPwd’)?.value;
+const name = document.getElementById('regName')?.value;
+const email = document.getElementById('regEmail')?.value;
+const password = document.getElementById('regPwd')?.value;
 
 if (!name || !email || !password) {
-UI.showToast(‘Veuillez remplir tous les champs’, ‘error’);
+UI.showToast('Veuillez remplir tous les champs', 'error');
 return;
 }
 
 if (password.length < 6) {
-UI.showToast(‘Le mot de passe doit contenir au moins 6 caractères’, ‘error’);
+UI.showToast('Le mot de passe doit contenir au moins 6 caractères', 'error');
 return;
 }
 
 try {
 const users = this.getStoredUsers();
 
-```
 if (users.find(u => u.email === email)) {
   UI.showToast('Cet email est déjà utilisé', 'error');
   return;
@@ -1111,11 +1071,9 @@ localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(users));
 this.setCurrentUser(newUser);
 UI.showToast('Compte créé avec succès', 'success');
 Router.navigateTo(ROUTES.COMPTE);
-```
-
 } catch (error) {
-console.error(‘Register error:’, error);
-UI.showToast(‘Erreur lors de la création du compte’, ‘error’);
+console.error('Register error:', error);
+UI.showToast('Erreur lors de la création du compte', 'error');
 }
 },
 
@@ -1124,11 +1082,11 @@ event.preventDefault();
 
 if (!State.user) return;
 
-const name = document.getElementById(‘accName’)?.value;
-const email = document.getElementById(‘accEmail’)?.value;
+const name = document.getElementById('accName')?.value;
+const email = document.getElementById('accEmail')?.value;
 
 if (!name || !email) {
-UI.showToast(‘Veuillez remplir tous les champs’, ‘error’);
+UI.showToast('Veuillez remplir tous les champs', 'error');
 return;
 }
 
@@ -1136,7 +1094,6 @@ try {
 const users = this.getStoredUsers();
 const userIndex = users.findIndex(u => u.id === State.user.id);
 
-```
 if (userIndex !== -1) {
   users[userIndex] = { ...users[userIndex], name, email };
   localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(users));
@@ -1144,11 +1101,9 @@ if (userIndex !== -1) {
   this.setCurrentUser(users[userIndex]);
   UI.showToast('Profil mis à jour', 'success');
 }
-```
-
 } catch (error) {
-console.error(‘Account update error:’, error);
-UI.showToast(‘Erreur lors de la mise à jour’, ‘error’);
+console.error('Account update error:', error);
+UI.showToast('Erreur lors de la mise à jour', 'error');
 }
 },
 
@@ -1156,11 +1111,11 @@ logout() {
 localStorage.removeItem(STORAGE_KEYS.USER);
 State.setUser(null);
 Router.navigateTo(ROUTES.AUTH);
-UI.showToast(‘Déconnecté’, ‘info’);
+UI.showToast('Déconnecté', 'info');
 },
 
 setCurrentUser(user) {
-const userCopy = { …user };
+const userCopy = { ...user };
 delete userCopy.password; // Ne pas stocker le hash en mémoire
 
 State.setUser(userCopy);
@@ -1178,18 +1133,18 @@ State.setUser(user);
 this.updateAccountForm();
 }
 } catch (error) {
-console.error(‘Failed to load user:’, error);
+console.error('Failed to load user:', error);
 }
 },
 
 updateAccountForm() {
 if (!State.user) return;
 
-const nameField = document.getElementById(‘accName’);
-const emailField = document.getElementById(‘accEmail’);
+const nameField = document.getElementById('accName');
+const emailField = document.getElementById('accEmail');
 
-if (nameField) nameField.value = State.user.name || ‘’;
-if (emailField) emailField.value = State.user.email || ‘’;
+if (nameField) nameField.value = State.user.name || '';
+if (emailField) emailField.value = State.user.email || '';
 },
 
 getStoredUsers() {
@@ -1197,7 +1152,7 @@ try {
 const stored = localStorage.getItem(STORAGE_KEYS.AUTH);
 return stored ? JSON.parse(stored) : [];
 } catch (error) {
-console.error(‘Failed to load users:’, error);
+console.error('Failed to load users:', error);
 return [];
 }
 },
@@ -1205,10 +1160,10 @@ return [];
 async hashPassword(password) {
 const encoder = new TextEncoder();
 const data = encoder.encode(password);
-const hash = await crypto.subtle.digest(‘SHA-256’, data);
+const hash = await crypto.subtle.digest('SHA-256', data);
 return Array.from(new Uint8Array(hash))
-.map(b => b.toString(16).padStart(2, ‘0’))
-.join(’’);
+.map(b => b.toString(16).padStart(2, '0'))
+.join('');
 }
 
 };
@@ -1221,66 +1176,60 @@ const UI = {
 // Menu système unifié (éviter conflit avec HTML)
 Menu: {
 isOpen() {
-return !document.getElementById(‘side-menu’)?.classList.contains(‘hidden’);
+return !document.getElementById('side-menu')?.classList.contains('hidden');
 },
 
 open() {
 if (window.__ptMenuUnified) return; // Déléguer au système HTML
 
-```
 const menu = document.getElementById('side-menu');
 const backdrop = document.getElementById('menuBackdrop');
 
 if (menu) menu.classList.remove('hidden');
 if (backdrop) backdrop.classList.remove('hidden');
-```
-
 },
 
 close() {
 if (window.__ptMenuUnified) return; // Déléguer au système HTML
 
-```
 const menu = document.getElementById('side-menu');
 const backdrop = document.getElementById('menuBackdrop');
 
 if (menu) menu.classList.add('hidden');
 if (backdrop) backdrop.classList.add('hidden');
-```
-
 }
 },
 
-showToast(message, type = ‘info’) {
-console.log(‘Toast:’, message, type);
+showToast(message, type = 'info') {
+console.log('Toast:', message, type);
 
 // Utiliser le système existant si disponible
-if (typeof window.ptToast === ‘function’) {
+if (typeof window.ptToast === 'function') {
 try {
 window.ptToast(message, type);
 return;
 } catch (error) {
-console.error(‘Error with ptToast:’, error);
+console.error('Error with ptToast:', error);
 }
 }
 
 // Fallback simple et robuste
-const toast = document.createElement(‘div’);
+const toast = document.createElement('div');
 toast.style.cssText = `position: fixed; top: 80px; right: 20px; z-index: 1000; padding: 12px 20px; border-radius: 8px; color: white; font-size: 14px; max-width: 300px; word-wrap: break-word; background: ${type === 'error' ? '#ff6b6b' : type === 'success' ? '#00e1b4' : type === 'warning' ? '#ffd93d' : '#19d3ff'}; box-shadow: 0 4px 12px rgba(0,0,0,0.3); opacity: 0; transform: translateX(100px); transition: all 0.3s ease;`;
 toast.textContent = message;
 
 document.body.appendChild(toast);
 
-// Animation d’entrée
+// Animation d'entrée
 requestAnimationFrame(() => {
-toast.style.opacity = ‘1’;
-toast.style.transform = ‘translateX(0)’;
+toast.style.opacity = '1';
+toast.style.transform = 'translateX(0)';
 });
 
 // Auto-remove
 setTimeout(() => {
-toast.style.opacity = ‘0’;
-toast.style.transform = ‘translateX(100px)’;
+toast.style.opacity = '0';
+toast.style.transform = 'translateX(100px)';
 setTimeout(() => {
 if (toast.parentNode) {
 toast.parentNode.removeChild(toast);
@@ -1290,10 +1239,10 @@ toast.parentNode.removeChild(toast);
 },
 
 updateInstallButton() {
-const installBtn = document.getElementById(‘installBtn’);
+const installBtn = document.getElementById('installBtn');
 if (installBtn && PWAManager.canInstall()) {
-installBtn.classList.remove(‘hidden’);
-installBtn.removeAttribute(‘hidden’);
+installBtn.classList.remove('hidden');
+installBtn.removeAttribute('hidden');
 }
 }
 
@@ -1312,7 +1261,7 @@ this.updateHeroLogo();
 bindScrollEvents() {
 let ticking = false;
 
-window.addEventListener(‘scroll’, () => {
+window.addEventListener('scroll', () => {
 if (!ticking) {
 requestAnimationFrame(() => {
 this.handleScroll();
@@ -1329,46 +1278,46 @@ if (State.currentRoute !== ROUTES.HOME) return;
 const scrollY = window.scrollY;
 const threshold = window.innerHeight * 0.3;
 
-if (scrollY > threshold && State.heroState === ‘active’) {
-State.heroState = ‘transitioning’;
+if (scrollY > threshold && State.heroState === 'active') {
+State.heroState = 'transitioning';
 this.updateHeroLogo();
-} else if (scrollY <= threshold && State.heroState === ‘transitioning’) {
-State.heroState = ‘active’;
+} else if (scrollY <= threshold && State.heroState === 'transitioning') {
+State.heroState = 'active';
 this.updateHeroLogo();
 }
 },
 
 updateHeroLogo() {
-const logo = document.getElementById(‘heroLogo’);
+const logo = document.getElementById('heroLogo');
 if (!logo) return;
 
 // Éviter conflit avec animations HTML existantes
-if (logo.dataset.jsControlled === ‘false’) return;
+if (logo.dataset.jsControlled === 'false') return;
 
-// Si on n’est pas sur la page d’accueil, forcer le masquage du logo
+// Si on n'est pas sur la page d'accueil, forcer le masquage du logo
 if (State.currentRoute !== ROUTES.HOME) {
-logo.style.display = ‘none’;
-logo.classList.remove(‘on’);
-logo.classList.add(‘hero-out’);
-console.log(‘Logo masqué car route:’, State.currentRoute);
+logo.style.display = 'none';
+logo.classList.remove('on');
+logo.classList.add('hero-out');
+console.log('Logo masqué car route:', State.currentRoute);
 return;
 }
 
-// Page d’accueil : gérer l’état normal du logo
-logo.style.display = ‘block’;
+// Page d'accueil : gérer l'état normal du logo
+logo.style.display = 'block';
 
 switch (State.heroState) {
-case ‘active’:
-logo.classList.add(‘on’);
-logo.classList.remove(‘hero-out’);
+case 'active':
+logo.classList.add('on');
+logo.classList.remove('hero-out');
 break;
-case ‘transitioning’:
-logo.classList.remove(‘on’);
-logo.classList.add(‘hero-out’);
+case 'transitioning':
+logo.classList.remove('on');
+logo.classList.add('hero-out');
 break;
-case ‘hidden’:
-logo.classList.remove(‘on’);
-logo.classList.add(‘hero-out’);
+case 'hidden':
+logo.classList.remove('on');
+logo.classList.add('hero-out');
 break;
 }
 }
@@ -1396,7 +1345,7 @@ this.fixAddToCartButton(product);
 },
 
 updateProductImage(product) {
-const img = document.getElementById(‘pdpImg’);
+const img = document.getElementById('pdpImg');
 if (img && product.image) {
 img.src = product.image;
 img.alt = product.title;
@@ -1404,35 +1353,35 @@ img.alt = product.title;
 },
 
 updateProductInfo(product) {
-const title = document.getElementById(‘pdpTitle’);
-const tag = document.getElementById(‘pdpTag’);
-const desc = document.getElementById(‘pdpDesc’);
-const price = document.getElementById(‘pdpPrice’);
+const title = document.getElementById('pdpTitle');
+const tag = document.getElementById('pdpTag');
+const desc = document.getElementById('pdpDesc');
+const price = document.getElementById('pdpPrice');
 
 if (title) title.textContent = product.title;
-if (tag) tag.textContent = product.tag || ‘’;
-if (desc) desc.textContent = product.description || ‘’;
+if (tag) tag.textContent = product.tag || '';
+if (desc) desc.textContent = product.description || '';
 if (price && product.price) {
 price.innerHTML = `<span class="price-ht">${product.price}€ HT</span> <span class="price-ttc">${(product.price * 1.20).toFixed(2)}€ TTC</span>`;
 }
 },
 
 updateProductSpecs(product) {
-const specs = document.getElementById(‘pdpSpecs’);
+const specs = document.getElementById('pdpSpecs');
 if (!specs) return;
 
 if (product.specifications && product.specifications.length > 0) {
 specs.innerHTML = product.specifications
 .map(spec => `<li>${Utils.escapeHtml(spec)}</li>`)
-.join(’’);
+.join('');
 } else {
-specs.innerHTML = ‘’;
+specs.innerHTML = '';
 }
 },
 
 bindProductActions(product) {
-const waBtn = document.getElementById(‘pdpWa’);
-const shareBtn = document.getElementById(‘pdpShare’);
+const waBtn = document.getElementById('pdpWa');
+const shareBtn = document.getElementById('pdpShare');
 
 if (waBtn) {
 const message = `Bonjour, je suis intéressé par ce produit :\n${product.title}`;
@@ -1449,153 +1398,38 @@ this.shareProduct(product);
 // Le bouton “Ajouter au panier” sera fixé par fixAddToCartButton()
 },
 
-/**
-
-- FIX ULTRA RADICAL pour le bouton “Ajouter au panier”
-- Bloque ABSOLUMENT toute navigation
-  */
-  fixAddToCartButton(product) {
-  console.log(‘Fix RADICAL bouton panier pour:’, product.title);
-
-const button = document.getElementById(‘pdpQuote’);
-
-if (!button) {
-console.log(‘Bouton non trouvé, retry dans 300ms…’);
-setTimeout(() => this.fixAddToCartButton(product), 300);
-return;
-}
-
-console.log(‘Bouton trouvé, application du fix RADICAL…’);
-
-// ÉTAPE 1: Neutraliser COMPLÈTEMENT le bouton
-button.removeAttribute(‘href’);
-button.removeAttribute(‘data-nav’);
-button.removeAttribute(‘data-action’);
-button.removeAttribute(‘onclick’);
-button.onclick = null;
-button.href = ‘’;
-
-// ÉTAPE 2: Vérifier si le bouton est dans un lien parent
-let parentLink = button.closest(‘a’);
-if (parentLink) {
-console.log(‘Bouton dans un lien parent détecté - neutralisation’);
-parentLink.removeAttribute(‘href’);
-parentLink.removeAttribute(‘data-nav’);
-parentLink.onclick = null;
-parentLink.href = ‘#’;
-}
-
-// ÉTAPE 3: Bloquer TOUTE navigation via hash change
-const originalPushState = history.pushState;
-const originalReplaceState = history.replaceState;
-let navigationBlocked = false;
-
-const blockNavigation = () => {
-navigationBlocked = true;
-
-```
-// Bloquer les changements de hash
-const currentHash = window.location.hash;
-window.addEventListener('hashchange', (e) => {
-  if (navigationBlocked && window.location.hash !== currentHash) {
-    console.log('Navigation bloquée - retour au hash original');
-    e.preventDefault();
-    window.location.hash = currentHash;
-    navigationBlocked = false;
-  }
-});
-
-// Restaurer après 1 seconde
-setTimeout(() => {
-  navigationBlocked = false;
-}, 1000);
-```
-
-};
-
-// ÉTAPE 4: Intercepter TOUS les événements possibles
-const events = [‘click’, ‘mousedown’, ‘mouseup’, ‘touchstart’, ‘touchend’, ‘keydown’];
-
-events.forEach(eventType => {
-// Supprimer tous les listeners existants en clonant
-const newButton = button.cloneNode(true);
-if (button.parentNode) {
-button.parentNode.replaceChild(newButton, button);
-}
-});
-
-// ÉTAPE 5: Récupérer le nouveau bouton et ajouter LE SEUL listener
-setTimeout(() => {
-const finalButton = document.getElementById(‘pdpQuote’);
-
-```
-if (!finalButton) {
-  console.error('Impossible de récupérer le bouton après clonage');
-  return;
-}
-
-// UN SEUL event listener qui fait TOUT
-finalButton.addEventListener('click', (e) => {
-  console.log('CLIC INTERCEPTÉ - Blocage navigation TOTAL');
-  
-  // Bloquer ABSOLUMENT tout
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-  
-  // Activer le blocage de navigation
-  blockNavigation();
-  
-  // Sauvegarder l'état actuel
-  const currentRoute = State.currentRoute;
-  const currentHash = window.location.hash;
-  
-  // Ajouter au panier
-  console.log('Ajout produit au panier:', product.slug);
-  const success = CartManager.addToCart(product.slug);
-  
-  // Forcer le retour à l'état original si navigation détectée
-  setTimeout(() => {
-    if (State.currentRoute !== currentRoute) {
-      console.log('Navigation détectée - correction forcée');
-      State.setRoute(currentRoute);
-      window.location.hash = currentHash;
+// Correction du bouton "Ajouter au panier" sur la fiche produit
+fixAddToCartButton(product) {
+    const button = document.getElementById('pdpQuote');
+    if (!button) {
+        console.error('Bouton "Ajouter au panier" introuvable sur la PDP.');
+        return;
     }
-  }, 50);
-  
-  if (success) {
-    // Feedback visuel sans toucher au style existant
-    const originalText = finalButton.textContent;
-    finalButton.textContent = 'Ajouté au panier !';
-    finalButton.style.cssText += 'background-color: #00e1b4 !important; color: white !important;';
-    
-    // Animation du dock si présent
-    const dock = document.getElementById('dockCartBtn');
-    if (dock) {
-      dock.style.cssText += 'transform: scale(1.1); transition: transform 0.2s;';
-      setTimeout(() => {
-        dock.style.transform = '';
-      }, 200);
+
+    // Remplacer le bouton pour nettoyer les anciens listeners complexes
+    const newButton = button.cloneNode(true);
+    if (button.parentNode) {
+        button.parentNode.replaceChild(newButton, button);
     }
-    
-    // Restaurer le bouton après 2.5s
-    setTimeout(() => {
-      finalButton.textContent = originalText;
-      finalButton.style.backgroundColor = '';
-      finalButton.style.color = '';
-    }, 2500);
-    
-    console.log('Produit ajouté - AUCUNE navigation');
-  }
-  
-  return false;
-  
-}, { capture: true, passive: false, once: false });
 
-console.log('Fix RADICAL appliqué avec succès');
-```
+    // Ajouter un listener simple et direct
+    newButton.addEventListener('click', (e) => {
+        e.preventDefault(); // Empêcher la navigation
+        e.stopPropagation(); // Empêcher la propagation
 
-}, 100);
+        const success = CartManager.addToCart(product.slug);
+
+        if (success) {
+            // Feedback visuel simple
+            const originalText = newButton.textContent;
+            newButton.textContent = 'Ajouté !';
+            newButton.style.backgroundColor = '#00e1b4';
+            setTimeout(() => {
+                newButton.textContent = originalText;
+                newButton.style.backgroundColor = '';
+            }, 2000);
+        }
+    });
 },
 
 async shareProduct(product) {
@@ -1611,15 +1445,15 @@ await navigator.share(shareData);
 } else {
 // Fallback
 await navigator.clipboard.writeText(shareData.url);
-UI.showToast(‘Lien copié dans le presse-papiers’, ‘success’);
+UI.showToast('Lien copié dans le presse-papiers', 'success');
 }
 } catch (error) {
-console.error(‘Share error:’, error);
+console.error('Share error:', error);
 }
 },
 
 loadRelatedProducts(product) {
-const container = document.getElementById(‘pdpRelated’);
+const container = document.getElementById('pdpRelated');
 if (!container) return;
 
 // Produits de même catégorie
@@ -1628,14 +1462,14 @@ const related = State.products
 .slice(0, 3);
 
 if (related.length === 0) {
-container.innerHTML = ‘’;
+container.innerHTML = '';
 return;
 }
 
 container.innerHTML = `<h3>Produits similaires</h3> <div class="related-grid"> ${related.map(p =>`
 <article class="related-card">
 <a href="#/produit/${p.slug}">
-${p.image ? `<img src="${p.image}" alt="${Utils.escapeHtml(p.title)}" loading="lazy">` : ‘’}
+${p.image ? `<img src="${p.image}" alt="${Utils.escapeHtml(p.title)}" loading="lazy">` : ''}
 <h4>${Utils.escapeHtml(p.title)}</h4>
 </a>
 </article>
@@ -1658,26 +1492,26 @@ this.updateAppVh();
 },
 
 async registerServiceWorker() {
-if (‘serviceWorker’ in navigator) {
+if ('serviceWorker' in navigator) {
 try {
-await navigator.serviceWorker.register(’./sw.js’);
-console.log(‘Service Worker registered’);
+await navigator.serviceWorker.register('./sw.js');
+console.log('Service Worker registered');
 } catch (error) {
-console.error(‘Service Worker registration failed:’, error);
+console.error('Service Worker registration failed:', error);
 }
 }
 },
 
 bindInstallEvents() {
-window.addEventListener(‘beforeinstallprompt’, (e) => {
+window.addEventListener('beforeinstallprompt', (e) => {
 e.preventDefault();
 this.deferredPrompt = e;
 UI.updateInstallButton();
 });
 
-const installBtn = document.getElementById(‘installBtn’);
+const installBtn = document.getElementById('installBtn');
 if (installBtn) {
-installBtn.addEventListener(‘click’, () => this.installApp());
+installBtn.addEventListener('click', () => this.installApp());
 }
 },
 
@@ -1687,8 +1521,8 @@ if (!this.deferredPrompt) return;
 this.deferredPrompt.prompt();
 const { outcome } = await this.deferredPrompt.userChoice;
 
-if (outcome === ‘accepted’) {
-UI.showToast(‘Application installée’, ‘success’);
+if (outcome === 'accepted') {
+UI.showToast('Application installée', 'success');
 }
 
 this.deferredPrompt = null;
@@ -1702,11 +1536,11 @@ return !!this.deferredPrompt;
 updateAppVh() {
 const updateVh = () => {
 const vh = window.innerHeight * 0.01;
-document.documentElement.style.setProperty(’–app-vh’, `${vh}px`);
+document.documentElement.style.setProperty('--app-vh', `${vh}px`);
 };
 
 updateVh();
-window.addEventListener(‘resize’, Utils.debounce(updateVh, 150));
+window.addEventListener('resize', Utils.debounce(updateVh, 150));
 }
 
 };
@@ -1718,10 +1552,10 @@ window.addEventListener(‘resize’, Utils.debounce(updateVh, 150));
 const Utils = {
 debounce(func, wait) {
 let timeout;
-return function executedFunction(…args) {
+return function executedFunction(...args) {
 const later = () => {
 clearTimeout(timeout);
-func(…args);
+func(...args);
 };
 clearTimeout(timeout);
 timeout = setTimeout(later, wait);
@@ -1730,7 +1564,7 @@ timeout = setTimeout(later, wait);
 
 throttle(func, wait) {
 let inThrottle;
-return function executedFunction(…args) {
+return function executedFunction(...args) {
 if (!inThrottle) {
 func.apply(this, args);
 inThrottle = true;
@@ -1740,22 +1574,19 @@ setTimeout(() => inThrottle = false, wait);
 },
 
 escapeHtml(unsafe) {
-if (!unsafe) return ‘’;
+if (!unsafe) return '';
 return String(unsafe)
-.replace(/&/g, “&”)
-.replace(/</g, “<”)
-.replace(/>/g, “>”)
-.replace(/”/g, “"”)
-.replace(/’/g, “'”)
-.replace(/[\u2013\u2014]/g, “-”) // em dash, en dash
-.replace(/[\u2018\u2019]/g, “’”) // smart quotes
-.replace(/[\u201C\u201D]/g, ‘”’); // smart double quotes
+.replace(/&/g, "&amp;")
+.replace(/</g, "&lt;")
+.replace(/>/g, "&gt;")
+.replace(/"/g, "&quot;")
+.replace(/'/g, "&#039;");
 },
 
 formatPrice(price) {
-return new Intl.NumberFormat(‘fr-FR’, {
-style: ‘currency’,
-currency: ‘EUR’
+return new Intl.NumberFormat('fr-FR', {
+style: 'currency',
+currency: 'EUR'
 }).format(price);
 },
 
@@ -1776,10 +1607,9 @@ return navigator.onLine;
 const App = {
 async init() {
 try {
-console.log(‘Pirates Tools App v2.0 - Initialisation…’);
-console.log(‘DOM ready state:’, document.readyState);
+console.log('Pirates Tools App v2.0 - Initialisation...');
+console.log('DOM ready state:', document.readyState);
 
-```
 // Vérifier les éléments critiques
 const criticalElements = [
   'view-home', 'view-catalogue', 'view-produit', 'view-devis', 'view-compte', 'view-auth',
@@ -1808,26 +1638,23 @@ console.log('Cart after init:', State.cart);
 console.log('Cart count after init:', State.cartCount);
 
 console.log('Application prete !');
-```
-
 } catch (error) {
-console.error(‘Erreur d'initialisation:’, error);
-console.error(‘Error stack:’, error.stack);
-UI.showToast(‘Erreur de chargement de l'application’, ‘error’);
+console.error("Erreur d'initialisation:", error);
+console.error('Error stack:', error.stack);
+UI.showToast("Erreur de chargement de l'application", 'error');
 }
 },
 
 bindGlobalEvents() {
-console.log(‘Binding global events…’);
+console.log('Binding global events...');
 
 // Navigation data-nav (exclure pdpQuote)
-document.addEventListener(‘click’, (e) => {
+document.addEventListener('click', (e) => {
 // Ignorer complètement le bouton PDP - il est géré par son propre fix
-if (e.target.id === ‘pdpQuote’ || e.target.closest(’#pdpQuote’)) {
+if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
 return;
 }
 
-```
 const navEl = e.target.closest('[data-nav]');
 if (navEl && navEl.id !== 'pdpQuote') {
   console.log('Navigation via data-nav to:', navEl.dataset.nav);
@@ -1835,31 +1662,26 @@ if (navEl && navEl.id !== 'pdpQuote') {
   const route = navEl.dataset.nav;
   window.location.hash = '#' + route;
 }
-```
-
 });
 
 // Actions data-action (exclure pdpQuote)
-document.addEventListener(‘click’, (e) => {
+document.addEventListener('click', (e) => {
 // Ignorer complètement le bouton PDP
-if (e.target.id === ‘pdpQuote’ || e.target.closest(’#pdpQuote’)) {
+if (e.target.id === 'pdpQuote' || e.target.closest('#pdpQuote')) {
 return;
 }
 
-```
 const actionEl = e.target.closest('[data-action]');
 if (actionEl && actionEl.id !== 'pdpQuote') {
   console.log('Global action triggered:', actionEl.dataset.action);
   e.preventDefault();
   this.handleGlobalAction(actionEl.dataset.action, actionEl);
 }
-```
-
 });
 
 // Échap pour fermer modales
-document.addEventListener(‘keydown’, (e) => {
-if (e.key === ‘Escape’) {
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape') {
 if (UI.Menu && UI.Menu.isOpen()) {
 UI.Menu.close();
 }
@@ -1867,27 +1689,26 @@ UI.Menu.close();
 });
 
 // Status réseau
-window.addEventListener(‘online’, () => {
-UI.showToast(‘Connexion rétablie’, ‘success’);
+window.addEventListener('online', () => {
+UI.showToast('Connexion rétablie', 'success');
 });
 
-window.addEventListener(‘offline’, () => {
-UI.showToast(‘Mode hors ligne’, ‘warning’);
+window.addEventListener('offline', () => {
+UI.showToast('Mode hors ligne', 'warning');
 });
 },
 
 handleGlobalAction(action, element) {
-console.log(‘Global action:’, action); // Debug
+console.log('Global action:', action); // Debug
 
 switch (action) {
-case ‘add-to-cart’:
+case 'add-to-cart':
 const productSlug = element.dataset.product || State.currentProduct?.slug;
 if (productSlug) {
 CartManager.addToCart(productSlug);
 }
 break;
 
-```
 case 'send-quote':
   CartManager.sendQuoteToWhatsApp();
   break;
@@ -1929,8 +1750,6 @@ case 'share':
   
 default:
   console.warn('Action inconnue:', action);
-```
-
 }
 }
 
@@ -1940,7 +1759,7 @@ default:
 // EXPORT & START
 // ===========================================
 
-// Initialisation immédiate de l’API globale
+// Initialisation immédiate de l'API globale
 window.PiratesTools = {
 // État par défaut
 _initialized: false,
@@ -1955,35 +1774,35 @@ navigateTo(route) {
 if (Router.navigateTo) {
 Router.navigateTo(route);
 } else {
-window.location.hash = ‘#’ + route;
+window.location.hash = '#' + route;
 }
 },
 
 addToCart(slug, quantity) {
-console.log(‘addToCart called:’, slug, quantity);
+console.log('addToCart called:', slug, quantity);
 if (CartManager.addToCart) {
 return CartManager.addToCart(slug, quantity);
 } else {
-console.warn(‘CartManager not ready’);
+console.warn('CartManager not ready');
 return false;
 }
 },
 
 updateCartQuantity(slug, quantity) {
-console.log(‘updateCartQuantity called:’, slug, quantity);
+console.log('updateCartQuantity called:', slug, quantity);
 if (CartManager.updateQuantity) {
 CartManager.updateQuantity(slug, quantity);
 } else {
-console.warn(‘CartManager not ready’);
+console.warn('CartManager not ready');
 }
 },
 
 removeFromCart(slug) {
-console.log(‘removeFromCart called:’, slug);
+console.log('removeFromCart called:', slug);
 if (CartManager.removeFromCart) {
 CartManager.removeFromCart(slug);
 } else {
-console.warn(‘CartManager not ready’);
+console.warn('CartManager not ready');
 }
 },
 
@@ -1991,192 +1810,80 @@ showToast(message, type) {
 if (UI.showToast) {
 UI.showToast(message, type);
 } else {
-console.log(‘Toast:’, message, type);
+console.log('Toast:', message, type);
 }
 },
 
 // Debug methods
 debugCart() {
-console.log(’=== CART DEBUG ===’);
-console.log(‘State.cart:’, State.cart);
-console.log(‘State.cartCount:’, State.cartCount);
-console.log(‘State.cartTotal:’, State.cartTotal);
-console.log(‘localStorage cart:’, localStorage.getItem(‘cart’));
-console.log(‘localStorage pt_cart:’, localStorage.getItem(STORAGE_KEYS.CART));
-console.log(‘CartManager exists:’, !!CartManager);
-console.log(’==================’);
+console.log('=== CART DEBUG ===');
+console.log('State.cart:', State.cart);
+console.log('State.cartCount:', State.cartCount);
+console.log('State.cartTotal:', State.cartTotal);
+console.log('localStorage cart:', localStorage.getItem('cart'));
+console.log('localStorage pt_cart:', localStorage.getItem(STORAGE_KEYS.CART));
+console.log('CartManager exists:', !!CartManager);
+console.log('==================');
 },
 
 forceCartUpdate() {
-console.log(‘Forcing cart update…’);
+console.log('Forcing cart update...');
 if (CartManager.updateCartUI) {
 CartManager.updateCartUI();
 } else {
-console.warn(‘CartManager.updateCartUI not available’);
+console.warn('CartManager.updateCartUI not available');
 }
 },
 
 testAddToCart() {
-console.log(‘Testing add to cart…’);
+console.log('Testing add to cart...');
 
 // Créer un produit de test
 const testProduct = {
-slug: ‘test-product-’ + Date.now(),
-title: ‘Produit de Test’,
+slug: 'test-product-' + Date.now(),
+title: 'Produit de Test',
 price: 99.99,
 image: null,
-tag: ‘Test’,
-description: ‘Produit de test pour vérifier le panier’
+tag: 'Test',
+description: 'Produit de test pour vérifier le panier'
 };
 
-// L’ajouter aux produits disponibles
+// L'ajouter aux produits disponibles
 if (State.products) {
 State.products.push(testProduct);
 } else {
 State.products = [testProduct];
 }
 
-console.log(‘Test product created:’, testProduct);
+console.log('Test product created:', testProduct);
 
-// L’ajouter au panier
+// L'ajouter au panier
 return this.addToCart(testProduct.slug);
 },
 
-// Diagnostic du bouton PDP
-diagnoseAddToCartButton() {
-console.log(’=== DIAGNOSTIC BOUTON AJOUTER AU PANIER ===’);
 
-const btn = document.getElementById(‘pdpQuote’);
-console.log(‘Bouton trouvé:’, !!btn);
-
-if (btn) {
-console.log(‘Attributs du bouton:’);
-for (let attr of btn.attributes) {
-console.log(`  ${attr.name}: "${attr.value}"`);
-}
-
-```
-console.log('Propriétés du bouton:');
-console.log('  onclick:', btn.onclick);
-console.log('  href:', btn.href);
-console.log('  tagName:', btn.tagName);
-console.log('  className:', btn.className);
-console.log('  textContent:', btn.textContent.trim());
-
-console.log('Parent du bouton:', btn.parentElement?.tagName, btn.parentElement?.className);
-
-console.log('Listeners détectés:');
-// Vérifier les event listeners (approximatif)
-const events = ['click', 'mousedown', 'mouseup'];
-events.forEach(eventType => {
-  // Note: impossible de lister les vrais listeners, mais on peut tester
-  console.log(`  ${eventType}: listeners probablement présents`);
-});
-
-console.log('Route actuelle:', State.currentRoute);
-console.log('Produit actuel:', State.currentProduct?.title || 'Non défini');
-
-// Test de clic simulé
-console.log('Test de clic simulé...');
-const testEvent = new MouseEvent('click', {
-  bubbles: true,
-  cancelable: true,
-  view: window
-});
-
-// Empêcher navigation pendant le test
-const originalHash = window.location.hash;
-btn.dispatchEvent(testEvent);
-
-setTimeout(() => {
-  if (window.location.hash !== originalHash) {
-    console.log('PROBLÈME: Navigation détectée pendant le test !');
-    console.log('  Hash avant:', originalHash);
-    console.log('  Hash après:', window.location.hash);
-  } else {
-    console.log('Test OK: Pas de navigation inattendue');
-  }
-}, 100);
-```
-
-} else {
-console.log(‘Bouton non trouvé - vérifier que vous êtes sur une fiche produit’);
-}
-
-console.log(’=====================================’);
-},
-
-// Fix d’urgence pour forcer le bouton à fonctionner
-emergencyFixButton() {
-console.log(‘FIX D'URGENCE pour le bouton panier’);
-
-const btn = document.getElementById(‘pdpQuote’);
-if (!btn) {
-console.log(‘Bouton non trouvé’);
-return;
-}
-
-// Supprimer TOUT
-btn.removeAttribute(‘href’);
-btn.removeAttribute(‘data-nav’);
-btn.removeAttribute(‘data-action’);
-btn.removeAttribute(‘onclick’);
-btn.onclick = null;
-
-// Stopper TOUS les événements
-[‘click’, ‘mousedown’, ‘mouseup’, ‘touchstart’, ‘touchend’].forEach(eventType => {
-btn.addEventListener(eventType, (e) => {
-console.log(`Événement ${eventType} intercepté et bloqué`);
-e.preventDefault();
-e.stopPropagation();
-e.stopImmediatePropagation();
-
-```
-  if (eventType === 'click') {
-    // Simuler l'ajout au panier
-    if (State.currentProduct) {
-      CartManager.addToCart(State.currentProduct.slug);
-      btn.textContent = 'Ajouté !';
-      setTimeout(() => {
-        btn.textContent = 'Ajouter au panier';
-      }, 2000);
-    }
-  }
-  
-  return false;
-}, { capture: true, passive: false });
-```
-
-});
-
-console.log(‘Fix d'urgence appliqué’);
-},
-
-// Méthode d’initialisation
+// Méthode d'initialisation
 async init() {
 if (this._initialized) {
-console.log(‘PiratesTools already initialized’);
+console.log('PiratesTools already initialized');
 return this._initPromise;
 }
 
 if (this._initPromise) {
-console.log(‘PiratesTools initialization in progress…’);
+console.log('PiratesTools initialization in progress...');
 return this._initPromise;
 }
 
-console.log(‘Starting PiratesTools initialization…’);
+console.log('Starting PiratesTools initialization...');
 
 this._initPromise = App.init().then(() => {
 this._initialized = true;
-console.log(‘PiratesTools fully initialized’);
+console.log('PiratesTools fully initialized');
 
-```
 // Remplacer les méthodes par les vraies
 Object.assign(this, App);
-```
-
 }).catch(error => {
-console.error(‘PiratesTools initialization failed:’, error);
+console.error('PiratesTools initialization failed:', error);
 throw error;
 });
 
@@ -2187,31 +1894,31 @@ return this._initPromise;
 
 // Debug global pour les tests
 window.debugPiratesTools = () => {
-console.log(’=== PIRATES TOOLS DEBUG ===’);
-console.log(‘Initialized:’, window.PiratesTools._initialized);
-console.log(‘State:’, State);
-console.log(‘Cart in localStorage:’, localStorage.getItem(‘cart’));
-console.log(‘Cart in pt_cart:’, localStorage.getItem(‘pt_cart’));
-console.log(‘Current route:’, State.currentRoute);
-console.log(‘Products loaded:’, State.products?.length || 0);
-console.log(‘Available methods:’, Object.keys(window.PiratesTools));
-console.log(’============================’);
+console.log('=== PIRATES TOOLS DEBUG ===');
+console.log('Initialized:', window.PiratesTools._initialized);
+console.log('State:', State);
+console.log('localStorage cart:', localStorage.getItem('cart'));
+console.log('localStorage pt_cart:', localStorage.getItem(STORAGE_KEYS.CART));
+console.log('Current route:', State.currentRoute);
+console.log('Products loaded:', State.products?.length || 0);
+console.log('Available methods:', Object.keys(window.PiratesTools));
+console.log('============================');
 };
 
 // Auto-start robuste
 function startApp() {
-console.log(‘Starting Pirates Tools App…’);
-console.log(‘Document ready state:’, document.readyState);
+console.log('Starting Pirates Tools App...');
+console.log('Document ready state:', document.readyState);
 
-// Démarrer l’initialisation
+// Démarrer l'initialisation
 window.PiratesTools.init().catch(error => {
-console.error(‘App initialization failed:’, error);
+console.error('App initialization failed:', error);
 
 // Retry après un délai
 setTimeout(() => {
-console.log(‘Retrying app initialization…’);
+console.log('Retrying app initialization...');
 window.PiratesTools.init().catch(retryError => {
-console.error(‘App initialization retry failed:’, retryError);
+console.error('App initialization retry failed:', retryError);
 });
 }, 2000);
 });
@@ -2219,9 +1926,9 @@ console.error(‘App initialization retry failed:’, retryError);
 }
 
 // Démarrage selon état du DOM
-if (document.readyState === ‘loading’) {
-document.addEventListener(‘DOMContentLoaded’, startApp);
-} else if (document.readyState === ‘interactive’) {
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', startApp);
+} else if (document.readyState === 'interactive') {
 // DOM prêt mais ressources en cours de chargement
 setTimeout(startApp, 100);
 } else {
@@ -2240,22 +1947,21 @@ let toolModel = null;
 // Chargement des données des outils
 async function loadToolsData() {
 try {
-const response = await fetch(‘models/tools.json’);
+const response = await fetch('models/tools.json');
 const data = await response.json();
 toolsData = data.tools;
 renderToolsBanner();
 } catch (error) {
-console.error(‘Erreur chargement tools.json:’, error);
+console.error('Erreur chargement tools.json:', error);
 showFallbackBanner();
 }
 }
 
-// Affichage de la bannière d’outils
+// Affichage de la bannière d'outils
 function renderToolsBanner() {
-const bannerContainer = document.getElementById(‘tools-banner’);
+const bannerContainer = document.getElementById('tools-banner');
 if (!bannerContainer) return;
 
-```
 const toolsGrid = bannerContainer.querySelector('.tools-grid');
 if (!toolsGrid) return;
 
@@ -2268,17 +1974,14 @@ toolsData.forEach(tool => {
 
 // Initialiser les contrôles de scroll
 initScrollControls();
-```
-
 }
 
-// Création d’une carte d’outil
+// Création d'une carte d'outil
 function createToolCard(tool) {
-const card = document.createElement(‘div’);
+const card = document.createElement('div');
 card.className = `tool-card ${!tool.available ? 'unavailable' : ''}`;
 card.dataset.toolId = tool.id;
 
-```
 card.innerHTML = `
     <div class="tool-preview">
         <img src="${tool.thumbnail}" alt="${tool.name}" loading="lazy">
@@ -2299,18 +2002,15 @@ if (tool.available) {
 }
 
 return card;
-```
-
 }
 
 // Contrôles de scroll
 function initScrollControls() {
-const container = document.querySelector(’.tools-scroll-container’);
-const grid = document.querySelector(’.tools-grid’);
-const leftBtn = document.querySelector(’.scroll-left’);
-const rightBtn = document.querySelector(’.scroll-right’);
+const container = document.querySelector('.tools-scroll-container');
+const grid = document.querySelector('.tools-grid');
+const leftBtn = document.querySelector('.scroll-left');
+const rightBtn = document.querySelector('.scroll-right');
 
-```
 if (!container || !grid || !leftBtn || !rightBtn) return;
 
 const scrollAmount = 300;
@@ -2336,15 +2036,12 @@ function updateScrollButtons() {
 
 grid.addEventListener('scroll', updateScrollButtons);
 updateScrollButtons();
-```
-
 }
 
 // Ouverture du visualiseur 3D
 function openTool3DViewer(tool) {
 currentTool = tool;
 
-```
 // Créer et afficher le modal 3D
 createTool3DModal(tool);
 
@@ -2352,19 +2049,16 @@ createTool3DModal(tool);
 setTimeout(() => {
     initThreeJS(tool);
 }, 100);
-```
-
 }
 
 // Création du modal 3D
 function createTool3DModal(tool) {
-// Supprimer le modal existant s’il y en a un
-const existingModal = document.getElementById(‘tool-3d-modal’);
+// Supprimer le modal existant s'il y en a un
+const existingModal = document.getElementById('tool-3d-modal');
 if (existingModal) {
 existingModal.remove();
 }
 
-```
 const modal = document.createElement('div');
 modal.id = 'tool-3d-modal';
 modal.className = 'tool-3d-modal';
@@ -2410,16 +2104,13 @@ document.addEventListener('keydown', handleModalKeydown);
 requestAnimationFrame(() => {
     modal.classList.add('open');
 });
-```
-
 }
 
 // Fermeture du modal 3D
 function closeTool3DModal() {
-const modal = document.getElementById(‘tool-3d-modal’);
+const modal = document.getElementById('tool-3d-modal');
 if (!modal) return;
 
-```
 modal.classList.remove('open');
 document.body.style.overflow = '';
 document.removeEventListener('keydown', handleModalKeydown);
@@ -2437,23 +2128,20 @@ if (scene) {
 setTimeout(() => {
     modal.remove();
 }, 300);
-```
-
 }
 
 // Gestion des touches
 function handleModalKeydown(e) {
-if (e.key === ‘Escape’) {
+if (e.key === 'Escape') {
 closeTool3DModal();
 }
 }
 
 // Initialisation de Three.js
 async function initThreeJS(tool) {
-const viewport = document.getElementById(‘tool-3d-viewport’);
+const viewport = document.getElementById('tool-3d-viewport');
 if (!viewport) return;
 
-```
 try {
     // Configuration de la scène
     scene = new THREE.Scene();
@@ -2509,8 +2197,6 @@ try {
     console.error('Erreur initialisation Three.js:', error);
     showModelError(viewport);
 }
-```
-
 }
 
 // Chargement du modèle 3D
@@ -2518,7 +2204,6 @@ async function loadTool3DModel(tool) {
 return new Promise((resolve, reject) => {
 const loader = new THREE.GLTFLoader();
 
-```
     loader.load(
         tool.model,
         (gltf) => {
@@ -2558,15 +2243,12 @@ const loader = new THREE.GLTFLoader();
         }
     );
 });
-```
-
 }
 
-// Boucle d’animation
+// Boucle d'animation
 function animate() {
 if (!renderer || !scene || !camera) return;
 
-```
 requestAnimationFrame(animate);
 
 if (controls) {
@@ -2579,8 +2261,6 @@ if (toolModel) {
 }
 
 renderer.render(scene, camera);
-```
-
 }
 
 // Réinitialiser la caméra
@@ -2593,46 +2273,40 @@ controls.reset();
 
 // Gestion du redimensionnement
 function handleResize() {
-const viewport = document.getElementById(‘tool-3d-viewport’);
+const viewport = document.getElementById('tool-3d-viewport');
 if (!viewport || !camera || !renderer) return;
 
-```
 camera.aspect = viewport.clientWidth / viewport.clientHeight;
 camera.updateProjectionMatrix();
 renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-```
-
 }
 
-// Affichage d’erreur pour le modèle
+// Affichage d'erreur pour le modèle
 function showModelError(viewport) {
 viewport.innerHTML = `<div class="model-error"> <p>❌ Erreur de chargement du modèle 3D</p> <p>Vérifiez que le fichier existe et est au bon format</p> </div>`;
 }
 
 // Bannière de fallback si pas de données
 function showFallbackBanner() {
-const bannerContainer = document.getElementById(‘tools-banner’);
+const bannerContainer = document.getElementById('tools-banner');
 if (!bannerContainer) return;
 
-```
 bannerContainer.innerHTML = `
     <h2>Nos Outils Professionnels</h2>
     <div class="tools-scroll-container">
         <p class="empty">Chargement des outils 3D...</p>
     </div>
 `;
-```
-
 }
 
 // Initialisation au chargement de la page
-document.addEventListener(‘DOMContentLoaded’, () => {
-if (document.body.classList.contains(‘page-home’)) {
+document.addEventListener('DOMContentLoaded', () => {
+if (document.body.classList.contains('page-home')) {
 loadToolsData();
 }
 });
 
 // Gestion du redimensionnement
-window.addEventListener(‘resize’, handleResize);
+window.addEventListener('resize', handleResize);
 
 })();
