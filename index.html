@@ -118,7 +118,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 500;
+      z-index: 9999;
       transition: transform 0.1s ease-out;
     }
 
@@ -686,6 +686,7 @@
       return path === viewRoute || path.indexOf(viewRoute + '/') === 0; // accepte /produit/xxx
     }
     function syncViews(){
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       var path=currentPath();
       group('router: syncViews -> '+path);
 
@@ -1028,13 +1029,19 @@
     // ---------- Cart utils ----------
     function getCartRaw(){
       try{
-        var raw = localStorage.getItem(CART_KEY) || localStorage.getItem('pt_cart') || '[]';
+        var raw = localStorage.getItem('pt_cart') || '[]';
         var parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : (parsed.items||[]);
       }catch(_){ return []; }
     }
     function setCartRaw(items){
-      try{ localStorage.setItem(CART_KEY, JSON.stringify(items)); }catch(_){}
+      try{
+        var cartData = {
+          items: items,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('pt_cart', JSON.stringify(cartData));
+      }catch(_){}
     }
     function addToCart(item){
       var items=getCartRaw();
@@ -1480,7 +1487,7 @@
           logoContainer.style.removeProperty('--opacity-factor');
         } else if (scrollY < startScroll + animationDistance) {
           var progress = (scrollY - startScroll) / animationDistance;
-          var scaleFactor = 1 + (progress * 5);
+          var scaleFactor = 1 + (progress * 8);
           var opacityFactor = Math.max(0, 1 - progress);
           
           logoContainer.className = 'hero-logo-container scaling';
