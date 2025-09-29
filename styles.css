@@ -28,7 +28,7 @@ color-scheme: dark;
 --container-w: 1100px;
 
 /* Layout dynamiques (pilotés par JS) */
---listGap: 22vh;
+--listGap: 11vh;
 --heroFadeH: 26vh;
 --safe-top: 70px;
 --app-vh: 1vh;
