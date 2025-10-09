@@ -59,7 +59,6 @@
         <h1 id="home-h1" tabindex="-1">Bienvenue</h1>
         <p style="margin:0 0 1rem;color:#9fb4c5">Choisissez une marque ou explorez le catalogue.</p>
         <div id="brandGrid" class="brand-grid brand-grid--3col" role="list"></div>
-        
         <section id="tools-banner" class="tools-banner">
           <h2>Découvrez nos Outils en 3D</h2>
           <div class="tools-scroll-container">
@@ -77,10 +76,8 @@
       <div class="container">
         <h1 id="catalogue-h1" tabindex="-1">Catalogue</h1>
         <div class="toolbar">
-          <input id="q" class="search" type="search" placeholder="Rechercher (marque, réf, description…)" autocomplete="off" />
-          <select id="tag" class="select" aria-label="Filtrer par catégorie">
-            <option value="">Tous</option>
-          </select>
+          <input id="q" class="search" type="search" placeholder="Rechercher..." autocomplete="off" />
+          <select id="tag" class="select" aria-label="Filtrer par catégorie"><option value="">Tous</option></select>
         </div>
         <div id="catList" class="cat-list" aria-label="Catégories"></div>
         <div id="list" class="list" aria-live="polite" aria-busy="false"></div>
@@ -96,7 +93,7 @@
             <h1 id="pdpTitle" class="pdp__title" tabindex="-1">Produit</h1>
             <div id="pdpTag" class="pdp__tag"></div>
             <p id="pdpDesc" class="pdp__desc"></p>
-            <div class="pdp__price" id="pdpPrice"></div>
+            <div id="pdpPrice" class="pdp__price"></div>
             <ul id="pdpSpecs" class="pdp__specs"></ul>
             <div class="actions">
               <button id="pdpQuote" class="btn primary" type="button">Ajouter au panier</button>
@@ -105,7 +102,7 @@
             </div>
           </div>
         </div>
-        <div class="pdp__related" id="pdpRelated"></div>
+        <div id="pdpRelated" class="pdp__related"></div>
       </div>
     </section>
 
@@ -131,17 +128,12 @@
                 <div class="specs">
                     <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.75rem">
                         <img id="accAvatarImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" alt="Avatar" width="64" height="64" style="border-radius:50%;object-fit:cover"/>
-                        <label class="chip" style="cursor:pointer">
-                            <input id="accAvatar" type="file" accept="image/*" hidden />
-                            Changer d'avatar
-                        </label>
+                        <label class="chip" style="cursor:pointer"><input id="accAvatar" type="file" accept="image/*" hidden />Changer d'avatar</label>
                     </div>
                     <form id="accountForm" style="display:grid;gap:.6rem;max-width:520px">
                         <label>Nom<input id="accName" type="text" class="search" placeholder="Votre nom" autocomplete="name" /></label>
                         <label>Email<input id="accEmail" type="email" class="search" placeholder="vous@exemple.com" autocomplete="email" /></label>
-                        <div class="actions">
-                            <button id="accSave" class="btn primary" type="submit">Enregistrer</button>
-                        </div>
+                        <div class="actions"><button id="accSave" class="btn primary" type="submit">Enregistrer</button></div>
                     </form>
                     <div class="card" style="margin-top:1rem;max-width:520px">
                         <div class="head"><h3 class="title">Votre panier</h3><span class="badge">Résumé</span></div>
@@ -208,11 +200,11 @@
   <aside id="side-menu" class="drawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle" aria-hidden="true">
     <h2 id="menuTitle" class="menu-title">Menu</h2>
     <nav class="menu" aria-label="Navigation principale">
-      <a href="#/" data-nav="/"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Accueil</span></a>
-      <a href="#/catalogue" data-nav="/catalogue"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Catalogue</span></a>
-      <a href="#/devis" data-nav="/devis"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M7 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Devis</span></a>
-      <a href="#/compte" data-nav="/compte"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Compte</span></a>
-    </nav>
+        <a href="#/" data-nav="/"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M5 10.5V21h5v-6h4v6h5v-10.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Accueil</span></a>
+        <a href="#/catalogue" data-nav="/catalogue"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Catalogue</span></a>
+        <a href="#/devis" data-nav="/devis"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6L20 8H7" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M7 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 8l1 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Devis</span></a>
+        <a href="#/compte" data-nav="/compte"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2.5"/></svg><span>Compte</span></a>
+      </nav>
   </aside>
 
   <div id="toasts" aria-live="polite"></div>
@@ -221,7 +213,7 @@
   <button id="installBtn" class="chip hidden" data-action="install">Installer l'app</button>
 
   <noscript>
-    <div style="padding:1rem;margin:1rem;border:1px solid #22303b;border-radius:8px;background:#121b24;color:#e6edf5">
+    <div style="padding:1rem;border:1px solid #22303b;border-radius:8px;background:#121b24;color:#e6edf5">
       Cette application nécessite JavaScript pour fonctionner.
     </div>
   </noscript>
