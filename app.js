@@ -1,3 +1,5 @@
+/* Pirates Tools PWA - Application principale optimisée
+
 - Version: 2.0
 - Compatible avec HTML/CSS existant. */
 
